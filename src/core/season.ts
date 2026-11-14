@@ -5,9 +5,12 @@ import rules from '../data/season.json';
 import type { GameResult } from '../sim/match';
 import { modified, type Modifier, type PowerupSpec } from '../sim/modifiers';
 import { aiTeamsByStrength, bossInfo, buildBoss } from './bosses';
+import { playerGearModifiers, type GearItem } from './gear';
 import { playerOf, teamOf, userTeam, type League } from './league';
 import { dressedSkaters, setLineupSlot } from './lineup';
 import { applyResult, dress, type DressedTeam } from './matchup';
+import { newMilestones, tally } from './milestones';
+import { awardPack, packForWin, packName, type Pack } from './packs';
 import { createRng, type Rng } from './rng';
 import { canPlay } from './roster';
 import { generateMap, type SeasonMap, type Stop } from './seasonMap';
@@ -61,6 +64,13 @@ export interface SeasonState {
   rolls: number;
   gamesPlayed: number;
   gamesWon: number;
+  /** Milestone ids reached this season. */
+  milestones: string[];
+  /** Goals this season by player id. */
+  playerGoals: Record<string, number>;
+  shutouts: number;
+  /** True once any of your players has scored three in a game this season. */
+  hatTrick: boolean;
 }
 
 /** Everything that is saved: the league, the record, where the season stands, and the artifacts owned. */
@@ -70,6 +80,16 @@ export interface Franchise {
   season: SeasonState;
   /** Artifact ids, kept across seasons until prestige. */
   artifacts: string[];
+  /** Every piece of gear the team owns. Permanent. */
+  gear: GearItem[];
+  /** Packs awarded and not yet opened. */
+  packs: Pack[];
+  /** Tape: earned by scrapping gear, spent on levelling it up. */
+  tape: number;
+  /** Packs awarded since the last one that held a Legendary, for the pity timer. */
+  packsSinceLegendary: number;
+  /** How many packs have ever been awarded; also numbers the pieces. */
+  gearCount: number;
 }
 
 export type ActionResult = { ok: true; message: string } | { ok: false; reason: string };
@@ -97,11 +117,15 @@ export function newSeasonState(): SeasonState {
     rolls: 0,
     gamesPlayed: 0,
     gamesWon: 0,
+    milestones: [],
+    playerGoals: {},
+    shutouts: 0,
+    hatTrick: false,
   };
 }
 
 export function newFranchise(league: League): Franchise {
-  return { league, record: emptyRecord(), season: newSeasonState(), artifacts: [] };
+  return { league, record: emptyRecord(), season: newSeasonState(), artifacts: [], gear: [], packs: [], tape: 0, packsSinceLegendary: 0, gearCount: 0 };
 }
 
 // ---------- look-ups ----------
@@ -272,7 +296,11 @@ export interface Matchup {
 
 /** The player's team as it takes the ice: dressed lineup, season bumps, artifacts and temporary effects. */
 export function dressUser(f: Franchise): DressedTeam | null {
-  return dress(f.league, userTeam(f.league), { bumps: f.season.bumps, modifiers: teamModifiers(f) });
+  return dress(f.league, userTeam(f.league), {
+    bumps: f.season.bumps,
+    modifiers: teamModifiers(f),
+    gear: (playerId) => playerGearModifiers(f, playerId),
+  });
 }
 
 /** The game waiting to be played at the current stop or playoff round, or null if there is none. */
@@ -335,8 +363,37 @@ function strike(f: Franchise): boolean {
   return true;
 }
 
-/** Records the game just played at the current stop or playoff round, and moves the season on. */
+/** Gold packs for any season milestones just reached. Returns the words to add to a message. */
+function awardMilestones(f: Franchise): string {
+  return newMilestones(f)
+    .map((m) => {
+      awardPack(f, 'gold', `Milestone: ${m.name}`);
+      return ` Milestone reached: ${m.name}. You earn a ${packName('gold')}.`;
+    })
+    .join('');
+}
+
+/**
+ * Records the game just played at the current stop or playoff round, and moves the season on.
+ * A win earns a pack, and any season milestone it completes earns a Gold pack.
+ */
 export function recordGame(f: Franchise, result: GameResult): ActionResult {
+  const game = matchup(f);
+  const played = f.season.gamesPlayed;
+  const outcome = settleGame(f, result);
+  if (!outcome.ok || !game || f.season.gamesPlayed === played) return outcome;
+
+  tally(f, result, game.home);
+  let message = outcome.message;
+  const pack = packForWin(result, game.kind === 'boss');
+  if (pack) {
+    awardPack(f, pack, game.title);
+    message += ` You earn a ${packName(pack)}.`;
+  }
+  return { ok: true, message: message + awardMilestones(f) };
+}
+
+function settleGame(f: Franchise, result: GameResult): ActionResult {
   const { season } = f;
   const game = matchup(f);
   if (!game) return refuse('There is no game to record.');
@@ -421,7 +478,8 @@ export function pickArtifact(f: Franchise, artifactId: string): ActionResult {
   if (f.season.stage !== 'reward' || !f.season.offer.includes(artifactId)) return refuse('That artifact is not on offer.');
   f.artifacts.push(artifactId);
   finishStop(f);
-  return done(`You take ${artifactInfo(artifactId).name}.`);
+  // Beating the last boss puts you in the playoffs, which is a milestone.
+  return done(`You take ${artifactInfo(artifactId).name}.${awardMilestones(f)}`);
 }
 
 // ---------- loadout ----------

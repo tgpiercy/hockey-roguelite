@@ -119,6 +119,27 @@ h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity
 .grade-Bplus, .grade-B { background: #2a9d8f; color: #fff; }
 .grade-Cplus, .grade-C { background: #a9d6f5; }
 .ratings { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; }
+.gear { font-weight: 700; }
+.gear-common { color: #c9d6df; }
+.gear-rare { color: #6cc4ff; }
+.gear-epic { color: #c79bff; }
+.gear-legendary { color: #ffd166; }
+.gear-row { display: inline-flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.gear-what { opacity: 0.9; }
+.gear-card { border: 2px solid #c9d6df; border-radius: 8px; padding: 8px 12px; margin: 4px 0; max-width: 34em; line-height: 1.45; }
+.gear-card-name { font-size: 18px; font-weight: 700; text-transform: capitalize; }
+.gear-card-rare { border-color: #6cc4ff; }
+.gear-card-rare .gear-card-name { color: #6cc4ff; }
+.gear-card-epic { border-color: #c79bff; }
+.gear-card-epic .gear-card-name { color: #c79bff; }
+.gear-card-legendary { border-color: #ffd166; background: rgba(255, 209, 102, 0.08); }
+.gear-card-legendary .gear-card-name { color: #ffd166; }
+.gear-card-set { color: #ffd166; }
+.gear-card-kind { opacity: 0.65; font-size: 12px; }
+.reveal-list { margin-top: 4px; line-height: 1.5; }
+.ratings .up { color: #7ee081; }
+.ratings .down { color: #ff8a80; }
+.ratings .note { opacity: 0.8; font-style: italic; }
 .dots { display: inline-flex; gap: 3px; vertical-align: middle; }
 .dot { width: 9px; height: 9px; border-radius: 50%; border: 1px solid #e8f4fb; display: inline-block; }
 .dot.on { background: #ffd166; border-color: #ffd166; }

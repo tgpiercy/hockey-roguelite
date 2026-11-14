@@ -66,6 +66,7 @@ export function givePuck(world: World, player: Player): void {
   puck.passTarget = null;
   puck.air = 0;
   puck.shotBy = null;
+  puck.threaded = false;
   // The run of touches carries on within a team and starts again when the other team gets it.
   const last = puck.touches[puck.touches.length - 1];
   if (puck.lastTeam !== player.team) puck.touches = [player.id];
@@ -81,4 +82,5 @@ export function loosePuck(world: World): void {
   world.puck.carrier = null;
   world.puck.passTarget = null;
   world.puck.air = 0;
+  world.puck.threaded = false;
 }

@@ -31,6 +31,12 @@ export interface SkaterEffects {
   handleSpeedScale: number;
   drainScale: number;
   recoverScale: number;
+  /** Top-speed scale while carrying the puck. 1 unless a modifier changes it. */
+  carrySpeedScale: number;
+  /** Shot-speed scale for a fully charged shot. 1 unless a modifier changes it. */
+  chargedShotScale: number;
+  /** Above 0, his flat passes cannot be picked off in the lane. 0 unless a modifier changes it. */
+  passThrough: number;
 }
 
 /** What a goalie's ratings do on the ice. */
@@ -47,6 +53,8 @@ export interface GoalieEffects {
   freezeSpeed: number;
   /** Share of a shot's speed left in the rebound. */
   reboundKeep: number;
+  /** Shots that beat him which he saves anyway, per period. 0 unless a modifier changes it. */
+  periodAutoSaves: number;
 }
 
 export const defaultSkaterRatings: SkaterRatings = table.defaults.skater;
@@ -72,6 +80,9 @@ export function skaterEffects(r: SkaterRatings): SkaterEffects {
     handleSpeedScale: at(s.puckControl.handleSpeedScale, r.puckControl),
     drainScale: at(s.stamina.drainScale, r.stamina),
     recoverScale: at(s.stamina.recoverScale, r.stamina),
+    carrySpeedScale: 1,
+    chargedShotScale: 1,
+    passThrough: 0,
   };
 }
 
@@ -84,5 +95,6 @@ export function goalieEffects(r: GoalieRatings): GoalieEffects {
     depth: at(g.positioning.depth, r.positioning),
     freezeSpeed: at(g.reboundControl.freezeSpeed, r.reboundControl),
     reboundKeep: at(g.reboundControl.reboundKeep, r.reboundControl),
+    periodAutoSaves: 0,
   };
 }

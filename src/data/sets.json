@@ -1,0 +1,52 @@
+[
+  {
+    "id": "sniper",
+    "name": "Sniper",
+    "kind": "skater",
+    "rating": "shooting",
+    "bonuses": [
+      { "pieces": 2, "description": "+10% shot power", "modifiers": [{ "stat": "shotPower", "op": "mul", "value": 1.1 }] },
+      { "pieces": 4, "description": "A fully charged shot is 20% harder", "modifiers": [{ "stat": "chargedShotScale", "op": "mul", "value": 1.2 }] }
+    ]
+  },
+  {
+    "id": "enforcer",
+    "name": "Enforcer",
+    "kind": "skater",
+    "rating": "checking",
+    "bonuses": [
+      { "pieces": 2, "description": "+5 checking", "modifiers": [{ "stat": "rating.checking", "op": "add", "value": 5 }] },
+      { "pieces": 4, "description": "Checks land much more often", "modifiers": [{ "stat": "checkStrength", "op": "add", "value": 0.3 }] }
+    ]
+  },
+  {
+    "id": "burner",
+    "name": "Burner",
+    "kind": "skater",
+    "rating": "speed",
+    "bonuses": [
+      { "pieces": 2, "description": "+5 speed", "modifiers": [{ "stat": "rating.speed", "op": "add", "value": 5 }] },
+      { "pieces": 4, "description": "8% faster while carrying the puck", "modifiers": [{ "stat": "carrySpeedScale", "op": "mul", "value": 1.08 }] }
+    ]
+  },
+  {
+    "id": "playmaker",
+    "name": "Playmaker",
+    "kind": "skater",
+    "rating": "passing",
+    "bonuses": [
+      { "pieces": 2, "description": "+5 passing", "modifiers": [{ "stat": "rating.passing", "op": "add", "value": 5 }] },
+      { "pieces": 4, "description": "His flat passes cannot be intercepted in the lane", "modifiers": [{ "stat": "passThrough", "op": "add", "value": 1 }] }
+    ]
+  },
+  {
+    "id": "brick-wall",
+    "name": "Brick Wall",
+    "kind": "goalie",
+    "rating": "reflexes",
+    "bonuses": [
+      { "pieces": 2, "description": "+5 reflexes", "modifiers": [{ "stat": "rating.reflexes", "op": "add", "value": 5 }] },
+      { "pieces": 3, "description": "The first shot that beats him each period is saved anyway", "modifiers": [{ "stat": "periodAutoSaves", "op": "add", "value": 1 }] }
+    ]
+  }
+]

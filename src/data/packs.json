@@ -1,0 +1,9 @@
+{
+  "pityPacks": 25,
+  "silverMargin": 4,
+  "types": {
+    "bronze": { "name": "Bronze pack", "items": 3, "guarantee": "" },
+    "silver": { "name": "Silver pack", "items": 4, "guarantee": "rare" },
+    "gold": { "name": "Gold pack", "items": 5, "guarantee": "epic" }
+  }
+}

@@ -58,7 +58,15 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-13 | Can an event end the season? | No. Events can add or wipe a strike but never deliver the third; currency never goes below zero. | Phase 5 |
 | 2026-11-13 | Quitting mid-game | The season is saved after every step, but a game in progress is not: quit during a game and you replay it. | Phase 5 |
 | 2026-11-13 | Exhibition games | Still available in the off-season against any team; they no longer count toward the record. | Phase 5 |
+| 2026-11-13 | Who owns gear? | The team. A piece is assigned to a player and returns to the inventory when he is released. Gear never changes a player's grade or cap hit. It can be changed at any time between games, in or out of season. | Phase 6 |
+| 2026-11-13 | Milestone targets | Scaled to the season, each once per season and each a Gold pack: 4, 8 and 12 wins; reaching the playoffs; winning the championship; a player with 12 goals; 3 team shutouts; a hat trick. | Phase 6 |
+| 2026-11-13 | Goalie gear | Three slots: mask, leg pads, blocker. Skaters have six: stick, skates, gloves, helmet, pads, jersey. About one piece in six from packs is goalie gear. | Phase 6 |
+| 2026-11-13 | Gear strength | Each boost is worth 2 points on a Common, 3 on a Rare, 4 on an Epic and 5 on a Legendary, plus 1 per level above the first, up to level 5. Levelling costs tape; scrapping an unworn piece pays 5, 15, 40 or 100 tape by rarity. | Phase 6 |
+| 2026-11-13 | Set bonuses that the game could not do as written | Sniper 4 ("charged one-timer"): a fully charged shot is 20% harder, as there are no one-timers. Enforcer 4 ("big hits knock the puck loose"): checks land much more often. Burner 4 ("breakaway speed boost"): 8% faster while carrying the puck. Playmaker 4 ("passes thread through sticks"): his flat passes cannot be intercepted or blocked by opponents. Brick Wall is as written (the first shot that beats the goalie each period is saved) but comes at 3 pieces, since goalies have 3 slots. | Phase 6 |
+| 2026-11-13 | Which pack does a win earn? | One pack per season win: Silver for a shutout, a win by 4 or more, or a boss win; otherwise Bronze. Milestones add Gold packs on top. Exhibition games earn nothing. | Phase 6 |
+| 2026-11-13 | Pity timer | If 24 packs in a row hold no Legendary, the 25th has one in its guaranteed slot. | Phase 6 |
+| 2026-11-13 | Duplicates | There is no automatic duplicate handling: any piece not being worn can be scrapped for tape. | Phase 6 |
 
 ## Open
 
-The Phase 6 to 9 decisions in docs/IMPLEMENTATION_PLAN.md ("Decisions to settle") are still open: gear ownership, milestone targets, prestige, poaching, the mascot questions and the game name. Settle each before the phase that needs it.
+The Phase 7 to 9 decisions in docs/IMPLEMENTATION_PLAN.md ("Decisions to settle") are still open: prestige, poaching, the mascot questions and the game name. Settle each before the phase that needs it.

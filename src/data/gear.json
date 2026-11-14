@@ -1,0 +1,49 @@
+{
+  "maxLevel": 5,
+  "pointsPerLevel": 1,
+  "maxRating": 99,
+  "goalieShare": 0.1667,
+  "slots": {
+    "skater": ["stick", "skates", "gloves", "helmet", "pads", "jersey"],
+    "goalie": ["mask", "legPads", "blocker"]
+  },
+  "slotNames": {
+    "stick": "Stick",
+    "skates": "Skates",
+    "gloves": "Gloves",
+    "helmet": "Helmet",
+    "pads": "Pads",
+    "jersey": "Jersey",
+    "mask": "Mask",
+    "legPads": "Leg pads",
+    "blocker": "Blocker"
+  },
+  "slotRatings": {
+    "stick": ["shooting", "passing", "puckControl"],
+    "skates": ["speed", "stamina", "checking"],
+    "gloves": ["puckControl", "passing", "shooting"],
+    "helmet": ["stamina", "checking", "passing"],
+    "pads": ["checking", "stamina", "speed"],
+    "jersey": ["stamina", "speed", "puckControl", "shooting"],
+    "mask": ["reflexes", "positioning", "stamina"],
+    "legPads": ["positioning", "reboundControl", "reflexes"],
+    "blocker": ["reboundControl", "reflexes", "positioning"]
+  },
+  "ratingNames": {
+    "shooting": "Shooting",
+    "passing": "Passing",
+    "speed": "Speed",
+    "checking": "Checking",
+    "puckControl": "Puck control",
+    "stamina": "Stamina",
+    "reflexes": "Reflexes",
+    "positioning": "Positioning",
+    "reboundControl": "Rebounds"
+  },
+  "rarities": [
+    { "id": "common", "name": "Common", "chance": 0.6, "minBoosts": 1, "maxBoosts": 1, "points": 2, "perk": "", "setChance": 0.25, "scrap": 5, "levelCost": [10, 15, 20, 30] },
+    { "id": "rare", "name": "Rare", "chance": 0.28, "minBoosts": 2, "maxBoosts": 2, "points": 3, "perk": "", "setChance": 0.4, "scrap": 15, "levelCost": [20, 30, 45, 60] },
+    { "id": "epic", "name": "Epic", "chance": 0.1, "minBoosts": 2, "maxBoosts": 3, "points": 4, "perk": "epic", "setChance": 0.6, "scrap": 40, "levelCost": [40, 60, 90, 120] },
+    { "id": "legendary", "name": "Legendary", "chance": 0.02, "minBoosts": 3, "maxBoosts": 3, "points": 5, "perk": "legendary", "setChance": 0.8, "scrap": 100, "levelCost": [80, 120, 180, 240] }
+  ]
+}

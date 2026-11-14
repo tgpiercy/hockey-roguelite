@@ -683,6 +683,7 @@ describe('saving a season', () => {
   it('a Phase 4 save (version 1) is brought up to date: off-season, no artifacts', () => {
     const league = generateLeague('old-save');
     const old = { schemaVersion: 1, savedAt: 'then', league, record: { wins: 4, losses: 2, overtimeLosses: 1 } };
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(3);
     const loaded = fromSave(JSON.parse(JSON.stringify(old)));
     expect(loaded.ok).toBe(true);
     if (!loaded.ok) return;

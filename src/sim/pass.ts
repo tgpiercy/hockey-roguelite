@@ -120,6 +120,8 @@ export function stepPassing(world: World, p: Player, input: InputFrame, t: Tunin
   puck.vel.y = Math.sin(angle) * speed;
   puck.passTarget = target ? target.id : null;
   puck.shotBy = null;
+  // Some passers thread the puck through sticks: a flat pass of theirs cannot be picked off.
+  puck.threaded = !saucer && p.fx.passThrough > 0;
   puck.air = saucer ? Math.min(t.pass.saucerMaxAirSeconds, (target ? flight : 1) * t.pass.saucerAirShare) : 0;
   p.pickupLock = t.puck.pickupCooldown;
 

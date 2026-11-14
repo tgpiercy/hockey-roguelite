@@ -63,6 +63,8 @@ export function resolveLoosePuck(world: World, t: Tuning, events: SimEvent[]): v
 
   for (const p of skaters) {
     if (p.pickupLock > 0 || p.stagger > 0) continue;
+    // A threaded pass slips past every opponent: no interception and no block.
+    if (puck.threaded && p.team !== puck.lastTeam) continue;
     const d = dist(p.pos, puck.pos);
     const relSpeed = Math.hypot(puck.vel.x - p.vel.x, puck.vel.y - p.vel.y);
     const isTarget = puck.passTarget === p.id;

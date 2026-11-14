@@ -163,6 +163,17 @@ So the default opponent is still too easy for anyone who plays directly. That ne
 | passAssist.blockedPenaltyDegrees | 40 | How much a blocked lane counts against a teammate, as if he were this many degrees further off your aim |
 | passAssist.roomCap / roomDegreesPerMetre | 6 / 5 | With the stick centred: how much a teammate's open space counts |
 
+## Gear and balance (Phase 6, 2026-11-13)
+
+Gear adds rating points, so its effect can be read off the balance harness by rating a whole team higher. Against a 70-rated team, AI against AI at level 0.5, 100 games each:
+
+| Team A | Roughly what it stands for | A wins |
+| --- | --- | --- |
+| 85 | Every player in six level-1 Legendary pieces (about +15 on each rating) | 73% |
+| 97 | The same gear at level 5 (about +27, held at the top of the scale) | 84% |
+
+That leaves out perks and set bonuses, which add a little more. The base numbers for equal teams are unchanged by this phase (3.37 and 3.16 goals, save percentage .855).
+
 ## Change log
 
 | Date | Value | From | To | Why |

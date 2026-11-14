@@ -42,6 +42,8 @@ export const NO_INPUT: InputFrame = {
 export interface SkaterParams {
   shotPower: number;
   accuracy: number;
+  /** Speed scale for a fully charged shot. Left out means 1. */
+  chargedShotScale?: number;
 }
 
 /** The moving body of a player. */
@@ -99,6 +101,9 @@ export interface GoalieState {
   hold: number;
   /** Seconds during which the puck passes through him (just after he plays it). */
   ignorePuck: number;
+  /** Automatic saves he has left this period, and the period that count belongs to. */
+  autoSavesLeft: number;
+  autoSavePeriod: number;
 }
 
 /** What a player did in the game. Later phases award XP and milestones from these. */
@@ -164,6 +169,8 @@ export interface Puck {
   touches: number[];
   /** Id of the player who shot it, until someone else plays it. A goalie stop only counts as a save on a shot. */
   shotBy: number | null;
+  /** True for a flat pass that cannot be picked off in the lane. */
+  threaded: boolean;
 }
 
 export type SimEvent =

@@ -1,0 +1,10 @@
+[
+  { "id": "wins-4", "name": "4 wins", "type": "wins", "target": 4 },
+  { "id": "wins-8", "name": "8 wins", "type": "wins", "target": 8 },
+  { "id": "wins-12", "name": "12 wins", "type": "wins", "target": 12 },
+  { "id": "playoffs", "name": "Made the playoffs", "type": "playoffs", "target": 1 },
+  { "id": "champion", "name": "Won the championship", "type": "champion", "target": 1 },
+  { "id": "goals-12", "name": "A 12-goal player", "type": "playerGoals", "target": 12 },
+  { "id": "shutouts-3", "name": "3 shutouts", "type": "shutouts", "target": 3 },
+  { "id": "hat-trick", "name": "A hat trick", "type": "hatTrick", "target": 3 }
+]

@@ -36,6 +36,10 @@ export interface TeamSetup {
   positions?: ('F' | 'D')[];
   /** Lasting modifiers for the whole team: artifacts, boss traits, event effects. */
   modifiers?: Modifier[];
+  /** Lasting modifiers for one skater each, in the same order as `skaters`: gear perks and set bonuses. */
+  skaterModifiers?: Modifier[][];
+  /** Lasting modifiers for the goalie alone. */
+  goalieModifiers?: Modifier[];
 }
 
 export interface WorldOptions {
@@ -64,7 +68,9 @@ export const PLAYERS_PER_TEAM = 7;
 function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index: number, options: WorldOptions): Player {
   const skater = options.teams?.[team].skaters[index] ?? options.skaterRatings?.[team] ?? defaultSkaterRatings;
   const goalie = options.teams?.[team].goalie ?? options.goalieRatings?.[team] ?? defaultGoalieRatings;
-  const modifiers = options.teams?.[team].modifiers ?? [];
+  const setup = options.teams?.[team];
+  const own = role === 'skater' ? (setup?.skaterModifiers?.[index] ?? []) : (setup?.goalieModifiers ?? []);
+  const modifiers = [...(setup?.modifiers ?? []), ...own];
   const fx = applyModifiers(skaterEffects(role === 'skater' ? skater : defaultSkaterRatings), modifiers);
   const goalieFx = applyModifiers(goalieEffects(goalie), modifiers);
   return {
@@ -75,7 +81,7 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index:
     position: role === 'goalie' ? 'G' : (options.teams?.[team].positions?.[index] ?? 'F'),
     fx,
     baseFx: fx,
-    goalie: role === 'goalie' ? { fx: goalieFx, baseFx: goalieFx, seen: [], hold: 0, ignorePuck: 0 } : null,
+    goalie: role === 'goalie' ? { fx: goalieFx, baseFx: goalieFx, seen: [], hold: 0, ignorePuck: 0, autoSavesLeft: 0, autoSavePeriod: 0 } : null,
     ai: createAiMemory(),
     passCharge: 0,
     passHeld: false,
@@ -188,10 +194,29 @@ export function createGame(t: Tuning, seed: number | string, options: WorldOptio
   return world;
 }
 
+/** If the beaten goalie has an automatic save left this period, he makes it: the shot is frozen, not a goal. */
+function autoSave(world: World, beaten: Player | null, t: Tuning, events: SimEvent[]): boolean {
+  if (!beaten || !beaten.goalie || world.puck.shotBy === null) return false;
+  const state = beaten.goalie;
+  if (state.autoSavePeriod !== world.period) {
+    state.autoSavePeriod = world.period;
+    state.autoSavesLeft = Math.round(state.fx.periodAutoSaves);
+  }
+  if (state.autoSavesLeft <= 0) return false;
+  state.autoSavesLeft -= 1;
+  beaten.stats.saves += 1;
+  givePuck(world, beaten);
+  state.hold = t.goalie.holdSeconds;
+  world.puck.vel = { x: 0, y: 0 };
+  events.push({ type: 'save', goalie: beaten.id, frozen: true });
+  return true;
+}
+
 function goal(world: World, side: -1 | 1, t: Tuning, events: SimEvent[]): void {
   // The net on side -1 is defended by team 0, so team 1 scores there.
   const team: 0 | 1 = side === -1 ? 1 : 0;
   const puck = world.puck;
+  if (autoSave(world, goalieOf(world, otherTeam(team)), t, events)) return;
   world.score[team] += 1;
 
   // The last of the scoring team to touch it gets the goal; the one or two before him get assists.
@@ -210,10 +235,12 @@ function goal(world: World, side: -1 | 1, t: Tuning, events: SimEvent[]): void {
   events.push({ type: 'goal', side, team, scorer, assists });
 }
 
-function stepSkaterBody(p: Player, input: InputFrame, t: Tuning, dt: number): void {
+function stepSkaterBody(p: Player, input: InputFrame, t: Tuning, dt: number, hasPuck = false): void {
   p.checkCooldown = Math.max(0, p.checkCooldown - dt);
   p.pickupLock = Math.max(0, p.pickupLock - dt);
-  const fx = currentFx(p, t);
+  let fx = currentFx(p, t);
+  // Some gear makes a skater faster with the puck on his stick.
+  if (hasPuck && fx.carrySpeedScale !== 1) fx = { ...fx, topSpeedScale: fx.topSpeedScale * fx.carrySpeedScale };
   if (p.stagger > 0) {
     // Knocked off balance: no control, and he slows quickly.
     p.stagger = Math.max(0, p.stagger - dt);
@@ -284,7 +311,7 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
 
   // Move.
   active.forEach((p, i) => {
-    if (p.role === 'skater') stepSkaterBody(p, inputs[i] as InputFrame, t, dt);
+    if (p.role === 'skater') stepSkaterBody(p, inputs[i] as InputFrame, t, dt, puck.carrier === p.id);
     else stepGoalie(p, world, t, dt);
   });
   separateBodies(active, t);

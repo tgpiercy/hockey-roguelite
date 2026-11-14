@@ -112,7 +112,7 @@ Built, deployed and checked with a simulated controller. Still open:
 - [x] Screens: map, game preview, training, event, shop, artifact pick, playoff series, season summary, powerups, artifacts
 - [x] Powerups and running boosts shown on the ice
 - [x] Checked in a browser
-- [ ] Commit, push, deploy green
+- [x] Commit, push, deploy green
 - [ ] Exit test: a whole season plays from lineup to championship or elimination (owner)
 
 ## Review (Phase 5)
@@ -123,3 +123,26 @@ Built, deployed and checked with a simulated controller. Still open:
 - Not checked: controller navigation and the trigger buttons (the browser pane was hidden, so only the keyboard was used); how the screens look; a season ending by strikes or playoff loss in the browser (both are unit tested).
 - A mistake of mine during the check: a test script wandered into Save and load and pressed Export about 35 times. No files were written to Downloads.
 - Simplifications: the map is a list of next stops with a line saying what each leads to, not a drawn map; the AI never uses powerups; rewards and prices are first guesses.
+
+# Phase 6: gear and packs
+
+- [x] Data tables: gear, sets, perks, packs, milestones
+- [x] Gear generation, rarity table, sets, perks
+- [x] Packs with guarantees and the pity timer; 100,000-pack test
+- [x] Equip, level up, scrap, tape
+- [x] Per-player modifiers and the four set mechanics in the simulation
+- [x] Pack awards and milestones in the season
+- [x] Save version 3 with migration
+- [x] Screens: packs with reveal, gear inventory with filter, item actions, player gear with before-and-after preview
+- [x] Checked in a browser
+- [ ] Commit, push, deploy green
+- [ ] Exit test: win a game, receive a pack, open it, equip a piece and see its effect on the ice (owner)
+
+## Review (Phase 6)
+
+- Type check, 456 tests and the build pass. The uniform-team balance series is unchanged.
+- 100,000 packs: slots with no guarantee came up within half a percentage point of 60 / 28 / 10 / 2; every Silver held a Rare or better and every Gold an Epic or better; the longest run without a Legendary was exactly 24 packs.
+- Browser check, by keyboard: a Phase 5 save loaded and migrated; a shutout win awarded a Silver pack; opened it with the piece-by-piece reveal; the gear screen listed the pieces and the filter cycled; the equip screen showed "Speed 71 → 74, Checking 66 → 69" before confirming; equipped a second piece from the player's own screen; scrapped two pieces for tape; level up was correctly greyed out without enough tape; after a reload the gear, tape and place in the season were intact; in the next game the geared player's shot power, speed and check strength were the highest on his team; a forced hat trick awarded a Gold pack on top of the Bronze. No console errors.
+- Not checked in the browser: levelling a piece up (not enough tape; unit tested), the controller, and how the screens look.
+- A team in full level-1 Legendary gear plays about like an 85-rated team (73% against 70); at level 5 about like 97 (84%).
+- Simplifications: four set bonuses are stand-ins for design-doc effects the game cannot do yet (listed in DECISIONS.md); no automatic duplicate handling; AI teams and bosses wear no gear.

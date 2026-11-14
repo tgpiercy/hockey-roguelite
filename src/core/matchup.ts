@@ -4,6 +4,7 @@ import type { Modifier } from '../sim/modifiers';
 import type { GoalieRatings, SkaterRatings } from '../sim/ratings';
 import type { TeamSetup } from '../sim/world';
 import { playerOf, type League, type Team } from './league';
+import { abilityModifiers, boostedRatings } from './gear';
 import { dressedSkaters } from './lineup';
 import type { PlayerRecord } from './player';
 import { canPlay } from './roster';
@@ -22,6 +23,8 @@ export interface DressOptions {
   bumps?: Record<string, number>;
   /** Lasting modifiers for the whole team: artifacts, temporary effects, boss traits. */
   modifiers?: Modifier[];
+  /** The modifiers one player gets from the gear he is wearing: rating boosts, perks and set bonuses. */
+  gear?: (playerId: string) => Modifier[];
 }
 
 /** A player's ratings with a number of points added to each, held at the top of the scale. */
@@ -39,16 +42,20 @@ function bumped<T extends SkaterRatings | GoalieRatings>(ratings: T, points: num
 export function dress(league: League, team: Team, options: DressOptions = {}): DressedTeam | null {
   if (!canPlay(league, team).ok) return null;
   const bump = (p: PlayerRecord): number => options.bumps?.[p.id] ?? 0;
+  const gear = (p: PlayerRecord): Modifier[] => options.gear?.(p.id) ?? [];
   const skaters = dressedSkaters(team.lineup).map((id) => playerOf(league, id));
   const goalie = playerOf(league, team.lineup.goalie as string);
+  // Gear's rating boosts change the ratings; its perks and set bonuses go to the ice as modifiers.
   return {
     name: team.name,
     players: [...skaters, goalie],
     setup: {
-      skaters: skaters.map((p) => bumped(p.ratings as SkaterRatings, bump(p))),
-      goalie: bumped(goalie.ratings as GoalieRatings, bump(goalie)),
+      skaters: skaters.map((p) => boostedRatings(bumped(p.ratings as SkaterRatings, bump(p)), gear(p))),
+      goalie: boostedRatings(bumped(goalie.ratings as GoalieRatings, bump(goalie)), gear(goalie)),
       positions: skaters.map((p) => (p.position === 'D' ? 'D' : 'F')),
       modifiers: options.modifiers ?? [],
+      skaterModifiers: skaters.map((p) => abilityModifiers(gear(p))),
+      goalieModifiers: abilityModifiers(gear(goalie)),
     },
   };
 }

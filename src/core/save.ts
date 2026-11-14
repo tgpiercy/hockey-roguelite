@@ -1,21 +1,15 @@
-import type { League } from './league';
-import { newSeasonState, type Franchise, type SeasonState, type TeamRecord } from './season';
+import { newSeasonState, type Franchise } from './season';
 
 export { emptyRecord, type TeamRecord } from './season';
 
 /** Bump this whenever the shape of a save changes, and add a step to `migrations`. */
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
-export interface SaveFile {
+/** A save is the franchise plus a version number and a date. */
+export interface SaveFile extends Franchise {
   schemaVersion: number;
   /** When it was saved, as an ISO date and time. */
   savedAt: string;
-  league: League;
-  record: TeamRecord;
-  /** Where the season stands: map, position, strikes, currency, powerups and so on. Added in version 2. */
-  season: SeasonState;
-  /** Artifact ids owned. Added in version 2. */
-  artifacts: string[];
 }
 
 export type LoadResult = { ok: true; save: SaveFile } | { ok: false; reason: string };
@@ -26,7 +20,8 @@ export function toSave(franchise: Franchise, savedAt: string): SaveFile {
 
 /** The part of a save the game plays with. */
 export function franchiseOf(save: SaveFile): Franchise {
-  return { league: save.league, record: save.record, season: save.season, artifacts: save.artifacts };
+  const { schemaVersion: _version, savedAt: _savedAt, ...franchise } = save;
+  return franchise;
 }
 
 /**
@@ -36,6 +31,17 @@ export function franchiseOf(save: SaveFile): Franchise {
 const migrations: Record<number, (old: Record<string, unknown>) => Record<string, unknown>> = {
   // Version 2 (Phase 5) added the season run and artifacts. An older save starts in the off-season with none.
   1: (old) => ({ ...old, season: newSeasonState(), artifacts: [] }),
+  // Version 3 (Phase 6) added gear, packs, tape and season milestones. An older save starts with none,
+  // and a season already under way keeps its place.
+  2: (old) => ({
+    ...old,
+    season: { ...newSeasonState(), ...(isObject(old.season) ? old.season : {}) },
+    gear: [],
+    packs: [],
+    tape: 0,
+    packsSinceLegendary: 0,
+    gearCount: 0,
+  }),
 };
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -59,6 +65,8 @@ function problemWith(save: Record<string, unknown>): string | null {
   if (!isObject(record) || typeof record.wins !== 'number' || typeof record.losses !== 'number') return 'it has no win-loss record';
   if (!isObject(save.season) || typeof save.season.phase !== 'string') return 'it does not say where the season stands';
   if (!Array.isArray(save.artifacts)) return 'it has no artifact list';
+  if (!Array.isArray(save.gear) || !Array.isArray(save.packs)) return 'it has no gear or pack list';
+  if (typeof save.tape !== 'number') return 'it has no tape count';
   return null;
 }
 

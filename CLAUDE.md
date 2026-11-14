@@ -85,6 +85,16 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - All randomness in a season comes from its seed and a roll counter, so a season replays exactly.
 - `tests/seasonRun.test.ts` plays whole seasons automatically with real simulated games; it prints how each ended.
 
+## How gear and packs fit together
+
+- `src/core/gear.ts`: the gear item, generation from the tables, the modifiers a piece gives, set bonuses, equip, level up, scrap. `src/core/packs.ts`: awarding a pack (contents rolled then, from the franchise seed and a counter), the pity timer, which pack a win earns, opening. `src/core/milestones.ts`: the season milestones and the tallies behind them.
+- Tables: `src/data/gear.json` (slots, rarity table, which ratings each slot boosts, level costs, scrap values), `sets.json`, `perks.json`, `packs.json`, `milestones.json`.
+- Gear lives on the franchise (`gear`, `packs`, `tape`), not on players: `wornBy` on a piece names who has it on. Releasing a player goes through `releasePlayer`, which sends his gear back to the inventory.
+- Gear uses the modifier system. A rating boost is a modifier with a stat like `rating.shooting`; `matchup.dress` applies those to the ratings (so the grade and cap hit, which come from the stored ratings, never move) and passes the rest (perks, set bonuses) to the simulation as that player's own modifiers through `TeamSetup.skaterModifiers` and `goalieModifiers`.
+- Four abilities exist only for modifiers to switch on, and are off by default: `carrySpeedScale`, `chargedShotScale`, `passThrough` (skaters) and `periodAutoSaves` (goalies).
+- `season.recordGame` awards the pack for a win and a Gold pack for each milestone the game completes.
+- `tests/gear.test.ts` includes the 100,000-pack check of the rarity table and the pity timer.
+
 ## How the on-ice game fits together
 
 - `src/sim/world.ts`: `createGame(tuning, seed, options)` starts a full game; `createWorld(...)` starts a scrimmage (endless play, no clock, faceoffs or line changes; used by most tests). `step(world, humanInput, tuning)` advances either by one fixed step of 1/60 second and returns the events that happened. Nothing else advances the game.
