@@ -24,6 +24,8 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-13 | Who can collect a loose puck? | The intended receiver of a pass; anyone close enough if the puck is slow enough to handle; an opponent standing in the lane of a flat pass. A puck too fast to handle deflects off bodies. A saucer pass cannot be touched until it lands. | Phase 2 |
 | 2026-11-13 | Stoppages | None yet. A goalie who freezes the puck holds it for a second, then lobs it to his most open teammate. After a goal everyone resets and the puck drops loose at centre. Faceoffs and periods come in Phase 3. | Phase 2 |
 | 2026-11-13 | Can the puck be carried into the net? | Yes if the goalie is out of position, but a goalie smothers a puck carried into him. Replaces the Phase 1 answer. | Phase 2 |
+| 2026-11-13 | How many players on the ice? | 3 skaters and a goalie per side (the GDD first said 2 skaters). `docs/GDD.md` has been edited to match. | Phase 2 |
+| 2026-11-13 | How many players are dressed? | 6 skaters + 1 goalie: two lines of 3, from the roster of 7 skaters + 1 goalie, so one skater stays home. `docs/GDD.md` has been edited to match. This overrides the "4 skaters and 1 goalie" and "two lines of 2" wording in the Phase 2, 3, 4 and 5 prompts of `docs/IMPLEMENTATION_PLAN.md`. | Phase 3 |
 
 ## Open
 

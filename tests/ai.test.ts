@@ -204,6 +204,37 @@ describe('AI behaviour', () => {
     expect(player(world, ID.home1).pos.x).toBeLessThan(10);
   });
 
+  it('defend: with the carrier pressured, the other two defenders each mark a different man', () => {
+    const world = setUp('marking');
+    place(world, ID.away1, 0, 0, Math.PI);
+    place(world, ID.away2, -8, 7);
+    place(world, ID.away3, -8, -7);
+    giveTo(world, ID.away1);
+    for (const id of [ID.away1, ID.away2, ID.away3]) player(world, id).stagger = 3;
+    place(world, ID.home1, -3, 0);
+    place(world, ID.home2, -14, 3);
+    place(world, ID.home3, -14, -3);
+    play(world, 1.5);
+    // Each marker has moved to his own side of the ice, toward the man there.
+    expect(player(world, ID.home2).pos.y).toBeGreaterThan(3.5);
+    expect(player(world, ID.home3).pos.y).toBeLessThan(-3.5);
+  });
+
+  it('support: two helpers take different jobs, one ahead in the far lane and one trailing', () => {
+    const world = setUp('two-helpers');
+    clearIce(world, [ID.home1, ID.home2, ID.home3]);
+    place(world, ID.home1, 0, 4, 0);
+    place(world, ID.home2, -2, 2);
+    place(world, ID.home3, -2, 6);
+    giveTo(world, ID.home1);
+    player(world, ID.home1).stagger = 2;
+    play(world, 1.5);
+    const carrier = player(world, ID.home1);
+    expect(player(world, ID.home2).pos.x).toBeGreaterThan(carrier.pos.x);
+    expect(player(world, ID.home2).pos.y).toBeLessThan(0);
+    expect(player(world, ID.home3).pos.x).toBeLessThan(carrier.pos.x);
+  });
+
   it('laneClear sees a defender standing in the way', () => {
     const world = setUp();
     clearIce(world, [ID.away1]);

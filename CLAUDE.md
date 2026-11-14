@@ -65,7 +65,7 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 ## How the on-ice game fits together
 
 - `src/sim/world.ts`: `createWorld(tuning, seed, options)` and `step(world, humanInput, tuning)`. One call is one fixed step of 1/60 second and returns the events that happened (goal, shot, pass, post, pickup, save, check). Nothing else advances the game.
-- A full world has six players: ids 0 and 1 are team 0's skaters, 2 its goalie; 3, 4 and 5 the same for team 1. Team 0 defends the left net and attacks right. `options.human: false` makes an all-AI game (used by tests and, from Phase 3, the balance harness). `options.lineup: 'solo'` is one skater alone, for skating tests.
+- A full world has eight players, 3 skaters and a goalie a side: ids 0, 1 and 2 are team 0's skaters, 3 its goalie; 4 to 7 the same for team 1 (`PLAYERS_PER_TEAM` in `world.ts`). Team 0 defends the left net and attacks right. `options.human: false` makes an all-AI game (used by tests and, from Phase 3, the balance harness). `options.lineup: 'solo'` is one skater alone, for skating tests.
 - Humans and AI use the same mechanics: both produce an `InputFrame` (stick, sprint, shoot, pass, check, switch). `src/sim/ai.ts` is a five-state machine (attack, support, chase, defend, backcheck); `chooseState` picks the state, `think` plans, `aiInput` turns the plan into input. Positioning numbers and the easy-to-hard ranges are in `src/data/ai.json`. Difficulty changes thinking only, never physics.
 - Ratings (0 to 100) become physical effects in `src/sim/ratings.ts` from the table in `src/data/ratings.json`. A rating of 70 gives exactly the plain `physics.json` values.
 - One concern per file: `rink.ts` (geometry, collisions), `skater.ts`, `puck.ts`, `shot.ts`, `pass.ts`, `check.ts`, `goalie.ts`, `contact.ts` (bodies and loose-puck pickups), `control.ts` (which skater the human controls), `team.ts` (helpers).
@@ -77,6 +77,7 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 
 ## Notes for future sessions
 
+- On the ice it is 3 skaters and a goalie a side; 6 skaters and 1 goalie are dressed (two lines of 3). Where a prompt in `docs/IMPLEMENTATION_PLAN.md` says 2 skaters, 4 skaters or lines of 2, `docs/GDD.md` and `docs/DECISIONS.md` win.
 - The plain link opens the rink. The Phase 0 controller read-out is at `?controller`.
 - Keyboard fallback: arrows or WASD skate, Space shoot, Z or J pass, X or K check, C or L switch player, Shift sprint, Tab tuning, I AI debug overlay (View button on the controller).
 - Balance is not tuned yet: all-AI games at level 0.5 average about 3 goals per 5 minutes. Phase 3 tunes it with the headless harness.

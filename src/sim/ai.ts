@@ -50,6 +50,12 @@ export function createAiMemory(): AiMemory {
   };
 }
 
+/** This skater's place among his team's skaters (0, 1, 2...), spread evenly around zero: -1, 0, 1 for three. */
+function spread(world: World, p: Player): number {
+  const mates = skatersOf(world, p.team);
+  return mates.findIndex((m) => m.id === p.id) - (mates.length - 1) / 2;
+}
+
 function nearestTo(players: Player[], point: Vec): Player | null {
   let best: Player | null = null;
   let bestD = Infinity;
@@ -115,7 +121,7 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   const net = targetNet(p.team, t);
   const puck = world.puck.pos;
   const opponents = skatersOf(world, otherTeam(p.team));
-  const mate = skatersOf(world, p.team).find((s) => s.id !== p.id) ?? null;
+  const mates = skatersOf(world, p.team).filter((s) => s.id !== p.id);
   const nearestOpp = nearestTo(opponents, p.pos);
   const pressured = nearestOpp !== null && dist(nearestOpp.pos, p.pos) < P.pressureRadius;
   const range = dist(puck, net);
@@ -134,12 +140,15 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
     }
   }
 
-  // Pass: the teammate is open, and either he is in a better spot or the carrier is under pressure.
-  if (mate && world.rng.chance(lv.passAwareness)) {
-    const lead = leadPoint(puck, mate, t.pass.speed);
-    const mateOpen = opponents.every((o) => dist(o.pos, mate.pos) > P.openRadius);
-    const mateBetter = dist(mate.pos, net) + P.betterSpotMargin < range;
-    if (mateOpen && (pressured || mateBetter)) {
+  // Pass: to an open teammate, if he is in a better spot or the carrier is under pressure.
+  // Among open teammates, the one nearest the net is preferred.
+  if (world.rng.chance(lv.passAwareness)) {
+    const open = mates
+      .filter((mate) => opponents.every((o) => dist(o.pos, mate.pos) > P.openRadius))
+      .sort((x, y) => dist(x.pos, net) - dist(y.pos, net) || x.id - y.id);
+    const mate = open[0];
+    if (mate && (pressured || dist(mate.pos, net) + P.betterSpotMargin < range)) {
+      const lead = leadPoint(puck, mate, t.pass.speed);
       const clear = laneClear(world, p.team, puck, lead);
       aimAt(m, puck, lead, 0, world);
       // Blocked lane: hold long enough for a saucer pass.
@@ -160,18 +169,24 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
 function planSupport(world: World, p: Player, t: Tuning): void {
   const dir = attackDir(p.team);
   const carrier = carrierOf(world);
-  const sideOfIce = p.pos.y >= 0 ? 1 : -1;
 
-  // Own goalie has it: get open for the outlet pass.
+  // Own goalie has it: spread across the ice for the outlet pass.
   if (carrier && carrier.role === 'goalie') {
-    goTo(p.ai, ownNet(p.team, t).x + dir * P.outletX, sideOfIce * P.outletY);
+    goTo(p.ai, ownNet(p.team, t).x + dir * P.outletX, spread(world, p) * P.outletY);
     return;
   }
   const ref = carrier ? carrier.pos : world.puck.pos;
-  const lane = Math.abs(ref.y) < 1 ? sideOfIce : ref.y > 0 ? -1 : 1;
+  const helpers = skatersOf(world, p.team).filter((s) => s.id !== carrier?.id);
   const maxX = goalLineX(t) - P.slotDistance * 0.5;
-  const x = Math.max(-maxX, Math.min(maxX, ref.x + dir * P.supportAhead));
-  goTo(p.ai, x, lane * P.supportLaneY);
+  const clampX = (x: number): number => Math.max(-maxX, Math.min(maxX, x));
+
+  // The first helper goes ahead into the far lane; any other trails behind the play as the safety valve.
+  if (helpers[0]?.id === p.id || helpers.length === 1) {
+    const lane = Math.abs(ref.y) < 1 ? (p.pos.y >= 0 ? 1 : -1) : ref.y > 0 ? -1 : 1;
+    goTo(p.ai, clampX(ref.x + dir * P.supportAhead), lane * P.supportLaneY);
+    return;
+  }
+  goTo(p.ai, clampX(ref.x - dir * P.trailBehind), ref.y * 0.3);
 }
 
 function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
@@ -180,11 +195,11 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   const net = ownNet(p.team, t);
   const carrier = carrierOf(world);
   const mates = skatersOf(world, p.team);
-  const slot: Vec = { x: net.x + dir * P.defendSlotDepth, y: world.puck.pos.y * 0.3 };
+  const slot: Vec = { x: net.x + dir * P.defendSlotDepth, y: world.puck.pos.y * 0.3 + spread(world, p) * P.slotSpacing };
 
-  // Their goalie has it: fall back to the neutral zone.
+  // Their goalie has it: fall back to the neutral zone, spread across the ice.
   if (carrier && carrier.role === 'goalie') {
-    goTo(m, -dir * P.retreatX, (p.pos.y >= 0 ? 1 : -1) * P.retreatY);
+    goTo(m, -dir * P.retreatX, spread(world, p) * P.retreatY);
     return;
   }
   // Loose puck in our half and a teammate is on it: hold the slot.
@@ -192,19 +207,29 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
     goTo(m, slot.x, slot.y);
     return;
   }
-  // Nearest defender pressures the carrier; the other covers the second man from the goal side.
-  if (nearestTo(mates, carrier.pos)?.id === p.id) {
+  // Nearest defender pressures the carrier.
+  const presser = nearestTo(mates, carrier.pos);
+  if (presser?.id === p.id) {
     m.follow = 'carrier';
     m.sprint = dist(p.pos, carrier.pos) > P.pressureRadius;
     m.wantCheck = world.rng.chance(lv.checkEagerness);
     return;
   }
-  const other = skatersOf(world, carrier.team).find((o) => o.id !== carrier.id);
-  if (!other) {
-    goTo(m, slot.x, slot.y);
-    return;
+  // The others each take a man, the most dangerous first going to the nearest free defender, from the goal side.
+  const free = mates.filter((s) => s.id !== presser?.id);
+  const threats = skatersOf(world, carrier.team)
+    .filter((o) => o.id !== carrier.id)
+    .sort((x, y) => dist(x.pos, net) - dist(y.pos, net) || x.id - y.id);
+  for (const threat of threats) {
+    const marker = nearestTo(free, threat.pos);
+    if (!marker) break;
+    if (marker.id === p.id) {
+      goTo(m, threat.pos.x + (net.x - threat.pos.x) * P.coverGoalSide, threat.pos.y + (net.y - threat.pos.y) * P.coverGoalSide);
+      return;
+    }
+    free.splice(free.indexOf(marker), 1);
   }
-  goTo(m, other.pos.x + (net.x - other.pos.x) * P.coverGoalSide, other.pos.y + (net.y - other.pos.y) * P.coverGoalSide);
+  goTo(m, slot.x, slot.y);
 }
 
 /** Reconsiders: picks the state and what to do in it. */
@@ -226,7 +251,7 @@ export function think(world: World, p: Player, t: Tuning, lv: AiLevel): void {
       break;
     case 'backcheck': {
       const net = ownNet(p.team, t);
-      goTo(m, net.x + attackDir(p.team) * P.defendSlotDepth, world.puck.pos.y * 0.5, true);
+      goTo(m, net.x + attackDir(p.team) * P.defendSlotDepth, world.puck.pos.y * 0.5 + spread(world, p) * P.slotSpacing, true);
       break;
     }
     case 'defend':

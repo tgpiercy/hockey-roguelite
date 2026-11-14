@@ -30,6 +30,8 @@
     "retreatX": 3,
     "retreatY": 4,
     "puckLeadSeconds": 0.25,
-    "betterSpotMargin": 2
+    "betterSpotMargin": 2,
+    "trailBehind": 3,
+    "slotSpacing": 2
   }
 }

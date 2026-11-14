@@ -17,7 +17,7 @@ interface GameLog {
   allInside: boolean;
 }
 
-/** Plays an all-AI 3-on-3 game from a seed. */
+/** Plays an all-AI game (3 skaters and a goalie a side) from a seed. */
 const playGame = (seed: string, steps: number, keepHistory = false): GameLog => {
   const world = createWorld(t, seed, { human: false, levels: [0.5, 0.5] });
   const counts = { goal: 0, shot: 0, pass: 0, post: 0, pickup: 0, save: 0, check: 0 };

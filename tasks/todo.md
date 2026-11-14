@@ -39,7 +39,8 @@ Built, deployed and checked with a simulated controller. Still open:
 - [x] Tests for each, plus all-AI whole games
 - [x] Drawing, new buttons and keys, AI debug overlay
 - [x] Checked in a browser
-- [ ] Commit, push, deploy green
+- [x] Commit, push, deploy green
+- [x] Changed to 3 skaters and a goalie a side at the owner's request (6 skaters + 1 goalie dressed); GDD updated
 - [ ] Exit test: continuous 3-on-3 with goals by both sides; you win some shifts and lose some; passes go where you meant (owner)
 
 ## Review (Phase 2)

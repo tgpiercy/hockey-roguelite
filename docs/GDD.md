@@ -19,9 +19,9 @@ A mobile arcade hockey roguelite where the team is the star: build a roster unde
 
 ## On-ice gameplay
 
-Games are 3-on-3: two skaters and a goalie per side, viewed top-down, with the user controlling whichever skater is nearest the puck.
+Games are 3-on-3: three skaters and a goalie per side, viewed top-down, with the user controlling whichever skater is nearest the puck.
 
-- **Dressed lineup:** 5 players per campaign (4 skaters + 1 goalie), so 2 skaters rotate in on line changes
+- **Dressed lineup:** 7 players per campaign (6 skaters + 1 goalie): two lines of 3 that swap on line changes
 - **Fatigue:** skaters tire with ice time; tired players skate and shoot worse, which makes line changes a real call
 - **Game length:** 3 periods of about 2 minutes, sudden-death OT
 
@@ -67,10 +67,10 @@ Each season starts with a roster of 7 skaters plus 1 goalie, built under a hard 
 
 ## Season campaign and run structure
 
-A season campaign is the roguelite run: pick 5 from the roster and push through a branching map to the championship.
+A season campaign is the roguelite run: pick 7 from the roster and push through a branching map to the championship.
 
 1. **Off-season:** sign, trade and release players under the cap; equip gear
-2. **Dress the lineup:** choose 4 skaters and 1 goalie for the run; the other 3 stay home
+2. **Dress the lineup:** choose 6 skaters and 1 goalie for the run; the other skater stays home
 3. **Run map:** branching nodes, each a game, training session, random event or shop
 4. **Boss teams:** a tougher team ends each region of the map
 5. **Playoffs:** a bracket where a series loss ends the run

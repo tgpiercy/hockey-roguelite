@@ -4,8 +4,8 @@ import type { Tuning } from '../src/sim/tuning';
 import type { Player, SimEvent, World } from '../src/sim/types';
 import { STEP_SECONDS } from '../src/sim/world';
 
-/** Player ids in a full world: team 0 is 0, 1 (skaters) and 2 (goalie); team 1 is 3, 4 and 5. */
-export const ID = { home1: 0, home2: 1, homeGoalie: 2, away1: 3, away2: 4, awayGoalie: 5 } as const;
+/** Player ids in a full world: team 0 is 0, 1, 2 (skaters) and 3 (goalie); team 1 is 4, 5, 6 and 7. */
+export const ID = { home1: 0, home2: 1, home3: 2, homeGoalie: 3, away1: 4, away2: 5, away3: 6, awayGoalie: 7 } as const;
 
 export function player(world: World, id: number): Player {
   const p = world.players[id];
@@ -41,6 +41,8 @@ export function clearIce(world: World, keep: number[]): void {
     [-23, 10],
     [23, -10],
     [23, 10],
+    [-19, -11],
+    [19, 11],
   ] as const;
   let i = 0;
   for (const p of world.players) {

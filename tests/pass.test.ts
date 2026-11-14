@@ -8,12 +8,16 @@ import { clearIce, flyPuck, giveTo, ID, place, player } from './helpers';
 
 const t = cloneTuning();
 
-/** Passer at centre with the puck, teammate 10 m up ice and 6 m to the side, everyone else in the corners. */
+/**
+ * Passer at centre with the puck; one teammate 10 m up ice and 6 m to the right, the other off to the left;
+ * the opponents in the corners.
+ */
 const setUp = (seed = 'pass'): World => {
   const world = createWorld(t, seed);
-  clearIce(world, [ID.home1, ID.home2]);
+  clearIce(world, [ID.home1, ID.home2, ID.home3]);
   place(world, ID.home1, 0, 0);
   place(world, ID.home2, 10, 6);
+  place(world, ID.home3, 3, -9);
   giveTo(world, ID.home1);
   for (const p of world.players) p.fx = { ...p.fx, passSpreadDegrees: 0 };
   return world;
@@ -37,6 +41,7 @@ describe('pass targeting', () => {
     const passer = player(world, ID.home1);
     expect(passTarget(world, passer, Math.atan2(6, 10), t.pass.speed, t)?.id).toBe(ID.home2);
     expect(passTarget(world, passer, 0, t.pass.speed, t)?.id).toBe(ID.home2);
+    expect(passTarget(world, passer, -Math.PI / 2, t.pass.speed, t)?.id).toBe(ID.home3);
   });
 
   it('picks nobody when the stick points away from every teammate', () => {

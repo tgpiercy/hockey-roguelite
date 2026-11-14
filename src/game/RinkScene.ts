@@ -22,7 +22,7 @@ export interface RinkSceneOptions {
   onControls: (controls: Controls) => void;
 }
 
-/** 3-on-3: two skaters and a goalie a side, drawn with placeholder shapes. The human plays team 0, attacking right. */
+/** 3-on-3: three skaters and a goalie a side, drawn with placeholder shapes. The human plays team 0, attacking right. */
 export class RinkScene extends Phaser.Scene {
   private world!: World;
   private reader!: InputReader;

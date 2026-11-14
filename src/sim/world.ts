@@ -27,7 +27,7 @@ export { STEP_SECONDS, STEPS_PER_SECOND } from './clock';
 export interface WorldOptions {
   /** True (the default): team 0's controlled skater is driven by the input given to step(). False: all AI. */
   human?: boolean;
-  /** "full" (the default) is 2 skaters and a goalie a side. "solo" is one skater alone, for skating tests. */
+  /** "full" (the default) is 3 skaters and a goalie a side. "solo" is one skater alone, for skating tests. */
   lineup?: 'full' | 'solo';
   /** AI level per team, 0 to 1. Left out, team 1 uses the tuning's opponent difficulty and team 0 the teammate level. */
   levels?: [number | null, number | null];
@@ -59,6 +59,9 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', x: num
   };
 }
 
+/** Three skaters and a goalie. In a full world a team's ids run from team * 4: three skaters, then the goalie. */
+export const PLAYERS_PER_TEAM = 4;
+
 function createPlayers(t: Tuning, options: WorldOptions): Player[] {
   const centreX = Math.abs(t.game.skaterStartX);
   if (options.lineup === 'solo') return [createPlayer(0, 0, 'skater', -centreX, 0, options)];
@@ -66,10 +69,11 @@ function createPlayers(t: Tuning, options: WorldOptions): Player[] {
   for (const team of [0, 1] as const) {
     const dir = attackDir(team);
     const net = ownNet(team, t);
-    const base = team * 3;
+    const base = team * PLAYERS_PER_TEAM;
     players.push(createPlayer(base, team, 'skater', -dir * centreX, 0, options));
     players.push(createPlayer(base + 1, team, 'skater', -dir * t.game.wingStartX, dir * t.game.wingStartY, options));
-    const goalie = createPlayer(base + 2, team, 'goalie', 0, 0, options);
+    players.push(createPlayer(base + 2, team, 'skater', -dir * t.game.wingStartX, -dir * t.game.wingStartY, options));
+    const goalie = createPlayer(base + 3, team, 'goalie', 0, 0, options);
     goalie.pos.x = net.x + dir * goalie.goalie!.fx.depth;
     players.push(goalie);
   }
@@ -103,7 +107,7 @@ function faceOff(world: World, t: Tuning): void {
   world.puck = createPuck(0, 0);
   world.phase = 'play';
   world.phaseTime = 0;
-  if (world.human) world.human.controlled = world.human.team * 3;
+  if (world.human) world.human.controlled = world.human.team * PLAYERS_PER_TEAM;
 }
 
 function goal(world: World, side: -1 | 1, t: Tuning, events: SimEvent[]): void {

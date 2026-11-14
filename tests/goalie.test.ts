@@ -157,7 +157,7 @@ describe('freezing and rebounds', () => {
     const events = run(world, t.goalie.holdSeconds + 0.2);
     const pass = events.find((e) => e.type === 'pass');
     expect(pass).toMatchObject({ type: 'pass', player: ID.awayGoalie, saucer: true });
-    expect([ID.away1, ID.away2]).toContain(pass && pass.type === 'pass' ? pass.target : -1);
+    expect([ID.away1, ID.away2, ID.away3]).toContain(pass && pass.type === 'pass' ? pass.target : -1);
     expect(world.puck.carrier).not.toBe(ID.awayGoalie);
   });
 
