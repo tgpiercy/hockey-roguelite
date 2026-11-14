@@ -1,15 +1,17 @@
 {
   "teammateLevel": 0.6,
+  "faceoffJitterSeconds": 0.15,
   "levels": {
     "reactionSeconds": [0.45, 0.12],
-    "aimErrorDegrees": [12, 2],
-    "passAwareness": [0.2, 0.85],
-    "checkEagerness": [0.2, 0.8],
+    "aimErrorDegrees": [5, 0.5],
+    "passAwareness": [0.08, 0.35],
+    "checkEagerness": [0.12, 0.55],
     "shotCharge": [0.1, 0.7],
-    "shootRange": [8, 12]
+    "shootRange": [8, 11],
+    "faceoffSeconds": [0.5, 0.2]
   },
   "positions": {
-    "slotDistance": 6,
+    "slotDistance": 3,
     "slotHalfWidth": 4,
     "supportAhead": 4,
     "supportLaneY": 6,
@@ -19,11 +21,11 @@
     "arriveRadius": 1.5,
     "pressureRadius": 3,
     "openRadius": 2.5,
-    "laneClearance": 1.2,
+    "laneClearance": 0.8,
     "avoidRadius": 4,
     "avoidShift": 3,
-    "cornerInset": 0.45,
-    "maxCarrySeconds": 5,
+    "cornerInset": 0.3,
+    "maxCarrySeconds": 2.5,
     "sprintStamina": 0.4,
     "outletX": 9,
     "outletY": 6,

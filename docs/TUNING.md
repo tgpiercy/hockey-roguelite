@@ -109,6 +109,53 @@ These were added for 3-on-3 and set only so that both sides can score; Phase 3 t
 
 AI ranges (easy to hard) and positioning distances are in `src/data/ai.json`.
 
+## Phase 3 balance (2026-11-13)
+
+Measured with `npm run balance`, AI against AI at level 0.5, 200 games each, teams swapping ends every game.
+
+| Target | Before tuning | After tuning |
+| --- | --- | --- |
+| Equal teams (70 against 70) score about 3 to 5 goals each | 1.48 and 1.36 | 3.37 and 3.16 |
+| A 90-rated team beats a 70-rated team in about 75% of games | 89.0% | 75.5% |
+| Save percentage between .850 and .920 | .904 | .855 (equal teams), .872 (90 against 70) |
+
+Other numbers after tuning, equal teams: about 34 shot attempts per team per game, overtime in 17.5% of games.
+
+What moved, and why:
+
+- **Rating effects were flattened.** A 20-point rating gap was worth far too much. Speed now runs from 0.93 to 1.03 (was 0.79 to 1.09), shot power and accuracy from 0.49 to 0.79 (was 0 to 1), check strength and puck security the same, passing and stamina similarly narrowed. A rating of 70 still gives exactly the plain physics values.
+- **Goalies** react faster (0.19 s at rating 0 to 0.12 s at 100) but cover less net (radius 0.31 to 0.37) and cross the crease more slowly (2.6 to 3.3 m/s). Reaction time turned out to be the lever that decides whether a shot taken on the rush goes in.
+- **The AI attacks more directly**: it carries to 3 m from the goal line and shoots on the move, aims for the corners (0.3 m inside the post) with less aim error, shoots through tighter lanes, holds the puck for at most 2.5 seconds in the zone, and passes and checks less often.
+
+Human against AI is a separate question and is not settled. `npm run balance -- --naive` plays a scripted stand-in for a simple human (chase the puck, skate to the slot, shoot at the near corner; never pass, check or change lines) against the AI:
+
+| AI level | Scripted player's record over 60 games | Goals per game |
+| --- | --- | --- |
+| 0.75 (the default) | 41 wins, 19 losses | 4.95 for, 3.63 against |
+
+So the default opponent is still too easy for anyone who plays directly. That needs a real player's judgement before more tuning.
+
+### New values in `physics.json`
+
+| Value | Start | In hockey terms |
+| --- | --- | --- |
+| period.seconds / period.count | 120 / 3 | Length and number of periods |
+| period.breakSeconds | 2 | Pause between periods |
+| faceoff.minWaitSeconds / maxWaitSeconds | 0.8 / 1.8 | How long the linesman holds the puck before the drop |
+| faceoff.windowSeconds | 1 | Time to go for the puck before it just lies loose |
+| faceoff.falseStartLockSeconds | 0.5 | Lock-out for pressing before the drop |
+| faceoff.drawSpeed | 12 | Speed of the puck drawn back to the winger |
+| bench.doorX / bench.doorRadius | 4 / 1.3 | Where each bench door is along the top boards, and how close counts as "at the door" |
+| bench.changeCooldownSeconds | 4 | Wait before another automatic change |
+| energy.drainPerSecond / sprintDrainPerSecond | 0.02 / 0.02 | How fast a shift tires a skater; sprinting doubles it |
+| energy.benchRecoverPerSecond | 0.03 | How fast the bench restores him |
+| energy.tiredBelow | 0.6 | Energy level under which he starts to fade |
+| energy.minSpeedScale / minShotScale / minCheckScale | 0.8 / 0.75 / 0.6 | How much speed, shot power and check strength are left at zero energy |
+| energy.changeBelow / changeMargin | 0.5 / 0.15 | When the automatic change kicks in, and how much fresher the bench must be |
+| energy.goalieDrainPerSecond / goalieReactionPenalty | 0.0008 / 0.4 | How slowly a goalie tires, and how much later a spent goalie reacts |
+| goalie.smotherReach | 1.2 | A goalie smothers a puck carried this close to him |
+| game.opponentDifficulty | 0.75 | Raised from 0.5 |
+
 ## Change log
 
 | Date | Value | From | To | Why |
@@ -119,3 +166,5 @@ AI ranges (easy to hard) and positioning distances are in `src/data/ai.json`.
 | 2026-11-13 | check.cooldownSeconds | 0.6 | 0.9 | Same |
 | 2026-11-13 | AI checkEagerness (ai.json) | 0.3 to 0.95 | 0.2 to 0.8 | Same |
 | 2026-11-13 | player.shotPower, player.accuracy | 0.7 | removed | Replaced by the shooting rating (70 gives the same 0.7) |
+| 2026-11-13 | ratings.json and ai.json | Phase 2 values | see "Phase 3 balance" above | To meet the three balance targets |
+| 2026-11-13 | game.opponentDifficulty | 0.5 | 0.75 | A simple direct player beat 0.5 easily |

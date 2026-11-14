@@ -58,7 +58,7 @@ export function resolveLoosePuck(world: World, t: Tuning, events: SimEvent[]): v
   const puck = world.puck;
   if (puck.air > 0) return;
   const skaters = world.players
-    .filter((p) => p.role === 'skater')
+    .filter((p) => p.onIce && p.role === 'skater')
     .sort((a, b) => dist(a.pos, puck.pos) - dist(b.pos, puck.pos) || a.id - b.id);
 
   for (const p of skaters) {
@@ -91,6 +91,8 @@ export function resolveLoosePuck(world: World, t: Tuning, events: SimEvent[]): v
       }
       puck.pos.x = p.pos.x + nx * reach;
       puck.pos.y = p.pos.y + ny * reach;
+      // A skater against the boards must not squeeze the puck through them.
+      hitBoards(puck.pos, puck.vel, t.puck.radius, t.rink.boardBounce, t);
       puck.passTarget = null;
     }
   }

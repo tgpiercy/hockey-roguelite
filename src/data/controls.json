@@ -28,6 +28,7 @@
     "check": ["KeyX", "KeyK"],
     "switchPlayer": ["KeyC", "KeyL"],
     "debug": ["KeyI"],
+    "lineChange": ["KeyQ"],
     "sprint": ["ShiftLeft", "ShiftRight"],
     "menu": ["Tab"]
   },

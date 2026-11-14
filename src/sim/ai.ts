@@ -3,9 +3,10 @@ import { checkKind } from './check';
 import { STEP_SECONDS, STEPS_PER_SECOND } from './clock';
 import { leadPoint } from './pass';
 import { goalLineX } from './rink';
-import { attackDir, carrierOf, dist, distToSegment, goalieOf, otherTeam, ownNet, skatersOf, targetNet } from './team';
+import { benchDoor } from './lines';
+import { attackDir, availableSkaters, carrierOf, dist, distToSegment, goalieOf, otherTeam, ownNet, skatersOf, targetNet } from './team';
 import type { Tuning } from './tuning';
-import type { AiMemory, AiState, InputFrame, Player, Vec, World } from './types';
+import { NO_INPUT, type AiMemory, type AiState, type InputFrame, type Player, type Vec, type World } from './types';
 
 const P = data.positions;
 
@@ -17,6 +18,8 @@ export interface AiLevel {
   checkEagerness: number;
   shotCharge: number;
   shootRange: number;
+  /** How long after a faceoff drop the centre goes for the puck. */
+  faceoffSeconds: number;
 }
 
 export function aiLevel(level: number): AiLevel {
@@ -30,6 +33,7 @@ export function aiLevel(level: number): AiLevel {
     checkEagerness: at(l.checkEagerness),
     shotCharge: at(l.shotCharge),
     shootRange: at(l.shootRange),
+    faceoffSeconds: at(l.faceoffSeconds),
   };
 }
 
@@ -91,7 +95,7 @@ export function chooseState(world: World, p: Player, _t: Tuning): AiState {
   }
 
   if (puck.passTarget === p.id) return 'chase';
-  const mates = skatersOf(world, p.team);
+  const mates = availableSkaters(world, p.team);
   const passedToMate = mates.some((m) => m.id === puck.passTarget);
   if (!passedToMate && nearestTo(mates, puck.pos)?.id === p.id) return 'chase';
   return dir * puck.pos.x < 0 ? 'defend' : 'support';
@@ -121,7 +125,7 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   const net = targetNet(p.team, t);
   const puck = world.puck.pos;
   const opponents = skatersOf(world, otherTeam(p.team));
-  const mates = skatersOf(world, p.team).filter((s) => s.id !== p.id);
+  const mates = availableSkaters(world, p.team).filter((s) => s.id !== p.id);
   const nearestOpp = nearestTo(opponents, p.pos);
   const pressured = nearestOpp !== null && dist(nearestOpp.pos, p.pos) < P.pressureRadius;
   const range = dist(puck, net);
@@ -176,7 +180,7 @@ function planSupport(world: World, p: Player, t: Tuning): void {
     return;
   }
   const ref = carrier ? carrier.pos : world.puck.pos;
-  const helpers = skatersOf(world, p.team).filter((s) => s.id !== carrier?.id);
+  const helpers = availableSkaters(world, p.team).filter((s) => s.id !== carrier?.id);
   const maxX = goalLineX(t) - P.slotDistance * 0.5;
   const clampX = (x: number): number => Math.max(-maxX, Math.min(maxX, x));
 
@@ -194,7 +198,7 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   const dir = attackDir(p.team);
   const net = ownNet(p.team, t);
   const carrier = carrierOf(world);
-  const mates = skatersOf(world, p.team);
+  const mates = availableSkaters(world, p.team);
   const slot: Vec = { x: net.x + dir * P.defendSlotDepth, y: world.puck.pos.y * 0.3 + spread(world, p) * P.slotSpacing };
 
   // Their goalie has it: fall back to the neutral zone, spread across the ice.
@@ -278,7 +282,21 @@ function steerTarget(world: World, p: Player): Vec {
 export function aiInput(world: World, p: Player, t: Tuning, lv: AiLevel): InputFrame {
   const m = p.ai;
   const hasPuck = world.puck.carrier === p.id;
-  const input: InputFrame = { moveX: 0, moveY: 0, sprint: false, shoot: false, pass: false, check: false, switchPlayer: false };
+  const input: InputFrame = { ...NO_INPUT };
+
+  // Line change: without the puck, just get to the bench door.
+  if (p.leaving && !hasPuck) {
+    const door = benchDoor(p.team, t);
+    const dx = door.x - p.pos.x;
+    const dy = door.y - p.pos.y;
+    const d = Math.hypot(dx, dy) || 1;
+    input.moveX = dx / d;
+    input.moveY = dy / d;
+    m.shootSteps = 0;
+    m.passSteps = 0;
+    m.thinkIn = 0;
+    return input;
+  }
 
   m.carryTime = hasPuck && attackDir(p.team) * p.pos.x > 0 ? m.carryTime + STEP_SECONDS : 0;
   if (!hasPuck) {

@@ -25,12 +25,25 @@ export function carrierOf(world: World): Player | null {
   return world.puck.carrier === null ? null : (world.players[world.puck.carrier] ?? null);
 }
 
+/** Everyone on the ice. */
+export function onIce(world: World): Player[] {
+  return world.players.filter((p) => p.onIce);
+}
+
+/** A team's skaters on the ice. */
 export function skatersOf(world: World, team: 0 | 1): Player[] {
-  return world.players.filter((p) => p.team === team && p.role === 'skater');
+  return world.players.filter((p) => p.onIce && p.team === team && p.role === 'skater');
+}
+
+/** A team's skaters on the ice who are staying on: not heading to the bench. Falls back to all of them. */
+export function availableSkaters(world: World, team: 0 | 1): Player[] {
+  const all = skatersOf(world, team);
+  const staying = all.filter((p) => !p.leaving);
+  return staying.length > 0 ? staying : all;
 }
 
 export function goalieOf(world: World, team: 0 | 1): Player | null {
-  return world.players.find((p) => p.team === team && p.role === 'goalie') ?? null;
+  return world.players.find((p) => p.onIce && p.team === team && p.role === 'goalie') ?? null;
 }
 
 export function otherTeam(team: 0 | 1): 0 | 1 {
@@ -52,6 +65,11 @@ export function givePuck(world: World, player: Player): void {
   puck.carrier = player.id;
   puck.passTarget = null;
   puck.air = 0;
+  puck.shotBy = null;
+  // The run of touches carries on within a team and starts again when the other team gets it.
+  const last = puck.touches[puck.touches.length - 1];
+  if (puck.lastTeam !== player.team) puck.touches = [player.id];
+  else if (last !== player.id) puck.touches = [...puck.touches, player.id].slice(-3);
   puck.lastTeam = player.team;
   if (world.human && world.human.team === player.team && player.role === 'skater') {
     world.human.controlled = player.id;

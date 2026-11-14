@@ -7,6 +7,7 @@ import type { GamepadSnapshot } from './game/gamepad';
 import type { Controls } from './game/input';
 import { RinkScene } from './game/RinkScene';
 import { ControllerReadout } from './ui/ControllerReadout';
+import { GameSummary } from './ui/GameSummary';
 import { TuningPanel } from './ui/TuningPanel';
 import { tuningStore } from './ui/tuningStore';
 import './style.css';
@@ -14,6 +15,7 @@ import './style.css';
 const panel = document.getElementById('panel') as HTMLElement;
 const hint = document.getElementById('hint') as HTMLElement;
 const tuneButton = document.getElementById('tune') as HTMLElement;
+const summary = document.getElementById('summary') as HTMLElement;
 
 /** The Phase 0 page: open with ?controller to check the controller mapping. */
 function startControllerTest(): void {
@@ -59,10 +61,11 @@ function startRink(): void {
     backgroundColor: look.colours.background,
     scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
     scene: new RinkScene({
-      // The seed only varies shot scatter between sessions; a game replays exactly from its seed.
-      seed: String(Date.now()),
+      // The clock only picks which game this is; the game itself replays exactly from its seed.
+      nextSeed: () => String(Date.now()),
       tuning: () => tuningStore.tuning,
       onControls,
+      onResult: (result) => render(<GameSummary result={result} />, summary),
     }),
   });
   // Local development only: lets a debugging session drive frames by hand.

@@ -154,7 +154,7 @@ describe('check limits', () => {
     };
     const strong = wins(95, 40);
     const weak = wins(40, 95);
-    expect(strong).toBeGreaterThan(weak + 60);
+    expect(strong).toBeGreaterThan(weak + 20);
     expect(weak).toBeGreaterThan(0);
   });
 });

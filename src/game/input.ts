@@ -81,6 +81,7 @@ export class InputReader {
         pass: down(b.pass) || this.key(controls.keys.pass),
         check: down(b.check) || this.key(controls.keys.check),
         switchPlayer: down(b.switchPlayer) || this.key(controls.keys.switchPlayer),
+        lineChange: down(b.lineChange) || this.key(controls.keys.lineChange),
       },
       menuPressed,
       debugPressed,

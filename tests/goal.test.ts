@@ -26,13 +26,13 @@ describe('goal detection', () => {
   it('counts a shot into the right net for team 0, who attack that way', () => {
     const world = worldWithPuck(15, 0, 20, 0);
     const events = play(world, 60);
-    expect(goals(events)).toEqual([{ type: 'goal', side: 1, team: 0 }]);
+    expect(goals(events)).toEqual([{ type: 'goal', side: 1, team: 0, scorer: null, assists: [] }]);
     expect(world.score).toEqual([1, 0]);
   });
 
   it('counts a shot into the left net for team 1', () => {
     const world = worldWithPuck(-15, 0.5, -20, 0);
-    expect(goals(play(world, 60))).toEqual([{ type: 'goal', side: -1, team: 1 }]);
+    expect(goals(play(world, 60))).toEqual([{ type: 'goal', side: -1, team: 1, scorer: null, assists: [] }]);
     expect(world.score).toEqual([0, 1]);
   });
 

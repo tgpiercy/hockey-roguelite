@@ -1,3 +1,4 @@
+import { energyScale } from './lines';
 import { wrapAngle } from './skater';
 import { carrierOf, dist, loosePuck } from './team';
 import type { Tuning } from './tuning';
@@ -38,7 +39,8 @@ export function stepChecking(world: World, p: Player, input: InputFrame, t: Tuni
   const kind = checkKind(p, carrier, world, t);
   if (!kind) return;
 
-  const swing = (p.fx.checkStrength - carrier.fx.puckSecurity) * t.check.ratingSwing;
+  const strength = p.fx.checkStrength * energyScale(p, t.energy.minCheckScale, t);
+  const swing = (strength - carrier.fx.puckSecurity) * t.check.ratingSwing;
   const base = kind === 'body' ? t.check.bodyBaseChance : t.check.pokeBaseChance;
   const success = world.rng.chance(base + swing);
 
@@ -55,7 +57,10 @@ export function stepChecking(world: World, p: Player, input: InputFrame, t: Tuni
     carrier.pickupLock = t.check.pickupLockSeconds;
     carrier.charge = 0;
     carrier.passCharge = 0;
-    if (kind === 'body') carrier.stagger = t.check.staggerSeconds;
+    if (kind === 'body') {
+      carrier.stagger = t.check.staggerSeconds;
+      p.stats.hits += 1;
+    }
   }
   events.push({ type: 'check', player: p.id, target: carrier.id, kind, success });
 }

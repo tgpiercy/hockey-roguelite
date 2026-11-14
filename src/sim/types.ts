@@ -18,6 +18,7 @@ export interface InputFrame {
   pass: boolean;
   check: boolean;
   switchPlayer: boolean;
+  lineChange: boolean;
 }
 
 export const NO_INPUT: InputFrame = {
@@ -28,6 +29,7 @@ export const NO_INPUT: InputFrame = {
   pass: false,
   check: false,
   switchPlayer: false,
+  lineChange: false,
 };
 
 /** Per-skater shooting abilities, 0 to 1. */
@@ -91,6 +93,20 @@ export interface GoalieState {
   ignorePuck: number;
 }
 
+/** What a player did in the game. Later phases award XP and milestones from these. */
+export interface PlayerStats {
+  goals: number;
+  assists: number;
+  shots: number;
+  /** Body checks that landed. */
+  hits: number;
+  /** Seconds on the ice while the clock ran. */
+  timeOnIce: number;
+  /** Goalies only. */
+  saves: number;
+  goalsAgainst: number;
+}
+
 export interface Player extends Skater {
   id: number;
   /** Team 0 defends the left net and attacks right; team 1 the reverse. */
@@ -108,6 +124,16 @@ export interface Player extends Skater {
   stagger: number;
   /** Seconds until this player can collect the puck again. */
   pickupLock: number;
+  /** False while sitting on the bench. */
+  onIce: boolean;
+  /** Which of the team's two lines he is on (goalies: 0), and his place in it: 0 is the centre. */
+  line: 0 | 1;
+  slot: number;
+  /** Shift energy, 0 (spent) to 1 (fresh). Falls on the ice, refills on the bench. */
+  energy: number;
+  /** True while heading to the bench on a line change. */
+  leaving: boolean;
+  stats: PlayerStats;
 }
 
 export interface Puck {
@@ -121,10 +147,18 @@ export interface Puck {
   passTarget: number | null;
   /** The team that last had it. */
   lastTeam: 0 | 1 | null;
+  /** Players of one team who have had it in a row, oldest first: the last is the scorer, the ones before get assists. */
+  touches: number[];
+  /** Id of the player who shot it, until someone else plays it. A goalie stop only counts as a save on a shot. */
+  shotBy: number | null;
 }
 
 export type SimEvent =
-  | { type: 'goal'; side: -1 | 1; team: 0 | 1 }
+  | { type: 'goal'; side: -1 | 1; team: 0 | 1; scorer: number | null; assists: number[] }
+  | { type: 'faceoff'; winner: 0 | 1 | null }
+  | { type: 'period'; period: number }
+  | { type: 'final' }
+  | { type: 'change'; team: 0 | 1; off: number; on: number }
   | { type: 'shot'; speed: number; player: number }
   | { type: 'pass'; player: number; target: number | null; saucer: boolean }
   | { type: 'post' }
@@ -138,8 +172,11 @@ export interface World {
   puck: Puck;
   /** Goals for team 0 and team 1. */
   score: [number, number];
-  /** "goal" is the short pause after a goal, before the reset. */
-  phase: 'play' | 'goal';
+  /**
+   * "goal" is the short pause after a goal. The rest only happen with game rules:
+   * "faceoff" (lined up, waiting for the draw), "break" (between periods), "final" (game over).
+   */
+  phase: 'play' | 'goal' | 'faceoff' | 'break' | 'final';
   phaseTime: number;
   rng: Rng;
   /** The human's team and the skater being controlled, or null for an all-AI game. */
@@ -147,4 +184,38 @@ export interface World {
   /** AI level per team, 0 (easy) to 1 (hard). Null means "take it from the tuning". */
   levels: [number | null, number | null];
   lineup: 'full' | 'solo';
+  /** "scrimmage": endless play, no clock, faceoffs or line changes. "game": the full rules. */
+  rules: 'scrimmage' | 'game';
+  /** 1 to 3, then 4 for overtime. */
+  period: number;
+  /** Seconds left in the period; in overtime, seconds played. */
+  clock: number;
+  overtime: boolean;
+  /** Overtime ends in a tie after this many seconds; 0 means it runs until someone scores. */
+  overtimeLimit: number;
+  faceoff: FaceoffState | null;
+  teams: [TeamState, TeamState];
+}
+
+export interface TeamState {
+  /** The line that is on the ice, or coming on. */
+  line: 0 | 1;
+  /** Seconds until an automatic change can be called again. */
+  changeCooldown: number;
+  /** Whether the line-change button was held on the previous step. */
+  changeHeld: boolean;
+}
+
+export interface FaceoffState {
+  /** Seconds until the puck drops. */
+  dropIn: number;
+  dropped: boolean;
+  /** Seconds since the drop. */
+  sinceDrop: number;
+  /** Seconds each centre is locked out after the drop, for pressing early. */
+  lock: [number, number];
+  /** How long after the drop each AI centre will go for the puck. */
+  aiDelay: [number, number];
+  /** Whether each centre's draw button was held on the previous step. */
+  held: [boolean, boolean];
 }

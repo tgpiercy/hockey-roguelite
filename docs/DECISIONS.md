@@ -26,6 +26,15 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-13 | Can the puck be carried into the net? | Yes if the goalie is out of position, but a goalie smothers a puck carried into him. Replaces the Phase 1 answer. | Phase 2 |
 | 2026-11-13 | How many players on the ice? | 3 skaters and a goalie per side (the GDD first said 2 skaters). `docs/GDD.md` has been edited to match. | Phase 2 |
 | 2026-11-13 | How many players are dressed? | 6 skaters + 1 goalie: two lines of 3, from the roster of 7 skaters + 1 goalie, so one skater stays home. `docs/GDD.md` has been edited to match. This overrides the "4 skaters and 1 goalie" and "two lines of 2" wording in the Phase 2, 3, 4 and 5 prompts of `docs/IMPLEMENTATION_PLAN.md`. | Phase 3 |
+| 2026-11-13 | How does a line change work? | Skaters skate to their bench door on the top boards; each is swapped for his opposite number as he gets there. The puck carrier goes once he no longer has the puck. | Phase 3 |
+| 2026-11-13 | Who calls line changes? | Automatic for both teams: when the line on the ice is tired, the bench is fresher and the moment is safe (the team has the puck, or the puck is in the other half). LB forces a change at once. At a faceoff the bench line starts if it is clearly fresher. | Phase 3 |
+| 2026-11-13 | How are faceoffs decided? | A timing duel. The puck drops after a random wait; the first centre to press A after the drop wins it back to a winger. Pressing early locks that centre out for half a second. If nobody presses within a second the puck lies loose. | Phase 3 |
+| 2026-11-13 | Fatigue | Two bars. The sprint bar is unchanged. Each skater also has shift energy that falls on the ice (faster when sprinting) and refills on the bench; below 60% it cuts speed, shot power and check strength. Goalies tire slowly over the game and react a little later. | Phase 3 |
+| 2026-11-13 | Does the clock run through stoppages? | No. It runs during play and stops for the goal celebration and the faceoff set-up, so a goal does not eat a 2-minute period. | Phase 3 |
+| 2026-11-13 | Overtime | Sudden death with the same lines, played until someone scores. The balance harness alone caps it at 5 minutes and counts a tie. | Phase 3 |
+| 2026-11-13 | What counts as a shot, a save, an assist, a hit? | A shot is any shot attempt. A save is a goalie stopping a puck that an opponent shot (loose pucks and passes do not count). Up to two assists go to the teammates who had the puck before the scorer, as long as the other team did not have it in between. A hit is a body check that lands. | Phase 3 |
+| 2026-11-13 | Can a goalie be skated around? | A goalie smothers any puck carried within 1.2 m of him. | Phase 3 |
+| 2026-11-13 | Default opponent difficulty | 0.75 (was 0.5), because a scripted player that only skates to the slot and shoots beat level 0.5 easily. Balance targets are measured AI against AI at 0.5. | Phase 3 |
 
 ## Open
 

@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview --host",
     "test": "vitest run",
+    "balance": "node scripts/balance.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.core.json"
   },
   "dependencies": {

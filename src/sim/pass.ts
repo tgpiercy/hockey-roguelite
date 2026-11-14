@@ -1,5 +1,5 @@
 import { wrapAngle } from './skater';
-import { dist, loosePuck, skatersOf } from './team';
+import { availableSkaters, dist, loosePuck } from './team';
 import type { Tuning } from './tuning';
 import type { InputFrame, Player, SimEvent, Vec, World } from './types';
 
@@ -17,7 +17,7 @@ export function passTarget(world: World, passer: Player, aim: number, speed: num
   const halfCone = (t.pass.aimConeDegrees * Math.PI) / 360;
   let best: Player | null = null;
   let bestOff = Infinity;
-  for (const mate of skatersOf(world, passer.team)) {
+  for (const mate of availableSkaters(world, passer.team)) {
     if (mate.id === passer.id) continue;
     const lead = leadPoint(world.puck.pos, mate, speed);
     const off = Math.abs(wrapAngle(Math.atan2(lead.y - world.puck.pos.y, lead.x - world.puck.pos.x) - aim));
@@ -68,6 +68,7 @@ export function stepPassing(world: World, p: Player, input: InputFrame, t: Tunin
   puck.vel.x = Math.cos(angle) * speed;
   puck.vel.y = Math.sin(angle) * speed;
   puck.passTarget = target ? target.id : null;
+  puck.shotBy = null;
   puck.air = saucer ? Math.min(t.pass.saucerMaxAirSeconds, (target ? flight : 1) * t.pass.saucerAirShare) : 0;
   p.pickupLock = t.puck.pickupCooldown;
 

@@ -41,7 +41,7 @@ Built, deployed and checked with a simulated controller. Still open:
 - [x] Checked in a browser
 - [x] Commit, push, deploy green
 - [x] Changed to 3 skaters and a goalie a side at the owner's request (6 skaters + 1 goalie dressed); GDD updated
-- [ ] Exit test: continuous 3-on-3 with goals by both sides; you win some shifts and lose some; passes go where you meant (owner)
+- [ ] Exit test with the controller: continuous 3-on-3 with goals by both sides; you win some shifts and lose some; passes go where you meant (owner)
 
 ## Review (Phase 2)
 
@@ -50,3 +50,30 @@ Built, deployed and checked with a simulated controller. Still open:
 - Browser check (frames driven by hand): a scripted keyboard player chased the puck, carried it and shot for 3 simulated minutes against the AI; it finished 2-1 with no console errors. The debug overlay and View button toggle worked.
 - Not checked: real-time play by a person, the controller, and whether it is fun or fair.
 - Known rough edges for Phase 3: scoring is low against the 3 to 5 goals a side target; no one-timers; the AI never dumps the puck or changes pace; goalie stamina does nothing yet.
+
+# Phase 3: full game and balance harness
+
+- [x] 14 dressed players, bench and on-ice flags; existing tests moved to the new numbering
+- [x] Periods, clock, overtime, game result
+- [x] Faceoff timing duel
+- [x] Energy, line changes at the bench door, automatic changes, LB override
+- [x] Stats: goals, assists, shots, hits, time on ice, saves, goals against
+- [x] Harness and `npm run balance`
+- [x] Tuned to the three targets (numbers in `docs/TUNING.md`)
+- [x] Scoreboard, faceoff cue, bench doors, line energy, end-of-game summary
+- [x] Checked in a browser
+- [ ] Commit, push, deploy green
+- [ ] Exit test: a full game plays start to finish on the phone with the controller; go / no-go on whether it is fun (owner)
+
+## Review (Phase 3)
+
+- Type check, 228 tests and the build pass.
+- Balance over 200 games each, AI against AI at level 0.5: equal teams score 3.37 and 3.16 (target 3 to 5); the 90-rated team wins 75.5% against 70 (target about 75%); save percentage .855 and .872 (target .850 to .920). Before tuning: 1.48 and 1.36 goals, 89.0%, .904.
+- Browser check (frames driven by hand): a scripted keyboard player played a whole game from the opening faceoff to the summary screen (lost 2-3); a false start locked it out of a faceoff; Q forced a line change; automatic changes happened through the game; pressing Z on the summary started a new game; a game forced to a tie went to overtime and ended on the next goal ("You win: 3 - 2 (OT)"). No console errors.
+- Not checked: real-time play by a person, the controller, and whether it is fun.
+- Known problems:
+  - Human against AI is too easy. A scripted player that only skates to the slot and shoots wins about two games in three at the default difficulty (0.75), and more at 0.5. The AI defence does not stop a direct carrier well enough.
+  - Save percentage for equal teams (.855) is only just inside the range.
+  - During a line change a team is short-handed for a few seconds; the AI does not cover for that.
+  - No one-timers; the AI never dumps the puck in.
+- Tried and removed: slowing the puck carrier a little so defenders can catch him. It lowered scoring without stopping the scripted player.

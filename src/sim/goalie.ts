@@ -1,23 +1,24 @@
 import { hitBoards } from './rink';
-import { attackDir, dist, givePuck, loosePuck, otherTeam, ownNet, skatersOf } from './team';
+import { goalieReaction } from './lines';
+import { attackDir, availableSkaters, dist, givePuck, loosePuck, otherTeam, ownNet, skatersOf } from './team';
 import type { Tuning } from './tuning';
 import type { Player, SimEvent, Vec, World } from './types';
 import { STEPS_PER_SECOND } from './clock';
 
 /** What the goalie currently believes about the puck: where it was one reaction time ago. */
-function perceived(g: Player, world: World): { pos: Vec; vel: Vec; loose: boolean } {
+function perceived(g: Player, world: World, t: Tuning): { pos: Vec; vel: Vec; loose: boolean } {
   const state = g.goalie!;
-  const delaySteps = Math.round(state.fx.reactionSeconds * STEPS_PER_SECOND);
+  const delaySteps = Math.round(goalieReaction(g, t) * STEPS_PER_SECOND);
   const index = Math.max(0, state.seen.length - 1 - delaySteps);
   return state.seen[index] ?? { pos: world.puck.pos, vel: world.puck.vel, loose: world.puck.carrier === null };
 }
 
 /** Remembers the puck's position this step, for the goalie's delayed reaction. */
-export function recordPuck(g: Player, world: World): void {
+export function recordPuck(g: Player, world: World, t: Tuning): void {
   const state = g.goalie!;
   const puck = world.puck;
   state.seen.push({ pos: { x: puck.pos.x, y: puck.pos.y }, vel: { x: puck.vel.x, y: puck.vel.y }, loose: puck.carrier === null });
-  const keep = Math.round(state.fx.reactionSeconds * STEPS_PER_SECOND) + 2;
+  const keep = Math.round(goalieReaction(g, t) * STEPS_PER_SECOND) + 2;
   while (state.seen.length > keep) state.seen.shift();
 }
 
@@ -29,7 +30,7 @@ export function goalieTarget(g: Player, world: World, t: Tuning): Vec {
   const state = g.goalie!;
   const net = ownNet(g.team, t);
   const out = attackDir(g.team);
-  const seen = perceived(g, world);
+  const seen = perceived(g, world, t);
   const standX = net.x + out * state.fx.depth;
   const limit = t.goalie.creaseHalfWidth;
 
@@ -86,6 +87,9 @@ export function makeSave(g: Player, world: World, t: Tuning, events: SimEvent[])
   const state = g.goalie!;
   const puck = world.puck;
   const speed = Math.hypot(puck.vel.x, puck.vel.y);
+  const shooter = puck.shotBy === null ? undefined : world.players[puck.shotBy];
+  if (shooter && shooter.team !== g.team) g.stats.saves += 1;
+  puck.shotBy = null;
 
   if (speed <= state.fx.freezeSpeed) {
     givePuck(world, g);
@@ -103,7 +107,6 @@ export function makeSave(g: Player, world: World, t: Tuning, events: SimEvent[])
   loosePuck(world);
   puck.vel.x = Math.cos(out) * reboundSpeed;
   puck.vel.y = Math.sin(out) * reboundSpeed;
-  puck.lastTeam = g.team;
   state.ignorePuck = t.goalie.ignoreSeconds;
   events.push({ type: 'save', goalie: g.id, frozen: false });
 }
@@ -113,7 +116,7 @@ export function outletTarget(g: Player, world: World): Player | null {
   const opponents = skatersOf(world, otherTeam(g.team));
   let best: Player | null = null;
   let bestRoom = -1;
-  for (const mate of skatersOf(world, g.team)) {
+  for (const mate of availableSkaters(world, g.team)) {
     const room = opponents.length === 0 ? 1 : Math.min(...opponents.map((o) => dist(o.pos, mate.pos)));
     if (room > bestRoom) {
       best = mate;

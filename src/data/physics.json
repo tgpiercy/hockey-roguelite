@@ -58,7 +58,7 @@
     "skaterStartX": -6,
     "wingStartX": 10,
     "wingStartY": 5,
-    "opponentDifficulty": 0.5
+    "opponentDifficulty": 0.75
   },
   "pass": {
     "speed": 20,
@@ -91,6 +91,7 @@
   },
   "goalie": {
     "bodyRadius": 0.6,
+    "smotherReach": 1.2,
     "creaseHalfWidth": 1.6,
     "shotSpeedThreshold": 10,
     "holdSeconds": 1,
@@ -98,5 +99,38 @@
     "reboundMinSpeed": 5,
     "reboundScatterDegrees": 35,
     "outletSpeed": 16
+  },
+  "period": {
+    "seconds": 120,
+    "count": 3,
+    "breakSeconds": 2
+  },
+  "faceoff": {
+    "minWaitSeconds": 0.8,
+    "maxWaitSeconds": 1.8,
+    "windowSeconds": 1,
+    "falseStartLockSeconds": 0.5,
+    "drawSpeed": 12,
+    "centreX": 1,
+    "wingX": 3,
+    "wingY": 5
+  },
+  "bench": {
+    "doorX": 4,
+    "doorRadius": 1.3,
+    "changeCooldownSeconds": 4
+  },
+  "energy": {
+    "drainPerSecond": 0.02,
+    "sprintDrainPerSecond": 0.02,
+    "benchRecoverPerSecond": 0.03,
+    "tiredBelow": 0.6,
+    "minSpeedScale": 0.8,
+    "minShotScale": 0.75,
+    "minCheckScale": 0.6,
+    "changeBelow": 0.5,
+    "changeMargin": 0.15,
+    "goalieDrainPerSecond": 0.0008,
+    "goalieReactionPenalty": 0.4
   }
 }

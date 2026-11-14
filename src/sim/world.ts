@@ -1,11 +1,12 @@
 import { createRng } from '../core/rng';
-import data from '../data/ai.json';
 import { aiInput, aiLevel, createAiMemory } from './ai';
 import { stepChecking } from './check';
 import { STEP_SECONDS } from './clock';
 import { resolveLoosePuck, separateBodies } from './contact';
 import { updateControl } from './control';
+import { afterGoal, levelFor, startFaceoff, stepBreak, stepFaceoff, tickClock } from './match';
 import { makeSave, recordPuck, stepGoalie, stepGoalieHold } from './goalie';
+import { autoChange, benchDoor, callChange, currentFx, putOnIce, stepChanges, stepEnergy } from './lines';
 import { stepPassing } from './pass';
 import { createPuck, stepCarriedPuck, stepLoosePuck, type Blocker } from './puck';
 import {
@@ -18,11 +19,17 @@ import {
 } from './ratings';
 import { stepShooting } from './shot';
 import { createSkater, stepSkater } from './skater';
-import { attackDir, carrierOf, dist, givePuck, loosePuck, otherTeam, ownNet } from './team';
+import { attackDir, carrierOf, dist, givePuck, goalieOf, loosePuck, onIce, otherTeam, ownNet, skatersOf } from './team';
 import type { Tuning } from './tuning';
 import { NO_INPUT, type InputFrame, type Player, type SimEvent, type World } from './types';
 
 export { STEP_SECONDS, STEPS_PER_SECOND } from './clock';
+
+/** A dressed team: 6 skaters (the first three are line 1, the next three line 2) and a goalie. */
+export interface TeamSetup {
+  skaters: SkaterRatings[];
+  goalie: GoalieRatings;
+}
 
 export interface WorldOptions {
   /** True (the default): team 0's controlled skater is driven by the input given to step(). False: all AI. */
@@ -31,24 +38,30 @@ export interface WorldOptions {
   lineup?: 'full' | 'solo';
   /** AI level per team, 0 to 1. Left out, team 1 uses the tuning's opponent difficulty and team 0 the teammate level. */
   levels?: [number | null, number | null];
-  /** Ratings per team. Left out, everyone is rated 70. */
+  /** Ratings for every skater, or the goalie, of each team. Left out, everyone is rated 70. */
   skaterRatings?: [SkaterRatings, SkaterRatings];
   goalieRatings?: [GoalieRatings, GoalieRatings];
+  /** Full rosters with a rating set per player. Takes priority over the two options above. */
+  teams?: [TeamSetup, TeamSetup];
+  /** Game rules only: overtime ends in a tie after this many seconds. Left out, it runs until someone scores. */
+  overtimeLimit?: number;
 }
 
-function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', x: number, y: number, options: WorldOptions): Player {
-  const body = createSkater(x, y);
-  body.facing = team === 0 ? 0 : Math.PI;
+/** Dressed per team: two lines of three skaters, then the goalie. A team's ids run from team * 7. */
+export const SKATERS_PER_LINE = 3;
+export const SKATERS_PER_TEAM = 6;
+export const PLAYERS_PER_TEAM = 7;
+
+function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index: number, options: WorldOptions): Player {
+  const skater = options.teams?.[team].skaters[index] ?? options.skaterRatings?.[team] ?? defaultSkaterRatings;
+  const goalie = options.teams?.[team].goalie ?? options.goalieRatings?.[team] ?? defaultGoalieRatings;
   return {
-    ...body,
+    ...createSkater(0, 0),
     id,
     team,
     role,
-    fx: skaterEffects(options.skaterRatings?.[team] ?? defaultSkaterRatings),
-    goalie:
-      role === 'goalie'
-        ? { fx: goalieEffects(options.goalieRatings?.[team] ?? defaultGoalieRatings), seen: [], hold: 0, ignorePuck: 0 }
-        : null,
+    fx: skaterEffects(role === 'skater' ? skater : defaultSkaterRatings),
+    goalie: role === 'goalie' ? { fx: goalieEffects(goalie), seen: [], hold: 0, ignorePuck: 0 } : null,
     ai: createAiMemory(),
     passCharge: 0,
     passHeld: false,
@@ -56,32 +69,69 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', x: num
     checkCooldown: 0,
     stagger: 0,
     pickupLock: 0,
+    onIce: true,
+    line: role === 'skater' && index >= SKATERS_PER_LINE ? 1 : 0,
+    slot: role === 'skater' ? index % SKATERS_PER_LINE : 0,
+    energy: 1,
+    leaving: false,
+    stats: { goals: 0, assists: 0, shots: 0, hits: 0, timeOnIce: 0, saves: 0, goalsAgainst: 0 },
   };
 }
 
-/** Three skaters and a goalie. In a full world a team's ids run from team * 4: three skaters, then the goalie. */
-export const PLAYERS_PER_TEAM = 4;
+/** Scrimmage starting spot for a skater, by his place in the line. */
+function startSpot(team: 0 | 1, slot: number, t: Tuning): [number, number] {
+  const dir = attackDir(team);
+  if (slot === 0) return [-dir * Math.abs(t.game.skaterStartX), 0];
+  return [-dir * t.game.wingStartX, (slot === 1 ? 1 : -1) * dir * t.game.wingStartY];
+}
 
 function createPlayers(t: Tuning, options: WorldOptions): Player[] {
-  const centreX = Math.abs(t.game.skaterStartX);
-  if (options.lineup === 'solo') return [createPlayer(0, 0, 'skater', -centreX, 0, options)];
+  if (options.lineup === 'solo') {
+    const solo = createPlayer(0, 0, 'skater', 0, options);
+    solo.pos.x = -Math.abs(t.game.skaterStartX);
+    return [solo];
+  }
   const players: Player[] = [];
   for (const team of [0, 1] as const) {
-    const dir = attackDir(team);
-    const net = ownNet(team, t);
     const base = team * PLAYERS_PER_TEAM;
-    players.push(createPlayer(base, team, 'skater', -dir * centreX, 0, options));
-    players.push(createPlayer(base + 1, team, 'skater', -dir * t.game.wingStartX, dir * t.game.wingStartY, options));
-    players.push(createPlayer(base + 2, team, 'skater', -dir * t.game.wingStartX, -dir * t.game.wingStartY, options));
-    const goalie = createPlayer(base + 3, team, 'goalie', 0, 0, options);
-    goalie.pos.x = net.x + dir * goalie.goalie!.fx.depth;
-    players.push(goalie);
+    const door = benchDoor(team, t);
+    for (let i = 0; i < SKATERS_PER_TEAM; i++) {
+      const p = createPlayer(base + i, team, 'skater', i, options);
+      p.onIce = p.line === 0;
+      p.pos = { x: door.x, y: door.y };
+      players.push(p);
+    }
+    players.push(createPlayer(base + SKATERS_PER_TEAM, team, 'goalie', 0, options));
   }
   return players;
 }
 
+/** Scrimmage reset: the line on the ice back to its starting spots, goalies home, puck loose at centre. */
+function lineUp(world: World, t: Tuning): void {
+  for (const p of onIce(world)) {
+    if (p.role === 'skater') {
+      const [x, y] = world.lineup === 'solo' ? [-Math.abs(t.game.skaterStartX), 0] : startSpot(p.team, p.slot, t);
+      putOnIce(p, x, y, p.team === 0 ? 0 : Math.PI);
+      p.stamina = 1;
+    } else {
+      p.pos = { x: ownNet(p.team, t).x + attackDir(p.team) * p.goalie!.fx.depth, y: 0 };
+      p.vel = { x: 0, y: 0 };
+      p.goalie!.seen = [];
+      p.goalie!.hold = 0;
+    }
+  }
+  world.puck = createPuck(0, 0);
+  world.phase = 'play';
+  world.phaseTime = 0;
+  if (world.human) {
+    const centre = skatersOf(world, world.human.team).find((p) => p.slot === 0);
+    if (centre) world.human.controlled = centre.id;
+  }
+}
+
+/** A scrimmage: endless play with no clock, faceoffs or line changes. Used for practice and most tests. */
 export function createWorld(t: Tuning, seed: number | string, options: WorldOptions = {}): World {
-  return {
+  const world: World = {
     tick: 0,
     players: createPlayers(t, options),
     puck: createPuck(0, 0),
@@ -92,51 +142,79 @@ export function createWorld(t: Tuning, seed: number | string, options: WorldOpti
     human: options.human === false ? null : { team: 0, controlled: 0, switchHeld: false },
     levels: options.levels ?? [null, null],
     lineup: options.lineup ?? 'full',
+    rules: 'scrimmage',
+    period: 1,
+    clock: t.period.seconds,
+    overtime: false,
+    overtimeLimit: options.overtimeLimit ?? 0,
+    faceoff: null,
+    teams: [
+      { line: 0, changeCooldown: 0, changeHeld: false },
+      { line: 0, changeCooldown: 0, changeHeld: false },
+    ],
   };
+  lineUp(world, t);
+  return world;
 }
 
-/** Everyone back to their starting spots, puck loose at centre. Ratings and score are kept. */
-function faceOff(world: World, t: Tuning): void {
-  const fresh = createPlayers(t, { lineup: world.lineup });
-  world.players.forEach((p, i) => {
-    const start = fresh[i] as Player;
-    const goalie = p.goalie ? { ...start.goalie!, fx: p.goalie.fx } : null;
-    Object.assign(p, start, { fx: p.fx, goalie });
-    if (goalie) p.pos.x = ownNet(p.team, t).x + attackDir(p.team) * goalie.fx.depth;
-  });
-  world.puck = createPuck(0, 0);
-  world.phase = 'play';
-  world.phaseTime = 0;
-  if (world.human) world.human.controlled = world.human.team * PLAYERS_PER_TEAM;
+/** A full game: three periods, faceoffs, line changes, fatigue and overtime. Starts lined up for the opening faceoff. */
+export function createGame(t: Tuning, seed: number | string, options: WorldOptions = {}): World {
+  const world = createWorld(t, seed, { ...options, lineup: 'full' });
+  world.rules = 'game';
+  startFaceoff(world, t);
+  return world;
 }
 
 function goal(world: World, side: -1 | 1, t: Tuning, events: SimEvent[]): void {
   // The net on side -1 is defended by team 0, so team 1 scores there.
   const team: 0 | 1 = side === -1 ? 1 : 0;
+  const puck = world.puck;
   world.score[team] += 1;
+
+  // The last of the scoring team to touch it gets the goal; the one or two before him get assists.
+  const run = puck.lastTeam === team ? puck.touches : [];
+  const scorer = run.length > 0 ? (run[run.length - 1] as number) : null;
+  const assists = [...new Set(run.slice(0, -1).reverse())].filter((id) => id !== scorer).slice(0, 2);
+  if (scorer !== null) world.players[scorer]!.stats.goals += 1;
+  for (const id of assists) world.players[id]!.stats.assists += 1;
+  const beaten = goalieOf(world, otherTeam(team));
+  if (beaten) beaten.stats.goalsAgainst += 1;
+
   world.phase = 'goal';
   world.phaseTime = t.game.goalPauseSeconds;
   loosePuck(world);
-  events.push({ type: 'goal', side, team });
-}
-
-function levelFor(world: World, team: 0 | 1, t: Tuning): number {
-  return world.levels[team] ?? (team === 1 ? t.game.opponentDifficulty : data.teammateLevel);
+  puck.shotBy = null;
+  events.push({ type: 'goal', side, team, scorer, assists });
 }
 
 function stepSkaterBody(p: Player, input: InputFrame, t: Tuning, dt: number): void {
   p.checkCooldown = Math.max(0, p.checkCooldown - dt);
   p.pickupLock = Math.max(0, p.pickupLock - dt);
+  const fx = currentFx(p, t);
   if (p.stagger > 0) {
     // Knocked off balance: no control, and he slows quickly.
     p.stagger = Math.max(0, p.stagger - dt);
     const kept = Math.max(0, 1 - t.check.staggerDrag * dt);
     p.vel.x *= kept;
     p.vel.y *= kept;
-    stepSkater(p, NO_INPUT, t, dt, p.fx);
+    stepSkater(p, NO_INPUT, t, dt, fx);
     return;
   }
-  stepSkater(p, input, t, dt, p.fx);
+  stepSkater(p, input, t, dt, fx);
+}
+
+/** Game rules: the line-change button, automatic changes, and skaters swapping at the bench door. */
+function stepLineChanges(world: World, humanInput: InputFrame, t: Tuning, events: SimEvent[]): void {
+  for (const team of [0, 1] as const) {
+    const state = world.teams[team];
+    state.changeCooldown = Math.max(0, state.changeCooldown - STEP_SECONDS);
+    if (world.human && world.human.team === team) {
+      if (humanInput.lineChange && !state.changeHeld) callChange(world, team, t);
+      state.changeHeld = humanInput.lineChange;
+    }
+    autoChange(world, team, t);
+  }
+  stepChanges(world, t, events);
 }
 
 /** Advances the whole world by one fixed step and reports what happened. */
@@ -144,42 +222,60 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
   const dt = STEP_SECONDS;
   const events: SimEvent[] = [];
   const puck = world.puck;
+  const game = world.rules === 'game';
+  if (world.phase === 'final') return events;
   world.tick += 1;
 
+  if (world.phase === 'faceoff') {
+    stepFaceoff(world, humanInput, t, events);
+    return events;
+  }
+  if (world.phase === 'break') {
+    stepBreak(world, t, events);
+    return events;
+  }
   if (world.phase === 'goal') {
-    // Celebration pause: everyone coasts, the puck settles in the net, then the reset.
-    for (const p of world.players) if (p.role === 'skater') stepSkaterBody(p, NO_INPUT, t, dt);
-    separateBodies(world.players, t);
+    // Celebration pause: everyone coasts, the puck settles in the net, then the restart.
+    const active = onIce(world);
+    for (const p of active) if (p.role === 'skater') stepSkaterBody(p, NO_INPUT, t, dt);
+    separateBodies(active, t);
     stepLoosePuck(puck, t, dt);
     world.phaseTime -= dt;
-    if (world.phaseTime <= 0) faceOff(world, t);
+    if (world.phaseTime <= 0) {
+      if (game) afterGoal(world, t, events);
+      else lineUp(world, t);
+    }
     return events;
   }
 
-  // Who is in control, and what everyone wants to do.
+  // Line changes, who is in control, and what everyone wants to do.
+  if (game) stepLineChanges(world, humanInput, t, events);
   updateControl(world, humanInput);
-  const inputs = world.players.map((p) => {
+  const active = onIce(world);
+  const inputs = active.map((p) => {
     if (p.role === 'goalie') return NO_INPUT;
     if (world.human && world.human.controlled === p.id) return humanInput;
     return aiInput(world, p, t, aiLevel(levelFor(world, p.team, t)));
   });
 
   // Move.
-  world.players.forEach((p, i) => {
+  active.forEach((p, i) => {
     if (p.role === 'skater') stepSkaterBody(p, inputs[i] as InputFrame, t, dt);
     else stepGoalie(p, world, t, dt);
   });
-  separateBodies(world.players, t);
+  separateBodies(active, t);
 
   // Shoot, pass, check.
-  world.players.forEach((p, i) => {
+  active.forEach((p, i) => {
     if (p.role !== 'skater') return;
     const input = p.stagger > 0 ? NO_INPUT : (inputs[i] as InputFrame);
     const hadPuck = puck.carrier === p.id;
-    const speed = stepShooting(p, hadPuck, puck, input, p.fx, t, world.rng, dt);
+    const speed = stepShooting(p, hadPuck, puck, input, currentFx(p, t), t, world.rng, dt);
     if (speed !== null) {
       loosePuck(world);
+      puck.shotBy = p.id;
       p.pickupLock = t.puck.pickupCooldown;
+      p.stats.shots += 1;
       events.push({ type: 'shot', speed, player: p.id });
     }
     stepPassing(world, p, input, t, dt, events);
@@ -193,9 +289,9 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
     stepGoalieHold(carrier, world, t, dt, events);
   } else if (carrier) {
     const scored = stepCarriedPuck(puck, carrier, t, dt);
-    // A goalie smothers a puck carried into him.
-    const keeper = world.players.find(
-      (g) => g.role === 'goalie' && g.team === otherTeam(carrier.team) && dist(g.pos, puck.pos) <= g.goalie!.fx.coverRadius,
+    // A goalie smothers a puck carried within his reach: nobody walks it into the net past him.
+    const keeper = active.find(
+      (g) => g.role === 'goalie' && g.team === otherTeam(carrier.team) && dist(g.pos, puck.pos) <= t.goalie.smotherReach,
     );
     if (keeper) {
       givePuck(world, keeper);
@@ -206,7 +302,7 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
       goal(world, scored, t, events);
     }
   } else {
-    const goalies = world.players.filter((g) => g.role === 'goalie' && g.goalie!.ignorePuck <= 0);
+    const goalies = active.filter((g) => g.role === 'goalie' && g.goalie!.ignorePuck <= 0);
     const blockers: Blocker[] = goalies.map((g) => ({ pos: g.pos, radius: g.goalie!.fx.coverRadius }));
     const moved = stepLoosePuck(puck, t, dt, blockers);
     if (moved.hitPost) events.push({ type: 'post' });
@@ -215,6 +311,8 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
     else resolveLoosePuck(world, t, events);
   }
 
-  for (const p of world.players) if (p.role === 'goalie') recordPuck(p, world);
+  for (const p of active) if (p.role === 'goalie') recordPuck(p, world, t);
+  stepEnergy(world, t);
+  if (game && world.phase === 'play') tickClock(world, t, events);
   return events;
 }

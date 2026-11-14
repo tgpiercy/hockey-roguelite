@@ -1,11 +1,13 @@
 import * as Phaser from 'phaser';
 import look from '../data/rinkLook.json';
+import { benchDoor, lineEnergy } from '../sim/lines';
+import { gameResult, type GameResult } from '../sim/match';
 import { carrySpot } from '../sim/puck';
 import { goalLineX, nets } from '../sim/rink';
 import { chargeFraction } from '../sim/shot';
 import type { Tuning } from '../sim/tuning';
 import type { Player, World } from '../sim/types';
-import { createWorld, step, STEP_SECONDS } from '../sim/world';
+import { createGame, step, STEP_SECONDS } from '../sim/world';
 import { InputReader, type Controls } from './input';
 
 const colour = (hex: string): number => Number.parseInt(hex.slice(1), 16);
@@ -15,23 +17,37 @@ const c = look.colours;
 const MAX_CATCH_UP_SECONDS = 0.25;
 
 export interface RinkSceneOptions {
-  seed: string;
+  /** A fresh seed for each game. A game replays exactly from its seed. */
+  nextSeed: () => string;
   /** The live tuning values; read every step, so the tuning panel takes effect at once. */
   tuning: () => Tuning;
   /** Called once per frame with the controls, for the menus. */
   onControls: (controls: Controls) => void;
+  /** Called with the result when a game ends, and with null when a new one starts. */
+  onResult: (result: GameResult | null) => void;
 }
 
-/** 3-on-3: three skaters and a goalie a side, drawn with placeholder shapes. The human plays team 0, attacking right. */
+const clockText = (seconds: number): string => {
+  const whole = Math.max(0, Math.ceil(seconds - 1e-6));
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
+};
+
+/**
+ * A full game, 3 skaters and a goalie a side, drawn with placeholder shapes.
+ * The human plays team 0, in dark blue, attacking right.
+ */
 export class RinkScene extends Phaser.Scene {
   private world!: World;
   private reader!: InputReader;
   private g!: Phaser.GameObjects.Graphics;
   private scoreText!: Phaser.GameObjects.Text;
-  private goalText!: Phaser.GameObjects.Text;
+  private bigText!: Phaser.GameObjects.Text;
+  private barLabels: Phaser.GameObjects.Text[] = [];
   private labels: Phaser.GameObjects.Text[] = [];
   private showDebug = false;
   private leftover = 0;
+  private reported = false;
+  private passWasDown = false;
 
   // World-to-screen transform, recalculated every frame so resizing just works.
   private zoom = 1;
@@ -43,30 +59,51 @@ export class RinkScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.world = createWorld(this.options.tuning(), this.options.seed);
     this.reader = new InputReader();
     this.g = this.add.graphics();
     const font = 'system-ui, sans-serif';
     this.scoreText = this.add.text(0, 0, '', { fontFamily: font, fontStyle: 'bold', color: c.boards }).setOrigin(0.5, 0);
-    this.goalText = this.add
-      .text(0, 0, 'GOAL!', { fontFamily: font, fontStyle: 'bold', color: c.redLine })
+    this.barLabels = [0, 1, 2].map(() =>
+      this.add.text(0, 0, '', { fontFamily: font, fontStyle: 'bold', color: c.text }).setOrigin(0, 0.5).setStroke(c.boards, 3),
+    );
+    this.bigText = this.add
+      .text(0, 0, '', { fontFamily: font, fontStyle: 'bold', color: c.redLine })
       .setOrigin(0.5, 0.5)
       .setVisible(false);
+    this.newGame();
     this.labels = this.world.players.map(() =>
       this.add.text(0, 0, '', { fontFamily: font, color: c.debugText }).setOrigin(0.5, 1).setVisible(false),
     );
+  }
+
+  private newGame(): void {
+    this.world = createGame(this.options.tuning(), this.options.nextSeed());
+    this.reported = false;
+    this.leftover = 0;
+    this.options.onResult(null);
   }
 
   override update(time: number, deltaMs: number): void {
     const controls = this.reader.read(time);
     this.options.onControls(controls);
     if (controls.debugPressed) this.showDebug = !this.showDebug;
+    const passPressed = controls.frame.pass && !this.passWasDown;
+    this.passWasDown = controls.frame.pass;
 
     const t = this.options.tuning();
-    this.leftover += Math.min(deltaMs / 1000, MAX_CATCH_UP_SECONDS);
-    while (this.leftover >= STEP_SECONDS) {
-      step(this.world, controls.frame, t);
-      this.leftover -= STEP_SECONDS;
+    if (this.world.phase === 'final') {
+      if (!this.reported) {
+        this.reported = true;
+        this.options.onResult(gameResult(this.world));
+      } else if (passPressed) {
+        this.newGame();
+      }
+    } else {
+      this.leftover += Math.min(deltaMs / 1000, MAX_CATCH_UP_SECONDS);
+      while (this.leftover >= STEP_SECONDS) {
+        step(this.world, controls.frame, t);
+        this.leftover -= STEP_SECONDS;
+      }
     }
     this.draw(t);
   }
@@ -82,6 +119,15 @@ export class RinkScene extends Phaser.Scene {
   private playerColour(p: Player): number {
     if (p.team === 0) return colour(p.role === 'goalie' ? c.teamHomeGoalie : c.teamHome);
     return colour(p.role === 'goalie' ? c.teamAwayGoalie : c.teamAway);
+  }
+
+  /** The big message in the middle of the ice, if any. */
+  private message(): string {
+    const world = this.world;
+    if (world.phase === 'goal') return 'GOAL!';
+    if (world.phase === 'faceoff') return world.faceoff?.dropped ? 'DROP!' : 'Ready…';
+    if (world.phase === 'break') return world.overtime ? 'Overtime' : `End of period ${world.period}`;
+    return '';
   }
 
   private draw(t: Tuning): void {
@@ -131,6 +177,13 @@ export class RinkScene extends Phaser.Scene {
     g.lineStyle(Math.max(2, look.boardWidth * z), colour(c.boards));
     g.strokeRoundedRect(this.sx(-hx), this.sy(-hy), t.rink.length * z, t.rink.width * z, corner);
 
+    // Bench doors: a gap in the top boards in each team's colour.
+    for (const team of [0, 1] as const) {
+      const door = benchDoor(team, t);
+      g.lineStyle(Math.max(3, look.boardWidth * z * 1.6), colour(team === 0 ? c.teamHome : c.teamAway));
+      g.lineBetween(this.sx(door.x - t.bench.doorRadius), this.sy(-hy), this.sx(door.x + t.bench.doorRadius), this.sy(-hy));
+    }
+
     // Nets
     for (const net of nets(t)) {
       g.lineStyle(line, colour(c.net));
@@ -139,9 +192,14 @@ export class RinkScene extends Phaser.Scene {
       for (const post of net.posts) g.fillCircle(this.sx(post.x), this.sy(post.y), Math.max(2, t.net.postRadius * z));
     }
 
-    // Players
+    // Players on the ice
     const controlled = world.human ? world.players[world.human.controlled] : undefined;
     world.players.forEach((p, i) => {
+      const label = this.labels[i];
+      if (!p.onIce) {
+        label?.setVisible(false);
+        return;
+      }
       const x = this.sx(p.pos.x);
       const y = this.sy(p.pos.y);
       const radius = (p.role === 'goalie' ? Math.max(t.goalie.bodyRadius, p.goalie!.fx.coverRadius) : t.skater.radius) * z;
@@ -155,28 +213,33 @@ export class RinkScene extends Phaser.Scene {
         g.lineStyle(Math.max(2, line * 1.5), colour(c.stick));
         g.lineBetween(x, y, this.sx(blade.x), this.sy(blade.y));
       }
-      // A staggered skater is drawn faded.
-      g.fillStyle(this.playerColour(p), p.stagger > 0 ? 0.45 : 1);
+      // A staggered skater, or one heading to the bench, is drawn faded.
+      g.fillStyle(this.playerColour(p), p.stagger > 0 || p.leaving ? 0.45 : 1);
       g.fillCircle(x, y, radius);
       g.lineStyle(line, colour(c.ice));
       g.lineBetween(x, y, x + Math.cos(p.facing) * radius, y + Math.sin(p.facing) * radius);
 
-      const label = this.labels[i];
       if (label) {
         const isAi = p.role === 'skater' && p !== controlled;
         label.setVisible(this.showDebug && isAi);
         if (this.showDebug && isAi) {
           label.setFontSize(Math.max(9, z * 0.9));
           label.setPosition(x, y - radius * 1.3);
-          label.setText(p.ai.state);
+          label.setText(p.leaving ? 'bench' : p.ai.state);
         }
       }
     });
 
-    // Puck: drawn a little larger while it is in the air.
+    // Puck: a ring while it is held for a faceoff, larger while it is in the air.
     const puck = world.puck;
-    g.fillStyle(colour(c.puck));
-    g.fillCircle(this.sx(puck.pos.x), this.sy(puck.pos.y), Math.max(2, t.puck.radius * z) * (puck.air > 0 ? 1.6 : 1));
+    const puckRadius = Math.max(2, t.puck.radius * z);
+    if (world.phase === 'faceoff' && !world.faceoff?.dropped) {
+      g.lineStyle(Math.max(2, line), colour(c.puck));
+      g.strokeCircle(this.sx(puck.pos.x), this.sy(puck.pos.y), puckRadius * 2.5);
+    } else {
+      g.fillStyle(colour(c.puck));
+      g.fillCircle(this.sx(puck.pos.x), this.sy(puck.pos.y), puckRadius * (puck.air > 0 ? 1.6 : 1));
+    }
 
     if (controlled) {
       // Shot or pass wind-up, above the controlled skater.
@@ -194,23 +257,62 @@ export class RinkScene extends Phaser.Scene {
         g.fillRect(x, y, w * fill, h);
       }
 
-      // Stamina of the controlled skater, bottom left.
-      const barW = Math.min(width * 0.25, 220);
+      // Bottom left: sprint bar of the controlled skater, then the energy of each line (the one on the ice is ringed).
       const barH = Math.max(6, height * 0.02);
-      const barX = look.marginPixels * 2;
       const barY = height - look.marginPixels * 2 - barH;
-      g.fillStyle(colour(c.barBack));
-      g.fillRect(barX, barY, barW, barH);
-      g.fillStyle(colour(controlled.sprintLocked ? c.staminaLocked : c.stamina));
-      g.fillRect(barX, barY, barW * controlled.stamina, barH);
+      const fontSize = Math.max(9, height * 0.028);
+      const bars: { label: string; width: number; fill: number; colour: string; ringed: boolean }[] = [
+        {
+          label: 'Sprint',
+          width: Math.min(width * 0.16, 150),
+          fill: controlled.stamina,
+          colour: controlled.sprintLocked ? c.staminaLocked : c.stamina,
+          ringed: false,
+        },
+        ...([0, 1] as const).map((which) => {
+          const energy = lineEnergy(world, controlled.team, which);
+          return {
+            label: `Line ${which + 1}`,
+            width: Math.min(width * 0.09, 80),
+            fill: energy,
+            colour: energy < t.energy.changeBelow ? c.charge : c.stamina,
+            ringed: world.teams[controlled.team].line === which,
+          };
+        }),
+      ];
+      let x = look.marginPixels * 2;
+      bars.forEach((bar, i) => {
+        const label = this.barLabels[i];
+        if (label) {
+          label.setFontSize(fontSize);
+          label.setText(bar.label);
+          label.setPosition(x, barY + barH / 2);
+          x += label.width + barH * 0.6;
+        }
+        g.fillStyle(colour(c.barBack));
+        g.fillRect(x, barY, bar.width, barH);
+        g.fillStyle(colour(bar.colour));
+        g.fillRect(x, barY, bar.width * bar.fill, barH);
+        if (bar.ringed) {
+          g.lineStyle(2, colour(c.controlRing));
+          g.strokeRect(x - 2, barY - 2, bar.width + 4, barH + 4);
+        }
+        x += bar.width + barH * 2;
+      });
     }
 
     // Text
+    const period = world.overtime && world.period > t.period.count ? 'OT' : `P${Math.min(world.period, t.period.count)}`;
     this.scoreText.setFontSize(Math.max(12, height * 0.045));
     this.scoreText.setPosition(width / 2, this.sy(-hy) + look.marginPixels);
-    this.scoreText.setText(`You ${world.score[0]} – ${world.score[1]} CPU`);
-    this.goalText.setFontSize(Math.max(24, height * 0.2));
-    this.goalText.setPosition(width / 2, height / 2);
-    this.goalText.setVisible(world.phase === 'goal');
+    this.scoreText.setText(`You ${world.score[0]} – ${world.score[1]} CPU     ${period} ${clockText(world.clock)}`);
+
+    const message = this.message();
+    this.bigText.setVisible(message !== '');
+    if (message !== '') {
+      this.bigText.setFontSize(Math.max(18, height * (world.phase === 'goal' ? 0.18 : 0.08)));
+      this.bigText.setPosition(width / 2, height * 0.23);
+      this.bigText.setText(message);
+    }
   }
 }

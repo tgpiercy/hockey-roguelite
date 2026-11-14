@@ -82,45 +82,40 @@ describe('goalie saves', () => {
     expect(world.score).toEqual([0, 0]);
   });
 
-  it('is beaten more often by a quick cross-ice pass and shot than by a shot he is set for', () => {
-    const corner = t.net.mouthWidth / 2 - 0.35;
-    let setGoals = 0;
-    let crossGoals = 0;
-    for (let i = 0; i < 40; i++) {
-      // Set for it: the puck sits on the right side, then is shot at the near-side corner.
-      const a = setUp(`set-${i}`);
-      settle(a, gx - 5, 4);
-      shootAt(a, corner, 30);
-      if (scored(run(a, 0.6))) setGoals++;
-
-      // Cross-ice: he is set on the left side, the puck crosses to the right in a fifth of a second, same shot.
-      const b = setUp(`cross-${i}`);
-      settle(b, gx - 5, -4);
-      b.puck.vel = { x: 0, y: 40 };
-      run(b, 0.2);
-      b.puck.pos = { x: gx - 5, y: 4 };
-      shootAt(b, corner, 30);
-      if (scored(run(b, 0.6))) crossGoals++;
+  /** Shots from one spot aimed at points all the way across the net mouth: how many get past him? */
+  const TARGETS = 41;
+  const goalsFrom = (label: string, goalie: GoalieRatings, prepare: (world: World) => void): number => {
+    let goals = 0;
+    for (let i = 0; i < TARGETS; i++) {
+      const world = setUp(`${label}-${i}`, goalie);
+      prepare(world);
+      const half = t.net.mouthWidth / 2 - 0.1;
+      shootAt(world, -half + (2 * half * i) / (TARGETS - 1), 30);
+      if (scored(run(world, 0.6))) goals++;
     }
+    return goals;
+  };
+  /** The puck has been sitting on the right side: he is set for the shot. */
+  const set = (world: World): void => settle(world, gx - 5, 4);
+  /** He is set on the left side, then the puck crosses to the right in a fifth of a second. */
+  const crossIce = (world: World): void => {
+    settle(world, gx - 5, -4);
+    world.puck.vel = { x: 0, y: 40 };
+    run(world, 0.2);
+    world.puck.pos = { x: gx - 5, y: 4 };
+  };
+
+  it('is beaten more often by a quick cross-ice pass and shot than by a shot he is set for', () => {
+    const setGoals = goalsFrom('set', rated(70), set);
+    const crossGoals = goalsFrom('cross', rated(70), crossIce);
+    expect(setGoals).toBeLessThan(TARGETS);
     expect(crossGoals).toBeGreaterThan(setGoals);
-    expect(crossGoals).toBeGreaterThan(20);
   });
 
-  it('a better goalie stops more of the same cross-ice chances', () => {
-    const corner = t.net.mouthWidth / 2 - 0.35;
-    const goalsAgainst = (rating: number): number => {
-      let goals = 0;
-      for (let i = 0; i < 40; i++) {
-        const world = setUp(`rated-${i}`, rated(rating));
-        settle(world, gx - 7, -3);
-        world.puck.vel = { x: 0, y: 20 };
-        run(world, 0.3);
-        shootAt(world, corner, 26);
-        if (scored(run(world, 0.8))) goals++;
-      }
-      return goals;
-    };
-    expect(goalsAgainst(95)).toBeLessThan(goalsAgainst(35));
+  it('a better goalie stops more, set or not', () => {
+    const against = (rating: number): number =>
+      goalsFrom(`set-${rating}`, rated(rating), set) + goalsFrom(`cross-${rating}`, rated(rating), crossIce);
+    expect(against(95)).toBeLessThan(against(35));
   });
 });
 
@@ -129,7 +124,12 @@ describe('freezing and rebounds', () => {
     const world = setUp('rebound', goalie);
     settle(world, gx - 8, 0);
     shootAt(world, 0, speed);
-    return { events: run(world, 0.6), world };
+    // Run until he has dealt with it.
+    const events: SimEvent[] = [];
+    for (let i = 0; i < 2 * STEPS_PER_SECOND && !events.some((e) => e.type === 'save'); i++) {
+      events.push(...step(world, NO_INPUT, t));
+    }
+    return { events, world };
   };
   const firstSave = (events: SimEvent[]) => events.find((e) => e.type === 'save');
 

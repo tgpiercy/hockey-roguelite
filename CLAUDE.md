@@ -46,6 +46,7 @@ npm install        # once
 npm run dev        # local server; prints a network address for the phone on the same Wi-Fi
 npm test           # all tests, once
 npm run typecheck  # whole project, then core and sim without the DOM
+npm run balance    # headless AI-vs-AI series: -- --games 200 --home 90 --away 70 (add --naive for a scripted human)
 npm run build      # production build into dist/
 npm run preview    # serve the production build locally
 ```
@@ -64,23 +65,26 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 
 ## How the on-ice game fits together
 
-- `src/sim/world.ts`: `createWorld(tuning, seed, options)` and `step(world, humanInput, tuning)`. One call is one fixed step of 1/60 second and returns the events that happened (goal, shot, pass, post, pickup, save, check). Nothing else advances the game.
-- A full world has eight players, 3 skaters and a goalie a side: ids 0, 1 and 2 are team 0's skaters, 3 its goalie; 4 to 7 the same for team 1 (`PLAYERS_PER_TEAM` in `world.ts`). Team 0 defends the left net and attacks right. `options.human: false` makes an all-AI game (used by tests and, from Phase 3, the balance harness). `options.lineup: 'solo'` is one skater alone, for skating tests.
-- Humans and AI use the same mechanics: both produce an `InputFrame` (stick, sprint, shoot, pass, check, switch). `src/sim/ai.ts` is a five-state machine (attack, support, chase, defend, backcheck); `chooseState` picks the state, `think` plans, `aiInput` turns the plan into input. Positioning numbers and the easy-to-hard ranges are in `src/data/ai.json`. Difficulty changes thinking only, never physics.
-- Ratings (0 to 100) become physical effects in `src/sim/ratings.ts` from the table in `src/data/ratings.json`. A rating of 70 gives exactly the plain `physics.json` values.
-- One concern per file: `rink.ts` (geometry, collisions), `skater.ts`, `puck.ts`, `shot.ts`, `pass.ts`, `check.ts`, `goalie.ts`, `contact.ts` (bodies and loose-puck pickups), `control.ts` (which skater the human controls), `team.ts` (helpers).
+- `src/sim/world.ts`: `createGame(tuning, seed, options)` starts a full game; `createWorld(...)` starts a scrimmage (endless play, no clock, faceoffs or line changes; used by most tests). `step(world, humanInput, tuning)` advances either by one fixed step of 1/60 second and returns the events that happened. Nothing else advances the game.
+- Game rules are in `src/sim/match.ts`: periods, the clock, the faceoff duel, overtime, and `gameResult(world)`, which later phases use for XP and milestones. (It is not called `game.ts` because the folder rule test treats `game` as the rendering folder.)
+- 14 players are dressed: for each team, ids run from `team * 7`: six skaters (the first three are line 1, the next three line 2; `slot` 0 is the centre), then the goalie. `onIce` says who is playing. Use `skatersOf`, `availableSkaters` (not heading to the bench) and `onIce` from `team.ts` rather than looping over `world.players`.
+- Lines, the bench and fatigue are in `src/sim/lines.ts`. A line change sends skaters to the bench door, where each is swapped for his opposite number; the puck carrier goes last. Changes are automatic at safe moments, and the line-change button forces one.
+- Humans and AI use the same mechanics: both produce an `InputFrame`. `src/sim/ai.ts` is a five-state machine (attack, support, chase, defend, backcheck). Positioning numbers and the easy-to-hard ranges are in `src/data/ai.json`. Difficulty changes thinking only, never physics.
+- Ratings (0 to 100) become physical effects in `src/sim/ratings.ts` from the table in `src/data/ratings.json`. A skater rated 70 gets exactly the plain `physics.json` values.
+- One concern per file: `rink.ts`, `skater.ts`, `puck.ts`, `shot.ts`, `pass.ts`, `check.ts`, `goalie.ts`, `contact.ts` (bodies and loose-puck pickups), `control.ts` (which skater the human controls), `team.ts` (helpers).
 - Every sim function takes the tuning object as an argument; only `src/sim/tuning.ts` reads `src/data/physics.json`. That is what lets the tuning panel change values mid-game.
 - Units are metres and seconds. Y points down the screen.
-- `src/game/RinkScene.ts` runs as many fixed steps as real time needs each frame, then draws. `src/game/input.ts` turns controller and keyboard into one `InputFrame`; button numbers and keys are in `src/data/controls.json`.
+- `src/game/RinkScene.ts` runs as many fixed steps as real time needs each frame, then draws. `src/game/input.ts` turns controller and keyboard into one `InputFrame`; button numbers and keys are in `src/data/controls.json`. `src/ui/GameSummary.tsx` is the end-of-game screen.
 - Tuning panel: `src/ui/tuningStore.ts` and `src/ui/TuningPanel.tsx`. It lists every number in `physics.json` automatically. Edits are kept in the browser until Reset. Export JSON downloads a replacement `physics.json`. Log tuning changes in `docs/TUNING.md`.
-- Tests read the shipped tuning and assert relative to it. `tests/helpers.ts` has helpers to place players and hand out the puck. `tests/world.test.ts` plays all-AI games and prints goals, shots and saves per game.
+- Balance harness: `tests/harness/harness.ts` (`runGame`, `runSeries`) and `tests/harness/bot.ts` (a scripted stand-in for a simple human). `scripts/balance.mjs` runs them from the command line through Vite. The targets and the latest numbers are in `docs/TUNING.md`; re-run the series after any change to ratings, AI or goalie values.
+- Tests read the shipped tuning and assert relative to it. `tests/helpers.ts` has helpers to place players and hand out the puck.
 
 ## Notes for future sessions
 
 - On the ice it is 3 skaters and a goalie a side; 6 skaters and 1 goalie are dressed (two lines of 3). Where a prompt in `docs/IMPLEMENTATION_PLAN.md` says 2 skaters, 4 skaters or lines of 2, `docs/GDD.md` and `docs/DECISIONS.md` win.
 - The plain link opens the rink. The Phase 0 controller read-out is at `?controller`.
-- Keyboard fallback: arrows or WASD skate, Space shoot, Z or J pass, X or K check, C or L switch player, Shift sprint, Tab tuning, I AI debug overlay (View button on the controller).
-- Balance is not tuned yet: all-AI games at level 0.5 average about 3 goals per 5 minutes. Phase 3 tunes it with the headless harness.
+- Keyboard fallback: arrows or WASD skate, Space shoot, Z or J pass and faceoff draw, X or K check, C or L switch player, Q line change (LB), Shift sprint, Tab tuning, I AI debug overlay (View button).
+- Balance (AI against AI, level 0.5) meets the Phase 3 targets. Human against AI is not balanced yet: a scripted player that only skates to the slot and shoots still wins about two games in three at the default difficulty of 0.75.
 - In local development `window.__game` is the Phaser game. When the browser tab is hidden, animation frames stop; drive them by hand with `__game.loop.step(timeMs)`.
 - The desktop app's "start preview" tool hung on this PC right after Node.js was installed. If it still does, start the server from a shell with `npm run dev` and open http://localhost:5173/hockey-roguelite/.
 

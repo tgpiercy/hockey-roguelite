@@ -20,7 +20,7 @@ interface GameLog {
 /** Plays an all-AI game (3 skaters and a goalie a side) from a seed. */
 const playGame = (seed: string, steps: number, keepHistory = false): GameLog => {
   const world = createWorld(t, seed, { human: false, levels: [0.5, 0.5] });
-  const counts = { goal: 0, shot: 0, pass: 0, post: 0, pickup: 0, save: 0, check: 0 };
+  const counts = { goal: 0, shot: 0, pass: 0, post: 0, pickup: 0, save: 0, check: 0, faceoff: 0, period: 0, final: 0, change: 0 };
   const history: string[] = [];
   let allInside = true;
   for (let i = 0; i < steps; i++) {
