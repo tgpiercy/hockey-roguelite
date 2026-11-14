@@ -23,6 +23,7 @@ const c = look.colours;
 const fx = look.effects;
 const arena = look.arena;
 const FIG = look.figure;
+const RET = look.reticle;
 const TAU = Math.PI * 2;
 /** What is drawn over what. Players sit between two graphics layers and are sorted among themselves by how far down the screen they are. */
 const DEPTH = { ground: 1, players: 2, top: 3, labels: 4, hud: 5 };
@@ -44,6 +45,8 @@ export interface RinkSceneOptions {
   /** Each team's jersey colour, as "#rrggbb". Left out, the defaults are used. */
   homeColour?: string;
   awayColour?: string;
+  /** The team in its white road jersey: the other wears its colour. Left out, both wear their colour. */
+  whiteTeam?: 0 | 1;
   /** "low" drops the skate marks, snow and crowd movement, for a phone that struggles. */
   detail?: 'full' | 'low';
   /** The live tuning values; read every step, so the tuning panel takes effect at once. */
@@ -502,7 +505,7 @@ export class RinkScene extends Phaser.Scene {
       const key = `figure-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${strideStep}-${speedStep}-${wound}`;
       if (!this.textures.exists(key)) {
         const canvas = document.createElement('canvas');
-        paintFigure(canvas, figure(pose).shapes, figureColours(crest, goalie, skin), pixels);
+        paintFigure(canvas, figure(pose).shapes, figureColours(crest, goalie, skin, this.options.whiteTeam === p.team ? 'away' : 'home'), pixels);
         this.textures.addCanvas(key, canvas);
         this.figureKeys.add(key);
       }
@@ -515,11 +518,24 @@ export class RinkScene extends Phaser.Scene {
       if (p === controlled) {
         // The ring lies flat on the ice under him, with a tick pointing the way he truly faces.
         const ring = base * look.controlRingScale;
-        g.lineStyle(Math.max(2, line * 1.8), colour(c.controlRing));
-        g.strokeEllipse(x, y, ring * 2, ring * 2 * FIG.ringSquash);
+        const width = Math.max(RET.minRingPixels, unit * RET.ringWidth);
         const tx = x + Math.cos(p.facing) * ring;
         const ty = y + Math.sin(p.facing) * ring * FIG.ringSquash;
-        g.lineBetween(tx, ty, tx + Math.cos(p.facing) * ring * FIG.ringTick, ty + Math.sin(p.facing) * ring * FIG.ringTick * FIG.ringSquash);
+        // A white edge first, then the bright ring on it, so it shows on the ice, on a red line and under a red team.
+        for (const [w, hex] of [[width + RET.edgePixels * 2, RET.edge], [width, RET.colour]] as const) {
+          g.lineStyle(w, colour(hex));
+          g.strokeEllipse(x, y, ring * 2, ring * 2 * FIG.ringSquash);
+          g.lineBetween(tx, ty, tx + Math.cos(p.facing) * ring * FIG.ringTick, ty + Math.sin(p.facing) * ring * FIG.ringTick * FIG.ringSquash);
+        }
+        // An arrow over his head, bobbing, so he can be found in a crowd. Drawn above the players.
+        const tipY = y + fig.top * unit - unit * RET.arrowGap + Math.sin(this.clock * RET.bobPerSecond) * unit * RET.bobUnits;
+        const half = (unit * RET.arrowWidth) / 2;
+        const tall = unit * RET.arrowHeight;
+        const e = RET.edgePixels;
+        this.top.fillStyle(colour(RET.edge));
+        this.top.fillTriangle(x - half - e * 1.6, tipY - tall - e, x + half + e * 1.6, tipY - tall - e, x, tipY + e * 1.8);
+        this.top.fillStyle(colour(RET.colour));
+        this.top.fillTriangle(x - half, tipY - tall, x + half, tipY - tall, x, tipY);
       }
 
       // The stick: a skater's blade sits exactly where the puck is carried; a goalie's rests on the ice in front of him.

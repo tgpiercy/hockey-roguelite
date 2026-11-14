@@ -161,6 +161,18 @@ describe('figure colours', () => {
     for (const tag of TAGS) expect(skater[tag]).toMatch(/^#[0-9a-f]{6}$/i);
   });
 
+  it('on the road the jersey is white and the team colour moves to the helmet, pattern, gloves, pants and socks', () => {
+    const crest = teamCrest('Greyport Tinkers');
+    const home = figureColours(crest, false, skinTone(0), 'home');
+    const away = figureColours(crest, false, skinTone(0), 'away');
+    expect(home).toEqual(figureColours(crest, false, skinTone(0)));
+    expect(away.jersey).toBe(F.awayKit.jersey);
+    expect(away.jersey).not.toBe(home.jersey);
+    for (const tag of ['accent', 'glove', 'pants', 'sock'] as const) expect(away[tag]).toBe(crest.primary);
+    expect(figureColours(crest, true, skinTone(0), 'away').jersey).toBe(F.awayKit.goalieJersey);
+    for (const tag of TAGS) expect(away[tag]).toMatch(/^#[0-9a-f]{6}$/i);
+  });
+
   it('skin tones vary between players and are the same each time for one player', () => {
     expect(skinTone(4)).toBe(skinTone(4));
     expect(new Set([0, 1, 2, 3, 4, 5, 6].map(skinTone)).size).toBeGreaterThan(2);

@@ -76,7 +76,7 @@
     "minClosingSpeed": 2.5,
     "bigHitClosingSpeed": 5,
     "bodyBaseChance": 0.6,
-    "pokeRange": 1.9,
+    "pokeRange": 2.8,
     "pokeConeDegrees": 80,
     "pokeBaseChance": 0.3,
     "ratingSwing": 0.4,

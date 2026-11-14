@@ -145,6 +145,9 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Players on the ice | Upright cartoon figures showing the whole body (big helmet, chunky jersey, gloves, legs, skates, stick), standing on the top-down rink, facing left or right as they skate. Asked for by the owner. Feet and shadow are where the simulation has the player, so nothing about play changes. Goalies are wider, in pads and a caged mask, and drop to their knees for a save. | Cartoon players |
 | 2026-11-14 | What the upright figure loses | A figure faces only left or right, so the exact direction a player faces no longer shows in his body. The stick and puck still point the true way, and the ring under the player you control has a tick for it. | Cartoon players |
 | 2026-11-14 | Menus | Keep their face portraits; the full-body figure is on the ice only. | Cartoon players |
+| 2026-11-14 | Poke check reach | 2.8 m, about a stick length (was 1.9 m). A poke knocks the puck loose with no stun; inside 1.5 m while closing in, a check is still a body check that staggers. The AI has the same reach. Asked for by the owner. | Second playtest |
+| 2026-11-14 | Home and away jerseys | Each team has two kits from its own colours: its colour at home, and on the road a white jersey with the team colour on the helmet, pattern, gloves, pants and socks. The home team wears colour and the road team white, following the season schedule; an exhibition is a home game. | Second playtest |
+| 2026-11-14 | Reticle | The ring under the player you control is bright red with a white edge and thicker; a red arrow with a white edge bobs over his head. Asked for by the owner: the old yellow ring was hard to see on the phone. | Second playtest |
 
 ## Open
 

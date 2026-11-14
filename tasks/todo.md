@@ -332,7 +332,7 @@ Built, deployed and checked with a simulated controller.
 - [x] In the game: depth order, shadow, control ring with a direction tick, stick to the blade
 - [x] Goalie, standing and down
 - [x] Frame time brought back down (cached sprites)
-- [ ] Commit, push, deploy green
+- [x] Commit, push, deploy green
 - [ ] Look at it moving on the phone (owner)
 
 ## Review (cartoon players)
@@ -343,3 +343,19 @@ Built, deployed and checked with a simulated controller.
 - Frame time: painting the shapes every frame took it from about 5 ms to 12.4 ms. Painting each pose once and reusing it as a sprite brought it back to about 6 ms (noisy: 4.4 to 7.4 over three runs). Up to about 180 small pictures were made in two minutes of play.
 - Not checked: motion (the stride changes in 8 steps, which may look choppy; only still frames were seen); a real phone's frame rate; jersey numbers (they only show on a bigger screen); the off-balance tilt and the wind-up pose in a real game (seen on the art sheet only); a picture of a goal with the new figures.
 - Different from the plan: the plan said Phaser graphics would paint the shapes; that was too slow, so they are painted into cached textures instead. No picture of a crowd at the net or of a goal was kept.
+
+# Second playtest: poke reach, home and away jerseys, reticle
+
+- [x] Poke check reaches 2.8 m; body check unchanged
+- [x] Home and away kits, following the schedule
+- [x] Bright red ring with a white edge, and an arrow over the head
+- [x] Tests; balance on two seeds
+- [ ] Commit, push, deploy green
+- [ ] Play it: does the poke feel right, can you find your player? (owner)
+
+## Review (second playtest)
+
+- Type check, 780 tests (3 new) and the build pass.
+- Seen at phone size from live games: a home game (your team in navy, the road team in white with maroon helmets and legs) and a road game (your team in white, the home team in orange), each with a 4x close-up showing the ring and arrow; the art sheet with both kits for six teams.
+- Balance on two seeds of 200 games: goals in range; the stronger team won 69.5% and 80.5% (75.0% together, on target); save percentage .849 and .844, just under the .850 floor. Nothing was retuned.
+- Not checked: how the poke feels in the hands; the white kit and the red ring on a real phone screen; the arrow's bobbing (still frames only).

@@ -256,6 +256,23 @@
     "maxTexturePixels": 26,
     "poseSteps": 8,
     "speedSteps": 2,
-    "windUpAt": 0.3
+    "windUpAt": 0.3,
+    "awayKit": {
+      "jersey": "#f6f8fb",
+      "goalieJersey": "#dde6ef",
+      "helmetLighten": 0.08
+    }
+  },
+  "reticle": {
+    "colour": "#ff2436",
+    "edge": "#ffffff",
+    "ringWidth": 0.3,
+    "minRingPixels": 3,
+    "edgePixels": 1.5,
+    "arrowWidth": 1.5,
+    "arrowHeight": 1.15,
+    "arrowGap": 0.45,
+    "bobUnits": 0.22,
+    "bobPerSecond": 6
   }
 }

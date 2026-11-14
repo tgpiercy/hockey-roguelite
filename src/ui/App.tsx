@@ -346,7 +346,7 @@ export function App() {
     if (!game) return;
     setPlaying(true);
     const homeColour = jerseyColour(f);
-    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), forfeitNote: 'Giving the game up counts as a loss, whatever the score.' }, (result) => {
+    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: isHomeGame(season.gamesPlayed + 1), forfeitNote: 'Giving the game up counts as a loss, whatever the score.' }, (result) => {
       showOutcome(recordGame(f, result));
       // The pause menu may have changed the sound or the controls.
       setPrefs(loadPrefs());

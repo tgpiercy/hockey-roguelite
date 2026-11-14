@@ -58,6 +58,8 @@ export interface MatchOptions {
   /** Each team's jersey colour, as "#rrggbb". */
   homeColour?: string;
   awayColour?: string;
+  /** False when the human's team is on the road: it then wears white and the opponent its colour. Left out, it is a home game. */
+  userAtHome?: boolean;
   /** What giving the game up costs, shown before the player confirms. Left out for a game that does not count. */
   forfeitNote?: string;
 }
@@ -66,7 +68,7 @@ export interface MatchOptions {
  * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote }: MatchOptions, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
   const shift = tuningStore.tuning.game.opponentDifficulty - seasonRules.defaultDifficulty;
   const opponentLevel = level === undefined ? null : Math.max(0, Math.min(1, level + shift));
@@ -146,6 +148,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       powerups: powerups ?? [],
       ...(homeColour ? { homeColour } : {}),
       ...(awayColour ? { awayColour } : {}),
+      whiteTeam: userAtHome ? 1 : 0,
       detail: loadPrefs().detail,
       tuning: () => tuningStore.tuning,
       onControls,

@@ -340,6 +340,22 @@ The scripted human-style player (skates to the slot and shoots; never passes) ag
 
 At 0.75 that is closer than before this change (41 wins, 19 losses), so the AI is a little harder to beat by simply driving the net. Shots on target per shot were not split out for the scripted player; that part of the plan is still to do.
 
+## Longer poke check (2026-11-14)
+
+Asked for by the owner: a poke check should work from a distance, with the stick. `check.pokeRange` went from 1.9 m to 2.8 m. The body check (inside 1.5 m while closing, which staggers) is unchanged, and so is the poke's chance.
+
+Balance after, two seeds of 200 games each:
+
+| Target | Before | Seed "balance" | Seed "second" | Both |
+| --- | --- | --- | --- | --- |
+| Equal teams score 3 to 5 each | 3.06 and 3.27 | 3.10 and 3.23 | 3.38 and 3.17 | in range |
+| 90 beats 70 about 75% of the time | 75.5% | 69.5% | 80.5% | 75.0% |
+| Save percentage .850 to .920 | .852 | .849 | .844 | .847 |
+
+The win rate swings 11 points between two seeds, so 200 games is too few to read it closer than that; together they sit on the target. The save percentage is just under its floor on both seeds (by .001 and .006). It was left alone: the gap is about the size of the noise, and nothing was retuned.
+
+Scripted human-style player against the AI, 60 games: at level 0.5, 47 wins and 13 losses (4.75 goals for, 2.98 against); at 0.75, 37 wins and 23 losses (3.60 for, 3.15 against).
+
 ## Change log
 
 | Date | Value | From | To | Why |
@@ -355,4 +371,5 @@ At 0.75 that is closer than before this change (41 wins, 19 losses), so the AI i
 | 2026-11-14 | aging.json, offseason.json | first guesses | see "League health over 20 seasons" above | To keep the league stable for 20 seasons |
 | 2026-11-14 | pass.speed, pass.saucerSpeed | 20, 17 | 26, 22 | Passes felt slow to the owner |
 | 2026-11-14 | ai.json: zone posts, longShotRange, longShotChance, longShotCharge, plantTilt | none | see "Spread-out attack" above | Attackers crowded the net |
+| 2026-11-14 | check.pokeRange | 1.9 | 2.8 | The owner wanted a poke check that works from a stick length away |
 | 2026-11-14 | economy.json sponsorShareOfValue | 0.04 | 0.18 | Every manager style was bankrupt by season 3: income was per game but seasons can be 4 games long |

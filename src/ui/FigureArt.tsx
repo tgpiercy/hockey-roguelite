@@ -1,6 +1,6 @@
 import type { Crest } from '../core/crest';
 import look from '../data/rinkLook.json';
-import { figure, figureColours, withStick, type PoseInput, type Shape } from '../game/figure';
+import { figure, figureColours, withStick, type Kit, type PoseInput, type Shape } from '../game/figure';
 
 const F = look.figure;
 
@@ -14,11 +14,11 @@ function piece(s: Shape, fill: string, grow: number, key: string) {
  * The on-ice player figure drawn as SVG, from the same shapes the rink paints: for the art sheet, so every
  * pose can be looked at large.
  */
-export function FigureArt({ pose, crest, skin, size = 96 }: { pose: PoseInput; crest: Crest; skin: string; size?: number }) {
+export function FigureArt({ pose, crest, skin, size = 96, kit = 'home' }: { pose: PoseInput; crest: Crest; skin: string; size?: number; kit?: Kit }) {
   const fig = figure(pose);
   const end = fig.stickEnd ?? { x: pose.side * F.restStickX, y: -F.bladeWidth };
   const shapes = withStick(fig, end, pose.side);
-  const colours = figureColours(crest, pose.goalie, skin);
+  const colours = figureColours(crest, pose.goalie, skin, kit);
   return (
     <svg width={size} height={size} viewBox="-3 -5 6 5.6" class="figure-art">
       <ellipse cx="0" cy="0" rx={F.shadowWidth} ry={F.shadowHeight} fill="rgba(6, 32, 64, 0.25)" />

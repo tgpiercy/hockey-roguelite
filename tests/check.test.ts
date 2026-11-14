@@ -94,6 +94,33 @@ describe('poke check', () => {
     expect(player(world, ID.away1).stagger).toBe(0);
   });
 
+  it('reaches about a stick length: well beyond a body check, and no further', () => {
+    expect(sure.check.pokeRange).toBeGreaterThan(sure.check.bodyRange + 1);
+    const at = (gap: number): World => {
+      const world = setUp(6, 0);
+      place(world, ID.home1, world.puck.pos.x, -gap, Math.PI / 2);
+      return world;
+    };
+    // From a distance: the puck comes loose and the carrier is not staggered.
+    const far = at(sure.check.pokeRange - 0.3);
+    expect(checkKind(player(far, ID.home1), player(far, ID.away1), far, sure)).toBe('poke');
+    expect(check(far)[0]).toMatchObject({ kind: 'poke', success: true });
+    expect(far.puck.carrier).toBe(null);
+    expect(player(far, ID.away1).stagger).toBe(0);
+    // Beyond the stick: nothing.
+    const beyond = at(sure.check.pokeRange + 0.5);
+    expect(checkKind(player(beyond, ID.home1), player(beyond, ID.away1), beyond, sure)).toBe(null);
+    expect(check(beyond)).toEqual([]);
+    expect(beyond.puck.carrier).toBe(ID.away1);
+  });
+
+  it('up close and closing in, it is still a body check that staggers', () => {
+    const world = setUp(sure.check.bodyRange - 0.2, sure.check.minClosingSpeed + 2);
+    expect(checkKind(player(world, ID.home1), player(world, ID.away1), world, sure)).toBe('body');
+    expect(check(world)[0]).toMatchObject({ kind: 'body', success: true });
+    expect(player(world, ID.away1).stagger).toBeGreaterThan(0);
+  });
+
   it('does nothing when the puck is behind the checker', () => {
     const world = beside(-Math.PI / 2);
     expect(check(world)).toEqual([]);

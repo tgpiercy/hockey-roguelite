@@ -83,6 +83,18 @@ export function ArtSheet() {
           <FigureArt key={team.id} pose={{ ...STANDING, stride: i, speed: 0.6, side: i % 2 === 0 ? 1 : -1, pattern: teamCrest(team.name).pattern }} crest={teamCrest(team.name)} skin={skinTone(i)} size={40} />
         ))}
       </div>
+      <h2>Home and away kits</h2>
+      <div class="art-row figure-row">
+        {league.teams.slice(0, 6).flatMap((team, i) => {
+          const crest = teamCrest(team.name);
+          const pose = { ...STANDING, stride: 1, speed: 0.6, pattern: crest.pattern };
+          return [
+            <FigureArt key={`${team.id}-h`} pose={pose} crest={crest} skin={skinTone(i)} size={84} />,
+            <FigureArt key={`${team.id}-a`} pose={pose} crest={crest} skin={skinTone(i)} size={84} kit="away" />,
+            ...(i < 2 ? [<FigureArt key={`${team.id}-g`} pose={{ ...pose, goalie: true }} crest={crest} skin={skinTone(i)} size={84} kit="away" />] : []),
+          ];
+        })}
+      </div>
       <h2>Crests</h2>
       <div class="art-row">
         {league.teams.map((team) => (

@@ -236,8 +236,34 @@ export function facingSide(facing: number, previous: 1 | -1 | undefined): 1 | -1
   return across >= 0 ? 1 : -1;
 }
 
-/** The colour of each kind of piece for a team: its main colour on the jersey, its second colour as the accent and socks. */
-export function figureColours(crest: Crest, goalie: boolean, skin: string): Record<Tag, string> {
+/** Which jersey a team wears: its colour at home, white on the road. */
+export type Kit = 'home' | 'away';
+
+/**
+ * The colour of each kind of piece for a team. At home: its main colour on the jersey, its second colour as
+ * the accent and socks. On the road: a white jersey, with the main colour on the helmet, the jersey's
+ * pattern, the gloves, pants and socks, so the two sides are one dark and one white.
+ */
+export function figureColours(crest: Crest, goalie: boolean, skin: string, kit: Kit = 'home'): Record<Tag, string> {
+  if (kit === 'away') {
+    const K = F.awayKit;
+    return {
+      skin,
+      eye: F.colours.eye,
+      helmet: lighten(crest.primary, K.helmetLighten),
+      visor: F.colours.visor,
+      cage: F.colours.cage,
+      jersey: goalie ? K.goalieJersey : K.jersey,
+      accent: crest.primary,
+      glove: crest.primary,
+      pants: crest.primary,
+      sock: crest.primary,
+      skate: look.colours.skate,
+      blade: F.colours.blade,
+      pad: F.colours.pad,
+      stick: look.colours.stick,
+    };
+  }
   const jersey = goalie ? lighten(crest.primary, look.goalieLighten) : crest.primary;
   return {
     skin,
