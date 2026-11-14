@@ -3,10 +3,12 @@ import { useEffect, useReducer, useRef, useState } from 'preact/hooks';
 import { bossInfo, teamStrength } from '../core/bosses';
 import { equip, levelCost, levelUp, rarityInfo, releasePlayer, scrap, unequip, wornBy, type GearItem } from '../core/gear';
 import { generateLeague } from '../core/generate';
-import { playerOf, rosterOf, skatersOn, userTeam, type Team } from '../core/league';
+import { playerOf, rosterOf, skatersOn, teamOf, userTeam, type Team } from '../core/league';
 import { autoLineup, dressedSkaters, lineupProblems } from '../core/lineup';
 import { dress } from '../core/matchup';
+import { decideContract, finishSeason, resignCapHit } from '../core/offseason';
 import { openPack, packName } from '../core/packs';
+import { canPrestige, jerseyColour, prestige, prestigeEffects, setJersey, unlockedJerseys } from '../core/prestige';
 import { canPlay, canSign, sign, type MoveResult } from '../core/roster';
 import { franchiseOf, fromSave, parseSave, toSave } from '../core/save';
 import {
@@ -15,7 +17,6 @@ import {
   buy,
   chooseEvent,
   currentStop,
-  endSeason,
   eventInfo,
   healPrice,
   healStrike,
@@ -36,7 +37,11 @@ import {
   type Franchise,
 } from '../core/season';
 import type { Stop } from '../core/seasonMap';
+import { evaluateTrade, trade } from '../core/trades';
+import { xpForLevel } from '../core/xp';
 import gearData from '../data/gear.json';
+import offseasonRules from '../data/offseason.json';
+import prestigeRules from '../data/prestige.json';
 import rules from '../data/season.json';
 import { EquipPreview, GearCard, GearedRatings, GearRow, setProgress, slotName } from './gearParts';
 import { Menu, type MenuItem } from './Menu';
@@ -63,6 +68,15 @@ type Screen =
   | { name: 'powerups' }
   | { name: 'load'; slot: number }
   | { name: 'artifacts' }
+  | { name: 'report' }
+  | { name: 'contracts' }
+  | { name: 'contract'; playerId: string }
+  | { name: 'tradeTeams' }
+  | { name: 'tradeTheirs'; teamId: string }
+  | { name: 'tradeMine'; teamId: string; theirId: string }
+  | { name: 'tradeConfirm'; teamId: string; theirId: string; mineId: string }
+  | { name: 'prestige' }
+  | { name: 'jersey' }
   | { name: 'saves' }
   | { name: 'confirmNew' };
 
@@ -147,7 +161,7 @@ export function App() {
     const game = matchup(f);
     if (!game) return;
     setPlaying(true);
-    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups }, (result) => {
+    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour: jerseyColour(f) }, (result) => {
       const outcome = recordGame(f, result);
       setScreen({ name: 'home' });
       setMessage(outcome.ok ? outcome.message : outcome.reason);
@@ -204,6 +218,8 @@ export function App() {
     // Off-season hub.
     if (season.phase === 'offseason') {
       const ready = canPlay(league, team);
+      const pending = f.offseason.pending.length;
+      const mayPrestige = canPrestige(f);
       return (
         <Menu
           key={screenKey}
@@ -218,20 +234,40 @@ export function App() {
               <div>
                 <CapLine league={league} team={team} />
               </div>
+              {f.prestige.level > 0 && <div>Prestige level {f.prestige.level}: {prestigeEffects(f.prestige.level).slice(0, 2).join(' ')}</div>}
+              {pending > 0 && (
+                <div class="warn">
+                  {pending} contract{pending === 1 ? ' has' : 's have'} run out. Decide {pending === 1 ? 'it' : 'them'} before the season can start.
+                </div>
+              )}
               {!ready.ok && <div class="warn">Cannot play yet: {ready.reason}</div>}
             </>
           }
           items={[
+            ...(pending > 0
+              ? [{ key: 'contracts', label: <b>Expiring contracts ({pending})</b>, detail: 'Re-sign each player or let him go.', onSelect: () => go({ name: 'contracts' }) }]
+              : []),
             {
               key: 'start',
               label: 'Start the season',
-              detail: 'Your dressed lineup is locked in for the whole season. The seventh skater stays home.',
-              disabled: !ready.ok,
+              detail:
+                pending > 0
+                  ? 'Decide your expiring contracts first.'
+                  : 'Your dressed lineup is locked in for the whole season. The seventh skater stays home.',
+              disabled: !ready.ok || pending > 0,
               onSelect: () => after(startSeason(f)),
             },
             { key: 'roster', label: 'Roster', onSelect: () => go({ name: 'roster' }) },
             { key: 'lineup', label: 'Lineup', onSelect: () => go({ name: 'lineup' }) },
             { key: 'fa', label: 'Free agents', onSelect: () => go({ name: 'freeAgents' }) },
+            {
+              key: 'trade',
+              label: 'Trade',
+              detail: pending > 0 ? 'Decide your expiring contracts first.' : 'One player for one player with any other team.',
+              disabled: pending > 0,
+              onSelect: () => go({ name: 'tradeTeams' }),
+            },
+            ...(f.offseason.report ? [{ key: 'report', label: `Off-season report: after season ${f.offseason.report.season}`, onSelect: () => go({ name: 'report' }) }] : []),
             ...gearItems(),
             { key: 'artifacts', label: `Artifacts (${f.artifacts.length})`, onSelect: () => go({ name: 'artifacts' }) },
             {
@@ -241,6 +277,14 @@ export function App() {
               disabled: !ready.ok,
               onSelect: () => go({ name: 'exhibition' }),
             },
+            {
+              key: 'prestige',
+              label: mayPrestige.ok ? <b>Prestige: move up to level {f.prestige.level + 1}</b> : `Prestige (level ${f.prestige.level})`,
+              detail: mayPrestige.ok ? 'You are champions. Give up your artifacts for a harder league and better packs.' : mayPrestige.reason,
+              disabled: !mayPrestige.ok,
+              onSelect: () => go({ name: 'prestige' }),
+            },
+            { key: 'jersey', label: `Jersey colour: ${unlockedJerseys(f)[f.prestige.jersey]?.name ?? ''}`, onSelect: () => go({ name: 'jersey' }) },
             { key: 'saves', label: 'Save and load', onSelect: () => go({ name: 'saves' }) },
           ]}
         />
@@ -262,10 +306,16 @@ export function App() {
                 {season.gamesWon} wins in {season.gamesPlayed} games · {season.strikes} strike{season.strikes === 1 ? '' : 's'}
               </div>
               <div>Powerups, currency and training bumps do not carry over. Your {f.artifacts.length} artifacts stay.</div>
+              {season.outcome === 'champion' && f.prestige.level < prestigeRules.maxLevel && <div class="warn">As champions you can prestige in the off-season.</div>}
             </>
           }
           items={[
-            { key: 'next', label: 'Continue to the off-season', onSelect: () => after(endSeason(f)) },
+            {
+              key: 'next',
+              label: 'Continue to the off-season',
+              detail: 'Players bank their XP, everyone gets a year older, and contracts tick down.',
+              onSelect: () => after(finishSeason(f), { name: 'report' }),
+            },
             { key: 'artifacts', label: `Artifacts (${f.artifacts.length})`, onSelect: () => go({ name: 'artifacts' }) },
           ]}
         />
@@ -306,6 +356,12 @@ export function App() {
                 <b>{game.away.name}</b> average {strength} · your dressed team averages {mine}
               </div>
               {game.trait && <div class="warn">{game.trait}</div>}
+              {f.prestige.level > 0 && (
+                <div>
+                  Prestige level {f.prestige.level}: they play {f.prestige.level * prestigeRules.opponentRatingPerLevel} rating points better than that, and react
+                  sooner.
+                </div>
+              )}
               {series && (
                 <div>
                   Best of {rules.seriesWins * 2 - 1}: you <Dots filled={series.wins} total={rules.seriesWins} /> them{' '}
@@ -656,6 +712,10 @@ export function App() {
             <div>
               <GearedRatings f={f} player={p} />
             </div>
+            <div>
+              Level {p.level} · {Math.floor(p.xp)} of {xpForLevel(p.level)} XP to the next level
+              {(season.xp[p.id] ?? 0) > 0 && <> · {Math.round(season.xp[p.id] ?? 0)} XP earned this season, banked when it ends</>}
+            </div>
             {!progress && <div>Gear changes ratings on the ice. It never changes his grade or cap hit.</div>}
           </>
         }
@@ -721,6 +781,328 @@ export function App() {
     );
   }
 
+  // ---------------------------------------------------------------- between seasons
+
+  if (screen.name === 'report') {
+    const report = f.offseason.report;
+    const pending = f.offseason.pending.length;
+    const line = (key: string, label: ComponentChildren): MenuItem => ({ key, label, disabled: true });
+    return (
+      <Menu
+        key={screenKey}
+        title={report ? `After season ${report.season}` : 'Off-season report'}
+        message={message}
+        header={
+          report ? (
+            <>
+              <div>
+                {report.improved.length} of your players improved, {report.declined.length} declined, {report.retired.length} retired ·{' '}
+                {report.leagueRetired} retired across the league
+              </div>
+              {pending > 0 && <div class="warn">The rest of the league makes its moves once you have decided your expiring contracts.</div>}
+            </>
+          ) : (
+            'Nothing to report yet. Finish a season first.'
+          )
+        }
+        onBack={home}
+        help="A continue · B back"
+        items={[
+          pending > 0
+            ? { key: 'next', label: <b>Decide expiring contracts ({pending})</b>, onSelect: () => go({ name: 'contracts' }) }
+            : { key: 'next', label: 'Continue', onSelect: home },
+          ...(report
+            ? [
+                ...report.improved.map((c) =>
+                  line(
+                    `up-${c.id}`,
+                    <span>
+                      <span class="up">▲</span> {c.name} {c.from} → <b>{c.to}</b>
+                    </span>,
+                  ),
+                ),
+                ...report.declined.map((c) =>
+                  line(
+                    `down-${c.id}`,
+                    <span>
+                      <span class="down">▼</span> {c.name} {c.from} → <b>{c.to}</b>
+                    </span>,
+                  ),
+                ),
+                ...report.retired.map((name, i) => line(`ret-${i}`, `Retired: ${name}`)),
+                ...report.news.map((text, i) => line(`news-${i}`, text)),
+              ]
+            : []),
+        ]}
+      />
+    );
+  }
+
+  if (screen.name === 'contracts') {
+    const waiting = f.offseason.pending.map((id) => playerOf(league, id));
+    return (
+      <Menu
+        key={screenKey}
+        remember="contracts"
+        title="Expiring contracts"
+        message={message}
+        header={
+          <>
+            <div>
+              <CapLine league={league} team={team} />
+            </div>
+            <div>{waiting.length === 0 ? 'Every contract is decided.' : 'A new contract costs what his grade is worth now. Anyone you let go can be signed by another team.'}</div>
+          </>
+        }
+        onBack={home}
+        items={
+          waiting.length === 0
+            ? [{ key: 'done', label: 'Continue', onSelect: () => go({ name: 'report' }) }]
+            : waiting.map((p) => ({
+                key: p.id,
+                label: <PlayerRow player={p} note={`new deal ${money(resignCapHit(p))}`} />,
+                detail: <Ratings player={p} />,
+                onSelect: () => go({ name: 'contract', playerId: p.id }),
+              }))
+        }
+      />
+    );
+  }
+
+  if (screen.name === 'contract') {
+    const p = playerOf(league, screen.playerId);
+    const cost = resignCapHit(p);
+    const done = (result: MoveResult, note: string): void => {
+      if (!result.ok) return after(result);
+      const left = f.offseason.pending.length;
+      after({ ok: true, message: left > 0 ? note : `${note} The league has made its moves: see the news below.` }, { name: left > 0 ? 'contracts' : 'report' });
+    };
+    return (
+      <Menu
+        key={screenKey}
+        title={`${p.name}: contract`}
+        message={message}
+        header={
+          <>
+            <div>
+              <PlayerRow player={p} />
+            </div>
+            <div>
+              He was paid {money(p.capHit)}. A new contract is <b>{money(cost)}</b> a season, and that stays fixed until it runs out.
+            </div>
+            <div>
+              <CapLine league={league} team={team} />
+            </div>
+          </>
+        }
+        onBack={() => go({ name: 'contracts' })}
+        items={[
+          ...offseasonRules.resignYears.map((years) => ({
+            key: `y${years}`,
+            label: `Re-sign for ${years} season${years === 1 ? '' : 's'} · ${money(cost)} a season`,
+            detail: p.age + years > 30 ? `He will be ${p.age + years} when it ends. Players slow down from 31.` : `He will be ${p.age + years} when it ends.`,
+            onSelect: () => done(decideContract(f, p.id, years), `${p.name} re-signed for ${years} season${years === 1 ? '' : 's'}.`),
+          })),
+          {
+            key: 'go',
+            label: 'Let him go',
+            detail: 'He joins the free agents, his gear returns to your inventory, and another team may sign him.',
+            onSelect: () => done(decideContract(f, p.id, null), `${p.name} was let go.`),
+          },
+        ]}
+      />
+    );
+  }
+
+  if (screen.name === 'tradeTeams') {
+    const others = league.teams.filter((x) => x.id !== league.userTeamId).sort((a, b) => teamStrength(league, b.id) - teamStrength(league, a.id));
+    return (
+      <Menu
+        key={screenKey}
+        remember="tradeTeams"
+        title="Trade: choose a team"
+        message={message}
+        header="One of your players for one of theirs: skater for skater, or goalie for goalie. Both teams must stay under the cap."
+        onBack={home}
+        items={others.map((other) => {
+          const best = rosterOf(league, other)[0];
+          return {
+            key: other.id,
+            label: (
+              <span class="team-row">
+                <span class="tname">{other.name}</span>
+                <span>average {Math.round(teamStrength(league, other.id))}</span>
+                {best && (
+                  <span>
+                    best: <Grade player={best} /> {best.name}
+                  </span>
+                )}
+              </span>
+            ),
+            onSelect: () => go({ name: 'tradeTheirs', teamId: other.id }),
+          };
+        })}
+      />
+    );
+  }
+
+  if (screen.name === 'tradeTheirs') {
+    const other = teamOf(league, screen.teamId);
+    return (
+      <Menu
+        key={screenKey}
+        title={`${other.name}: who do you want?`}
+        header={<CapLine league={league} team={other} />}
+        onBack={() => go({ name: 'tradeTeams' })}
+        items={rosterOf(league, other).map((p) => ({
+          key: p.id,
+          label: <PlayerRow player={p} />,
+          detail: <Ratings player={p} />,
+          onSelect: () => go({ name: 'tradeMine', teamId: other.id, theirId: p.id }),
+        }))}
+      />
+    );
+  }
+
+  if (screen.name === 'tradeMine') {
+    const other = teamOf(league, screen.teamId);
+    const wanted = playerOf(league, screen.theirId);
+    const mine = rosterOf(league, team).filter((p) => (p.position === 'G') === (wanted.position === 'G'));
+    return (
+      <Menu
+        key={screenKey}
+        title={`For ${wanted.name}: who do you offer?`}
+        message={message}
+        header={
+          <>
+            <div>
+              <PlayerRow player={wanted} />
+            </div>
+            <div>
+              <CapLine league={league} team={team} />
+            </div>
+          </>
+        }
+        onBack={() => go({ name: 'tradeTheirs', teamId: other.id })}
+        help="A offer him · B back"
+        items={mine.map((p) => {
+          const verdict = evaluateTrade(f, p.id, other.id, wanted.id);
+          return {
+            key: p.id,
+            label: <PlayerRow player={p} note={verdict.ok ? 'they would accept' : ''} />,
+            detail: verdict.ok ? <Ratings player={p} /> : <span class="warn">{verdict.reason}</span>,
+            onSelect: () => (verdict.ok ? go({ name: 'tradeConfirm', teamId: other.id, theirId: wanted.id, mineId: p.id }) : setMessage(verdict.reason)),
+          };
+        })}
+      />
+    );
+  }
+
+  if (screen.name === 'tradeConfirm') {
+    const other = teamOf(league, screen.teamId);
+    const wanted = playerOf(league, screen.theirId);
+    const offered = playerOf(league, screen.mineId);
+    return (
+      <Menu
+        key={screenKey}
+        title={`${other.name} accept. Make the trade?`}
+        header={
+          <>
+            <div>
+              You get: <PlayerRow player={wanted} />
+            </div>
+            <div>
+              You give: <PlayerRow player={offered} />
+            </div>
+            <div>His gear returns to your inventory. Your payroll goes {wanted.capHit >= offered.capHit ? 'up' : 'down'} by{' '}
+              {money(Math.abs(wanted.capHit - offered.capHit))}.</div>
+          </>
+        }
+        onBack={() => go({ name: 'tradeMine', teamId: other.id, theirId: wanted.id })}
+        initialFocus={1}
+        items={[
+          {
+            key: 'yes',
+            label: 'Make the trade',
+            onSelect: () => {
+              const result = trade(f, offered.id, other.id, wanted.id);
+              after(result.ok ? { ok: true, message: `Traded ${offered.name} to ${other.name} for ${wanted.name}. Check your lineup.` } : result, { name: 'home' });
+            },
+          },
+          { key: 'no', label: 'No, go back', onSelect: () => go({ name: 'tradeMine', teamId: other.id, theirId: wanted.id }) },
+        ]}
+      />
+    );
+  }
+
+  if (screen.name === 'prestige') {
+    const next = f.prestige.level + 1;
+    const allowed = canPrestige(f);
+    return (
+      <Menu
+        key={screenKey}
+        title={`Prestige to level ${next}?`}
+        message={message}
+        header={
+          <>
+            <div>
+              <b>You keep:</b> your roster and contracts, all gear and tape, and every player's level and ratings.
+            </div>
+            <div>
+              <b>You lose:</b> your {f.artifacts.length} artifact{f.artifacts.length === 1 ? '' : 's'}.
+            </div>
+            <div>
+              <b>From then on:</b> {prestigeEffects(next).join(' ')}
+            </div>
+            <div>You will need to win the championship again before the next level. This cannot be undone.</div>
+            {!allowed.ok && <div class="warn">{allowed.reason}</div>}
+          </>
+        }
+        onBack={home}
+        initialFocus={1}
+        items={[
+          {
+            key: 'yes',
+            label: `Yes, prestige to level ${next}`,
+            disabled: !allowed.ok,
+            onSelect: () => {
+              const result = prestige(f);
+              after(result.ok ? { ok: true, message: `Prestige level ${next}. A new jersey colour is unlocked.` } : result, { name: 'jersey' });
+            },
+          },
+          { key: 'no', label: 'Not now', onSelect: home },
+        ]}
+      />
+    );
+  }
+
+  if (screen.name === 'jersey') {
+    const open = unlockedJerseys(f);
+    return (
+      <Menu
+        key={screenKey}
+        title="Jersey colour"
+        message={message}
+        header={`Your team wears this on the ice. ${open.length} of ${prestigeRules.jerseys.length} unlocked: each prestige level unlocks one more.`}
+        onBack={home}
+        initialFocus={f.prestige.jersey}
+        items={prestigeRules.jerseys.map((jersey, i) => ({
+          key: jersey.name,
+          label: (
+            <span>
+              <span class="swatch" style={{ background: jersey.colour }} />
+              {jersey.name}
+              {i === f.prestige.jersey ? ' (wearing)' : ''}
+            </span>
+          ),
+          detail: i < open.length ? undefined : `Unlocks at prestige level ${i}.`,
+          disabled: i >= open.length,
+          onSelect: () => after(setJersey(f, i)),
+        }))}
+      />
+    );
+  }
+
   if (screen.name === 'roster') {
     const dressed = new Set([...dressedSkaters(team.lineup), team.lineup.goalie]);
     return (
@@ -768,7 +1150,7 @@ export function App() {
             key: 'yes',
             label: 'Release him',
             onSelect: () => {
-              const result = releasePlayer(f, p.id);
+              const result = f.offseason.pending.includes(p.id) ? decideContract(f, p.id, null) : releasePlayer(f, p.id);
               after(result.ok ? { ok: true, message: `${p.name} was released.` } : result, { name: 'roster' });
             },
           },
@@ -960,7 +1342,7 @@ export function App() {
               const away = dress(league, opponent);
               if (!homeTeam || !away) return;
               setPlaying(true);
-              playMatch({ home: homeTeam, away }, (result) => {
+              playMatch({ home: homeTeam, away, homeColour: jerseyColour(f) }, (result) => {
                 const verdict = result.winner === 0 ? 'won' : result.winner === 1 ? 'lost' : 'tied';
                 setScreen({ name: 'home' });
                 setMessage(`Exhibition: ${verdict} ${result.score[0]}-${result.score[1]} against ${opponent.name}.`);

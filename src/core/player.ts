@@ -17,9 +17,12 @@ export interface PlayerRecord {
   potential: number;
   overall: number;
   grade: Grade;
-  /** Dollars a year. */
+  /** Dollars a year. Set when a contract is signed; it does not move as his ratings change. */
   capHit: number;
   contractYears: number;
+  /** XP toward the next level, and the level reached. */
+  xp: number;
+  level: number;
 }
 
 export function isGoalie(p: PlayerRecord): boolean {

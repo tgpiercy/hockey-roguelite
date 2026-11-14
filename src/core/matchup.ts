@@ -21,6 +21,8 @@ export interface DressedTeam {
 export interface DressOptions {
   /** Points added to every rating of a player for now (training and events), by player id. */
   bumps?: Record<string, number>;
+  /** Points added to every rating of every player on the team (a harder league after prestige). */
+  bumpAll?: number;
   /** Lasting modifiers for the whole team: artifacts, temporary effects, boss traits. */
   modifiers?: Modifier[];
   /** The modifiers one player gets from the gear he is wearing: rating boosts, perks and set bonuses. */
@@ -41,7 +43,7 @@ function bumped<T extends SkaterRatings | GoalieRatings>(ratings: T, points: num
  */
 export function dress(league: League, team: Team, options: DressOptions = {}): DressedTeam | null {
   if (!canPlay(league, team).ok) return null;
-  const bump = (p: PlayerRecord): number => options.bumps?.[p.id] ?? 0;
+  const bump = (p: PlayerRecord): number => (options.bumps?.[p.id] ?? 0) + (options.bumpAll ?? 0);
   const gear = (p: PlayerRecord): Modifier[] => options.gear?.(p.id) ?? [];
   const skaters = dressedSkaters(team.lineup).map((id) => playerOf(league, id));
   const goalie = playerOf(league, team.lineup.goalie as string);

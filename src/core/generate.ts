@@ -50,6 +50,8 @@ export function generatePlayer(rng: Rng, names: NameMaker, id: string, position:
     age,
     potential,
     contractYears: rng.int(rules.minContractYears, rules.maxContractYears),
+    xp: 0,
+    level: 1,
     ...rated,
   };
 }

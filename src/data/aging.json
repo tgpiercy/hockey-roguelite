@@ -1,0 +1,13 @@
+{
+  "declineFrom": 31,
+  "steepFrom": 35,
+  "fastRatings": ["speed", "stamina", "reflexes"],
+  "slowRatings": ["passing", "positioning"],
+  "decline": { "fast": [1, 2], "normal": [0, 0], "slow": [0, 0] },
+  "steep": { "fast": [2, 3], "normal": [1, 2], "slow": [0, 1] },
+  "minRating": 30,
+  "retireFrom": 35,
+  "retireChance": [0.12, 0.2, 0.32, 0.45, 0.6, 0.8],
+  "retireAlways": 41,
+  "aiGrowth": { "youngMaxAge": 25, "young": [6, 16], "primeMaxAge": 29, "prime": [0, 4] }
+}

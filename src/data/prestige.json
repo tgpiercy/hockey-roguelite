@@ -1,0 +1,16 @@
+{
+  "maxLevel": 6,
+  "opponentRatingPerLevel": 2,
+  "opponentLevelPerLevel": 0.04,
+  "rarityBoostPerLevel": 1.15,
+  "minCommonChance": 0.2,
+  "jerseys": [
+    { "name": "Navy", "colour": "#1d3557" },
+    { "name": "Forest", "colour": "#2d6a4f" },
+    { "name": "Maroon", "colour": "#7b2d26" },
+    { "name": "Violet", "colour": "#5a3d8a" },
+    { "name": "Black", "colour": "#222222" },
+    { "name": "Teal", "colour": "#0f7173" },
+    { "name": "Gold", "colour": "#b8860b" }
+  ]
+}

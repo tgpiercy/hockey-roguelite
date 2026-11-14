@@ -94,7 +94,7 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index:
     slot: role === 'skater' ? index % SKATERS_PER_LINE : 0,
     energy: 1,
     leaving: false,
-    stats: { goals: 0, assists: 0, shots: 0, hits: 0, timeOnIce: 0, saves: 0, goalsAgainst: 0 },
+    stats: { goals: 0, assists: 0, shots: 0, hits: 0, blocks: 0, timeOnIce: 0, saves: 0, goalsAgainst: 0 },
   };
 }
 

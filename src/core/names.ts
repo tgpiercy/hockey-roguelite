@@ -7,8 +7,9 @@ export interface NameMaker {
   team(): string;
 }
 
-export function createNameMaker(rng: Rng): NameMaker {
-  const used = new Set<string>();
+/** `taken` is any names already in use, so new players do not share one. */
+export function createNameMaker(rng: Rng, taken: Iterable<string> = []): NameMaker {
+  const used = new Set<string>(taken);
 
   const fresh = (make: () => string): string => {
     // With thousands of combinations a repeat is rare; a number is added only if luck runs out.

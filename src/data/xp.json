@@ -1,0 +1,17 @@
+{
+  "perSecondOnIce": 0.08,
+  "goal": 20,
+  "assist": 12,
+  "shot": 1,
+  "hit": 3,
+  "block": 4,
+  "save": 2.5,
+  "goalieWin": 25,
+  "youngMaxAge": 25,
+  "youngBonus": 1.25,
+  "homeShare": 0.3,
+  "levelBase": 100,
+  "levelGrowth": 15,
+  "pointsPerLevel": 3,
+  "maxRating": 99
+}

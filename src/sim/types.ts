@@ -113,6 +113,8 @@ export interface PlayerStats {
   shots: number;
   /** Body checks that landed. */
   hits: number;
+  /** Opponents' shots that deflected off his body. */
+  blocks: number;
   /** Seconds on the ice while the clock ran. */
   timeOnIce: number;
   /** Goalies only. */

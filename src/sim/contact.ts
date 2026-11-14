@@ -90,6 +90,9 @@ export function resolveLoosePuck(world: World, t: Tuning, events: SimEvent[]): v
       if (into < 0) {
         puck.vel.x -= (1 + t.body.deflectBounce) * into * nx;
         puck.vel.y -= (1 + t.body.deflectBounce) * into * ny;
+        // An opponent's shot stopped by a body is a blocked shot.
+        const shooter = puck.shotBy === null ? undefined : world.players[puck.shotBy];
+        if (shooter && shooter.team !== p.team) p.stats.blocks += 1;
       }
       puck.pos.x = p.pos.x + nx * reach;
       puck.pos.y = p.pos.y + ny * reach;

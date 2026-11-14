@@ -10,7 +10,7 @@ export function Grade({ player }: { player: PlayerRecord }) {
   return <span class={`grade grade-${player.grade.replace('+', 'plus')}`}>{player.grade}</span>;
 }
 
-/** One player as a row: grade, overall, name, position, age, cap hit, years, and an optional note. */
+/** One player as a row: grade, overall, name, position, age, cap hit, contract years, level, and an optional note. */
 export function PlayerRow({ player, note, bump = 0 }: { player: PlayerRecord; note?: string; bump?: number }) {
   return (
     <span class="player-row">
@@ -21,6 +21,7 @@ export function PlayerRow({ player, note, bump = 0 }: { player: PlayerRecord; no
       <span class="age">{player.age}y</span>
       <span class="cap">{money(player.capHit)}</span>
       <span class="years">{player.contractYears}y</span>
+      <span class="lvl">L{player.level}</span>
       {bump !== 0 && <span class="bump">{bump > 0 ? `+${bump}` : bump} this season</span>}
       {note && <span class="note">{note}</span>}
     </span>

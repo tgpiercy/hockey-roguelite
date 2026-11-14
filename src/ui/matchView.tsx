@@ -42,13 +42,15 @@ export interface MatchOptions {
   level?: number;
   /** The powerups loaded on the two buttons. */
   powerups?: (PowerupSpec | null)[];
+  /** Your jersey colour, as "#rrggbb". */
+  homeColour?: string;
 }
 
 /**
  * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch({ home, away, level, powerups }: MatchOptions, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups, homeColour }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
   const shift = tuningStore.tuning.game.opponentDifficulty - seasonRules.defaultDifficulty;
   const opponentLevel = level === undefined ? null : Math.max(0, Math.min(1, level + shift));
@@ -75,6 +77,7 @@ export function playMatch({ home, away, level, powerups }: MatchOptions, onDone:
       names: ['You', away.name],
       levels: [null, opponentLevel],
       powerups: powerups ?? [],
+      ...(homeColour ? { homeColour } : {}),
       tuning: () => tuningStore.tuning,
       onControls,
       onResult: (result) => render(<GameSummary result={result} teams={[home, away]} />, summary),

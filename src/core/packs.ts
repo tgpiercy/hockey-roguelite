@@ -1,6 +1,7 @@
 import data from '../data/packs.json';
 import type { GameResult } from '../sim/match';
-import { generateItem, rollRarity, type GearItem, type RarityId } from './gear';
+import prestigeRules from '../data/prestige.json';
+import { generateItem, rarityTable, rollRarity, type GearItem, type RarityId } from './gear';
 import { createRng } from './rng';
 import type { Franchise } from './season';
 
@@ -30,8 +31,10 @@ export function awardPack(f: Franchise, type: PackType, reason: string): Pack {
   const rng = createRng(`${f.league.seed}/pack/${packNumber}`);
   const spec = data.types[type];
 
+  // Each prestige level makes everything above Common likelier.
+  const table = rarityTable(prestigeRules.rarityBoostPerLevel ** f.prestige.level, prestigeRules.minCommonChance);
   const rarities: RarityId[] = [];
-  for (let i = 0; i < spec.items; i++) rarities.push(rollRarity(rng, i === 0 ? (spec.guarantee as RarityId | '') : ''));
+  for (let i = 0; i < spec.items; i++) rarities.push(rollRarity(rng, i === 0 ? (spec.guarantee as RarityId | '') : '', table));
   // Pity timer: after a long run with no Legendary, the guaranteed slot becomes one.
   if (!rarities.includes('legendary') && f.packsSinceLegendary >= data.pityPacks - 1) rarities[0] = 'legendary';
   f.packsSinceLegendary = rarities.includes('legendary') ? 0 : f.packsSinceLegendary + 1;

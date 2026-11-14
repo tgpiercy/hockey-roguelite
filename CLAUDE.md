@@ -22,7 +22,7 @@ Exact versions are pinned in `package.json`.
 ## Folders
 
 ```text
-src/core/    game rules: players, grades, cap, gear, packs, aging, economy, run map
+src/core/    game rules: players, grades, cap, gear, packs, XP, aging, contracts, trades, prestige, run map
 src/sim/     on-ice simulation: physics, AI, game rules; runs headless
 src/game/    Phaser scenes: drawing, camera, controller input, audio
 src/ui/      Preact menu screens
@@ -47,6 +47,7 @@ npm run dev        # local server; prints a network address for the phone on the
 npm test           # all tests, once
 npm run typecheck  # whole project, then core and sim without the DOM
 npm run balance    # headless AI-vs-AI series: -- --games 200 --home 90 --away 70 (add --naive for a scripted human)
+npm run seasons    # league health over many seasons: -- --seeds 20 --years 20 (games settled from strength, takes seconds)
 npm run build      # production build into dist/
 npm run preview    # serve the production build locally
 ```
@@ -94,6 +95,18 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - Four abilities exist only for modifiers to switch on, and are off by default: `carrySpeedScale`, `chargedShotScale`, `passThrough` (skaters) and `periodAutoSaves` (goalies).
 - `season.recordGame` awards the pack for a win and a Gold pack for each milestone the game completes.
 - `tests/gear.test.ts` includes the 100,000-pack check of the rarity table and the pity timer.
+
+## How the franchise loop fits together
+
+- A season ends through `finishSeason(f)` in `src/core/offseason.ts`, never `endSeason` directly. In order: bank XP and level up (`xp.ts`), develop everyone who is not yours off the ice and age the league a year (`aging.ts`), roll retirements, tick contracts, then call `endSeason`. It fills `f.offseason` (the report, your `pending` expiring contracts, `leagueMoved`).
+- `decideContract(f, id, years | null)` settles one of your expiring contracts. When the last is settled (or there were none), `leagueMoves(f)` runs: AI teams re-sign or drop, fill their rosters from the pool (including players you let go), rookies arrive, and the pool is topped up and trimmed. `startSeason` refuses while contracts are pending.
+- A cap hit changes only when a contract is signed (`resignCapHit`, and when an AI team signs). `regrade` in `xp.ts` updates overall and grade and leaves the cap hit alone.
+- `src/core/trades.ts`: `tradeValue`, `evaluateTrade` (the reason is shown to the player), `trade`. `src/core/prestige.ts`: `canPrestige`, `prestige`, `prestigeEffects`, and the jersey colours. Prestige reaches games through `matchup()` (opponent ratings and AI level) and packs through `rarityTable(boost, floor)`.
+- Tables: `src/data/xp.json`, `aging.json`, `offseason.json` (rookies, pool, trade values, quick-game values), `prestige.json`.
+- `src/core/quickSeason.ts` is for health checks only: an automatic manager (`autoOffseason`), games settled from strength (`quickResult`) and `leagueSnapshot`. `tests/harness/seasons.ts` and `npm run seasons` use it; the numbers are in `docs/TUNING.md`. Re-run it after any change to the XP, aging or off-season tables.
+- Save version 4 adds `xp` and `level` per player and `prestige` and `offseason` on the franchise.
+- Screens: off-season report, expiring contracts, trade (team, their player, your player, confirm), prestige and jersey colour, all in `App.tsx`. The jersey colour reaches the rink through `playMatch({ homeColour })`.
+- Tests are in `tests/franchise.test.ts`, including 20 seasons from 20 seeds.
 
 ## How the on-ice game fits together
 

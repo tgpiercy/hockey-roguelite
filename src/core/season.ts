@@ -1,6 +1,7 @@
 import artifacts from '../data/artifacts.json';
 import events from '../data/events.json';
 import powerups from '../data/powerups.json';
+import prestigeRules from '../data/prestige.json';
 import rules from '../data/season.json';
 import type { GameResult } from '../sim/match';
 import { modified, type Modifier, type PowerupSpec } from '../sim/modifiers';
@@ -11,6 +12,7 @@ import { dressedSkaters, setLineupSlot } from './lineup';
 import { applyResult, dress, type DressedTeam } from './matchup';
 import { newMilestones, tally } from './milestones';
 import { awardPack, packForWin, packName, type Pack } from './packs';
+import { gameXp, homeShare } from './xp';
 import { createRng, type Rng } from './rng';
 import { canPlay } from './roster';
 import { generateMap, type SeasonMap, type Stop } from './seasonMap';
@@ -71,6 +73,48 @@ export interface SeasonState {
   shutouts: number;
   /** True once any of your players has scored three in a game this season. */
   hatTrick: boolean;
+  /** XP earned this season by player id. It is banked, and turned into levels, when the season ends. */
+  xp: Record<string, number>;
+}
+
+/** One line of the off-season report: a player whose overall changed. */
+export interface RatingChange {
+  id: string;
+  name: string;
+  from: number;
+  to: number;
+}
+
+/** What happened between seasons, for the report screen. */
+export interface OffseasonReport {
+  /** The season that just ended. */
+  season: number;
+  improved: RatingChange[];
+  declined: RatingChange[];
+  /** Names of your players who retired. */
+  retired: string[];
+  /** How many players retired across the whole league. */
+  leagueRetired: number;
+  /** League news, in words: who signed your former players, how many rookies arrived. */
+  news: string[];
+}
+
+export interface OffseasonState {
+  report: OffseasonReport | null;
+  /** Your players whose contracts have run out and who are waiting for a decision. */
+  pending: string[];
+  /** Players you let go this off-season, so the news can say where they went. */
+  released: string[];
+  /** False until the AI teams have made their moves and the rookies have arrived. */
+  leagueMoved: boolean;
+}
+
+export interface PrestigeState {
+  level: number;
+  /** True once you have won the championship at this prestige level. */
+  championAt: boolean;
+  /** Which unlocked jersey colour the team wears. */
+  jersey: number;
 }
 
 /** Everything that is saved: the league, the record, where the season stands, and the artifacts owned. */
@@ -90,6 +134,8 @@ export interface Franchise {
   packsSinceLegendary: number;
   /** How many packs have ever been awarded; also numbers the pieces. */
   gearCount: number;
+  prestige: PrestigeState;
+  offseason: OffseasonState;
 }
 
 export type ActionResult = { ok: true; message: string } | { ok: false; reason: string };
@@ -121,11 +167,32 @@ export function newSeasonState(): SeasonState {
     playerGoals: {},
     shutouts: 0,
     hatTrick: false,
+    xp: {},
   };
 }
 
+export function newPrestigeState(): PrestigeState {
+  return { level: 0, championAt: false, jersey: 0 };
+}
+
+export function newOffseasonState(): OffseasonState {
+  return { report: null, pending: [], released: [], leagueMoved: true };
+}
+
 export function newFranchise(league: League): Franchise {
-  return { league, record: emptyRecord(), season: newSeasonState(), artifacts: [], gear: [], packs: [], tape: 0, packsSinceLegendary: 0, gearCount: 0 };
+  return {
+    league,
+    record: emptyRecord(),
+    season: newSeasonState(),
+    artifacts: [],
+    gear: [],
+    packs: [],
+    tape: 0,
+    packsSinceLegendary: 0,
+    gearCount: 0,
+    prestige: newPrestigeState(),
+    offseason: newOffseasonState(),
+  };
 }
 
 // ---------- look-ups ----------
@@ -225,6 +292,7 @@ export function availableStops(f: Franchise): Stop[] {
 /** Locks in the dressed lineup and generates the season's map. */
 export function startSeason(f: Franchise): ActionResult {
   if (f.season.phase !== 'offseason') return refuse('A season is already under way.');
+  if (f.offseason.pending.length > 0) return refuse('Decide your expiring contracts first.');
   const team = userTeam(f.league);
   const ready = canPlay(f.league, team);
   if (!ready.ok) return refuse(ready.reason);
@@ -309,15 +377,18 @@ export function matchup(f: Franchise): Matchup | null {
   const home = dressUser(f);
   if (!home) return null;
   const loaded = season.loadout.map((id) => (id ? powerupInfo(id) : null));
+  // Each prestige level makes every opponent a little better and a little sharper.
+  const tougher = f.prestige.level * prestigeRules.opponentRatingPerLevel;
+  const sharper = f.prestige.level * prestigeRules.opponentLevelPerLevel;
 
   if (season.phase === 'playoffs' && season.playoffs) {
-    const away = dress(league, teamOf(league, season.playoffs.opponentId));
+    const away = dress(league, teamOf(league, season.playoffs.opponentId), { bumpAll: tougher });
     if (!away) return null;
     const round = season.playoffs.round === rules.playoffRounds - 1 ? 'Final' : 'Semi-final';
     return {
       home,
       away,
-      level: rules.playoffLevel,
+      level: Math.min(1, rules.playoffLevel + sharper),
       kind: 'playoff',
       title: `${round}, game ${season.playoffs.wins + season.playoffs.losses + 1}`,
       powerups: loaded,
@@ -326,12 +397,12 @@ export function matchup(f: Franchise): Matchup | null {
 
   const stop = currentStop(f);
   if (season.phase !== 'map' || !stop || season.stage !== 'arrived') return null;
-  const level = rules.regionLevels[stop.region] ?? rules.regionLevels[rules.regionLevels.length - 1]!;
+  const level = Math.min(1, (rules.regionLevels[stop.region] ?? rules.regionLevels[rules.regionLevels.length - 1]!) + sharper);
   if (stop.kind === 'boss' && stop.bossId) {
     const boss = bossInfo(stop.bossId);
     return {
       home,
-      away: buildBoss(league, stop.bossId, stop.region, season.seed),
+      away: buildBoss(league, stop.bossId, stop.region, season.seed, tougher),
       level: Math.min(1, level + rules.bossLevelBonus),
       kind: 'boss',
       title: `Boss: ${boss.name}`,
@@ -340,7 +411,7 @@ export function matchup(f: Franchise): Matchup | null {
     };
   }
   if (stop.kind === 'game' && stop.opponentId) {
-    const away = dress(league, teamOf(league, stop.opponentId));
+    const away = dress(league, teamOf(league, stop.opponentId), { bumpAll: tougher });
     if (!away) return null;
     return { home, away, level, kind: 'game', title: `Game against ${away.name}`, powerups: loaded };
   }
@@ -384,6 +455,12 @@ export function recordGame(f: Franchise, result: GameResult): ActionResult {
   if (!outcome.ok || !game || f.season.gamesPlayed === played) return outcome;
 
   tally(f, result, game.home);
+  // XP: dressed players earn their own; anyone on the roster who did not dress gets a share.
+  const earned = gameXp(result, game.home);
+  const share = homeShare(earned, game.home);
+  for (const id of userTeam(f.league).roster) {
+    f.season.xp[id] = (f.season.xp[id] ?? 0) + (earned[id] ?? share);
+  }
   let message = outcome.message;
   const pack = packForWin(result, game.kind === 'boss');
   if (pack) {
@@ -430,6 +507,7 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
       }
       season.phase = 'ended';
       season.outcome = 'champion';
+      f.prestige.championAt = true;
       const prize = artifactOffer(f, 1)[0];
       if (prize) f.artifacts.push(prize);
       return done(prize ? `Champions! You are awarded an artifact: ${artifactInfo(prize).name}.` : 'Champions!');

@@ -41,13 +41,13 @@ export function aiTeamsByStrength(league: League): string[] {
  * Builds a boss team, ready for the ice: a generated roster a few points stronger than the best team
  * of its region, carrying the boss's signature trait as team modifiers. It is not part of the league.
  */
-export function buildBoss(league: League, bossId: string, region: number, seed: string): DressedTeam {
+export function buildBoss(league: League, bossId: string, region: number, seed: string, tougher = 0): DressedTeam {
   const boss = bossInfo(bossId);
   const order = aiTeamsByStrength(league);
   const tierSize = Math.max(1, Math.floor(order.length / rules.regions));
   const tierEnd = region === rules.regions - 1 ? order.length : (region + 1) * tierSize;
   const strongest = order[Math.max(0, tierEnd - 1)] as string;
-  const strength = Math.round(teamStrength(league, strongest)) + rules.bossStrengthBonus;
+  const strength = Math.round(teamStrength(league, strongest)) + rules.bossStrengthBonus + tougher;
 
   const rng = createRng(`${seed}/boss/${bossId}`);
   const names = createNameMaker(rng.fork('names'));

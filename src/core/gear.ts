@@ -61,10 +61,23 @@ export function perkInfo(item: GearItem): { name: string; description: string; m
   return { name: perk.name, description: tier.description, modifiers: tier.modifiers as Modifier[] };
 }
 
+/**
+ * The drop table with every rarity above Common made `boost` times likelier (prestige does this),
+ * and Common taking up the rest. Common is never squeezed below a floor.
+ */
+export function rarityTable(boost = 1, commonFloor = 0): RarityInfo[] {
+  if (boost === 1) return RARITIES;
+  const better = RARITIES.slice(1).map((r) => ({ ...r, chance: r.chance * boost }));
+  const total = better.reduce((sum, r) => sum + r.chance, 0);
+  const scale = total > 1 - commonFloor ? (1 - commonFloor) / total : 1;
+  const scaled = better.map((r) => ({ ...r, chance: r.chance * scale }));
+  return [{ ...RARITIES[0]!, chance: 1 - scaled.reduce((sum, r) => sum + r.chance, 0) }, ...scaled];
+}
+
 /** Rolls a rarity from the drop table. With a minimum, only that rarity and better can come up. */
-export function rollRarity(rng: Rng, minimum: RarityId | '' = ''): RarityId {
+export function rollRarity(rng: Rng, minimum: RarityId | '' = '', table: RarityInfo[] = RARITIES): RarityId {
   const from = minimum === '' ? 0 : rarityIndex(minimum);
-  const pool = RARITIES.slice(from);
+  const pool = table.slice(from);
   const total = pool.reduce((sum, r) => sum + r.chance, 0);
   let pick = rng.next() * total;
   for (const r of pool) {

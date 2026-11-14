@@ -1,9 +1,9 @@
-import { newSeasonState, type Franchise } from './season';
+import { newOffseasonState, newPrestigeState, newSeasonState, type Franchise } from './season';
 
 export { emptyRecord, type TeamRecord } from './season';
 
 /** Bump this whenever the shape of a save changes, and add a step to `migrations`. */
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 /** A save is the franchise plus a version number and a date. */
 export interface SaveFile extends Franchise {
@@ -42,6 +42,20 @@ const migrations: Record<number, (old: Record<string, unknown>) => Record<string
     packsSinceLegendary: 0,
     gearCount: 0,
   }),
+  // Version 4 (Phase 7) added XP and levels, prestige, and the off-season. Players start at level 1.
+  3: (old) => {
+    const league = isObject(old.league) ? old.league : {};
+    const players = isObject(league.players) ? league.players : {};
+    const levelled: Record<string, unknown> = {};
+    for (const [id, player] of Object.entries(players)) levelled[id] = isObject(player) ? { xp: 0, level: 1, ...player } : player;
+    return {
+      ...old,
+      league: { ...league, players: levelled },
+      season: { ...newSeasonState(), ...(isObject(old.season) ? old.season : {}) },
+      prestige: newPrestigeState(),
+      offseason: newOffseasonState(),
+    };
+  },
 };
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -67,6 +81,7 @@ function problemWith(save: Record<string, unknown>): string | null {
   if (!Array.isArray(save.artifacts)) return 'it has no artifact list';
   if (!Array.isArray(save.gear) || !Array.isArray(save.packs)) return 'it has no gear or pack list';
   if (typeof save.tape !== 'number') return 'it has no tape count';
+  if (!isObject(save.prestige) || !isObject(save.offseason)) return 'it has no prestige or off-season record';
   return null;
 }
 

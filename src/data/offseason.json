@@ -1,0 +1,22 @@
+{
+  "rookies": {
+    "count": 12,
+    "minAge": 18,
+    "maxAge": 20,
+    "minOverall": 56,
+    "maxOverall": 72,
+    "minPotentialBonus": 4,
+    "maxPotentialBonus": 24,
+    "goalieShare": 0.17
+  },
+  "poolTarget": 36,
+  "poolMinGoalies": 3,
+  "poolMinCheapSkaters": 6,
+  "poolMinCheapGoalies": 2,
+  "cheapCapHit": 1500000,
+  "replacementOverall": 45,
+  "aiResignMaxAge": 35,
+  "resignYears": [1, 2, 3, 4],
+  "trade": { "youthCredit": 0.5, "agePenaltyFrom": 30, "agePenaltyPerYear": 1.5, "acceptMargin": 0 },
+  "quick": { "ratingPointsFor75Percent": 20, "minGoals": 1, "maxWinnerGoals": 6, "shotsPerGoal": 8, "secondsOnIcePerGame": 180, "hitsPerGame": 6, "blocksPerGame": 4, "ratingPointsPerTenthOfLevel": 1.5, "autoKeepMaxAge": 34, "autoKeepOverall": 80, "autoLongDealMaxAge": 28, "autoLongDealYears": 3 }
+}

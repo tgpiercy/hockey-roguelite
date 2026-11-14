@@ -40,6 +40,9 @@ export function sign(league: League, team: Team, playerId: string): MoveResult {
   if (!allowed.ok) return allowed;
   league.freeAgents = league.freeAgents.filter((id) => id !== playerId);
   team.roster.push(playerId);
+  // A player whose last contract ran out signs for the shortest term.
+  const player = playerOf(league, playerId);
+  if (player.contractYears <= 0) player.contractYears = rules.minContractYears;
   repairLineup(league, team);
   return { ok: true };
 }

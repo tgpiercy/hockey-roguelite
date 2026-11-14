@@ -146,3 +146,28 @@ Built, deployed and checked with a simulated controller. Still open:
 - Not checked in the browser: levelling a piece up (not enough tape; unit tested), the controller, and how the screens look.
 - A team in full level-1 Legendary gear plays about like an 85-rated team (73% against 70); at level 5 about like 97 (84%).
 - Simplifications: four set bonuses are stand-ins for design-doc effects the game cannot do yet (listed in DECISIONS.md); no automatic duplicate handling; AI teams and bosses wear no gear.
+
+# Phase 7: the franchise loop
+
+- [x] XP from games, levels, automatic point placement capped by potential
+- [x] Aging table, retirement
+- [x] Contracts: tick, re-sign at the current grade's cap hit, let go
+- [x] League moves: AI re-signing and free agency (can sign players you let go), rookie class, pool upkeep
+- [x] Quick seasons, the multi-season runner and `npm run seasons`; tuned until stable
+- [x] Trades
+- [x] Prestige and jersey colours
+- [x] Blocked shots counted on the ice
+- [x] Save version 4 with migration
+- [x] Screens: off-season report, contracts, trade, prestige, jersey; level and XP on player rows
+- [x] Checked in a browser
+- [ ] Commit, push, deploy green
+- [ ] Exit test: play season after season (owner)
+
+## Review (Phase 7)
+
+- Type check, 534 tests (60 new) and the build pass. The uniform-team balance series is unchanged (3.37 and 3.16 goals, save percentage .855).
+- 20 franchises for 20 seasons each: no team ever short of a legal roster, none over the cap, average age 27.6 to 28.9, every grade from D to A present from year 3. The AI teams' average rises about 5 points over the first 13 years and then holds. Table in docs/TUNING.md.
+- Browser check, by keyboard, on a save set up at the end of a championship season: continued to the off-season; the report showed one player up (68 to 72, now level 8) and a 37-year-old down; reloaded with two contracts pending and landed in the same place with "Start the season" and "Trade" greyed out; re-signed one for 3 seasons and let one go; the league then moved and 12 rookies arrived; signed a 20-year-old rookie; a trade for a B+ star was refused with the reason; a goalie-for-goalie trade was accepted and made; prestiged to level 1 (artifacts gone, roster kept); chose the second jersey colour and saw the skaters drawn in it on the ice; started season 2 with the game screen saying opponents play 2 points better. No console errors.
+- Found and fixed during the check: free agents whose contract had run out were listed with 0 years left. They now ask for a new term.
+- Not seen in the browser: an AI team signing the player I let go (he stayed in the pool that time; it is unit tested), a retirement on my own team (unit tested), the controller, and how the screens look (the browser pane was hidden, so only text was read).
+- Simplifications: trades are one for one only; AI teams do not trade with each other; AI players improve by a yearly rule, not by playing; the health check settles games from team strength instead of simulating them; the first before-tuning table was not kept, only described.

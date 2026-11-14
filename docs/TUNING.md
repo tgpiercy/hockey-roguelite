@@ -174,6 +174,39 @@ Gear adds rating points, so its effect can be read off the balance harness by ra
 
 That leaves out perks and set bonuses, which add a little more. The base numbers for equal teams are unchanged by this phase (3.37 and 3.16 goals, save percentage .855).
 
+## League health over 20 seasons (Phase 7, 2026-11-14)
+
+`npm run seasons -- --seeds 20 --years 20` runs 20 franchises for 20 seasons each with an automatic manager. Games are settled from team strength (a 20-point edge wins 75%, as the Phase 3 series measured), not simulated, so it takes about a second. The table is the league just before each season starts, averaged over the 20 franchises; "illegal" and "over cap" are totals.
+
+| Year | S | A+ | A | B+ | B | C+ | C | D | Average age | Free agents | Your team | AI teams | Illegal rosters | Over cap |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0.0 | 0.0 | 0.0 | 2.3 | 12.7 | 33.2 | 45.6 | 10.3 | 28.1 | 24 | 68.1 | 71.6 | 0 | 0 |
+| 5 | 0.2 | 0.5 | 1.6 | 8.1 | 18.0 | 38.8 | 30.0 | 6.8 | 27.6 | 35 | 71.1 | 74.2 | 0 | 0 |
+| 10 | 0.3 | 0.6 | 3.0 | 12.1 | 25.0 | 39.4 | 19.3 | 4.4 | 28.2 | 35 | 74.4 | 75.9 | 0 | 0 |
+| 15 | 0.1 | 0.7 | 4.2 | 15.6 | 30.4 | 34.0 | 14.1 | 5.0 | 28.7 | 36 | 76.8 | 76.5 | 0 | 0 |
+| 20 | 0.1 | 0.7 | 5.0 | 16.5 | 28.9 | 32.4 | 11.7 | 8.8 | 28.3 | 35 | 77.2 | 75.6 | 0 | 0 |
+
+What it shows:
+
+- No team was ever short of 7 skaters and a goalie, and none was ever over the cap, in 400 franchise-seasons.
+- The average age stays between 27.6 and 28.9: rookies replace retirees.
+- Every grade from D to A is present from year 3 on. The league starts with nobody above B+ and grows a top end over the first ten years.
+- The AI teams' average overall rises from 71.6 to about 76.5 by year 13 and then holds. So the league does get about 5 points stronger over its first decade before it settles.
+- The automatic manager's team catches the league at about year 14 and ends 1.6 points ahead. That manager never uses gear, artifacts or good judgement, so a person will get ahead sooner; prestige is the answer to that.
+
+Before tuning (first run of the same report): A and B+ players had nearly vanished by year 20 because AI players grew too slowly off the ice to replace the stars who aged out; some AI teams sat over the cap; and the automatic manager was once left a skater short because nobody in the pool fitted under its cap. I did not keep that first table, so only the description is recorded here. What changed:
+
+| Value | From | To | Why |
+| --- | --- | --- | --- |
+| `aging.json` aiGrowth, young (rating points a year, to age 25) | slower | 6 to 16 | Stars were not being replaced |
+| `aging.json` aiGrowth, prime (to age 29) | none | 0 to 4 | Same |
+| AI team over the cap after re-signing | stuck | releases its most expensive contract | Cap deadlock |
+| Free-agent pool | could run out of cheap players | always at least 6 skaters and 2 goalies at $1.5M or less, 3 goalies in all | A team with no cap room could not fill its roster |
+| Pool trimming | by overall | oldest first, cheap players protected | Kept the pool from filling with veterans |
+| `offseason.json` replacementOverall | higher | 45 | Emergency fill-ins must be cheap enough for any team |
+
+The numbers above for XP, aging, rookies and trades are first guesses that produce a stable league; none has been felt by a person playing yet.
+
 ## Change log
 
 | Date | Value | From | To | Why |
@@ -186,3 +219,4 @@ That leaves out perks and set bonuses, which add a little more. The base numbers
 | 2026-11-13 | player.shotPower, player.accuracy | 0.7 | removed | Replaced by the shooting rating (70 gives the same 0.7) |
 | 2026-11-13 | ratings.json and ai.json | Phase 2 values | see "Phase 3 balance" above | To meet the three balance targets |
 | 2026-11-13 | game.opponentDifficulty | 0.5 | 0.75 | A simple direct player beat 0.5 easily |
+| 2026-11-14 | aging.json, offseason.json | first guesses | see "League health over 20 seasons" above | To keep the league stable for 20 seasons |

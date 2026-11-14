@@ -28,6 +28,8 @@ export interface RinkSceneOptions {
   levels: [number | null, number | null];
   /** The powerups loaded on the human's two buttons. */
   powerups: (PowerupSpec | null)[];
+  /** The human team's jersey colour, as "#rrggbb". Left out, the default is used. */
+  homeColour?: string;
   /** The live tuning values; read every step, so the tuning panel takes effect at once. */
   tuning: () => Tuning;
   /** Called once per frame with the controls, for the menus. */
@@ -130,8 +132,13 @@ export class RinkScene extends Phaser.Scene {
     return this.originY + y * this.zoom;
   }
 
+  /** The human team's jersey colour: the one chosen in the menus, or the default. */
+  private get homeColour(): string {
+    return this.options.homeColour ?? c.teamHome;
+  }
+
   private playerColour(p: Player): number {
-    if (p.team === 0) return colour(p.role === 'goalie' ? c.teamHomeGoalie : c.teamHome);
+    if (p.team === 0) return colour(p.role === 'goalie' ? c.teamHomeGoalie : this.homeColour);
     return colour(p.role === 'goalie' ? c.teamAwayGoalie : c.teamAway);
   }
 
@@ -194,7 +201,7 @@ export class RinkScene extends Phaser.Scene {
     // Bench doors: a gap in the top boards in each team's colour.
     for (const team of [0, 1] as const) {
       const door = benchDoor(team, t);
-      g.lineStyle(Math.max(3, look.boardWidth * z * 1.6), colour(team === 0 ? c.teamHome : c.teamAway));
+      g.lineStyle(Math.max(3, look.boardWidth * z * 1.6), colour(team === 0 ? this.homeColour : c.teamAway));
       g.lineBetween(this.sx(door.x - t.bench.doorRadius), this.sy(-hy), this.sx(door.x + t.bench.doorRadius), this.sy(-hy));
     }
 

@@ -487,6 +487,7 @@ describe('packs and milestones in a season', () => {
     assists: 0,
     shots: 0,
     hits: 0,
+    blocks: 0,
     timeOnIce: 0,
     saves: 0,
     goalsAgainst: 0,
@@ -627,8 +628,8 @@ describe('saving gear', () => {
     const f = fresh('old');
     startSeason(f);
     travel(f, availableStops(f)[0]!.id);
-    const { gear: _g, packs: _p, tape: _t, packsSinceLegendary: _s, gearCount: _c, ...older } = f;
-    const { milestones: _m, playerGoals: _pg, shutouts: _sh, hatTrick: _h, ...oldSeason } = older.season;
+    const { gear: _g, packs: _p, tape: _t, packsSinceLegendary: _s, gearCount: _c, prestige: _pr, offseason: _of, ...older } = f;
+    const { milestones: _m, playerGoals: _pg, shutouts: _sh, hatTrick: _h, xp: _x, ...oldSeason } = older.season;
     const old = JSON.parse(JSON.stringify({ schemaVersion: 2, savedAt: 'then', ...older, season: oldSeason }));
     const loaded = fromSave(old);
     expect(loaded.ok).toBe(true);

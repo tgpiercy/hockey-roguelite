@@ -66,7 +66,21 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-13 | Which pack does a win earn? | One pack per season win: Silver for a shutout, a win by 4 or more, or a boss win; otherwise Bronze. Milestones add Gold packs on top. Exhibition games earn nothing. | Phase 6 |
 | 2026-11-13 | Pity timer | If 24 packs in a row hold no Legendary, the 25th has one in its guaranteed slot. | Phase 6 |
 | 2026-11-13 | Duplicates | There is no automatic duplicate handling: any piece not being worn can be scrapped for tape. | Phase 6 |
+| 2026-11-14 | Skill points on level-up | Placed automatically where the position values them (shooting for a forward, checking for a defenceman, reflexes for a goalie), never past the player's hidden potential. No allocation screen. | Phase 7 |
+| 2026-11-14 | What earns XP? | Skaters: ice time, goals, assists, shots, hits, blocked shots. Goalies: saves and wins. The skater left at home earns 30% of the average dressed skater. Players aged 25 or under earn 25% more. XP is banked and levels applied when the season ends. Each level is 3 rating points and costs 15 XP more than the last, starting at 100. Exhibition games earn none. | Phase 7 |
+| 2026-11-14 | When does a cap hit change? | Only when a contract is signed. A player who improves mid-contract is a bargain until renewal; one who declines is overpaid until then. Re-signing costs what his grade is worth at that moment, for 1 to 4 seasons. | Phase 7 |
+| 2026-11-14 | Aging | 26 to 30: nothing. 31 to 34: speed, stamina and (goalies) reflexes fall 1 to 2 a year. 35 and over: those fall 2 to 3, passing and positioning 0 to 1, everything else 1 to 2. Once a player is declining he has no more room to grow. | Phase 7 |
+| 2026-11-14 | Retirement | Never before 35. Then 12%, 20%, 32%, 45%, 60%, 80% a year, and certain at 41. His gear returns to the inventory. | Phase 7 |
+| 2026-11-14 | Expiring contracts | Yours that reach zero must each be re-signed or let go before the next season can start. The rest of the league does not move until you have decided, so a player you let go is in the pool when AI teams shop. | Phase 7 |
+| 2026-11-14 | Can AI teams sign players you let go? | Yes. The off-season news says who went where. | Phase 7 |
+| 2026-11-14 | How do AI players improve? | They play no simulated games, so by a yearly rule: below their potential they gain 6 to 16 rating points a year to age 25 and 0 to 4 to age 29. Players on your team who are not yours do the same. | Phase 7 |
+| 2026-11-14 | Rookies and the pool | 12 rookies aged 18 to 20 join the pool each off-season, overall 56 to 72 with 4 to 24 points of room to grow. The pool is kept to about 36, always with affordable skaters and goalies in it. | Phase 7 |
+| 2026-11-14 | Trades | Off-season only, one player for one player of the same kind (skater or goalie) with any AI team. The AI values a player at his overall, plus half his room to grow, minus 1.5 for each year past 30, and accepts if it gets at least as much as it gives. Both teams must stay under the cap. You are told whether each of your players would be accepted before you offer him. | Phase 7 |
+| 2026-11-14 | Prestige | Offered in the off-season once you have won the championship at your current level, up to level 6. Keeps the roster, contracts, gear, tape, levels and ratings; wipes artifacts. Each level: every opponent plays 2 rating points better and its AI is 0.04 sharper; Rare, Epic and Legendary odds rise 15% (Common never below 20%); one jersey colour unlocks. | Phase 7 |
+| 2026-11-14 | Jersey colour | Seven colours, one to start and one per prestige level. It changes your skaters' colour on the ice and nothing else. | Phase 7 |
+| 2026-11-14 | Blocked shots | A shot by the other team that deflects off a skater's body counts as a block for him. | Phase 7 |
+| 2026-11-14 | Multi-season health check | Games are settled from team strength rather than simulated, so 400 franchise-seasons run in a second. The real simulation is covered by its own tests and the Phase 5 season run. | Phase 7 |
 
 ## Open
 
-The Phase 7 to 9 decisions in docs/IMPLEMENTATION_PLAN.md ("Decisions to settle") are still open: prestige, poaching, the mascot questions and the game name. Settle each before the phase that needs it.
+The Phase 8 and 9 decisions in docs/IMPLEMENTATION_PLAN.md ("Decisions to settle") are still open: the mascot questions and the game name. Settle each before the phase that needs it.
