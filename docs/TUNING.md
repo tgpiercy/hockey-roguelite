@@ -207,6 +207,61 @@ Before tuning (first run of the same report): A and B+ players had nearly vanish
 
 The numbers above for XP, aging, rookies and trades are first guesses that produce a stable league; none has been felt by a person playing yet.
 
+## The economy over 20 seasons (Phase 8, 2026-11-14)
+
+`npm run seasons` now also runs each franchise under three automatic managers and reports the money. Cautious: cheap staff, builds only with 60% of a season's bills in reserve. Balanced: better staff, 30% in reserve. Spender: buys whatever it can afford the moment it can. All figures are $M at the start of each season, averaged over 20 franchises; "lowest" is the worst single franchise; fire sales and bail-outs are counts out of 20.
+
+**Before tuning** (sponsorship at 4% of franchise value):
+
+| Manager | Year | Cash | Value | Payroll | Facility levels | Your team | Fire sales | Bail-outs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Cautious | 2 | 1.2 | 96.2 | 14.8 | 0.0 | 66.5 | 7 | 0 |
+| Cautious | 5 | 0.1 | 77.6 | 11.9 | 0.0 | 65.2 | 20 | 15 |
+| Cautious | 20 | 0.0 | 24.2 | 11.8 | 0.0 | 65.2 | 20 | 20 |
+| Balanced | 5 | 0.1 | 77.0 | 11.9 | 1.0 | 65.3 | 20 | 15 |
+| Balanced | 20 | 0.0 | 23.5 | 11.8 | 1.0 | 65.1 | 20 | 20 |
+| Spender | 5 | 0.0 | 68.1 | 16.5 | 2.0 | 68.0 | 20 | 18 |
+| Spender | 20 | 0.0 | 21.9 | 28.7 | 2.0 | 75.1 | 20 | 19 |
+
+Every style was bankrupt by season 3 and stayed there. The cause: almost all income was per game, but a season that ends on three strikes is only 4 to 6 games, while salaries are the same however long the season lasts.
+
+**After tuning** (sponsorship at 18% of franchise value):
+
+| Manager | Year | Cash | Lowest | Value | Payroll | Facility levels | Staff | Your team | Fire sales | Bail-outs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Cautious | 1 | 10.0 | 10.0 | 100.0 | 16.9 | 0.0 | 0.0 | 68.1 | 0 | 0 |
+| Cautious | 5 | 13.3 | 9.4 | 111.6 | 18.6 | 3.0 | 3.8 | 69.5 | 0 | 0 |
+| Cautious | 10 | 15.5 | 10.0 | 121.2 | 22.2 | 6.3 | 3.2 | 72.2 | 0 | 0 |
+| Cautious | 20 | 13.9 | 2.8 | 131.8 | 25.0 | 7.6 | 1.6 | 73.5 | 0 | 0 |
+| Balanced | 1 | 7.1 | 7.0 | 101.3 | 16.9 | 0.9 | 4.0 | 68.1 | 0 | 0 |
+| Balanced | 5 | 7.4 | 3.8 | 107.4 | 19.0 | 2.6 | 3.3 | 69.8 | 0 | 0 |
+| Balanced | 10 | 6.7 | 0.6 | 113.9 | 22.3 | 4.5 | 2.1 | 72.1 | 0 | 0 |
+| Balanced | 20 | 6.6 | 0.9 | 123.8 | 23.8 | 5.8 | 1.0 | 72.6 | 0 | 0 |
+| Spender | 1 | 1.0 | 1.0 | 103.0 | 16.9 | 2.0 | 4.0 | 68.1 | 0 | 0 |
+| Spender | 5 | 1.1 | 0.0 | 106.8 | 18.9 | 4.5 | 2.9 | 69.8 | 4 | 0 |
+| Spender | 10 | 1.9 | 0.0 | 113.4 | 23.2 | 6.3 | 2.9 | 72.8 | 9 | 0 |
+| Spender | 20 | 1.3 | 0.0 | 123.1 | 29.3 | 7.3 | 1.9 | 75.6 | 16 | 0 |
+
+What it shows:
+
+- The cautious and balanced managers never need the league to step in, and the cautious one is never forced to sell. The balanced one has an occasional fire sale in the full table (one franchise in a few of the years).
+- The spender, who keeps no reserve, is forced to sell in most seasons late on but is never bailed out. That is the intended price of spending everything.
+- Nobody piles up cash: the cautious manager holds about $14M at year 20 with only 7.6 of 30 facility levels built, so there is always more to buy.
+- Franchise value grows about 25% to 30% over 20 seasons.
+- These managers play badly on the ice (random map choices, games settled from strength, a team that stays below the league average), so their seasons are short. A person who wins more games will earn more than this.
+
+**The sample season promised in the plan**, from the real code with the final numbers: the starting team, 13 games (7 home, 6 road), 8 wins, 2 milestones, no playoffs, nothing built or hired.
+
+| Revenue | | Expenses | |
+| --- | --- | --- | --- |
+| Tickets | $9.00M | Player salaries | $16.95M |
+| Merchandise | $1.95M | Travel | $0.90M |
+| Sponsorship | $18.00M | Mascot | $0.50M |
+| Milestone bonuses | $1.00M | Staff and upkeep | $0 |
+| **Total** | **$29.95M** | **Total** | **$18.35M** |
+
+That is a profit of $11.6M, where the plan's first numbers gave a loss of $2.6M. A season that ends after 5 games still makes about $4M on the starting payroll. So the starting team is safe; the squeeze comes as the payroll grows toward the $35M cap and from choosing between players, staff and buildings ($270M to build everything).
+
 ## Change log
 
 | Date | Value | From | To | Why |
@@ -220,3 +275,4 @@ The numbers above for XP, aging, rookies and trades are first guesses that produ
 | 2026-11-13 | ratings.json and ai.json | Phase 2 values | see "Phase 3 balance" above | To meet the three balance targets |
 | 2026-11-13 | game.opponentDifficulty | 0.5 | 0.75 | A simple direct player beat 0.5 easily |
 | 2026-11-14 | aging.json, offseason.json | first guesses | see "League health over 20 seasons" above | To keep the league stable for 20 seasons |
+| 2026-11-14 | economy.json sponsorShareOfValue | 0.04 | 0.18 | Every manager style was bankrupt by season 3: income was per game but seasons can be 4 games long |

@@ -1,6 +1,9 @@
 import leagueRules from '../data/league.json';
 import rules from '../data/offseason.json';
+import grades from '../data/grades.json';
 import { ageOneYear, developOffIce, retires } from './aging';
+import { clubStat } from './club';
+import { bookSeasonEnd } from './economy';
 import { releasePlayer } from './gear';
 import { generatePlayer } from './generate';
 import { goaliesOn, playerOf, rosterOf, skatersOn, userTeam, type League, type Team } from './league';
@@ -10,6 +13,8 @@ import { capHitOf, type PlayerRecord, type Position } from './player';
 import { createRng, type Rng } from './rng';
 import { payroll, type MoveResult } from './roster';
 import { endSeason, type ActionResult, type Franchise, type OffseasonReport, type RatingChange } from './season';
+import { tickTenure } from './scouting';
+import { tickStaff } from './staff';
 import { addXp, withAgeBonus } from './xp';
 
 const MIN_CAP_HIT = capHitOf(0);
@@ -41,10 +46,15 @@ export function finishSeason(f: Franchise): ActionResult {
   const report: OffseasonReport = { season: league.season, improved: [], declined: [], retired: [], leagueRetired: 0, news: [] };
   const before = new Map(mine.roster.map((id) => [id, playerOf(league, id).overall]));
 
+  // 0. The books: sponsorship in, the season's bills out, for the team that played it.
+  bookSeasonEnd(f);
+
   // 1. Bank XP: your players level up from what they earned this season.
   for (const id of mine.roster) {
     const player = playerOf(league, id);
-    addXp(player, withAgeBonus(player, f.season.xp[id] ?? 0));
+    // Trainers and the training centre raise what a season's XP is worth.
+    const boost = clubStat(f, 'xpGain', 1) * clubStat(f, `xpGain.${player.position}`, 1);
+    addXp(player, withAgeBonus(player, f.season.xp[id] ?? 0) * boost);
   }
   // Everyone else develops by a simple yearly rule.
   const mineSet = new Set(mine.roster);
@@ -52,7 +62,8 @@ export function finishSeason(f: Franchise): ActionResult {
   for (const player of everyone) if (!mineSet.has(player.id)) developOffIce(player, rng);
 
   // 2. Everyone ages a year.
-  for (const player of everyone) ageOneYear(player, rng);
+  const gentler = clubStat(f, 'agingDecline', 1);
+  for (const player of everyone) ageOneYear(player, rng, mineSet.has(player.id) ? gentler : 1);
 
   const change = (id: string): RatingChange | null => {
     const player = league.players[id];
@@ -78,14 +89,23 @@ export function finishSeason(f: Franchise): ActionResult {
 
   const ended = endSeason(f);
   if (!ended.ok) return ended;
-  f.offseason = { report, pending, released: [], leagueMoved: false };
+  f.offseason = { report, pending, released: [], leagueMoved: false, signed: [] };
+  // Staff contracts tick, a new staff pool arrives, and your players are a season better known.
+  report.news.push(...tickStaff(f));
+  tickTenure(f);
   if (pending.length === 0) leagueMoves(f);
   return { ok: true, message: 'The season is over. Here is what changed.' };
 }
 
-/** What re-signing a player would cost a year: the cap hit for his grade as it stands now. */
-export function resignCapHit(player: PlayerRecord): number {
-  return capHitOf(player.overall);
+/**
+ * What re-signing a player would cost a year: the cap hit for his grade as it stands now,
+ * less the front office's discount if the franchise is given.
+ */
+export function resignCapHit(player: PlayerRecord, f?: Franchise): number {
+  const full = capHitOf(player.overall);
+  if (!f) return full;
+  const discounted = Math.round(clubStat(f, 'resignCost', full) / grades.capRounding) * grades.capRounding;
+  return Math.max(MIN_CAP_HIT, Math.min(full, discounted));
 }
 
 /**
@@ -105,7 +125,7 @@ export function decideContract(f: Franchise, playerId: string, years: number | n
     f.offseason.released.push(playerId);
   } else {
     if (!rules.resignYears.includes(years)) return { ok: false, reason: 'Contracts run from 1 to 4 years.' };
-    const cost = resignCapHit(player);
+    const cost = resignCapHit(player, f);
     const after = payroll(league, team) - player.capHit + cost;
     if (after > leagueRules.cap) {
       const money = (n: number): string => `$${(n / 1_000_000).toFixed(2)}M`;

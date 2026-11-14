@@ -13,8 +13,9 @@ export function agePhase(age: number): 'growth' | 'peak' | 'decline' | 'steep' {
 /**
  * One year older. From 31 speed and stamina (reflexes, for a goalie) drop; from 35 every rating drops,
  * those most and passing and positioning least. Once he is declining he has no more room to grow.
+ * `declineScale` shrinks what is lost (a training centre does this): 0.6 means 40% less on average.
  */
-export function ageOneYear(player: PlayerRecord, rng: Rng): void {
+export function ageOneYear(player: PlayerRecord, rng: Rng, declineScale = 1): void {
   player.age += 1;
   const phase = agePhase(player.age);
   if (phase !== 'decline' && phase !== 'steep') return;
@@ -22,7 +23,12 @@ export function ageOneYear(player: PlayerRecord, rng: Rng): void {
   const ratings = player.ratings as unknown as Record<string, number>;
   for (const key of Object.keys(ratings)) {
     const range = data.fastRatings.includes(key) ? table.fast : data.slowRatings.includes(key) ? table.slow : table.normal;
-    const drop = rng.int(range[0] as number, range[1] as number);
+    let drop = rng.int(range[0] as number, range[1] as number);
+    if (declineScale !== 1) {
+      // Scale the loss, rounding up or down by chance so the average comes out right.
+      const scaled = drop * Math.max(0, declineScale);
+      drop = Math.floor(scaled) + (rng.chance(scaled - Math.floor(scaled)) ? 1 : 0);
+    }
     ratings[key] = Math.max(data.minRating, (ratings[key] as number) - drop);
   }
   regrade(player);

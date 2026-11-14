@@ -58,5 +58,6 @@ export function trade(f: Franchise, minePlayerId: string, theirTeamId: string, t
   theirTeam.roster = theirTeam.roster.map((id) => (id === theirPlayerId ? minePlayerId : id));
   repairLineup(league, mineTeam);
   theirTeam.lineup = autoLineup(league, theirTeam);
+  f.offseason.signed.push(theirPlayerId);
   return { ok: true };
 }

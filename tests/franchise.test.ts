@@ -743,7 +743,7 @@ describe('saving the franchise loop', () => {
     expect(loaded.save.schemaVersion).toBe(SAVE_VERSION);
     expect(Object.values(back.league.players).every((p) => p.level === 1 && p.xp === 0)).toBe(true);
     expect(back.prestige).toEqual({ level: 0, championAt: false, jersey: 0 });
-    expect(back.offseason).toEqual({ report: null, pending: [], released: [], leagueMoved: true });
+    expect(back.offseason).toEqual({ report: null, pending: [], released: [], leagueMoved: true, signed: [] });
     expect(back.season.xp).toEqual({});
     expect(startSeason(back).ok).toBe(true);
   });

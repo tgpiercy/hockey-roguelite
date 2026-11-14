@@ -3,6 +3,8 @@ import perks from '../data/perks.json';
 import sets from '../data/sets.json';
 import { modified, type Modifier } from '../sim/modifiers';
 import type { GoalieRatings, SkaterRatings } from '../sim/ratings';
+import { playerSalePrice } from './economy';
+import { book } from './ledger';
 import { playerOf, userTeam } from './league';
 import type { PlayerRecord } from './player';
 import type { Rng } from './rng';
@@ -215,8 +217,13 @@ export function unequip(f: Franchise, itemId: string): MoveResult {
 
 /** Releases a player; everything he was wearing goes back to the inventory. */
 export function releasePlayer(f: Franchise, playerId: string): MoveResult {
+  // In a fire sale another club pays to take over his contract.
+  const player = f.league.players[playerId];
+  const price = player ? playerSalePrice(f, player) : 0;
   const result = release(f.league, userTeam(f.league), playerId);
-  if (result.ok) for (const item of f.gear) if (item.wornBy === playerId) item.wornBy = null;
+  if (!result.ok) return result;
+  for (const item of f.gear) if (item.wornBy === playerId) item.wornBy = null;
+  if (price > 0) book(f, 'sales', price);
   return result;
 }
 

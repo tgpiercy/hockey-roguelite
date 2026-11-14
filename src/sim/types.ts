@@ -153,6 +153,12 @@ export interface Player extends Skater {
   energy: number;
   /** True while heading to the bench on a line change. */
   leaving: boolean;
+  /** Talent ids he carries (mascots do); see talents.ts. Empty for ordinary players. */
+  talents: string[];
+  /** Seconds until each talent can trigger again, by talent id. */
+  talentCooldown: Record<string, number>;
+  /** The period in which his rally cry was last used. */
+  rallyPeriod: number;
   stats: PlayerStats;
 }
 
@@ -182,6 +188,7 @@ export type SimEvent =
   | { type: 'final' }
   | { type: 'change'; team: 0 | 1; off: number; on: number }
   | { type: 'powerup'; team: 0 | 1; slot: number; id: string }
+  | { type: 'talent'; player: number; id: string }
   | { type: 'shot'; speed: number; player: number }
   | { type: 'pass'; player: number; target: number | null; saucer: boolean }
   | { type: 'post' }

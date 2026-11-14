@@ -1,5 +1,5 @@
 import { STEP_SECONDS } from './clock';
-import { applyModifiers, type Modifier, type PowerupSpec } from './modifiers';
+import { applyModifiers, type Boost, type Modifier, type PowerupSpec } from './modifiers';
 import type { InputFrame, SimEvent, World } from './types';
 
 /** Re-works every player's abilities on a team from his base abilities plus the boosts now running. */
@@ -10,6 +10,13 @@ function refresh(world: World, team: 0 | 1): void {
     p.fx = applyModifiers(p.baseFx, running);
     if (p.goalie) p.goalie.fx = applyModifiers(p.goalie.baseFx, running);
   }
+}
+
+/** Starts a timed boost for a team. Starting one that is already running restarts its timer. */
+export function startBoost(world: World, team: 0 | 1, boost: Boost): void {
+  const state = world.teams[team];
+  state.boosts = [...state.boosts.filter((b) => b.id !== boost.id), boost];
+  refresh(world, team);
 }
 
 /** Uses the powerup in a slot: a timed one starts its boost, an instant one acts at once. */

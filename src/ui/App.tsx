@@ -1,15 +1,21 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useReducer, useRef, useState } from 'preact/hooks';
 import { bossInfo, teamStrength } from '../core/bosses';
+import { bailOut, canBailOut, inFireSale, isHomeGame, playerSalePrice, seasonEndBills, starCount } from '../core/economy';
+import { build, buildCost, FACILITIES, facilityLevel, facilityUpkeep, MAX_FACILITY_LEVEL } from '../core/facilities';
 import { equip, levelCost, levelUp, rarityInfo, releasePlayer, scrap, unequip, wornBy, type GearItem } from '../core/gear';
 import { generateLeague } from '../core/generate';
+import { EXPENSE_LINES, INCOME_LINES, LINE_NAMES, totals, type Ledger } from '../core/ledger';
 import { playerOf, rosterOf, skatersOn, teamOf, userTeam, type Team } from '../core/league';
 import { autoLineup, dressedSkaters, lineupProblems } from '../core/lineup';
+import { costumeCost, dropInChance, mascotPower, mascotRating, nextTalentAt, talentInfo, upgradeCostume, userMascot } from '../core/mascot';
 import { dress } from '../core/matchup';
 import { decideContract, finishSeason, resignCapHit } from '../core/offseason';
 import { openPack, packName } from '../core/packs';
 import { canPrestige, jerseyColour, prestige, prestigeEffects, setJersey, unlockedJerseys } from '../core/prestige';
-import { canPlay, canSign, sign, type MoveResult } from '../core/roster';
+import { canPlay, canSign, type MoveResult } from '../core/roster';
+import { hiddenFreeAgents, potentialText, scoutingPoints, signPlayer } from '../core/scouting';
+import { gradePower, hire, kindName, letGo, roleOf, slotsFor, STAFF_KINDS, staffOfKind, staffSalePrice, type StaffMember } from '../core/staff';
 import { franchiseOf, fromSave, parseSave, toSave } from '../core/save';
 import {
   artifactInfo,
@@ -41,12 +47,14 @@ import { evaluateTrade, trade } from '../core/trades';
 import { xpForLevel } from '../core/xp';
 import gearData from '../data/gear.json';
 import offseasonRules from '../data/offseason.json';
+import mascotRules from '../data/mascot.json';
 import prestigeRules from '../data/prestige.json';
 import rules from '../data/season.json';
 import { EquipPreview, GearCard, GearedRatings, GearRow, setProgress, slotName } from './gearParts';
 import { Menu, type MenuItem } from './Menu';
 import { menuInput } from './menuInput';
 import { playMatch } from './matchView';
+import type { PlayerRecord } from '../core/player';
 import { CapLine, Dots, Grade, money, PlayerRow, Ratings } from './parts';
 import { downloadText, loadStored, pickTextFile, store } from './storage';
 
@@ -76,6 +84,12 @@ type Screen =
   | { name: 'tradeMine'; teamId: string; theirId: string }
   | { name: 'tradeConfirm'; teamId: string; theirId: string; mineId: string }
   | { name: 'prestige' }
+  | { name: 'finances' }
+  | { name: 'staff' }
+  | { name: 'hire' }
+  | { name: 'staffMember'; staffId: string }
+  | { name: 'facilities' }
+  | { name: 'mascot' }
   | { name: 'jersey' }
   | { name: 'saves' }
   | { name: 'confirmNew' };
@@ -155,6 +169,35 @@ export function App() {
   };
   const home = (): void => go({ name: 'home' });
   const bump = (id: string): number => season.bumps[id] ?? 0;
+  const fireSale = inFireSale(f);
+  const cashLine = (
+    <div>
+      Cash <b class={f.cash < 0 ? 'down' : ''}>{money(f.cash)}</b> · Franchise value <b>{money(f.value)}</b>
+    </div>
+  );
+  /** Ratings, and what the scouts say about how good he can become. */
+  const scouted = (p: PlayerRecord): ComponentChildren => (
+    <>
+      <Ratings player={p} />
+      <div>Potential: {potentialText(f, p)}</div>
+    </>
+  );
+  const staffRow = (member: StaffMember, note = ''): ComponentChildren => (
+    <span class="player-row">
+      <span class="grade">{member.grade}</span>
+      <span class="pname">{member.name}</span>
+      <span>{roleOf(member).title}</span>
+      <span class="cap">{money(member.salary)}</span>
+      <span class="years">{member.contractYears}y</span>
+      {note && <span class="note">{note}</span>}
+    </span>
+  );
+  const clubItems = (): MenuItem[] => [
+    { key: 'finances', label: `Finances · ${money(f.cash)}`, onSelect: () => go({ name: 'finances' }) },
+    { key: 'staff', label: `Staff (${f.staff.length})`, onSelect: () => go({ name: 'staff' }) },
+    { key: 'facilities', label: 'Facilities', onSelect: () => go({ name: 'facilities' }) },
+    { key: 'mascot', label: `Mascot: ${f.mascot.name}`, onSelect: () => go({ name: 'mascot' }) },
+  ];
 
   /** Plays the game waiting at the current stop or playoff round. */
   const playSeasonGame = (): void => {
@@ -187,6 +230,7 @@ export function App() {
     ...gearItems(),
     { key: 'powerups', label: `Powerups (${season.powerups.length})`, onSelect: () => go({ name: 'powerups' }) },
     { key: 'artifacts', label: `Artifacts (${f.artifacts.length})`, onSelect: () => go({ name: 'artifacts' }) },
+    ...clubItems(),
     { key: 'saves', label: 'Save and load', onSelect: () => go({ name: 'saves' }) },
   ];
 
@@ -234,6 +278,13 @@ export function App() {
               <div>
                 <CapLine league={league} team={team} />
               </div>
+              {cashLine}
+              {fireSale && (
+                <div class="warn">
+                  Fire sale: you are out of cash, and the season cannot start until you are back to zero. Releasing a player under contract or letting
+                  staff go now pays half a season of what they earn.
+                </div>
+              )}
               {f.prestige.level > 0 && <div>Prestige level {f.prestige.level}: {prestigeEffects(f.prestige.level).slice(0, 2).join(' ')}</div>}
               {pending > 0 && (
                 <div class="warn">
@@ -254,9 +305,22 @@ export function App() {
                 pending > 0
                   ? 'Decide your expiring contracts first.'
                   : 'Your dressed lineup is locked in for the whole season. The seventh skater stays home.',
-              disabled: !ready.ok || pending > 0,
+              disabled: !ready.ok || pending > 0 || fireSale,
               onSelect: () => after(startSeason(f)),
             },
+            ...(canBailOut(f)
+              ? [
+                  {
+                    key: 'bailout',
+                    label: <b>Ask the league to cover your debt</b>,
+                    detail: 'You have nothing left to sell. The league pays what you owe and your franchise value drops by a tenth.',
+                    onSelect: () => {
+                      const result = bailOut(f);
+                      after(result.ok ? { ok: true, message: 'The league has covered your debt. Your franchise value has dropped.' } : result);
+                    },
+                  },
+                ]
+              : []),
             { key: 'roster', label: 'Roster', onSelect: () => go({ name: 'roster' }) },
             { key: 'lineup', label: 'Lineup', onSelect: () => go({ name: 'lineup' }) },
             { key: 'fa', label: 'Free agents', onSelect: () => go({ name: 'freeAgents' }) },
@@ -267,6 +331,7 @@ export function App() {
               disabled: pending > 0,
               onSelect: () => go({ name: 'tradeTeams' }),
             },
+            ...clubItems(),
             ...(f.offseason.report ? [{ key: 'report', label: `Off-season report: after season ${f.offseason.report.season}`, onSelect: () => go({ name: 'report' }) }] : []),
             ...gearItems(),
             { key: 'artifacts', label: `Artifacts (${f.artifacts.length})`, onSelect: () => go({ name: 'artifacts' }) },
@@ -356,6 +421,19 @@ export function App() {
                 <b>{game.away.name}</b> average {strength} · your dressed team averages {mine}
               </div>
               {game.trait && <div class="warn">{game.trait}</div>}
+              {game.mascots.home && (
+                <div class="up">
+                  Your mascot {game.mascots.home.mascot.name} drops in for this game ({mascotRating(game.mascots.home.mascot.power)} overall).{' '}
+                  {game.mascots.home.sits} sits this one out.
+                </div>
+              )}
+              {game.mascots.away && (
+                <div class="warn">
+                  Their mascot {game.mascots.away.mascot.name} is playing ({mascotRating(game.mascots.away.mascot.power)} overall):{' '}
+                  {game.mascots.away.mascot.talents.map((id) => talentInfo(id).name).join(', ')}.
+                </div>
+              )}
+              <div>{isHomeGame(season.gamesPlayed + 1) ? 'Home game: ticket money.' : 'Road game: travel costs.'}</div>
               {f.prestige.level > 0 && (
                 <div>
                   Prestige level {f.prestige.level}: they play {f.prestige.level * prestigeRules.opponentRatingPerLevel} rating points better than that, and react
@@ -712,6 +790,7 @@ export function App() {
             <div>
               <GearedRatings f={f} player={p} />
             </div>
+            <div>Potential: {potentialText(f, p)}</div>
             <div>
               Level {p.level} · {Math.floor(p.xp)} of {xpForLevel(p.level)} XP to the next level
               {(season.xp[p.id] ?? 0) > 0 && <> · {Math.round(season.xp[p.id] ?? 0)} XP earned this season, banked when it ends</>}
@@ -860,8 +939,8 @@ export function App() {
             ? [{ key: 'done', label: 'Continue', onSelect: () => go({ name: 'report' }) }]
             : waiting.map((p) => ({
                 key: p.id,
-                label: <PlayerRow player={p} note={`new deal ${money(resignCapHit(p))}`} />,
-                detail: <Ratings player={p} />,
+                label: <PlayerRow player={p} note={`new deal ${money(resignCapHit(p, f))}`} />,
+                detail: scouted(p),
                 onSelect: () => go({ name: 'contract', playerId: p.id }),
               }))
         }
@@ -871,7 +950,7 @@ export function App() {
 
   if (screen.name === 'contract') {
     const p = playerOf(league, screen.playerId);
-    const cost = resignCapHit(p);
+    const cost = resignCapHit(p, f);
     const done = (result: MoveResult, note: string): void => {
       if (!result.ok) return after(result);
       const left = f.offseason.pending.length;
@@ -1103,6 +1182,265 @@ export function App() {
     );
   }
 
+  // ---------------------------------------------------------------- the club: money, staff, facilities, mascot
+
+  if (screen.name === 'finances') {
+    const bills = seasonEndBills(f);
+    const last = f.books[f.books.length - 1];
+    const statement = (ledger: Ledger, title: string): MenuItem[] => {
+      const t = totals(ledger);
+      const row = (key: string, name: string, amount: number, sign: string): MenuItem => ({
+        key,
+        disabled: true,
+        label: (
+          <span class="slot-row">
+            <span class="slot-name">{name}</span>
+            <span>
+              {sign}
+              {money(amount)}
+            </span>
+          </span>
+        ),
+      });
+      return [
+        { key: `${title}-head`, disabled: true, label: <b>{title}</b> },
+        ...INCOME_LINES.filter((line) => ledger[line] !== 0).map((line) => row(`${title}-${line}`, LINE_NAMES[line], ledger[line], '+')),
+        ...EXPENSE_LINES.filter((line) => ledger[line] !== 0).map((line) => row(`${title}-${line}`, LINE_NAMES[line], ledger[line], '−')),
+        row(`${title}-net`, t.profit >= 0 ? 'Profit' : 'Loss', Math.abs(t.profit), t.profit >= 0 ? '+' : '−'),
+      ];
+    };
+    const due = bills.salaries + bills.staff + bills.upkeep + bills.mascot;
+    return (
+      <Menu
+        key={screenKey}
+        title="Finances"
+        message={message}
+        header={
+          <>
+            {cashLine}
+            <div>
+              Due when this season ends: players {money(bills.salaries)}, staff {money(bills.staff)}, upkeep {money(bills.upkeep)}, mascot{' '}
+              {money(bills.mascot)} = <b>{money(due)}</b>. Sponsorship then pays <b>{money(bills.sponsorship)}</b>.
+            </div>
+            <div>
+              Home games bring ticket money and road games cost travel; every game sells merchandise ({starCount(f)} star player
+              {starCount(f) === 1 ? '' : 's'} graded B+ or better). The salary cap is separate: it limits player pay, cash pays for everything.
+            </div>
+          </>
+        }
+        onBack={home}
+        help="B back"
+        items={[
+          ...statement(f.ledger, locked ? `Season ${league.season} so far` : 'This off-season so far'),
+          ...(last ? statement(last.ledger, `Season ${last.season}: ${last.wins} wins${last.champion ? ', champions' : ''}`) : []),
+        ]}
+      />
+    );
+  }
+
+  if (screen.name === 'staff') {
+    const items: MenuItem[] = STAFF_KINDS.flatMap((kind) => {
+      const have = staffOfKind(f, kind);
+      const empty = Math.max(0, slotsFor(kind) - have.length);
+      return [
+        ...have.map((member) => ({
+          key: member.id,
+          label: staffRow(member),
+          detail: roleOf(member).blurb,
+          onSelect: () => go({ name: 'staffMember', staffId: member.id }),
+        })),
+        ...Array.from({ length: empty }, (_, i) => ({
+          key: `${kind}-empty-${i}`,
+          label: (
+            <span class="slot-row">
+              <span class="slot-name">{kindName(kind)}</span>
+              <span class="note">nobody: hire one</span>
+            </span>
+          ),
+          onSelect: () => go({ name: 'hire' }),
+        })),
+      ];
+    });
+    return (
+      <Menu
+        key={screenKey}
+        remember="staff"
+        title="Staff"
+        message={message}
+        header={
+          <>
+            {cashLine}
+            <div>Two trainers, a scout and a promoter. Staff are paid from cash at the end of each season and do not count against the cap.</div>
+          </>
+        }
+        onBack={home}
+        items={[...items, { key: 'hire', label: `Hire from the pool (${f.staffPool.length} available)`, onSelect: () => go({ name: 'hire' }) }]}
+      />
+    );
+  }
+
+  if (screen.name === 'hire') {
+    const pool = [...f.staffPool].sort((a, b) => gradePower(b.grade) - gradePower(a.grade) || a.id.localeCompare(b.id));
+    return (
+      <Menu
+        key={screenKey}
+        remember="hire"
+        title="Hire staff"
+        message={message}
+        header={
+          <>
+            {cashLine}
+            <div>Grade D is one step, S is five: each step is worth what the line under the list says. A new pool arrives every off-season.</div>
+          </>
+        }
+        onBack={() => go({ name: 'staff' })}
+        help="A hire · B back"
+        items={pool.map((member) => {
+          const kind = roleOf(member).kind;
+          const full = staffOfKind(f, kind).length >= slotsFor(kind);
+          return {
+            key: member.id,
+            label: staffRow(member, full ? 'no free slot' : ''),
+            detail: roleOf(member).blurb,
+            onSelect: () => {
+              const result = hire(f, member.id);
+              after(result.ok ? { ok: true, message: `${member.name} hired for ${money(member.salary)} a season.` } : result);
+            },
+          };
+        })}
+      />
+    );
+  }
+
+  if (screen.name === 'staffMember') {
+    const member = f.staff.find((x) => x.id === screen.staffId);
+    if (!member) return <Menu key={screenKey} title="Staff" header="He no longer works for you." onBack={() => go({ name: 'staff' })} items={[]} />;
+    const price = staffSalePrice(f, member);
+    return (
+      <Menu
+        key={screenKey}
+        title={member.name}
+        header={
+          <>
+            <div>{staffRow(member)}</div>
+            <div>{roleOf(member).blurb}</div>
+            <div>
+              {price > 0
+                ? `Fire sale: selling his contract pays you ${money(price)}.`
+                : 'Letting him go saves his salary from now on. It pays nothing, and he does not return to the pool.'}
+            </div>
+          </>
+        }
+        onBack={() => go({ name: 'staff' })}
+        initialFocus={1}
+        items={[
+          {
+            key: 'go',
+            label: price > 0 ? `Sell his contract for ${money(price)}` : 'Let him go',
+            onSelect: () => {
+              const result = letGo(f, member.id);
+              after(result.ok ? { ok: true, message: `${member.name} has left.${result.paid > 0 ? ` You were paid ${money(result.paid)}.` : ''}` } : result, { name: 'staff' });
+            },
+          },
+          { key: 'keep', label: 'Keep him', onSelect: () => go({ name: 'staff' }) },
+        ]}
+      />
+    );
+  }
+
+  if (screen.name === 'facilities') {
+    return (
+      <Menu
+        key={screenKey}
+        remember="facilities"
+        title="Facilities"
+        message={message}
+        header={
+          <>
+            {cashLine}
+            <div>
+              Each has {MAX_FACILITY_LEVEL} levels. Building is paid at once; every level built costs upkeep each season (now {money(facilityUpkeep(f))}) and
+              adds to your franchise value.
+            </div>
+          </>
+        }
+        onBack={home}
+        help="A build the next level · B back"
+        items={FACILITIES.map((facility) => {
+          const level = facilityLevel(f, facility.id);
+          const cost = buildCost(level);
+          return {
+            key: facility.id,
+            label: (
+              <span class="slot-row">
+                <span class="slot-name">{facility.name}</span>
+                <Dots filled={level} total={MAX_FACILITY_LEVEL} />
+                <span>{cost === null ? 'top level' : `next level ${money(cost)}`}</span>
+              </span>
+            ),
+            detail: facility.description,
+            disabled: cost === null || f.cash < cost,
+            onSelect: () => {
+              const result = build(f, facility.id);
+              after(result.ok ? { ok: true, message: `${facility.name} is now level ${level + 1}.` } : result);
+            },
+          };
+        })}
+      />
+    );
+  }
+
+  if (screen.name === 'mascot') {
+    const mine = userMascot(f);
+    const cost = costumeCost(f);
+    const next = nextTalentAt(mine.power);
+    const power = Math.round(mascotPower(f) * 10) / 10;
+    return (
+      <Menu
+        key={screenKey}
+        title={`Mascot: ${f.mascot.name}`}
+        message={message}
+        header={
+          <>
+            <div>
+              Power <b>{power}</b> · drops in for <b>{Math.round(dropInChance(mine.power) * 100)}%</b> of games · plays at <b>{mascotRating(mine.power)}</b>{' '}
+              overall · costs {money(mascotRules.salary)} a season
+            </div>
+            <div>
+              Before each game he may drop in and take a random dressed skater's place for that game. He never plays goal, earns no XP and never ages.
+              Power comes from his costume, the mascot den and a promoter.
+            </div>
+            <div>{next === null ? 'He knows every talent.' : `He learns his next talent at power ${next}.`}</div>
+            {cashLine}
+          </>
+        }
+        onBack={home}
+        items={[
+          {
+            key: 'costume',
+            label: cost === null ? `Costume: level ${f.mascot.costume}, the top level` : `Upgrade his costume to level ${f.mascot.costume + 1} · ${money(cost)}`,
+            detail: `Each costume level is ${mascotRules.costume.powerPerLevel} mascot power.`,
+            disabled: cost === null || f.cash < cost,
+            onSelect: () => {
+              const result = upgradeCostume(f);
+              after(result.ok ? { ok: true, message: `${f.mascot.name} has a new costume.` } : result);
+            },
+          },
+          ...f.mascot.talents.map((id, i) => {
+            const talent = talentInfo(id);
+            const known = i < mine.talents.length;
+            return {
+              key: id,
+              label: known ? <b>{talent.name}</b> : `${talent.name} (at power ${mascotRules.talentUnlockPower[i]})`,
+              detail: talent.description,
+              disabled: true,
+            };
+          }),
+        ]}
+      />
+    );
+  }
+
   if (screen.name === 'roster') {
     const dressed = new Set([...dressedSkaters(team.lineup), team.lineup.goalie]);
     return (
@@ -1141,6 +1479,8 @@ export function App() {
               <PlayerRow player={p} />
             </div>
             <div>He goes to the free-agent pool and {money(p.capHit)} comes off your cap. His gear returns to your inventory.</div>
+            {playerSalePrice(f, p) > 0 && <div class="up">Fire sale: another club pays you {money(playerSalePrice(f, p))} to take over his contract.</div>}
+            {fireSale && playerSalePrice(f, p) === 0 && <div class="warn">Releasing him raises no cash: he joined this off-season, or his contract has run out.</div>}
           </>
         }
         onBack={() => go({ name: 'player', playerId: p.id })}
@@ -1163,7 +1503,9 @@ export function App() {
   if (screen.name === 'freeAgents') {
     const order: Sort[] = ['overall', 'cost', 'position'];
     const cycle = (step: number): void => setSort(order[(order.indexOf(sort) + step + order.length) % order.length] as Sort);
+    const unseen = hiddenFreeAgents(f);
     const pool = league.freeAgents
+      .filter((id) => !unseen.has(id))
       .map((id) => playerOf(league, id))
       .sort((a, b) =>
         sort === 'cost'
@@ -1184,6 +1526,12 @@ export function App() {
               <CapLine league={league} team={team} />
             </div>
             <div>Sorted by {sort === 'overall' ? 'best first' : sort === 'cost' ? 'cheapest first' : 'position'} (left and right change the order)</div>
+            <div>
+              {unseen.size > 0
+                ? `Your scouts have not found ${unseen.size} more, the ones with the most room to grow. A scout or the scouting office brings them into view.`
+                : 'Your scouts see the whole pool.'}{' '}
+              Scouting points: {Math.round(scoutingPoints(f) * 10) / 10}.
+            </div>
           </>
         }
         onBack={home}
@@ -1195,14 +1543,14 @@ export function App() {
             label: <PlayerRow player={p} note={allowed.ok ? '' : 'cannot sign'} />,
             detail: (
               <>
-                <Ratings player={p} />
+                {scouted(p)}
                 {!allowed.ok && <div class="warn">{allowed.reason}</div>}
               </>
             ),
             onLeft: () => cycle(-1),
             onRight: () => cycle(1),
             onSelect: () => {
-              const result = sign(league, team, p.id);
+              const result = signPlayer(f, p.id);
               const dressedNow = dressedSkaters(team.lineup).includes(p.id) || team.lineup.goalie === p.id;
               const note = dressedNow ? '' : ' He is not dressed yet: set your lineup.';
               after(result.ok ? { ok: true, message: `${p.name} signed for ${money(p.capHit)}.${note}` } : result);

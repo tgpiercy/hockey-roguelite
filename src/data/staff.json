@@ -1,0 +1,22 @@
+{
+  "slots": { "trainer": 2, "scout": 1, "promoter": 1 },
+  "kindNames": { "trainer": "Trainer", "scout": "Scout", "promoter": "Promoter" },
+  "poolSize": 10,
+  "minContractYears": 1,
+  "maxContractYears": 3,
+  "grades": [
+    { "grade": "D", "salary": 300000, "power": 1, "weight": 30 },
+    { "grade": "C", "salary": 600000, "power": 2, "weight": 30 },
+    { "grade": "B", "salary": 1000000, "power": 3, "weight": 22 },
+    { "grade": "A", "salary": 1800000, "power": 4, "weight": 13 },
+    { "grade": "S", "salary": 3000000, "power": 5, "weight": 5 }
+  ],
+  "roles": [
+    { "id": "shooting", "kind": "trainer", "title": "Shooting coach", "blurb": "Forwards earn 5% more XP for each grade step.", "weight": 2, "perPower": [{ "stat": "xpGain.F", "op": "mul", "value": 0.05 }] },
+    { "id": "defence", "kind": "trainer", "title": "Defence coach", "blurb": "Defencemen earn 5% more XP for each grade step.", "weight": 2, "perPower": [{ "stat": "xpGain.D", "op": "mul", "value": 0.05 }] },
+    { "id": "goaltending", "kind": "trainer", "title": "Goalie coach", "blurb": "Goalies earn 5% more XP for each grade step.", "weight": 1, "perPower": [{ "stat": "xpGain.G", "op": "mul", "value": 0.05 }] },
+    { "id": "skating", "kind": "trainer", "title": "Skating coach", "blurb": "Every player earns 2% more XP for each grade step.", "weight": 2, "perPower": [{ "stat": "xpGain", "op": "mul", "value": 0.02 }] },
+    { "id": "scout", "kind": "scout", "title": "Scout", "blurb": "1 scouting point for each grade step.", "weight": 4, "perPower": [{ "stat": "scouting", "op": "add", "value": 1 }] },
+    { "id": "promoter", "kind": "promoter", "title": "Promoter", "blurb": "For each grade step: 3% more ticket and sponsorship money, 4% more merchandise, and a little mascot power.", "weight": 4, "perPower": [{ "stat": "ticketRevenue", "op": "mul", "value": 0.03 }, { "stat": "merchRevenue", "op": "mul", "value": 0.04 }, { "stat": "sponsorRevenue", "op": "mul", "value": 0.03 }, { "stat": "mascotPower", "op": "add", "value": 0.4 }] }
+  ]
+}

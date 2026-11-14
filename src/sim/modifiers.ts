@@ -60,3 +60,13 @@ export function applyModifiers<T extends object>(base: T, modifiers: readonly Mo
   }
   return out as T;
 }
+
+/**
+ * Modifiers written "per unit" (per facility level, per staff grade step) scaled up to a number of units.
+ * An 'add' becomes value x units. A "mul" is written as a rate (0.06 means 6% more per unit, -0.04 means
+ * 4% less) and becomes 1 + rate x units.
+ */
+export function scaleModifiers(perUnit: readonly Modifier[], units: number): Modifier[] {
+  if (units === 0) return [];
+  return perUnit.map((m) => ({ stat: m.stat, op: m.op, value: m.op === 'add' ? m.value * units : 1 + m.value * units }));
+}

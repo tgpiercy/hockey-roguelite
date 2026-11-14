@@ -6,6 +6,12 @@ import rules from '../data/season.json';
 import type { GameResult } from '../sim/match';
 import { modified, type Modifier, type PowerupSpec } from '../sim/modifiers';
 import { aiTeamsByStrength, bossInfo, buildBoss } from './bosses';
+import { clubModifiers } from './club';
+import { bookGame, bookMilestones, STARTING_CASH, STARTING_VALUE } from './economy';
+import { newFacilities } from './facilities';
+import { newLedger, type Ledger, type SeasonBooks } from './ledger';
+import { aiMascot, bossMascot, newMascot, rollDropIn, userMascot, withMascot, type MascotSpec, type MascotState } from './mascot';
+import { generateStaffPool, type StaffMember } from './staff';
 import { playerGearModifiers, type GearItem } from './gear';
 import { playerOf, teamOf, userTeam, type League } from './league';
 import { dressedSkaters, setLineupSlot } from './lineup';
@@ -107,6 +113,8 @@ export interface OffseasonState {
   released: string[];
   /** False until the AI teams have made their moves and the rookies have arrived. */
   leagueMoved: boolean;
+  /** Players and staff who joined this off-season. Letting one of them go in a fire sale pays nothing. */
+  signed: string[];
 }
 
 export interface PrestigeState {
@@ -136,6 +144,22 @@ export interface Franchise {
   gearCount: number;
   prestige: PrestigeState;
   offseason: OffseasonState;
+  /** Operating cash, in dollars. It only moves through the ledger. */
+  cash: number;
+  /** Franchise value: the long-term score. */
+  value: number;
+  /** This season's money so far, by line. */
+  ledger: Ledger;
+  /** The books of every finished season, oldest first. */
+  books: SeasonBooks[];
+  /** The staff you employ, and the ones available to hire. */
+  staff: StaffMember[];
+  staffPool: StaffMember[];
+  /** The level of each facility, by id. */
+  facilities: Record<string, number>;
+  mascot: MascotState;
+  /** Seasons each of your players has been with you, by player id: scouting knows them better. */
+  tenure: Record<string, number>;
 }
 
 export type ActionResult = { ok: true; message: string } | { ok: false; reason: string };
@@ -176,7 +200,7 @@ export function newPrestigeState(): PrestigeState {
 }
 
 export function newOffseasonState(): OffseasonState {
-  return { report: null, pending: [], released: [], leagueMoved: true };
+  return { report: null, pending: [], released: [], leagueMoved: true, signed: [] };
 }
 
 export function newFranchise(league: League): Franchise {
@@ -192,6 +216,22 @@ export function newFranchise(league: League): Franchise {
     gearCount: 0,
     prestige: newPrestigeState(),
     offseason: newOffseasonState(),
+    ...newClub(league.seed, league.season),
+  };
+}
+
+/** The business side of a new franchise: starting cash and value, nothing built, nobody hired, and a mascot. */
+export function newClub(seed: string, season: number): Pick<Franchise, 'cash' | 'value' | 'ledger' | 'books' | 'staff' | 'staffPool' | 'facilities' | 'mascot' | 'tenure'> {
+  return {
+    cash: STARTING_CASH,
+    value: STARTING_VALUE,
+    ledger: newLedger(),
+    books: [],
+    staff: [],
+    staffPool: generateStaffPool(seed, season),
+    facilities: newFacilities(),
+    mascot: newMascot(seed),
+    tenure: {},
   };
 }
 
@@ -252,9 +292,9 @@ export function artifactModifiers(f: Franchise): Modifier[] {
   return f.artifacts.flatMap((id) => artifactInfo(id).modifiers);
 }
 
-/** Every lasting modifier on the player's team for the next game: artifacts and temporary effects. */
+/** Every lasting modifier on the player's team for the next game: artifacts, temporary effects, and what facilities and staff give. */
 export function teamModifiers(f: Franchise): Modifier[] {
-  return [...artifactModifiers(f), ...f.season.temps.flatMap((t) => t.modifiers)];
+  return [...artifactModifiers(f), ...f.season.temps.flatMap((t) => t.modifiers), ...clubModifiers(f)];
 }
 
 /** A season-level number (such as currency gain) after the artifacts owned. */
@@ -293,6 +333,7 @@ export function availableStops(f: Franchise): Stop[] {
 export function startSeason(f: Franchise): ActionResult {
   if (f.season.phase !== 'offseason') return refuse('A season is already under way.');
   if (f.offseason.pending.length > 0) return refuse('Decide your expiring contracts first.');
+  if (f.cash < 0) return refuse('You are out of cash. Raise money before the season can start.');
   const team = userTeam(f.league);
   const ready = canPlay(f.league, team);
   if (!ready.ok) return refuse(ready.reason);
@@ -360,6 +401,14 @@ export interface Matchup {
   /** The boss's trait, if it is a boss. */
   trait?: string;
   powerups: (PowerupSpec | null)[];
+  /** A mascot that has dropped in for this game, for either side: who he is and which skater sits. */
+  mascots: { home: DropIn | null; away: DropIn | null };
+}
+
+export interface DropIn {
+  mascot: MascotSpec;
+  /** The name of the skater he replaces for this game. */
+  sits: string;
 }
 
 /** The player's team as it takes the ice: dressed lineup, season bumps, artifacts and temporary effects. */
@@ -371,8 +420,32 @@ export function dressUser(f: Franchise): DressedTeam | null {
   });
 }
 
-/** The game waiting to be played at the current stop or playoff round, or null if there is none. */
+/**
+ * The game waiting to be played at the current stop or playoff round, or null if there is none.
+ * Before each game either side's mascot may drop in, taking a random dressed skater's place for that game.
+ * The roll is fixed by the season seed and the game number, so asking twice gives the same answer.
+ */
 export function matchup(f: Franchise): Matchup | null {
+  const game = plainMatchup(f);
+  if (!game) return null;
+  const { season, league } = f;
+  const label = (side: string): string => `${season.seed}/mascot/${side}/${season.gamesPlayed}`;
+  const dropIn = (team: DressedTeam, spec: MascotSpec, side: string): { team: DressedTeam; info: DropIn | null } => {
+    const slot = rollDropIn(label(side), spec.power);
+    if (slot === null) return { team, info: null };
+    return { team: withMascot(team, spec, slot), info: { mascot: spec, sits: team.players[slot]?.name ?? '' } };
+  };
+  const stop = currentStop(f);
+  const theirs =
+    game.kind === 'boss' && stop?.bossId
+      ? bossMascot(season.seed, stop.bossId, stop.region)
+      : aiMascot(league, game.kind === 'playoff' ? (season.playoffs?.opponentId ?? '') : (stop?.opponentId ?? ''));
+  const home = dropIn(game.home, userMascot(f), 'home');
+  const away = dropIn(game.away, theirs, 'away');
+  return { ...game, home: home.team, away: away.team, mascots: { home: home.info, away: away.info } };
+}
+
+function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
   const { season, league } = f;
   const home = dressUser(f);
   if (!home) return null;
@@ -434,12 +507,14 @@ function strike(f: Franchise): boolean {
   return true;
 }
 
-/** Gold packs for any season milestones just reached. Returns the words to add to a message. */
+/** A Gold pack and a cash bonus for any season milestones just reached. Returns the words to add to a message. */
 function awardMilestones(f: Franchise): string {
-  return newMilestones(f)
+  const fresh = newMilestones(f);
+  if (fresh.length > 0) bookMilestones(f, fresh.length);
+  return fresh
     .map((m) => {
       awardPack(f, 'gold', `Milestone: ${m.name}`);
-      return ` Milestone reached: ${m.name}. You earn a ${packName('gold')}.`;
+      return ` Milestone reached: ${m.name}. You earn a ${packName('gold')} and a cash bonus.`;
     })
     .join('');
 }
@@ -455,13 +530,15 @@ export function recordGame(f: Franchise, result: GameResult): ActionResult {
   if (!outcome.ok || !game || f.season.gamesPlayed === played) return outcome;
 
   tally(f, result, game.home);
+  const net = bookGame(f, game.kind === 'playoff');
   // XP: dressed players earn their own; anyone on the roster who did not dress gets a share.
   const earned = gameXp(result, game.home);
   const share = homeShare(earned, game.home);
   for (const id of userTeam(f.league).roster) {
     f.season.xp[id] = (f.season.xp[id] ?? 0) + (earned[id] ?? share);
   }
-  let message = outcome.message;
+  const millions = (Math.abs(net) / 1_000_000).toFixed(2);
+  let message = `${outcome.message} Cash ${net >= 0 ? '+' : '-'}$${millions}M.`;
   const pack = packForWin(result, game.kind === 'boss');
   if (pack) {
     awardPack(f, pack, game.title);

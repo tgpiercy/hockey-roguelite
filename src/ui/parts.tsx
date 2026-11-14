@@ -4,7 +4,7 @@ import { capSpace, payroll } from '../core/roster';
 import rules from '../data/league.json';
 import type { GoalieRatings, SkaterRatings } from '../sim/ratings';
 
-export const money = (dollars: number): string => `$${(dollars / 1_000_000).toFixed(2)}M`;
+export const money = (dollars: number): string => `${dollars < 0 ? '−' : ''}$${(Math.abs(dollars) / 1_000_000).toFixed(2)}M`;
 
 export function Grade({ player }: { player: PlayerRecord }) {
   return <span class={`grade grade-${player.grade.replace('+', 'plus')}`}>{player.grade}</span>;

@@ -22,7 +22,7 @@ Exact versions are pinned in `package.json`.
 ## Folders
 
 ```text
-src/core/    game rules: players, grades, cap, gear, packs, XP, aging, contracts, trades, prestige, run map
+src/core/    game rules: players, grades, cap, gear, packs, XP, aging, contracts, trades, prestige, cash, staff, facilities, mascot, run map
 src/sim/     on-ice simulation: physics, AI, game rules; runs headless
 src/game/    Phaser scenes: drawing, camera, controller input, audio
 src/ui/      Preact menu screens
@@ -47,7 +47,7 @@ npm run dev        # local server; prints a network address for the phone on the
 npm test           # all tests, once
 npm run typecheck  # whole project, then core and sim without the DOM
 npm run balance    # headless AI-vs-AI series: -- --games 200 --home 90 --away 70 (add --naive for a scripted human)
-npm run seasons    # league health over many seasons: -- --seeds 20 --years 20 (games settled from strength, takes seconds)
+npm run seasons    # league health and the economy over many seasons: -- --seeds 20 --years 20 [--style cautious|balanced|spender]
 npm run build      # production build into dist/
 npm run preview    # serve the production build locally
 ```
@@ -91,7 +91,7 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - `src/core/gear.ts`: the gear item, generation from the tables, the modifiers a piece gives, set bonuses, equip, level up, scrap. `src/core/packs.ts`: awarding a pack (contents rolled then, from the franchise seed and a counter), the pity timer, which pack a win earns, opening. `src/core/milestones.ts`: the season milestones and the tallies behind them.
 - Tables: `src/data/gear.json` (slots, rarity table, which ratings each slot boosts, level costs, scrap values), `sets.json`, `perks.json`, `packs.json`, `milestones.json`.
 - Gear lives on the franchise (`gear`, `packs`, `tape`), not on players: `wornBy` on a piece names who has it on. Releasing a player goes through `releasePlayer`, which sends his gear back to the inventory.
-- Gear uses the modifier system. A rating boost is a modifier with a stat like `rating.shooting`; `matchup.dress` applies those to the ratings (so the grade and cap hit, which come from the stored ratings, never move) and passes the rest (perks, set bonuses) to the simulation as that player's own modifiers through `TeamSetup.skaterModifiers` and `goalieModifiers`.
+- Gear uses the modifier system (as do staff and facilities, see below). A rating boost is a modifier with a stat like `rating.shooting`; `matchup.dress` applies those to the ratings (so the grade and cap hit, which come from the stored ratings, never move) and passes the rest (perks, set bonuses) to the simulation as that player's own modifiers through `TeamSetup.skaterModifiers` and `goalieModifiers`.
 - Four abilities exist only for modifiers to switch on, and are off by default: `carrySpeedScale`, `chargedShotScale`, `passThrough` (skaters) and `periodAutoSaves` (goalies).
 - `season.recordGame` awards the pack for a win and a Gold pack for each milestone the game completes.
 - `tests/gear.test.ts` includes the 100,000-pack check of the rarity table and the pity timer.
@@ -107,6 +107,19 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - Save version 4 adds `xp` and `level` per player and `prestige` and `offseason` on the franchise.
 - Screens: off-season report, expiring contracts, trade (team, their player, your player, confirm), prestige and jersey colour, all in `App.tsx`. The jersey colour reaches the rink through `playMatch({ homeColour })`.
 - Tests are in `tests/franchise.test.ts`, including 20 seasons from 20 seeds.
+
+## How the club side fits together (cash, staff, facilities, scouting, mascot)
+
+- Cash only moves through `book(f, line, amount)` in `src/core/ledger.ts`, so the income statement always adds up to the change in cash. `f.ledger` is this season so far; `f.books` holds every closed season.
+- `src/core/economy.ts`: what each game pays (`bookGame`, called from `season.recordGame`), the end-of-season bills (`bookSeasonEnd`, called first thing in `finishSeason`), franchise value, and the fire sale (`inFireSale`, `playerSalePrice`, `canBailOut`, `bailOut`). `startSeason` refuses with cash below zero.
+- `src/core/facilities.ts` and `src/core/staff.ts` each turn what you own into modifiers; `src/core/club.ts` joins them (`clubModifiers`, `clubStat`). The stats are `xpGain`, `xpGain.F|D|G`, `agingDecline`, `resignCost`, `scouting`, `ticketRevenue`, `merchRevenue`, `sponsorRevenue`, `mascotPower`, read by the rules, and `drainScale` and `recoverScale`, which reach the ice through `teamModifiers`. In the data a "mul" is written as a rate per level or grade step; `scaleModifiers` in `src/sim/modifiers.ts` turns it into a multiplier.
+- `src/core/scouting.ts`: `potentialRange`, `hiddenFreeAgents`, and `signPlayer`, which the menus and the automatic manager use instead of `roster.sign` (it refuses hidden players and notes the signing in `f.offseason.signed`, which is what stops a fire-sale exploit).
+- `src/core/mascot.ts`: power, drop-in chance, AI and boss mascots, `withMascot` (a dressed team with him in one skater's place). `season.matchup` rolls the drop-in for both sides and reports it in `Matchup.mascots`. His id in a dressed team is `MASCOT_ID`; XP and milestones skip it.
+- Talents run in `src/sim/talents.ts` from `src/data/talents.json`: a skater's `talents` list comes from `TeamSetup.skaterTalents`. Timed ones reuse the boost code (`startBoost` in `powerups.ts`); the spin move hooks into `check.ts`.
+- Tables: `src/data/economy.json`, `facilities.json`, `staff.json`, `scouting.json`, `mascot.json`, `talents.json`. Manager styles for the health check are in `offseason.json` under `quick.styles`.
+- Save version 5 adds `cash`, `value`, `ledger`, `books`, `staff`, `staffPool`, `facilities`, `mascot`, `tenure` and `offseason.signed`.
+- Screens: Finances, Staff (and hiring), Facilities, Mascot, in `App.tsx`; reachable in and out of season.
+- Tests are in `tests/club.test.ts`, including 20 seasons under three manager styles. After changing any economy number, run `npm run seasons` and update `docs/TUNING.md`.
 
 ## How the on-ice game fits together
 

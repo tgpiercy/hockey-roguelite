@@ -1,9 +1,9 @@
-import { newOffseasonState, newPrestigeState, newSeasonState, type Franchise } from './season';
+import { newClub, newOffseasonState, newPrestigeState, newSeasonState, type Franchise } from './season';
 
 export { emptyRecord, type TeamRecord } from './season';
 
 /** Bump this whenever the shape of a save changes, and add a step to `migrations`. */
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 /** A save is the franchise plus a version number and a date. */
 export interface SaveFile extends Franchise {
@@ -56,6 +56,18 @@ const migrations: Record<number, (old: Record<string, unknown>) => Record<string
       offseason: newOffseasonState(),
     };
   },
+  // Version 5 (Phase 8) added operating cash, franchise value, staff, facilities and the mascot.
+  // An older franchise gets the starting cash, nothing built, nobody hired, and a mascot of its own.
+  4: (old) => {
+    const league = isObject(old.league) ? old.league : {};
+    const seed = typeof league.seed === 'string' ? league.seed : 'league';
+    const season = typeof league.season === 'number' ? league.season : 1;
+    return {
+      ...old,
+      offseason: { ...newOffseasonState(), ...(isObject(old.offseason) ? old.offseason : {}) },
+      ...newClub(seed, season),
+    };
+  },
 };
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -82,6 +94,8 @@ function problemWith(save: Record<string, unknown>): string | null {
   if (!Array.isArray(save.gear) || !Array.isArray(save.packs)) return 'it has no gear or pack list';
   if (typeof save.tape !== 'number') return 'it has no tape count';
   if (!isObject(save.prestige) || !isObject(save.offseason)) return 'it has no prestige or off-season record';
+  if (typeof save.cash !== 'number' || typeof save.value !== 'number' || !isObject(save.ledger)) return 'it has no finances';
+  if (!Array.isArray(save.staff) || !Array.isArray(save.staffPool) || !isObject(save.facilities) || !isObject(save.mascot)) return 'it has no staff, facilities or mascot';
   return null;
 }
 

@@ -1,4 +1,5 @@
 import { energyScale } from './lines';
+import { spinEscape } from './talents';
 import { wrapAngle } from './skater';
 import { carrierOf, dist, loosePuck } from './team';
 import type { Tuning } from './tuning';
@@ -42,7 +43,8 @@ export function stepChecking(world: World, p: Player, input: InputFrame, t: Tuni
   const strength = p.fx.checkStrength * energyScale(p, t.energy.minCheckScale, t);
   const swing = (strength - carrier.fx.puckSecurity) * t.check.ratingSwing;
   const base = kind === 'body' ? t.check.bodyBaseChance : t.check.pokeBaseChance;
-  const success = world.rng.chance(base + swing);
+  // A spin move turns a check that would have worked into one that does not.
+  const success = world.rng.chance(base + swing) && !spinEscape(carrier, events);
 
   if (kind === 'body') {
     p.vel.x *= t.check.checkerSpeedKeep;

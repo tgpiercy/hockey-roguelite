@@ -171,3 +171,29 @@ Built, deployed and checked with a simulated controller. Still open:
 - Found and fixed during the check: free agents whose contract had run out were listed with 0 years left. They now ask for a new term.
 - Not seen in the browser: an AI team signing the player I let go (he stayed in the pool that time; it is unit tested), a retirement on my own team (unit tested), the controller, and how the screens look (the browser pane was hidden, so only text was read).
 - Simplifications: trades are one for one only; AI teams do not trade with each other; AI players improve by a yearly rule, not by playing; the health check settles games from team strength instead of simulating them; the first before-tuning table was not kept, only described.
+
+# Phase 8: economy, staff, facilities, scouting and the mascot
+
+- [x] Operating cash: ledger, per-game and per-season money, franchise value
+- [x] Fire sale and the league bail-out
+- [x] Facilities (six, five levels) and their effects
+- [x] Staff: pool, hiring, contracts, effects through the modifier system
+- [x] Scouting: potential range and hidden free agents
+- [x] Three manager styles and the money report; tuned
+- [x] Mascot: power, drop-in, AI and boss mascots
+- [x] Five talents on the ice
+- [x] Save version 5 with migration
+- [x] Screens: finances, staff, facilities, mascot; drop-in notice; potential; fire sale
+- [x] Checked in a browser
+- [ ] Commit, push, deploy green
+- [ ] Exit test: the economy screens work and the three reports look healthy (owner)
+
+## Review (Phase 8)
+
+- Type check, 621 tests (63 new) and the build pass. The equal-teams balance series is unchanged (3.37 and 3.16 goals, save percentage .855).
+- Three 20-season money reports (20 franchises each): the cautious and balanced managers are never bailed out and franchise value grows; the spender is often forced to sell late on but is never bailed out; nobody ends with idle cash. Before and after are in docs/TUNING.md.
+- The plan's starting numbers did not survive: every style was bankrupt by season 3, because income was per game and a season can be 4 games long. Sponsorship went from 4% to 18% of franchise value. The sample season in the plan showed a $2.6M loss; with the final numbers the same season makes $11.6M. The starting team is now safe, and the squeeze comes from a growing payroll and from what to build.
+- Browser check, by keyboard: a Phase 7 save loaded and migrated (cash $10M, a mascot); the finances screen; built an arena level; hired a scout, was refused a second, let him go; bought a costume; forced a mascot drop-in and saw the notice, the mascot on the ice in a real game with four talents, rally cry fire twice and the spin move used; the game's money (+$1.22M) matched the finances screen and the change in cash; with cash forced to minus $2M the season was blocked, a release paid $1.57M, and after a second release the season could start; hiring a grade A scout brought the hidden free agents from 9 down to 5; a reload landed in the same place. No console errors.
+- Found and fixed during the check: negative cash was written "$-2.00M"; a 36-year-old showed a potential range up to 90 (players of 31 or over now show "past his peak").
+- Not seen in the browser: crowd surge, distraction and the cannon shot firing (my team never scored in that game; all five are unit tested), a boss or AI mascot on the ice (unit tested), the league bail-out (unit tested), the controller, and how the screens look (the browser pane was hidden, so only text was read).
+- Simplifications: AI teams have no money; home and road only change money; trainers work by position because XP is per player; talents all trigger by themselves; the automatic managers play poorly on the ice, so their income understates what a person would earn.

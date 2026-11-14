@@ -1,0 +1,13 @@
+{
+  "maxLevel": 5,
+  "buildCostPerLevel": 3000000,
+  "upkeepPerLevel": 300000,
+  "facilities": [
+    { "id": "training", "name": "Training centre", "description": "Each level: 6% more XP for your players, and aging takes 8% less off their ratings.", "perLevel": [{ "stat": "xpGain", "op": "mul", "value": 0.06 }, { "stat": "agingDecline", "op": "mul", "value": -0.08 }] },
+    { "id": "medical", "name": "Medical wing", "description": "Each level: your players tire 4% slower on the ice and recover 4% faster on the bench.", "perLevel": [{ "stat": "drainScale", "op": "mul", "value": -0.04 }, { "stat": "recoverScale", "op": "mul", "value": 0.04 }] },
+    { "id": "office", "name": "Front office", "description": "Each level: re-signing your own players costs 3% less.", "perLevel": [{ "stat": "resignCost", "op": "mul", "value": -0.03 }] },
+    { "id": "scouting", "name": "Scouting office", "description": "Each level: 1 scouting point. More free agents come into view and potential is known more exactly.", "perLevel": [{ "stat": "scouting", "op": "add", "value": 1 }] },
+    { "id": "arena", "name": "Arena", "description": "Each level: 8% more ticket money from every home game.", "perLevel": [{ "stat": "ticketRevenue", "op": "mul", "value": 0.08 }] },
+    { "id": "den", "name": "Mascot den", "description": "Each level: 1 mascot power. He drops in more often, plays better and learns talents.", "perLevel": [{ "stat": "mascotPower", "op": "add", "value": 1 }] }
+  ]
+}

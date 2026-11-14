@@ -11,6 +11,7 @@ import { autoChange, benchDoor, callChange, currentFx, putOnIce, stepChanges, st
 import { stepPassing } from './pass';
 import { applyModifiers, type Modifier, type PowerupSpec } from './modifiers';
 import { stepPowerups } from './powerups';
+import { stepTalents } from './talents';
 import { createPuck, stepCarriedPuck, stepLoosePuck, type Blocker } from './puck';
 import {
   defaultGoalieRatings,
@@ -40,6 +41,8 @@ export interface TeamSetup {
   skaterModifiers?: Modifier[][];
   /** Lasting modifiers for the goalie alone. */
   goalieModifiers?: Modifier[];
+  /** Talent ids for one skater each, in the same order as `skaters`. A mascot carries some. */
+  skaterTalents?: string[][];
 }
 
 export interface WorldOptions {
@@ -94,6 +97,9 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index:
     slot: role === 'skater' ? index % SKATERS_PER_LINE : 0,
     energy: 1,
     leaving: false,
+    talents: role === 'skater' ? [...(setup?.skaterTalents?.[index] ?? [])] : [],
+    talentCooldown: {},
+    rallyPeriod: 0,
     stats: { goals: 0, assists: 0, shots: 0, hits: 0, blocks: 0, timeOnIce: 0, saves: 0, goalsAgainst: 0 },
   };
 }
@@ -367,5 +373,6 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
   for (const p of active) if (p.role === 'goalie') recordPuck(p, world, t);
   stepEnergy(world, t);
   if (game && world.phase === 'play') tickClock(world, t, events);
+  stepTalents(world, t, events, dt);
   return events;
 }

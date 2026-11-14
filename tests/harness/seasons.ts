@@ -1,5 +1,5 @@
 import { generateLeague } from '../../src/core/generate';
-import { autoOffseason, leagueSnapshot, quickSeason, type LeagueSnapshot } from '../../src/core/quickSeason';
+import { autoOffseason, leagueSnapshot, quickSeason, type LeagueSnapshot, type ManagerStyle } from '../../src/core/quickSeason';
 import { createRng } from '../../src/core/rng';
 import { newFranchise } from '../../src/core/season';
 
@@ -9,15 +9,20 @@ export interface FranchiseRun {
   years: LeagueSnapshot[];
   /** How each season ended. */
   outcomes: string[];
+  /** Per year: whether the off-season before it needed a fire sale, and whether the league had to step in. */
+  fireSales: boolean[];
+  bailouts: boolean[];
 }
 
 /** Runs one franchise for a number of seasons with the automatic manager and quick games. */
-export function runFranchise(seed: string, seasons: number): FranchiseRun {
+export function runFranchise(seed: string, seasons: number, style: ManagerStyle = 'none'): FranchiseRun {
   const f = newFranchise(generateLeague(seed));
   const rng = createRng(`${seed}/auto-manager`);
-  const run: FranchiseRun = { seed, years: [], outcomes: [] };
+  const run: FranchiseRun = { seed, years: [], outcomes: [], fireSales: [], bailouts: [] };
   for (let year = 0; year < seasons; year++) {
-    autoOffseason(f);
+    const money = autoOffseason(f, style);
+    run.fireSales.push(money.fireSale);
+    run.bailouts.push(money.bailedOut);
     run.years.push(leagueSnapshot(f));
     quickSeason(f, rng);
     run.outcomes.push(f.offseason.report ? `${f.record.wins}W` : 'not played');
@@ -34,6 +39,15 @@ export interface YearSummary {
   freeAgents: number;
   userStrength: number;
   leagueStrength: number;
+  /** Money, averaged across the franchises; lowest cash is the worst single franchise. Fire sales and bail-outs are totals. */
+  cash: number;
+  lowestCash: number;
+  value: number;
+  payroll: number;
+  facilityLevels: number;
+  staff: number;
+  fireSales: number;
+  bailouts: number;
 }
 
 /** Averages the yearly snapshots across several franchises. Illegal rosters and cap trouble are totals. */
@@ -54,6 +68,14 @@ export function summarise(runs: FranchiseRun[]): YearSummary[] {
       freeAgents: mean((s) => s.freeAgents),
       userStrength: mean((s) => s.userStrength),
       leagueStrength: mean((s) => s.leagueStrength),
+      cash: mean((s) => s.cash),
+      lowestCash: Math.min(...snaps.map((s) => s.cash)),
+      value: mean((s) => s.value),
+      payroll: mean((s) => s.payroll),
+      facilityLevels: mean((s) => s.facilityLevels),
+      staff: mean((s) => s.staff),
+      fireSales: runs.filter((r) => r.fireSales[y]).length,
+      bailouts: runs.filter((r) => r.bailouts[y]).length,
     });
   }
   return out;
@@ -73,6 +95,25 @@ export function formatSeasons(summary: YearSummary[], franchises: number): strin
         s.freeAgents.toFixed(0),
         11,
       )}  ${pad(s.userStrength.toFixed(1), 9)}  ${pad(s.leagueStrength.toFixed(1), 6)}  ${pad(String(s.illegalRosters), 7)}  ${pad(String(s.overCap), 8)}`,
+    );
+  }
+  return lines.join('\n');
+}
+
+/** The money report as a table of text: one row per year, in millions of dollars. */
+export function formatMoney(summary: YearSummary[], franchises: number, style: string): string {
+  const pad = (v: string, n: number): string => v.padStart(n);
+  const m = (n: number): string => (n / 1_000_000).toFixed(1);
+  const lines = [
+    `${franchises} franchises, "${style}" manager. Money in $M, at the start of each season.`,
+    'year    cash  lowest   value  payroll  facility levels  staff  your team  league  fire sales  bail-outs',
+  ];
+  for (const s of summary) {
+    lines.push(
+      `${pad(String(s.year), 4)}  ${pad(m(s.cash), 6)}  ${pad(m(s.lowestCash), 6)}  ${pad(m(s.value), 6)}  ${pad(m(s.payroll), 7)}  ${pad(s.facilityLevels.toFixed(1), 15)}  ${pad(
+        s.staff.toFixed(1),
+        5,
+      )}  ${pad(s.userStrength.toFixed(1), 9)}  ${pad(s.leagueStrength.toFixed(1), 6)}  ${pad(String(s.fireSales), 10)}  ${pad(String(s.bailouts), 9)}`,
     );
   }
   return lines.join('\n');
