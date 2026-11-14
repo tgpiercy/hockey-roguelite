@@ -3,6 +3,7 @@ import { useEffect, useReducer, useRef, useState } from 'preact/hooks';
 import { bossInfo, teamStrength } from '../core/bosses';
 import { sortPlayers, wouldReplace, type PlayerSort, type PositionFilter } from '../core/compare';
 import { teamCrest } from '../core/crest';
+import { styleInfo } from '../core/playStyle';
 import { bailOut, canBailOut, inFireSale, isHomeGame, playerSalePrice, seasonEndBills, starCount } from '../core/economy';
 import { build, buildCost, FACILITIES, facilityLevel, facilityUpkeep, MAX_FACILITY_LEVEL } from '../core/facilities';
 import { equip, levelCost, levelUp, rarityInfo, releasePlayer, scrap, unequip, wornBy, type GearItem } from '../core/gear';
@@ -575,6 +576,12 @@ export function App() {
       const mine = Math.round(game.home.players.reduce((s, p) => s + p.overall, 0) / game.home.players.length);
       const series = season.playoffs;
       const theirCrest = teamCrest(game.away.name, teamColour(game.away.name, jerseyColour(f)));
+      const theirStyle = styleInfo(game.away.setup.style);
+      /** The goalie of a dressed team: the last player, unless a mascot has somehow taken the spot. */
+      const goalieOf = (players: PlayerRecord[]): { goalie?: PlayerRecord } => {
+        const g = players[players.length - 1];
+        return g && g.position === 'G' ? { goalie: g } : {};
+      };
       return (
         <Menu
           key={screenKey}
@@ -583,7 +590,15 @@ export function App() {
           title={game.title}
           message={message}
           header={
-            <MatchupPoster home={{ crest: myCrest, name: team.name, strength: mine, stars: best(game.home.players) }} away={{ crest: theirCrest, name: game.away.name, strength, stars: best(game.away.players) }}>
+            <MatchupPoster
+              home={{ crest: myCrest, name: team.name, strength: mine, stars: best(game.home.players), ...goalieOf(game.home.players) }}
+              away={{ crest: theirCrest, name: game.away.name, strength, stars: best(game.away.players), ...goalieOf(game.away.players), ...(theirStyle ? { style: theirStyle.name } : {}) }}
+            >
+              {theirStyle && (
+                <div class="note">
+                  {game.away.name} play {theirStyle.name.toLowerCase()}. {theirStyle.describe}
+                </div>
+              )}
               {game.trait && (
                 <div class="banner bad">
                   <Icon name="boss" size={18} />

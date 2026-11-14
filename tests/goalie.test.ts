@@ -148,8 +148,8 @@ describe('freezing and rebounds', () => {
   });
 
   it('better rebound control freezes harder shots', () => {
-    expect(firstSave(save(26, rated(100)).events)).toMatchObject({ frozen: true });
-    expect(firstSave(save(26, rated(20)).events)).toMatchObject({ frozen: false });
+    expect(firstSave(save(18, rated(100)).events)).toMatchObject({ frozen: true });
+    expect(firstSave(save(18, rated(20)).events)).toMatchObject({ frozen: false });
   });
 
   it('after holding a frozen puck, passes it out to a teammate', () => {

@@ -93,7 +93,8 @@
     "trailAlpha": 0.4,
     "netBulge": 0.4,
     "netBulgeSeconds": 0.5,
-    "stickSweep": 0.2
+    "stickSweep": 0.2,
+    "bigHitShakeScale": 1.8
   },
   "arena": {
     "maxRows": 14,
@@ -261,7 +262,8 @@
       "jersey": "#f6f8fb",
       "goalieJersey": "#dde6ef",
       "helmetLighten": 0.08
-    }
+    },
+    "knockdownTilt": 1.45
   },
   "reticle": {
     "colour": "#ff2436",

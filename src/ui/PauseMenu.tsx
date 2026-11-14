@@ -12,7 +12,7 @@ const ACTIONS: [Action, string][] = [
   ['pass', 'Pass, faceoff draw'],
   ['shoot', 'Shoot'],
   ['check', 'Check'],
-  ['switchPlayer', 'Switch player'],
+  ['switchPlayer', 'Switch player; deke with the puck'],
   ['sprint', 'Sprint'],
   ['lineChange', 'Line change'],
   ['powerupA', 'Powerup 1'],
@@ -53,6 +53,20 @@ function Layout() {
           <span>{[...new Set(controls.keys[action].map(keyName))].join(' or ')}</span>
         </div>
       ))}
+      <div class="controls-notes">
+        <span>
+          <b>One-timer:</b> hold Shoot while a pass is coming to you and it goes first-touch, at full power.
+        </span>
+        <span>
+          <b>Deke:</b> with the puck, the switch button is a sidestep; a check thrown at you just then misses.
+        </span>
+        <span>
+          <b>Big hit:</b> a body check thrown at speed puts the carrier on the ice.
+        </span>
+        <span>
+          <b>Poke:</b> from a stick length away, Check knocks the puck loose without the hit.
+        </span>
+      </div>
     </div>
   );
 }

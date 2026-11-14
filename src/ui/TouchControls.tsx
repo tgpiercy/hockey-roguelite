@@ -100,7 +100,7 @@ export function TouchControls({ hidden, mode = 'auto' }: { hidden: boolean; mode
         <TouchKey button="shoot" label="Shoot" size="big" style={{ right: '0', bottom: '46px' }} />
         <TouchKey button="pass" label="Pass" size="big" style={{ right: '78px', bottom: '0' }} />
         <TouchKey button="check" label="Check" size="big" style={{ right: '78px', bottom: '92px' }} />
-        <TouchKey button="switchPlayer" label="Swap" size="small" style={{ right: '12px', bottom: '-8px' }} />
+        <TouchKey button="switchPlayer" label="Swap Deke" size="small" style={{ right: '12px', bottom: '-8px' }} />
         <TouchKey button="sprint" label="Sprint" size="small" style={{ right: '8px', bottom: '126px' }} />
       </div>
     </div>

@@ -84,7 +84,7 @@ export class Effects {
           this.addRing(target.pos.x, target.pos.y, e.kind === 'body' ? fx.hitRingSize : fx.hitRingSize * 0.6, look.colours.accent);
           if (e.kind === 'body') {
             this.spray(target.pos.x, target.pos.y, fx.hitSpray);
-            this.shake = Math.max(this.shake, fx.hitShake);
+            this.shake = Math.max(this.shake, fx.hitShake * (e.big ? fx.bigHitShakeScale : 1));
           }
         }
       } else if (e.type === 'post') {

@@ -43,11 +43,13 @@ export function stepChecking(world: World, p: Player, input: InputFrame, t: Tuni
   const strength = p.fx.checkStrength * energyScale(p, t.energy.minCheckScale, t);
   const swing = (strength - carrier.fx.puckSecurity) * t.check.ratingSwing;
   const base = kind === 'body' ? t.check.bodyBaseChance : t.check.pokeBaseChance;
-  // A spin move turns a check that would have worked into one that does not.
   const rolled = world.rng.chance(base + swing);
   // Some gear makes a body check at high closing speed a big hit, which always frees the puck.
   const bigHit = kind === 'body' && p.fx.bigHitKnock > 0 && closingSpeed(p, carrier) >= t.check.bigHitClosingSpeed;
-  const success = (rolled || bigHit) && !spinEscape(carrier, events);
+  // A deke in progress slips the check. A spin move turns one that would have worked into one that does not.
+  const success = (rolled || bigHit) && carrier.deke <= 0 && !spinEscape(carrier, events);
+  // Thrown while closing fast, a body check that lands puts him on the ice.
+  const big = kind === 'body' && success && closingSpeed(p, carrier) >= t.check.bigHitClosingSpeed;
 
   if (kind === 'body') {
     p.vel.x *= t.check.checkerSpeedKeep;
@@ -63,9 +65,10 @@ export function stepChecking(world: World, p: Player, input: InputFrame, t: Tuni
     carrier.charge = 0;
     carrier.passCharge = 0;
     if (kind === 'body') {
-      carrier.stagger = t.check.staggerSeconds;
+      carrier.stagger = big ? t.check.knockdownSeconds : t.check.staggerSeconds;
+      carrier.knockedDown = big;
       p.stats.hits += 1;
     }
   }
-  events.push({ type: 'check', player: p.id, target: carrier.id, kind, success });
+  events.push({ type: 'check', player: p.id, target: carrier.id, kind, success, ...(big ? { big } : {}) });
 }

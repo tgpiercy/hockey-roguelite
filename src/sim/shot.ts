@@ -59,7 +59,7 @@ export function stepShooting(
   const angle = aim + rng.range(-1, 1) * shotSpread(params.accuracy, t);
   // A one-timer counts as fully wound up however briefly the button was held.
   const oneTimer = params.oneTimer ?? 1;
-  const held = oneTimer !== 1 ? Math.max(s.charge, t.shot.chargeTime) : s.charge;
+  const held = params.oneTimer !== undefined ? Math.max(s.charge, t.shot.chargeTime) : s.charge;
   const full = chargeFraction(held, t) >= 1;
   const speed = shotSpeed(held, params.shotPower, t) * (full ? (params.chargedShotScale ?? 1) : 1) * oneTimer;
 

@@ -52,7 +52,8 @@
     "powerFloor": 0.6,
     "maxSpreadDegrees": 14,
     "minSpreadDegrees": 1.5,
-    "skaterSpeedShare": 0.3
+    "skaterSpeedShare": 0.3,
+    "oneTimerPower": 1.25
   },
   "game": {
     "goalPauseSeconds": 1.5,
@@ -85,7 +86,8 @@
     "staggerDrag": 4,
     "knockSpeed": 7,
     "pickupLockSeconds": 0.5,
-    "checkerSpeedKeep": 0.5
+    "checkerSpeedKeep": 0.5,
+    "knockdownSeconds": 1.5
   },
   "body": {
     "handleSpeed": 16,
@@ -100,7 +102,11 @@
     "ignoreSeconds": 0.4,
     "reboundMinSpeed": 5,
     "reboundScatterDegrees": 35,
-    "outletSpeed": 16
+    "outletSpeed": 16,
+    "reboundToSlot": 0.5,
+    "challengeDepth": 0.5,
+    "challengeRange": 10,
+    "challengeHalfWidth": 4
   },
   "period": {
     "seconds": 120,
@@ -146,5 +152,11 @@
     "blockedPenaltyDegrees": 40,
     "roomCap": 6,
     "roomDegreesPerMetre": 5
+  },
+  "deke": {
+    "windowSeconds": 0.3,
+    "cooldownSeconds": 2.5,
+    "impulse": 5,
+    "staminaCost": 0.2
   }
 }

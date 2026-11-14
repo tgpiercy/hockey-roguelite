@@ -91,6 +91,8 @@ export interface AiMemory {
   wantCheck: boolean;
   /** Seconds it has carried the puck in the attacking half. */
   carryTime: number;
+  /** True when it has decided to deke on its next step. */
+  wantDeke: boolean;
   /** True while winding up a shot from distance: he plants his feet instead of skating in as he charges. */
   plant: boolean;
 }
@@ -159,6 +161,15 @@ export interface Player extends Skater {
   leaving: boolean;
   /** Seconds left in which a shot counts as a one-timer: set when he receives a pass meant for him. */
   oneTimer: number;
+  /** True if shoot was already held when the pass arrived: the shot goes first-touch, on the next step. */
+  oneTimerArmed: boolean;
+  /** Seconds left in a deke: a check thrown at him now misses. */
+  deke: number;
+  /** Seconds until he can deke again, and whether the button is still down from last time. */
+  dekeCooldown: number;
+  dekeHeld: boolean;
+  /** True while flat on the ice after a big hit (his stagger is then the time until he is up). */
+  knockedDown: boolean;
   /** Talent ids he carries (mascots do); see talents.ts. Empty for ordinary players. */
   talents: string[];
   /** Seconds until each talent can trigger again, by talent id. */
@@ -195,12 +206,13 @@ export type SimEvent =
   | { type: 'change'; team: 0 | 1; off: number; on: number }
   | { type: 'powerup'; team: 0 | 1; slot: number; id: string }
   | { type: 'talent'; player: number; id: string }
-  | { type: 'shot'; speed: number; player: number }
+  | { type: 'shot'; speed: number; player: number; oneTimer?: boolean }
+  | { type: 'deke'; player: number }
   | { type: 'pass'; player: number; target: number | null; saucer: boolean }
   | { type: 'post' }
   | { type: 'pickup'; player: number }
   | { type: 'save'; goalie: number; frozen: boolean }
-  | { type: 'check'; player: number; target: number; kind: 'body' | 'poke'; success: boolean };
+  | { type: 'check'; player: number; target: number; kind: 'body' | 'poke'; success: boolean; big?: boolean };
 
 export interface World {
   tick: number;
@@ -248,6 +260,8 @@ export interface TeamState {
   powerupHeld: boolean[];
   /** Timed boosts that are running. */
   boosts: Boost[];
+  /** How this team's AI skaters like to attack: a style id from ai.json, or null. */
+  style: string | null;
 }
 
 export interface FaceoffState {

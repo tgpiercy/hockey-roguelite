@@ -43,6 +43,8 @@ export interface TeamSetup {
   goalieModifiers?: Modifier[];
   /** Talent ids for one skater each, in the same order as `skaters`. A mascot carries some. */
   skaterTalents?: string[][];
+  /** How its AI skaters like to attack: an id from the styles in ai.json. Left out, no leaning. */
+  style?: string;
 }
 
 export interface WorldOptions {
@@ -98,6 +100,11 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index:
     energy: 1,
     leaving: false,
     oneTimer: 0,
+    oneTimerArmed: false,
+    deke: 0,
+    dekeCooldown: 0,
+    dekeHeld: false,
+    knockedDown: false,
     talents: role === 'skater' ? [...(setup?.skaterTalents?.[index] ?? [])] : [],
     talentCooldown: {},
     rallyPeriod: 0,
@@ -133,7 +140,7 @@ function createPlayers(t: Tuning, options: WorldOptions): Player[] {
   return players;
 }
 
-function newTeamState(powerups: (PowerupSpec | null)[]): World['teams'][number] {
+function newTeamState(powerups: (PowerupSpec | null)[], style: string | null): World['teams'][number] {
   return {
     line: 0,
     changeCooldown: 0,
@@ -142,6 +149,7 @@ function newTeamState(powerups: (PowerupSpec | null)[]): World['teams'][number] 
     powerupsUsed: [],
     powerupHeld: [false, false],
     boosts: [],
+    style,
   };
 }
 
@@ -187,7 +195,7 @@ export function createWorld(t: Tuning, seed: number | string, options: WorldOpti
     overtime: false,
     overtimeLimit: options.overtimeLimit ?? 0,
     faceoff: null,
-    teams: [newTeamState(options.human === false ? [] : (options.powerups ?? [])), newTeamState([])],
+    teams: [newTeamState(options.human === false ? [] : (options.powerups ?? []), options.teams?.[0].style ?? null), newTeamState([], options.teams?.[1].style ?? null)],
   };
   lineUp(world, t);
   return world;
@@ -246,6 +254,8 @@ function stepSkaterBody(p: Player, input: InputFrame, t: Tuning, dt: number, has
   p.checkCooldown = Math.max(0, p.checkCooldown - dt);
   p.pickupLock = Math.max(0, p.pickupLock - dt);
   p.oneTimer = Math.max(0, p.oneTimer - dt);
+  p.deke = Math.max(0, p.deke - dt);
+  p.dekeCooldown = Math.max(0, p.dekeCooldown - dt);
   let fx = currentFx(p, t);
   // Some gear makes a skater faster with the puck on his stick, or faster still on a breakaway.
   if (hasPuck && fx.carrySpeedScale !== 1) fx = { ...fx, topSpeedScale: fx.topSpeedScale * fx.carrySpeedScale };
@@ -253,6 +263,7 @@ function stepSkaterBody(p: Player, input: InputFrame, t: Tuning, dt: number, has
   if (p.stagger > 0) {
     // Knocked off balance: no control, and he slows quickly.
     p.stagger = Math.max(0, p.stagger - dt);
+    if (p.stagger === 0) p.knockedDown = false;
     const kept = Math.max(0, 1 - t.check.staggerDrag * dt);
     p.vel.x *= kept;
     p.vel.y *= kept;
@@ -260,6 +271,24 @@ function stepSkaterBody(p: Player, input: InputFrame, t: Tuning, dt: number, has
     return;
   }
   stepSkater(p, input, t, dt, fx);
+}
+
+/**
+ * The deke: with the puck, the switch button is a quick sidestep the way the stick points (or the way he
+ * faces). For a moment a check thrown at him misses. It costs stamina and has a cooldown.
+ */
+function stepDeke(p: Player, hasPuck: boolean, input: InputFrame, t: Tuning, events: SimEvent[]): void {
+  const pressed = input.switchPlayer && !p.dekeHeld;
+  p.dekeHeld = input.switchPlayer;
+  if (!pressed || !hasPuck || p.dekeCooldown > 0 || p.stamina < t.deke.staminaCost) return;
+  const tilt = Math.hypot(input.moveX, input.moveY);
+  const angle = tilt > 0 ? Math.atan2(input.moveY, input.moveX) : p.facing;
+  p.vel.x += Math.cos(angle) * t.deke.impulse;
+  p.vel.y += Math.sin(angle) * t.deke.impulse;
+  p.deke = t.deke.windowSeconds;
+  p.dekeCooldown = t.deke.cooldownSeconds;
+  p.stamina = Math.max(0, p.stamina - t.deke.staminaCost);
+  events.push({ type: 'deke', player: p.id });
 }
 
 /** Game rules: the line-change button, automatic changes, and skaters swapping at the bench door. */
@@ -331,20 +360,30 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
   // Shoot, pass, check.
   active.forEach((p, i) => {
     if (p.role !== 'skater') return;
-    const input = p.stagger > 0 ? NO_INPUT : (inputs[i] as InputFrame);
+    let input = p.stagger > 0 ? NO_INPUT : (inputs[i] as InputFrame);
     const hadPuck = puck.carrier === p.id;
+    stepDeke(p, hadPuck, input, t, events);
+    // A pass that arrived with shoot already held goes first-touch: treated as the button being let go now.
+    const firstTouch = hadPuck && p.oneTimerArmed && input.shoot;
+    p.oneTimerArmed = false;
+    if (firstTouch) {
+      p.shootHeld = true;
+      input = { ...input, shoot: false };
+    }
     // The skater the human controls gets aim assist; the AI aims for itself.
     const assist = world.human && world.human.controlled === p.id ? (aim: number) => assistedAim(world, p, aim, t) : undefined;
     const fx = currentFx(p, t);
-    // With the right gear, a shot let go just after receiving a pass is a one-timer.
-    const params = p.oneTimer > 0 && fx.oneTimerScale !== 1 ? { ...fx, oneTimer: fx.oneTimerScale } : fx;
+    // A shot let go just after receiving a pass is a one-timer: fully wound up, and harder still with the right gear.
+    const oneTimer = p.oneTimer > 0;
+    const params = oneTimer ? { ...fx, oneTimer: fx.oneTimerScale * t.shot.oneTimerPower } : fx;
     const speed = stepShooting(p, hadPuck, puck, input, params, t, world.rng, dt, assist);
     if (speed !== null) {
       loosePuck(world);
       puck.shotBy = p.id;
       p.pickupLock = t.puck.pickupCooldown;
       p.stats.shots += 1;
-      events.push({ type: 'shot', speed, player: p.id });
+      p.oneTimer = 0;
+      events.push({ type: 'shot', speed, player: p.id, ...(oneTimer ? { oneTimer } : {}) });
     }
     stepPassing(world, p, input, t, dt, events);
     stepChecking(world, p, input, t, events);

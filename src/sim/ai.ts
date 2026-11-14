@@ -24,6 +24,8 @@ export interface AiLevel {
   longShotRange: number;
   longShotChance: number;
   longShotCharge: number;
+  /** How readily, each time he thinks, he dekes a defender who is on him. */
+  dekeChance: number;
 }
 
 export function aiLevel(level: number): AiLevel {
@@ -41,6 +43,7 @@ export function aiLevel(level: number): AiLevel {
     longShotRange: at(l.longShotRange),
     longShotChance: at(l.longShotChance),
     longShotCharge: at(l.longShotCharge),
+    dekeChance: at(l.dekeChance),
   };
 }
 
@@ -58,8 +61,26 @@ export function createAiMemory(): AiMemory {
     aimY: 0,
     wantCheck: false,
     carryTime: 0,
+    wantDeke: false,
     plant: false,
   };
+}
+
+/** How a team's AI likes to attack: multipliers on how readily it passes and shoots from distance, and how readily it dumps the puck in. */
+export interface Style {
+  name: string;
+  describe: string;
+  pass: number;
+  longShot: number;
+  dump: number;
+}
+
+const NO_STYLE: Style = { name: '', describe: '', pass: 1, longShot: 1, dump: 0 };
+
+/** The style a team's AI skaters play, or no leaning at all. */
+export function styleOf(world: World, team: 0 | 1): Style {
+  const id = world.teams[team].style;
+  return (id !== null ? (data.styles as Record<string, Style>)[id] : undefined) ?? NO_STYLE;
 }
 
 /** This skater's place among his team's skaters (0, 1, 2...), spread evenly around zero: -1, 0, 1 for three. */
@@ -124,7 +145,8 @@ export type Post = 'netFront' | 'wing' | 'point';
 export function postSpot(post: Post, team: 0 | 1, puck: Vec, t: Tuning, wingSide?: 1 | -1): Vec {
   const dir = attackDir(team);
   const net = targetNet(team, t);
-  if (post === 'netFront') return { x: net.x - dir * P.netFrontDepth, y: 0 };
+  // In front of the net, at the post away from the puck: the back door for a one-timer.
+  if (post === 'netFront') return { x: net.x - dir * P.netFrontDepth, y: Math.abs(puck.y) > 1 ? (puck.y > 0 ? -1 : 1) * P.farPostY : 0 };
   if (post === 'wing') return { x: net.x - dir * P.wingDepth, y: (wingSide ?? (puck.y > 0 ? -1 : 1)) * P.wingY };
   return { x: dir * (P.zoneLineX + P.pointInset), y: puck.y * P.pointFollowY };
 }
@@ -181,7 +203,10 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   const pressured = nearestOpp !== null && dist(nearestOpp.pos, p.pos) < P.pressureRadius;
   const range = dist(puck, net);
   const inFront = dir * (net.x - puck.x) > 1;
+  const style = styleOf(world, p.team);
   m.plant = false;
+  // A defender on him and able to check: sometimes he dekes.
+  m.wantDeke = pressured && p.dekeCooldown <= 0 && p.stamina >= t.deke.staminaCost && nearestOpp.checkCooldown <= 0 && world.rng.chance(lv.dekeChance);
 
   // Shoot: in range, in front of the net, with a clear look (or after holding it too long).
   if (inFront && range <= lv.shootRange) {
@@ -190,14 +215,15 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
     const corner: Vec = { x: net.x, y: side * (t.net.mouthWidth / 2 - P.cornerInset) };
     if (laneClear(world, p.team, puck, corner) || m.carryTime > P.maxCarrySeconds) {
       aimAt(m, puck, corner, lv.aimErrorDegrees, world);
-      const windUp = lv.shotCharge * world.rng.next() * t.shot.chargeTime;
+      // A pass just received is fired first-touch: it counts as fully wound up anyway.
+      const windUp = p.oneTimer > 0 ? 0 : lv.shotCharge * world.rng.next() * t.shot.chargeTime;
       m.shootSteps = 2 + Math.round(windUp * STEPS_PER_SECOND);
       return;
     }
   }
 
   // A shot from distance: inside the zone, beyond normal range, with a clear lane. Not every look is taken.
-  if (inFront && inZone(p.team, puck.x) && range > lv.shootRange && range <= lv.longShotRange && world.rng.chance(lv.longShotChance)) {
+  if (inFront && inZone(p.team, puck.x) && range > lv.shootRange && range <= lv.longShotRange && world.rng.chance(Math.min(1, lv.longShotChance * style.longShot))) {
     const goalie = goalieOf(world, otherTeam(p.team));
     const side = goalie ? (goalie.pos.y > 0 ? -1 : 1) : world.rng.chance(0.5) ? 1 : -1;
     const corner: Vec = { x: net.x, y: side * (t.net.mouthWidth / 2 - P.cornerInset) };
@@ -211,7 +237,15 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
 
   // Pass: to an open teammate, if he is in a better spot or the carrier is under pressure.
   // Among open teammates, the one nearest the net is preferred.
-  if (world.rng.chance(lv.passAwareness)) {
+  // Dump and chase: under pressure short of the zone, he fires it into the far corner and his team goes after it.
+  if (style.dump > 0 && pressured && !inZone(p.team, puck.x) && dir * puck.x > P.dumpFromX && world.rng.chance(style.dump)) {
+    const side = nearestOpp.pos.y > p.pos.y ? -1 : 1;
+    aimAt(m, puck, { x: net.x, y: side * (t.rink.width / 2 - P.dumpCornerInset) }, 0, world);
+    m.shootSteps = 2;
+    return;
+  }
+
+  if (world.rng.chance(Math.min(1, lv.passAwareness * style.pass))) {
     const open = mates
       .filter((mate) => opponents.every((o) => dist(o.pos, mate.pos) > P.openRadius))
       .sort((x, y) => dist(x.pos, net) - dist(y.pos, net) || x.id - y.id);
@@ -261,7 +295,20 @@ function planSupport(world: World, p: Player, t: Tuning): void {
   if (inZone(p.team, ref.x)) {
     const post = postsFor(p.team, ref, helpers).get(p.id);
     if (post) {
-      const spot = postSpot(post, p.team, ref, t);
+      let spot = postSpot(post, p.team, ref, t);
+      // Get open: if a defender is on the spot, or stands in the lane from the puck, slide to one side where the pass is on.
+      const opponents = skatersOf(world, otherTeam(p.team));
+      const covered = (s: Vec): boolean => !laneClear(world, p.team, ref, s) || opponents.some((o) => dist(o.pos, s) < P.openRadius);
+      if (covered(spot)) {
+        const limit = t.rink.width / 2 - 1.5;
+        for (const shift of [P.getOpenShift, -P.getOpenShift]) {
+          const alt = { x: spot.x, y: Math.max(-limit, Math.min(limit, spot.y + shift)) };
+          if (!covered(alt)) {
+            spot = alt;
+            break;
+          }
+        }
+      }
       goTo(p.ai, spot.x, spot.y);
       return;
     }
@@ -296,14 +343,29 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   }
   // Nearest defender pressures the carrier.
   const presser = nearestTo(mates, carrier.pos);
+  // A carrier close in front of the net is the danger: the presser comes hard and checks more readily.
+  const danger = dist(carrier.pos, net) < P.slotDangerRadius;
   if (presser?.id === p.id) {
     m.follow = 'carrier';
-    m.sprint = dist(p.pos, carrier.pos) > P.pressureRadius;
-    m.wantCheck = world.rng.chance(lv.checkEagerness);
+    m.sprint = danger || dist(p.pos, carrier.pos) > P.pressureRadius;
+    m.wantCheck = world.rng.chance(Math.min(1, lv.checkEagerness * (danger ? P.slotCheckBoost : 1)));
     return;
   }
-  // The others each take a man, the most dangerous first going to the nearest free defender, from the goal side.
   const free = mates.filter((s) => s.id !== presser?.id);
+  // With the puck in our zone, one of the others guards the slot: he stands between the carrier and the net.
+  if (inZone(carrier.team, carrier.pos.x)) {
+    const away = dist(carrier.pos, net) || 1;
+    const k = Math.min(P.guardDepth, away * 0.6) / away;
+    const spot: Vec = { x: net.x + (carrier.pos.x - net.x) * k, y: net.y + (carrier.pos.y - net.y) * k };
+    const guard = nearestTo(free, spot);
+    if (guard?.id === p.id) {
+      goTo(m, spot.x, spot.y);
+      m.wantCheck = world.rng.chance(lv.checkEagerness);
+      return;
+    }
+    if (guard) free.splice(free.indexOf(guard), 1);
+  }
+  // The others each take a man, the most dangerous first going to the nearest free defender, from the goal side.
   const threats = skatersOf(world, carrier.team)
     .filter((o) => o.id !== carrier.id)
     .sort((x, y) => dist(x.pos, net) - dist(y.pos, net) || x.id - y.id);
@@ -429,6 +491,10 @@ export function aiInput(world: World, p: Player, t: Tuning, lv: AiLevel): InputF
     input.moveY = (dy / d) * tilt;
   }
   input.sprint = m.sprint && p.stamina > P.sprintStamina && !p.sprintLocked;
+  if (m.wantDeke && hasPuck) {
+    input.switchPlayer = true;
+    m.wantDeke = false;
+  }
 
   if (m.wantCheck && p.checkCooldown <= 0) {
     const carrier = carrierOf(world);

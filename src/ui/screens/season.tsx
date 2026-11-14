@@ -64,6 +64,10 @@ export interface PosterSide {
   strength: number;
   /** His best players, for the faces under the crest. */
   stars: PlayerRecord[];
+  /** The goalie in net, shown with his overall so a hot goalie is seen coming. */
+  goalie?: PlayerRecord;
+  /** How the team attacks, in a word or two. */
+  style?: string;
 }
 
 function PosterTeam({ side }: { side: PosterSide }) {
@@ -82,6 +86,14 @@ function PosterTeam({ side }: { side: PosterSide }) {
           ),
         )}
       </span>
+      {side.goalie && (
+        <span class="poster-goalie">
+          <i>In goal</i>
+          <PortraitFace portrait={portraitOf(side.goalie.id, side.goalie.age)} primary={side.crest.primary} secondary={side.crest.secondary} size={20} />
+          <b>{side.goalie.overall}</b>
+        </span>
+      )}
+      {side.style && <span class="poster-style">{side.style}</span>}
     </div>
   );
 }

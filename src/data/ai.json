@@ -11,7 +11,7 @@
       0.5
     ],
     "passAwareness": [
-      0.08,
+      0.15,
       0.35
     ],
     "checkEagerness": [
@@ -41,6 +41,10 @@
     "longShotCharge": [
       0.4,
       0.8
+    ],
+    "dekeChance": [
+      0,
+      0.08
     ]
   },
   "positions": {
@@ -77,6 +81,36 @@
     "pointFollowY": 0.3,
     "holdDepth": 7,
     "postFilledRadius": 3,
-    "plantTilt": 0.1
+    "plantTilt": 0.1,
+    "slotDangerRadius": 9,
+    "slotCheckBoost": 1.6,
+    "guardDepth": 4,
+    "farPostY": 1.3,
+    "getOpenShift": 2.5,
+    "dumpFromX": 2,
+    "dumpCornerInset": 2.5
+  },
+  "styles": {
+    "rush": {
+      "name": "Rush",
+      "describe": "They carry the puck straight at the net.",
+      "pass": 0.7,
+      "longShot": 0.6,
+      "dump": 0
+    },
+    "cycle": {
+      "name": "Cycle",
+      "describe": "They work the puck round the zone to the point and the wing.",
+      "pass": 1.5,
+      "longShot": 1.5,
+      "dump": 0
+    },
+    "dump": {
+      "name": "Dump and chase",
+      "describe": "They shoot the puck into the corner under pressure and go after it.",
+      "pass": 1,
+      "longShot": 1,
+      "dump": 0.5
+    }
   }
 }

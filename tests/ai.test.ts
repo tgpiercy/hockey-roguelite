@@ -315,7 +315,9 @@ describe('AI in the attacking zone: spreading out', () => {
     const front = postSpot('netFront', 0, puck, t);
     const wing = postSpot('wing', 0, puck, t);
     const point = postSpot('point', 0, puck, t);
-    expect(front).toEqual({ x: gx - P.netFrontDepth, y: 0 });
+    // In front of the net, at the post away from the puck; dead centre when the puck is in the middle.
+    expect(front).toEqual({ x: gx - P.netFrontDepth, y: -P.farPostY });
+    expect(postSpot('netFront', 0, { x: 15, y: 0 }, t).y).toBe(0);
     expect(wing.y).toBe(-P.wingY);
     expect(wing.x).toBe(gx - P.wingDepth);
     expect(point.x).toBeGreaterThan(P.zoneLineX);

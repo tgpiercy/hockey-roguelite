@@ -1,3 +1,4 @@
+import { playStyle } from './playStyle';
 import type { GameResult } from '../sim/match';
 import rules from '../data/season.json';
 import type { Modifier } from '../sim/modifiers';
@@ -58,6 +59,8 @@ export function dress(league: League, team: Team, options: DressOptions = {}): D
       modifiers: options.modifiers ?? [],
       skaterModifiers: skaters.map((p) => abilityModifiers(gear(p))),
       goalieModifiers: abilityModifiers(gear(goalie)),
+      // Every team but yours attacks in its own way; your linemates have no leaning.
+      ...(team.id !== league.userTeamId ? { style: playStyle(team.name) } : {}),
     },
   };
 }

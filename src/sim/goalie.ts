@@ -43,17 +43,21 @@ export function goalieTarget(g: Player, world: World, t: Tuning): Vec {
   // A shot heading for the net: go to where it will arrive.
   const speed = Math.hypot(seen.vel.x, seen.vel.y);
   const towardNet = -out * seen.vel.x;
-  if (seen.loose && speed >= t.goalie.shotSpeedThreshold && towardNet > 0 && out * (seen.pos.x - standX) > 0) {
-    const time = (out * (seen.pos.x - standX)) / towardNet;
+  // He meets it at the depth he is already standing at, so having come out to challenge is not undone.
+  const meetX = out * (g.pos.x - standX) > 0 ? g.pos.x : standX;
+  if (seen.loose && speed >= t.goalie.shotSpeedThreshold && towardNet > 0 && out * (seen.pos.x - meetX) > 0) {
+    const time = (out * (seen.pos.x - meetX)) / towardNet;
     const y = seen.pos.y + seen.vel.y * time;
-    if (Math.abs(y) <= limit + 1) return { x: standX, y: Math.max(-limit, Math.min(limit, y)) };
+    if (Math.abs(y) <= limit + 1) return { x: meetX, y: Math.max(-limit, Math.min(limit, y)) };
   }
 
   // Otherwise play the angle.
   const dx = seen.pos.x - net.x;
   const dy = seen.pos.y - net.y;
   const d = Math.hypot(dx, dy) || 1;
-  const depth = Math.min(state.fx.depth, d * 0.5);
+  // A carrier coming straight down the middle is challenged: he steps out further to cut the angle.
+  const straightOn = !seen.loose && d <= t.goalie.challengeRange && Math.abs(dy) <= t.goalie.challengeHalfWidth;
+  const depth = Math.min(state.fx.depth + (straightOn ? t.goalie.challengeDepth : 0), d * 0.5);
   return { x: net.x + (dx / d) * depth, y: Math.max(-limit, Math.min(limit, (dy / d) * depth)) };
 }
 
@@ -102,7 +106,13 @@ export function makeSave(g: Player, world: World, t: Tuning, events: SimEvent[])
 
   // Rebound: out from the goalie, scattered, with part of the shot's speed.
   const scatter = (world.rng.range(-1, 1) * t.goalie.reboundScatterDegrees * Math.PI) / 180;
-  const out = Math.atan2(puck.pos.y - g.pos.y, puck.pos.x - g.pos.x) + scatter;
+  // Out from the goalie, pulled part of the way toward straight up the ice, so rebounds land in the slot.
+  const away = Math.atan2(puck.pos.y - g.pos.y, puck.pos.x - g.pos.x);
+  const upIce = attackDir(g.team) === 1 ? 0 : Math.PI;
+  let turn = upIce - away;
+  while (turn > Math.PI) turn -= Math.PI * 2;
+  while (turn < -Math.PI) turn += Math.PI * 2;
+  const out = away + turn * t.goalie.reboundToSlot + scatter;
   const reboundSpeed = Math.max(t.goalie.reboundMinSpeed, speed * state.fx.reboundKeep);
   loosePuck(world);
   puck.vel.x = Math.cos(out) * reboundSpeed;

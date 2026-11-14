@@ -562,7 +562,7 @@ export class RinkScene extends Phaser.Scene {
         .setPosition(x, y)
         .setScale(unit / pixels)
         .setFlipX(side === -1)
-        .setRotation(p.stagger > 0 ? FIG.staggerTilt * side : 0)
+        .setRotation(p.knockedDown ? FIG.knockdownTilt * side : p.stagger > 0 ? FIG.staggerTilt * side : 0)
         .setAlpha(alpha)
         .setDepth(DEPTH.players + (p.pos.y + t.rink.width) / (t.rink.width * 4))
         .setVisible(true);

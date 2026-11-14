@@ -77,7 +77,11 @@ export function resolveLoosePuck(world: World, t: Tuning, events: SimEvent[]): v
       interception;
     if (caught) {
       // Receiving a pass meant for him opens the short window for a one-timer.
-      if (isTarget) p.oneTimer = t.shot.oneTimerWindow;
+      if (isTarget) {
+        p.oneTimer = t.shot.oneTimerWindow;
+        // Shoot already held as it arrives: he fires it first-touch.
+        p.oneTimerArmed = p.shootHeld;
+      }
       givePuck(world, p);
       events.push({ type: 'pickup', player: p.id });
       return;

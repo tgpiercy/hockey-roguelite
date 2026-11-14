@@ -149,6 +149,14 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Home and away jerseys | Each team has two kits from its own colours: its colour at home, and on the road a white jersey with the team colour on the helmet, pattern, gloves, pants and socks. The home team wears colour and the road team white, following the season schedule; an exhibition is a home game. | Second playtest |
 | 2026-11-14 | Reticle | The ring under the player you control is bright red with a white edge and thicker; a red arrow with a white edge bobs over his head. Asked for by the owner: the old yellow ring was hard to see on the phone. | Second playtest |
 | 2026-11-14 | Arrow over the puck carrier | The bobbing red arrow marks whoever has the puck, on either team (a goalie holding it included), not the player you control. The red ring still marks the player you control. Asked for by the owner. | Second playtest |
+| 2026-11-14 | One-timer | A basic move for everyone, not a gear bonus: hold shoot while a pass is on its way and it goes first-touch as a full wind-up, a quarter harder. A shot within half a second of receiving a pass counts the same. The Sniper set still adds 20% on top. | Deeper gameplay |
+| 2026-11-14 | Deke | With the puck, the switch button (Y) is a quick sidestep the way the stick points; for 0.3 seconds a check misses. 2.5-second cooldown, costs stamina. The AI dekes occasionally at higher levels. | Deeper gameplay |
+| 2026-11-14 | Big hits | A body check thrown while closing fast knocks the carrier down for 1.5 seconds; he is drawn flat. The Enforcer set still makes such a hit always free the puck. | Deeper gameplay |
+| 2026-11-14 | Rebounds | Goalies hold fewer hard shots, and rebounds come out toward the slot. | Deeper gameplay |
+| 2026-11-14 | AI defence and support | A defender who is not pressing guards the slot; the presser comes harder on a carrier near the net; the goalie steps out on a carrier straight in front. Your linemates slide into a clear passing lane, and the net-front man sets up at the far post. | Deeper gameplay |
+| 2026-11-14 | Team styles | Every team but yours plays rush, cycle or dump and chase, fixed by its name and shown on the game screen. Your own linemates have no leaning. | Deeper gameplay |
+| 2026-11-14 | Goalies on the game screen | Both goalies are shown with face and overall on the matchup poster. | Deeper gameplay |
+| 2026-11-14 | Balance targets after this round | Scoring and the slot-and-shoot target are met. Save percentage (.80 to .81) is under the .850 target and the stronger team wins a little too often (about 81% against 75%). Left as they are until the owner has played. | Deeper gameplay |
 
 ## Open
 

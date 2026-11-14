@@ -356,6 +356,54 @@ The win rate swings 11 points between two seeds, so 200 games is too few to read
 
 Scripted human-style player against the AI, 60 games: at level 0.5, 47 wins and 13 losses (4.75 goals for, 2.98 against); at 0.75, 37 wins and 23 losses (3.60 for, 3.15 against).
 
+## Deeper gameplay: new moves and AI (2026-11-14)
+
+Built after the research report put the hockey itself first. New moves: the one-timer as a basic move, a deke, big hits, more rebounds. AI: a slot guard, a goalie who steps out on a straight-on carrier, teammates who get open, team styles.
+
+What moved, in numbers:
+
+| Value | From | To |
+| --- | --- | --- |
+| shot.oneTimerPower (new) | gear only | 1.25: a one-timer is a full wind-up and a quarter harder |
+| deke (new) | none | 0.3 s of slipping checks, 2.5 s cooldown, 0.2 stamina, a 5 m/s sidestep |
+| check.knockdownSeconds (new) | none | 1.5 s on the ice after a body check thrown at 5 m/s closing speed or more (a stagger is 0.7 s) |
+| goalie.reboundToSlot (new) | rebounds straight back out | pulled halfway toward straight up the ice |
+| goalie rebound control: fastest shot he can freeze | 6 to 30 | 6 to 22: more rebounds |
+| goalie.challengeDepth (new) | none | 0.5 m further out on a carrier within 10 m and 4 m of centre; he now meets a shot at the depth he is standing at |
+| goalie positioning: net covered (radius) | 0.31 to 0.37 | 0.28 to 0.34 |
+| AI passAwareness, easy end | 0.08 | 0.15 |
+| AI dekeChance (new) | none | 0 to 0.08 each time it thinks under pressure |
+| AI styles (new) | none | rush, cycle, dump and chase: see `ai.json` |
+
+How often each new thing happens, per team per game, AI against AI at level 0.5 (120 games):
+
+| | Per team per game |
+| --- | --- |
+| One-timer shots / goals | 2.9 / 0.28 |
+| Goals within 2.5 s of a rebound | 0.47 |
+| Big hits | 1.4 |
+| Dekes (AI) | 4.2 |
+| Checks, of which pokes | 52, of which 48 |
+
+Balance after, 200 games on each of two seeds:
+
+| Target | Before this round | After | Met? |
+| --- | --- | --- | --- |
+| Equal teams score 3 to 5 each | about 3.2 | 3.41 and 3.31; 3.65 and 3.59 | yes |
+| 90 beats 70 about 75% of the time | 75.0% | 84.0% and 77.3% (80.6% together) | a little high |
+| Save percentage .850 to .920 | .847 | .811 and .801 | **no: about .04 under** |
+| Scripted slot-and-shoot player wins about half at the default level (0.75) | 37 of 60 | 80 of 150 (53%), 4.19 goals for and 3.87 against | yes |
+
+The scripted player on easier settings, 150 games each: level 0.5 (Pro, first region) 108 wins; level 0.3 (Rookie, first region) 134 wins.
+
+Why the save percentage fell: goals are unchanged, but fewer shots now reach the goalie (defenders in the slot block and poke more), and to keep scoring in range the goalies were made to cover slightly less net. It was left there on purpose: the owner had said the goalie seemed to save a lot. If it reads as leaky in play, the lever is the goalie's cover radius, with scoring then lifted another way.
+
+How the slot-and-shoot pattern was closed: the scripted player and the AI took the same number of shots; the script simply converted more (14.5% against 10.2%) from straight in front. Adding defenders did not change that. What did was the goalie holding the depth he had stepped out to when the shot came, where before he drifted back to his line. The script and the AI now convert alike (11.8% and 11.7%).
+
+Team styles are not equal in strength. Over 120 games with the three styles meeting each other: rush teams scored 4.13 a game with 46 passes, cycle teams 2.86 with 83 passes, dump-and-chase teams 2.06 with 52 passes. So the styles do play differently, but a dump-and-chase team is plainly weaker and a rush team stronger at the same ratings. That needs a tuning round.
+
+Lessons: 60-game samples swing by about 9 wins either way, so the script was measured at 150 games; and a goal-rate change of 0.3 cannot be read from fewer than about 120 games.
+
 ## Change log
 
 | Date | Value | From | To | Why |
@@ -371,5 +419,6 @@ Scripted human-style player against the AI, 60 games: at level 0.5, 47 wins and 
 | 2026-11-14 | aging.json, offseason.json | first guesses | see "League health over 20 seasons" above | To keep the league stable for 20 seasons |
 | 2026-11-14 | pass.speed, pass.saucerSpeed | 20, 17 | 26, 22 | Passes felt slow to the owner |
 | 2026-11-14 | ai.json: zone posts, longShotRange, longShotChance, longShotCharge, plantTilt | none | see "Spread-out attack" above | Attackers crowded the net |
+| 2026-11-14 | one-timer, deke, knock-down, rebound, goalie challenge, cover radius, AI styles | see "Deeper gameplay" above | | New moves and AI after the research report |
 | 2026-11-14 | check.pokeRange | 1.9 | 2.8 | The owner wanted a poke check that works from a stick length away |
 | 2026-11-14 | economy.json sponsorShareOfValue | 0.04 | 0.18 | Every manager style was bankrupt by season 3: income was per game but seasons can be 4 games long |

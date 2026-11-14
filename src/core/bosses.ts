@@ -1,3 +1,4 @@
+import { playStyle } from './playStyle';
 import bosses from '../data/bosses.json';
 import leagueRules from '../data/league.json';
 import rules from '../data/season.json';
@@ -66,6 +67,7 @@ export function buildBoss(league: League, bossId: string, region: number, seed: 
       goalie: goalie.ratings as GoalieRatings,
       positions: skaters.map((p) => (p.position === 'D' ? 'D' : 'F')),
       modifiers: boss.modifiers,
+      style: playStyle(boss.name),
     },
   };
 }

@@ -359,3 +359,29 @@ Built, deployed and checked with a simulated controller.
 - Seen at phone size from live games: a home game (your team in navy, the road team in white with maroon helmets and legs) and a road game (your team in white, the home team in orange), each with a 4x close-up showing the ring and arrow; the art sheet with both kits for six teams.
 - Balance on two seeds of 200 games: goals in range; the stronger team won 69.5% and 80.5% (75.0% together, on target); save percentage .849 and .844, just under the .850 floor. Nothing was retuned.
 - Not checked: how the poke feels in the hands; the white kit and the red ring on a real phone screen; the arrow's bobbing (still frames only).
+
+# Deeper gameplay: new moves and AI
+
+- [x] One-timer as a basic move
+- [x] Deke on the switch button while carrying
+- [x] Big hits knock players down
+- [x] Rebounds toward the slot
+- [x] AI defends the slot; goalie steps out on a straight-on carrier
+- [x] Teammates get open; net-front at the far post
+- [x] Team styles: rush, cycle, dump and chase
+- [x] Goalies and the opponent's style on the game screen; new moves in the pause menu's controls list
+- [x] Tests; balance on two seeds
+- [ ] Commit, push, deploy green
+- [ ] Even out the three styles (dump and chase is weak, rush is strong)
+- [ ] Save percentage and the 90-against-70 win rate are off target: revisit after play
+- [ ] Play it: one-timers, the deke, the hits, the tougher slot (owner)
+
+## Review (deeper gameplay)
+
+- Type check, 802 tests (22 new) and the build pass.
+- Balance on two seeds of 200 games: scoring in range (3.3 to 3.65 a team). The scripted slot-and-shoot player now wins 80 of 150 at the default level (was 37 of 60). Two targets are off: save percentage .80 to .81 (target .850 or more) and the stronger team winning about 81% (target about 75%).
+- Each new thing does happen: about 2.9 one-timer shots and 0.28 one-timer goals a team a game, 0.47 rebound goals, 1.4 big hits, 4.2 AI dekes.
+- In the browser, by keyboard in a live game: a deke (cooldown started, stamina fell from 1.00 to 0.80, puck kept); a one-timer (shoot held as a pass arrived; fired on the next step at 43.6 m/s against 38 for a full wind-up). The game screen shows both goalies and the opponent's style.
+- Wrong turns, caught by measuring: the AI deked 15 to 20 times a game at first; a slot guard alone did nothing to the script's record; a goalie stepping out further did nothing until he also held that depth on the shot.
+- Not as planned: the touch Swap button reads "Swap Deke" always, not "Deke" only while carrying (the overlay does not know who has the puck). The knocked-down picture was staged by setting the state by hand; no real big hit happened in the minutes I stepped through.
+- Not checked: how any of it feels; whether styles can be told apart by eye; touch dekes; a real big hit on screen. The styles are unequal in strength (rush 4.13 goals a game, cycle 2.86, dump and chase 2.06).

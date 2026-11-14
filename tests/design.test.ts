@@ -351,8 +351,9 @@ describe('real set bonuses on the ice', () => {
     const noSet = shoot(0.4, []);
     const power = player(createWorld(t, 'p', { teams: [setup(), setup()] }), ID.home1).fx.shotPower;
     expect(tap).toBeCloseTo(shotSpeed(0, power, t));
-    expect(noSet).toBeCloseTo(tap);
-    expect(oneTimer).toBeCloseTo(shotSpeed(t.shot.chargeTime, power, t) * 1.2);
+    // Without the set it is still a one-timer: a full wind-up. The set makes it 20% harder on top.
+    expect(noSet).toBeCloseTo(shotSpeed(t.shot.chargeTime, power, t) * t.shot.oneTimerPower);
+    expect(oneTimer).toBeCloseTo(shotSpeed(t.shot.chargeTime, power, t) * t.shot.oneTimerPower * 1.2);
     expect(oneTimer).toBeGreaterThan(tap * 1.5);
   });
 

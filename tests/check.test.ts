@@ -36,8 +36,8 @@ const check = (world: World, t = sure): SimEvent[] => {
 };
 
 describe('body check', () => {
-  it('close and closing fast: knocks the puck loose and staggers the carrier', () => {
-    const world = setUp(1.2, 8);
+  it('close and closing in: knocks the puck loose and staggers the carrier', () => {
+    const world = setUp(1.2, sure.check.minClosingSpeed + 1);
     expect(checkKind(player(world, ID.home1), player(world, ID.away1), world, sure)).toBe('body');
     const events = check(world);
     expect(events).toEqual([{ type: 'check', player: ID.home1, target: ID.away1, kind: 'body', success: true }]);
@@ -74,6 +74,96 @@ describe('body check', () => {
     expect(carrier.vel.x).toBeLessThan(5);
     expect(carrier.vel.x).toBeGreaterThan(0);
     expect(carrier.vel.y).toBeCloseTo(0);
+  });
+});
+
+describe('big hit', () => {
+  it('thrown while closing fast, a body check puts the carrier on the ice for longer than a stagger', () => {
+    expect(sure.check.knockdownSeconds).toBeGreaterThan(sure.check.staggerSeconds);
+    const world = setUp(1.2, sure.check.bigHitClosingSpeed + 2);
+    const events = check(world);
+    expect(events[0]).toMatchObject({ kind: 'body', success: true, big: true });
+    const carrier = player(world, ID.away1);
+    expect(carrier.stagger).toBeCloseTo(sure.check.knockdownSeconds);
+    expect(carrier.knockedDown).toBe(true);
+    // He gets up when the time is served.
+    for (let i = 0; i < 60 * (sure.check.knockdownSeconds + 0.2); i++) step(world, NO_INPUT, sure);
+    expect(carrier.stagger).toBe(0);
+    expect(carrier.knockedDown).toBe(false);
+  });
+
+  it('below that speed it is an ordinary check: a stagger, and he stays on his feet', () => {
+    const world = setUp(1.2, sure.check.bigHitClosingSpeed - 1);
+    const events = check(world);
+    expect(events[0]).toMatchObject({ kind: 'body', success: true });
+    expect(events[0]).not.toHaveProperty('big');
+    expect(player(world, ID.away1).knockedDown).toBe(false);
+    expect(player(world, ID.away1).stagger).toBeCloseTo(sure.check.staggerSeconds);
+  });
+
+  it('a big hit that fails knocks nobody down', () => {
+    const world = setUp(1.2, sure.check.bigHitClosingSpeed + 2);
+    const events = check(world, tuningWithChance(0));
+    expect(events[0]).toMatchObject({ success: false });
+    expect(player(world, ID.away1).knockedDown).toBe(false);
+  });
+});
+
+describe('deke', () => {
+  const deke: InputFrame = { ...NO_INPUT, switchPlayer: true };
+  /** The opponent carrier is the human here, so his switch button is a deke. */
+  const carrying = (): World => {
+    const world = createWorld(sure, 'deke');
+    clearIce(world, [ID.home1, ID.away1]);
+    place(world, ID.home1, 0, 0, 0);
+    giveTo(world, ID.home1);
+    world.human!.controlled = ID.home1;
+    return world;
+  };
+
+  it('with the puck, the switch button is a sidestep that costs stamina and starts a cooldown', () => {
+    const world = carrying();
+    const p = player(world, ID.home1);
+    const events = step(world, { ...deke, moveX: 0, moveY: 1 }, sure);
+    expect(events.some((e) => e.type === 'deke' && e.player === ID.home1)).toBe(true);
+    expect(p.deke).toBeGreaterThan(0);
+    expect(p.dekeCooldown).toBeGreaterThan(sure.deke.cooldownSeconds - 0.1);
+    expect(p.stamina).toBeCloseTo(1 - sure.deke.staminaCost, 1);
+    // He was pushed the way the stick pointed: down the screen.
+    expect(p.vel.y).toBeGreaterThan(1);
+    expect(world.puck.carrier).toBe(ID.home1);
+  });
+
+  it('a check thrown during the deke misses; the same check without it lands', () => {
+    const setUpCheck = (withDeke: boolean): World => {
+      const world = setUp(1.2, sure.check.minClosingSpeed + 1);
+      if (withDeke) player(world, ID.away1).deke = sure.deke.windowSeconds;
+      return world;
+    };
+    const dodged = setUpCheck(true);
+    expect(check(dodged)[0]).toMatchObject({ kind: 'body', success: false });
+    expect(dodged.puck.carrier).toBe(ID.away1);
+    expect(player(dodged, ID.away1).stagger).toBe(0);
+    const caught = setUpCheck(false);
+    expect(check(caught)[0]).toMatchObject({ kind: 'body', success: true });
+  });
+
+  it('cannot be used again until the cooldown is over, nor without the puck, nor when out of breath', () => {
+    const world = carrying();
+    const count = (events: SimEvent[]): number => events.filter((e) => e.type === 'deke').length;
+    expect(count(step(world, deke, sure))).toBe(1);
+    step(world, NO_INPUT, sure);
+    expect(count(step(world, deke, sure))).toBe(0);
+    for (let i = 0; i < 60 * (sure.deke.cooldownSeconds + 0.1); i++) step(world, NO_INPUT, sure);
+    step(world, NO_INPUT, sure);
+    player(world, ID.home1).stamina = sure.deke.staminaCost / 2;
+    expect(count(step(world, deke, sure))).toBe(0);
+    // Without the puck the button switches player and nobody dekes.
+    const other = createWorld(sure, 'no-puck');
+    clearIce(other, [ID.home1]);
+    place(other, ID.home1, 0, 0);
+    other.puck.pos = { x: 15, y: 8 };
+    expect(count(step(other, deke, sure))).toBe(0);
   });
 });
 
