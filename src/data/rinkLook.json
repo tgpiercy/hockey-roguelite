@@ -26,7 +26,15 @@
     "teamHome": "#1d3557",
     "teamAway": "#c1121f",
     "controlRing": "#ffb703",
-    "debugText": "#0e2a4f"
+    "debugText": "#0e2a4f",
+    "mark": "#8fb4d0",
+    "snow": "#ffffff",
+    "skate": "#1a1a22",
+    "stands": "#0a2244",
+    "standsEdge": "#123460",
+    "goalLight": "#ff2d2d",
+    "light": "#ffffff",
+    "iceShade": "#3a6a94"
   },
   "font": "'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', system-ui, sans-serif",
   "marginPixels": 8,
@@ -45,5 +53,94 @@
   "circleFromCentreLine": 6.5,
   "neutralDotFromBlueLine": 1.4,
   "scoreboardWidthShare": 0.56,
-  "scoreboardMaxWidth": 460
+  "scoreboardMaxWidth": 460,
+  "standsVerticalPixels": 13,
+  "numberMinRadius": 13,
+  "centreCrestSize": 5.2,
+  "centreCrestAlpha": 0.5,
+  "bannerSlideSeconds": 0.35,
+  "effects": {
+    "goalLightSeconds": 2.4,
+    "goalShake": 0.006,
+    "hitShake": 0.004,
+    "shakeMs": 140,
+    "hitRingSize": 1.6,
+    "postRingSize": 1.0,
+    "ringSeconds": 0.35,
+    "padsDownSeconds": 0.5,
+    "crowdRest": 0.12,
+    "crowdCalmPerSecond": 0.22,
+    "stridePerMetre": 1.5,
+    "strideReach": 0.42,
+    "markEverySeconds": 0.08,
+    "markMinSpeed": 2.5,
+    "markSeconds": 5,
+    "markAlpha": 0.22,
+    "markWidth": 0.07,
+    "maxMarks": 420,
+    "stopSprayDrop": 0.12,
+    "stopSprayMinSpeed": 5,
+    "stopSpray": 5,
+    "hitSpray": 10,
+    "spraySpeed": 5,
+    "spraySeconds": 0.55,
+    "sprayDrag": 4,
+    "spraySize": 0.14,
+    "maxParticles": 140,
+    "trailMinSpeed": 20,
+    "trailSeconds": 0.22,
+    "trailWidth": 0.12,
+    "trailAlpha": 0.4
+  },
+  "arena": {
+    "maxRows": 14,
+    "firstRowOffset": 9,
+    "rowGap": 6,
+    "seatGap": 6,
+    "fanSize": 3.4,
+    "emptySeatChance": 0.08,
+    "teamFanChance": 0.34,
+    "ownEndChance": 0.8,
+    "neutralColours": [
+      "#4a6fa0",
+      "#6f8fb8",
+      "#93a9c8",
+      "#3b5d8c",
+      "#b7c6dc"
+    ],
+    "swaySpeed": 2.2,
+    "swayPixels": 1.1,
+    "jumpSpeed": 9,
+    "jumpPixels": 3.2,
+    "boardPanel": 3.2,
+    "boardPanelColours": [
+      "#eaf4fb",
+      "#ffb703",
+      "#eaf4fb",
+      "#36c9a6",
+      "#eaf4fb",
+      "#d62839"
+    ],
+    "iceAdverts": [
+      "FROSTLINE",
+      "PINE & PUCK",
+      "GLACIER FIZZ",
+      "SNOWCAP BANK"
+    ],
+    "iceAdvertAlpha": 0.2,
+    "lightPools": [
+      [
+        1.0,
+        0.05
+      ],
+      [
+        0.72,
+        0.05
+      ],
+      [
+        0.45,
+        0.06
+      ]
+    ]
+  }
 }

@@ -219,3 +219,25 @@ Built, deployed and checked with a simulated controller. Still open:
 - Driven by keyboard: simulate a game and step through its rewards; swap the spare in mid-season; change difficulty; re-sign and let go (an AI team signed the player I let go); build; a new season. By simulated touches in a real game: the virtual stick skated the player and a held Shoot registered as held. No console errors.
 - Not checked: a real phone, a real finger or a real controller; the touch layout at phone size on top of the rink (seen only at 1280 x 720); one-timers, big hits and breakaway speed in live play (unit tested on the simulation); the difficulty choice on a brand-new franchise (the Settings path was used).
 - Simplifications: players are simple shapes with no numbers (they are about 10 pixels across on a phone); the map shows one region at a time; the first load still starts a franchise on Pro without asking.
+
+# Graphics round: crests, effects, arena, sound, pack opening
+
+- [x] Team crests and jersey designs
+- [x] Skating stride, skate marks, snow, shot streak, hit and post rings, goal light, banner, screen shake
+- [x] Stands and crowd, board panels, adverts on the ice, lighting
+- [x] Sound: event sounds, crowd and skate beds, menu sounds, settings
+- [x] Pack opening; menu motion with a reduced-motion rule
+- [x] Checked in pictures and by measurement
+- [ ] Commit, push, deploy green
+- [ ] Listen to it and play it on the phone (owner)
+
+## Review (graphics round)
+
+- Type check, 690 tests (27 new) and the build pass. No rule changed: the balance series is unchanged.
+- Seen in pictures at phone size (844 x 390): the rink with stands, crowd, board panels, on-ice adverts and the centre-ice crest; players in two-colour jerseys; the scoreboard with crests; a goal with the banner sliding in over two frames; the matchup screen with both crests; the pack opening sealed, part turned and fully turned, including a Legendary; the settings screen.
+- Looking found three things to fix: a shading band along the boards that read as a second rink outline (removed); the home name squashed to nothing on the scoreboard (a scaling bug of mine); and both teams wearing so much of the same second colour that they were hard to tell apart (the main colour now dominates). Also turned cards showing green text from a clashing class name.
+- Sound, without hearing it: every sound was rendered to numbers and the levels evened out (table in docs/TUNING.md); during a played stretch the counts of sounds asked for matched what was happening (a faceoff drop, pickups, a pass, a hit); switching sound off was saved to the device.
+- Frame time here: 5.2 ms full detail, 4.8 ms low, against 16.7 ms available.
+- Not done from the plan: numbers counting up on the rewards screen, a sweeping stick, the net bulging on a goal. The sound-synthesis checks are measurements made in the browser, not unit tests, because the test environment has no audio; the unit tests cover the event-to-sound map and the recipes' validity.
+- Not checked: what any of it sounds like; smoothness of the animation (only still frames); a phone's frame rate; whether a controller button alone unlocks sound; jersey numbers (they only show on a bigger screen, seen once at 1280 x 720).
+- The rink is about 7.5% smaller than before, a little more than the 6% in the plan.

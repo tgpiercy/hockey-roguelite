@@ -1,5 +1,6 @@
 import { createContext, type ComponentChildren } from 'preact';
 import { useContext, useEffect, useRef, useState } from 'preact/hooks';
+import { gameAudio } from '../game/audio';
 import { onMenuAction } from './menuInput';
 
 export interface MenuItem {
@@ -93,12 +94,23 @@ export function Menu({ title, header, items, onBack, help, message, initialFocus
         const now = latest.current;
         const count = now.items.length;
         const item = now.items[now.current];
-        if (action === 'up' && count > 0) setFocus((now.current - 1 + count) % count);
-        else if (action === 'down' && count > 0) setFocus((now.current + 1) % count);
-        else if (action === 'left') item?.onLeft?.();
+        // Any press is the player's own, which is what browsers need before they allow sound.
+        gameAudio.unlock();
+        if (action === 'up' && count > 0) {
+          setFocus((now.current - 1 + count) % count);
+          gameAudio.play('tick');
+        } else if (action === 'down' && count > 0) {
+          setFocus((now.current + 1) % count);
+          gameAudio.play('tick');
+        } else if (action === 'left') item?.onLeft?.();
         else if (action === 'right') item?.onRight?.();
-        else if (action === 'confirm' && item && !item.disabled) item.onSelect?.();
-        else if (action === 'back') now.onBack?.();
+        else if (action === 'confirm' && item && !item.disabled) {
+          gameAudio.play('select');
+          item.onSelect?.();
+        } else if (action === 'back' && now.onBack) {
+          gameAudio.play('back');
+          now.onBack();
+        }
       }),
     [],
   );
@@ -138,8 +150,12 @@ export function Menu({ title, header, items, onBack, help, message, initialFocus
               class={`menu-item${i === current ? ' focused' : ''}${item.disabled ? ' disabled' : ''}`}
               onMouseMove={() => i !== current && setFocus(i)}
               onClick={() => {
+                gameAudio.unlock();
                 setFocus(i);
-                if (!item.disabled) item.onSelect?.();
+                if (!item.disabled) {
+                  gameAudio.play('select');
+                  item.onSelect?.();
+                }
               }}
             >
               {item.label}

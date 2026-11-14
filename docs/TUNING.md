@@ -275,6 +275,29 @@ That is a profit of $11.6M, where the plan's first numbers gave a loss of $2.6M.
 
 All are first guesses. The three set mechanics are off for a player without the set, so the equal-teams balance series is unchanged (3.37 and 3.16 goals, save percentage .855) and the 20-season reports are unchanged.
 
+## Sound levels (graphics round, 2026-11-14)
+
+Nobody has listened to these yet. Each sound was rendered to numbers in the browser (an offline audio render at master gain 0.6) and adjusted until none was silent, none clipped, and the foreground sounds sat in the same range. "Heard" is how long the sound stays above a quiet threshold; the tail fades out, so it is shorter than the recipe's length.
+
+| Sound | Heard | Peak before | Peak after | What changed |
+| --- | --- | --- | --- | --- |
+| pass | 0.03 s | 0.15 | 0.25 | Louder |
+| shot | 0.07 s | 0.60 | 0.35 | A band of noise instead of everything above 900 Hz, which measured as pure hiss |
+| post | 0.22 s | 0.34 | 0.34 | |
+| save | 0.07 s | 0.22 | 0.22 | |
+| hit | 0.12 s | 0.33 | 0.34 | |
+| poke | 0.03 s | 0.04 | 0.17 | Was nearly inaudible |
+| tap (pickup) | 0.02 s | 0.02 | 0.09 | Was nearly inaudible; still the quietest by design |
+| drop (faceoff) | 0.02 s | 0.11 | 0.22 | Louder |
+| whistle | 0.26 s | 0.23 | 0.23 | |
+| horn | 0.88 s | 0.38 | 0.38 | |
+| roar | 1.35 s | 0.19 | 0.28 | Lower and narrower, so it is a roar and not a hiss |
+| groan | 0.69 s | 0.09 | 0.22 | Was nearly inaudible |
+| chime, tick, select, back | 0.02 to 0.27 s | 0.09 to 0.15 | unchanged | |
+| reveal, legendary | 0.11, 0.69 s | 0.15 | unchanged | |
+
+Frame time on this PC at 844 x 390, sim step and drawing together, averaged over 600 frames: 5.2 ms with full detail, 4.8 ms with low detail (a frame at 60 a second has 16.7 ms). Low detail saves little here because the crowd is still drawn, only held still. A phone is slower; that is untested.
+
 ## Change log
 
 | Date | Value | From | To | Why |

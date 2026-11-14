@@ -3,6 +3,7 @@ import { render } from 'preact';
 import testTuning from './data/controllerTest.json';
 import { ControllerTestScene } from './game/ControllerTestScene';
 import type { GamepadSnapshot } from './game/gamepad';
+import { gameAudio } from './game/audio';
 import { App } from './ui/App';
 import { ControllerReadout } from './ui/ControllerReadout';
 import './style.css';
@@ -26,6 +27,9 @@ function startControllerTest(): void {
     scene: new ControllerTestScene(show),
   });
 }
+
+// Browsers only allow sound once the player has pressed or tapped something: any such press wakes it.
+for (const type of ['keydown', 'pointerdown', 'touchstart']) window.addEventListener(type, () => gameAudio.unlock(), { passive: true });
 
 if (new URLSearchParams(location.search).has('controller')) startControllerTest();
 else render(<App />, document.getElementById('menu') as HTMLElement);

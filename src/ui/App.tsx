@@ -1,6 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useReducer, useRef, useState } from 'preact/hooks';
 import { bossInfo, teamStrength } from '../core/bosses';
+import { teamCrest } from '../core/crest';
 import { bailOut, canBailOut, inFireSale, isHomeGame, playerSalePrice, seasonEndBills, starCount } from '../core/economy';
 import { build, buildCost, FACILITIES, facilityLevel, facilityUpkeep, MAX_FACILITY_LEVEL } from '../core/facilities';
 import { equip, levelCost, levelUp, rarityInfo, releasePlayer, scrap, unequip, wornBy, type GearItem } from '../core/gear';
@@ -58,7 +59,11 @@ import mascotRules from '../data/mascot.json';
 import prestigeRules from '../data/prestige.json';
 import rules from '../data/season.json';
 import { EquipPreview, GearCard, GearedRatings, GearRow, setProgress, slotName } from './gearParts';
+import { gameAudio } from '../game/audio';
+import { CrestBadge } from './Crest';
 import { Menu, MenuChrome, type MenuItem } from './Menu';
+import { PackOpening } from './PackOpening';
+import { loadPrefs, savePrefs, VOLUME_STEPS, type Prefs } from './prefs';
 import { menuInput } from './menuInput';
 import { playMatch } from './matchView';
 import type { PlayerRecord } from '../core/player';
@@ -134,6 +139,13 @@ export function App() {
   const [group, setGroup] = useState<Group | null>(null);
   const [rewards, setRewards] = useState<GameRewards | null>(null);
   const [mapFocus, setMapFocus] = useState<string | null>(null);
+  const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
+  // Sound follows the device's preferences from the first moment.
+  useEffect(() => gameAudio.configure(prefs.sound, prefs.volume), [prefs]);
+  const changePrefs = (next: Prefs): void => {
+    savePrefs(next);
+    setPrefs(next);
+  };
 
   /** Writes the franchise to storage and redraws. Call after anything changes. */
   const commit = (franchise: Franchise): void => {
@@ -223,6 +235,8 @@ export function App() {
   ];
   const bump = (id: string): number => season.bumps[id] ?? 0;
   const fireSale = inFireSale(f);
+  // Your crest wears the jersey colour you chose; every other team's comes from its name.
+  const myCrest = teamCrest(team.name, jerseyColour(f));
   const cashLine = (
     <div>
       Cash <b class={f.cash < 0 ? 'down' : ''}>{money(f.cash)}</b> · Franchise value <b>{money(f.value)}</b>
@@ -312,9 +326,13 @@ export function App() {
           message={message}
           header={
             <>
-              <div>
-                Off-season before season {league.season} · all-time record {f.record.wins}-{f.record.losses}-{f.record.overtimeLosses} · difficulty{' '}
-                {difficultyInfo(f.difficulty).name}
+              <div class="team-head">
+                <CrestBadge crest={myCrest} size={46} />
+                <div>
+                  Off-season before season {league.season}
+                  <br />
+                  All-time {f.record.wins}-{f.record.losses}-{f.record.overtimeLosses} · {difficultyInfo(f.difficulty).name}
+                </div>
               </div>
               <CapLine league={league} team={team} />
               {cashLine}
@@ -424,11 +442,13 @@ export function App() {
             <>
               <div class="versus">
                 <div>
+                  <CrestBadge crest={myCrest} size={34} />
                   <b>{mine}</b>
                   <span>{team.name}</span>
                 </div>
                 <i>VS</i>
                 <div>
+                  <CrestBadge crest={teamCrest(game.away.name, teamColour(game.away.name, jerseyColour(f)))} size={34} />
                   <b>{strength}</b>
                   <span>{game.away.name}</span>
                 </div>
@@ -635,7 +655,7 @@ export function App() {
           onSelect: () => {
             const items = openPack(f, pack.id);
             if (!items) return;
-            setScreen({ name: 'reveal', ids: items.map((g) => g.id), shown: 1, title: packName(pack.type) });
+            setScreen({ name: 'reveal', ids: items.map((g) => g.id), shown: 0, title: packName(pack.type) });
             setMessage('');
             commit(f);
           },
@@ -646,33 +666,29 @@ export function App() {
 
   if (screen.name === 'reveal') {
     const items = screen.ids.map((id) => f.gear.find((g) => g.id === id)).filter((g): g is GearItem => g !== undefined);
-    const all = screen.shown >= items.length;
-    const current = items[Math.min(screen.shown, items.length) - 1];
+    const shown = Math.min(screen.shown, items.length);
+    const all = shown >= items.length;
+    const turn = (count: number): void => {
+      // The sound for the best piece being turned over: a fanfare for a Legendary.
+      const turned = items.slice(shown, count);
+      gameAudio.play(turned.some((g) => g.rarity === 'legendary') ? 'legendary' : 'reveal');
+      setScreen({ ...screen, shown: count });
+    };
     return (
       <Menu
-        key={`reveal-${screen.shown}`}
+        key={`reveal-${shown}`}
         stack
-        title={`${screen.title}: piece ${Math.min(screen.shown, items.length)} of ${items.length}`}
-        header={
-          <>
-            {current && <GearCard item={current} />}
-            {all && items.length > 1 && (
-              <div class="reveal-list">
-                {items.map((g) => (
-                  <div key={g.id}>
-                    <GearRow item={g} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        }
-        help="A next"
-        items={[
+        title={shown === 0 ? screen.title : `${screen.title}: ${shown} of ${items.length}`}
+        header={<PackOpening title={screen.title} items={items} shown={shown} />}
+        help={all ? 'A done' : 'A turn the next card'}
+        items={
           all
-            ? { key: 'done', label: 'Done', onSelect: () => go({ name: f.packs.length > 0 ? 'packs' : 'gear' }) }
-            : { key: 'next', label: 'Next piece', onSelect: () => setScreen({ ...screen, shown: screen.shown + 1 }) },
-        ]}
+            ? [{ key: 'done', label: <b>Done</b>, onSelect: () => go({ name: f.packs.length > 0 ? 'packs' : 'gear' }) }]
+            : [
+                { key: 'next', label: <b>{shown === 0 ? 'Open the pack' : 'Turn the next card'}</b>, onSelect: () => turn(shown + 1) },
+                ...(shown > 0 ? [{ key: 'all', label: 'Turn them all', onSelect: () => turn(items.length) }] : []),
+              ]
+        }
       />
     );
   }
@@ -1030,6 +1046,7 @@ export function App() {
             key: other.id,
             label: (
               <span class="team-row">
+                <CrestBadge crest={teamCrest(other.name)} size={24} />
                 <span class="tname">{other.name}</span>
                 <span>average {Math.round(teamStrength(league, other.id))}</span>
                 {best && (
@@ -1549,6 +1566,17 @@ export function App() {
             lock: locked ? 'The difficulty can only be changed between seasons.' : undefined,
             detail: difficultyInfo(f.difficulty).description,
           }),
+          tile('sound', 'Sound', prefs.sound ? 'On' : 'Off', () => changePrefs({ ...prefs, sound: !prefs.sound }), {
+            detail: 'Every sound is made by the game as it runs. Sound starts after your first key press or tap; with only a controller connected, tap the screen once.',
+          }),
+          tile('volume', 'Volume', `${Math.round(prefs.volume * 100)}%`, () => {
+            const next = VOLUME_STEPS[(VOLUME_STEPS.findIndex((v) => v >= prefs.volume - 0.001) + 1) % VOLUME_STEPS.length] as number;
+            changePrefs({ ...prefs, volume: next });
+            gameAudio.play('chime');
+          }, { detail: 'Press to step through the levels.', disabled: !prefs.sound }),
+          tile('detail', 'Rink detail', prefs.detail === 'full' ? 'Full' : 'Low', () => changePrefs({ ...prefs, detail: prefs.detail === 'full' ? 'low' : 'full' }), {
+            detail: 'Low drops the skate marks, snow, screen shake and crowd movement. Try it if the game does not run smoothly on your phone.',
+          }),
           tile('saves', 'Save and load', 'Export, import, or start again', () => go({ name: 'saves' }), {
             detail: 'The game saves by itself after every move, every stop and every game.',
           }),
@@ -1920,6 +1948,7 @@ export function App() {
             key: opponent.id,
             label: (
               <span class="team-row">
+                <CrestBadge crest={teamCrest(opponent.name)} size={24} />
                 <span class="tname">{opponent.name}</span>
                 <span>average {Math.round(teamStrength(league, opponent.id))}</span>
                 {best && (

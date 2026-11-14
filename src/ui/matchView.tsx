@@ -3,11 +3,13 @@ import { render } from 'preact';
 import type { DressedTeam } from '../core/matchup';
 import look from '../data/rinkLook.json';
 import seasonRules from '../data/season.json';
+import { gameAudio } from '../game/audio';
 import type { Controls } from '../game/input';
 import { RinkScene } from '../game/RinkScene';
 import type { GameResult } from '../sim/match';
 import type { PowerupSpec } from '../sim/modifiers';
 import { GameSummary } from './GameSummary';
+import { loadPrefs } from './prefs';
 import { TouchControls } from './TouchControls';
 import { TuningPanel } from './TuningPanel';
 import { tuningStore } from './tuningStore';
@@ -90,12 +92,16 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour 
       powerups: powerups ?? [],
       ...(homeColour ? { homeColour } : {}),
       ...(awayColour ? { awayColour } : {}),
+      detail: loadPrefs().detail,
       tuning: () => tuningStore.tuning,
       onControls,
+      onEvents: (events, world, t) => gameAudio.onEvents(events, world, t),
+      onFrame: (world, _t, seconds) => gameAudio.onFrame(world, seconds),
       onResult: (result) => render(<GameSummary result={result} teams={[home, away]} />, summary),
       onDone: (result) => {
         render(null, summary);
         render(null, touch);
+        gameAudio.stopBeds();
         if (tuningStore.open) tuningStore.toggle();
         game.destroy(true);
         onDone(result);

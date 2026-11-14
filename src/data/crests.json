@@ -1,0 +1,10 @@
+{
+  "shapes": ["shield", "circle", "diamond", "hexagon"],
+  "emblems": ["star", "bolt", "peak", "wave", "flame", "leaf", "chevron", "ring"],
+  "patterns": ["yoke", "hoop", "sash"],
+  "secondaries": ["#ffffff", "#f4d35e", "#0b0b0f", "#cfe8f7", "#ff9f43", "#2ec4b6", "#e63946", "#3a86ff"],
+  "minSecondaryDistance": 150,
+  "lightTrim": "#ffffff",
+  "darkTrim": "#0b0b0f",
+  "darkBelowLuminance": 0.55
+}
