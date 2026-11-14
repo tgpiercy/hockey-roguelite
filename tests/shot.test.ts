@@ -1,18 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { chargeFraction, shotSpeed, shotSpread } from '../src/sim/shot';
 import { cloneTuning } from '../src/sim/tuning';
-import type { InputFrame, SimEvent, World } from '../src/sim/types';
+import { NO_INPUT, type InputFrame, type SimEvent, type World } from '../src/sim/types';
 import { createWorld, step, STEPS_PER_SECOND } from '../src/sim/world';
 
 const t = cloneTuning();
-const hold: InputFrame = { moveX: 0, moveY: 0, sprint: false, shoot: true };
-const release: InputFrame = { moveX: 0, moveY: 0, sprint: false, shoot: false };
+const release: InputFrame = NO_INPUT;
+const hold: InputFrame = { ...NO_INPUT, shoot: true };
 
-/** A world where the skater already has the puck, well away from the nets. */
+/** A world with one skater who already has the puck, well away from the nets. */
 const withPuck = (seed: string, tuning = t): World => {
-  const world = createWorld(tuning, seed);
-  world.puck.carried = true;
-  world.puck.pos = { x: world.skater.pos.x + tuning.puck.carryForward, y: tuning.puck.carrySide };
+  const world = createWorld(tuning, seed, { lineup: 'solo' });
+  const skater = world.players[0]!;
+  world.puck.carrier = skater.id;
+  world.puck.pos = { x: skater.pos.x + tuning.puck.carryForward, y: tuning.puck.carrySide };
   return world;
 };
 
@@ -57,15 +58,15 @@ describe('shooting in the world', () => {
   it('a tap releases a wrist shot and the puck leaves the stick', () => {
     const world = withPuck('tap');
     const events = shoot(world, 2);
-    expect(shotOf(events)).toBeCloseTo(shotSpeed(0, t.player.shotPower, t));
-    expect(world.puck.carried).toBe(false);
+    expect(shotOf(events)).toBeCloseTo(shotSpeed(0, world.players[0]!.fx.shotPower, t));
+    expect(world.puck.carrier).toBe(null);
     expect(Math.hypot(world.puck.vel.x, world.puck.vel.y)).toBeGreaterThan(0);
   });
 
   it('a full hold releases the hardest shot', () => {
     const world = withPuck('slap');
     const events = shoot(world, Math.ceil(t.shot.chargeTime * STEPS_PER_SECOND) + 5);
-    expect(shotOf(events)).toBeCloseTo(shotSpeed(t.shot.chargeTime, t.player.shotPower, t));
+    expect(shotOf(events)).toBeCloseTo(shotSpeed(t.shot.chargeTime, world.players[0]!.fx.shotPower, t));
   });
 
   it('aims where the stick points, or straight ahead with the stick centred', () => {
@@ -79,13 +80,13 @@ describe('shooting in the world', () => {
     expect(ahead.puck.vel.y).toBeCloseTo(0);
 
     const down = withPuck('down', exact);
-    shoot(down, 2, { moveX: 0, moveY: 1, sprint: false, shoot: false }, exact);
+    shoot(down, 2, { ...NO_INPUT, moveY: 1 }, exact);
     expect(down.puck.vel.y).toBeGreaterThan(0);
     expect(Math.abs(down.puck.vel.x)).toBeLessThan(1);
   });
 
   it('strays from the aim by no more than the spread, and differently for different seeds', () => {
-    const limit = shotSpread(t.player.accuracy, t);
+    const limit = shotSpread(createWorld(t, 'x', { lineup: 'solo' }).players[0]!.fx.accuracy, t);
     const angles = ['a', 'b', 'c', 'd', 'e', 'f'].map((seed) => {
       const world = withPuck(seed);
       shoot(world, 2);
@@ -100,16 +101,16 @@ describe('shooting in the world', () => {
     const events = shoot(world, 2);
     expect(events.some((e) => e.type === 'pickup')).toBe(false);
     step(world, release, t);
-    expect(world.puck.carried).toBe(false);
+    expect(world.puck.carrier).toBe(null);
   });
 
   it('skating onto a loose puck picks it up', () => {
-    const world = createWorld(t, 'pickup');
+    const world = createWorld(t, 'pickup', { lineup: 'solo' });
     const events: SimEvent[] = [];
-    for (let i = 0; i < 120 && !world.puck.carried; i++) {
-      events.push(...step(world, { moveX: 1, moveY: 0, sprint: false, shoot: false }, t));
+    for (let i = 0; i < 120 && world.puck.carrier === null; i++) {
+      events.push(...step(world, { ...NO_INPUT, moveX: 1 }, t));
     }
-    expect(world.puck.carried).toBe(true);
+    expect(world.puck.carrier).toBe(0);
     expect(events.some((e) => e.type === 'pickup')).toBe(true);
   });
 });

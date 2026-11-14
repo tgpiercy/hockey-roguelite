@@ -4,7 +4,7 @@ import { carrySpot } from '../sim/puck';
 import { goalLineX, nets } from '../sim/rink';
 import { chargeFraction } from '../sim/shot';
 import type { Tuning } from '../sim/tuning';
-import type { World } from '../sim/types';
+import type { Player, World } from '../sim/types';
 import { createWorld, step, STEP_SECONDS } from '../sim/world';
 import { InputReader, type Controls } from './input';
 
@@ -22,13 +22,15 @@ export interface RinkSceneOptions {
   onControls: (controls: Controls) => void;
 }
 
-/** Phase 1: one skater, a puck and two empty nets, drawn with placeholder shapes. */
+/** 3-on-3: two skaters and a goalie a side, drawn with placeholder shapes. The human plays team 0, attacking right. */
 export class RinkScene extends Phaser.Scene {
   private world!: World;
-  private input2!: InputReader;
+  private reader!: InputReader;
   private g!: Phaser.GameObjects.Graphics;
   private scoreText!: Phaser.GameObjects.Text;
   private goalText!: Phaser.GameObjects.Text;
+  private labels: Phaser.GameObjects.Text[] = [];
+  private showDebug = false;
   private leftover = 0;
 
   // World-to-screen transform, recalculated every frame so resizing just works.
@@ -42,18 +44,23 @@ export class RinkScene extends Phaser.Scene {
 
   create(): void {
     this.world = createWorld(this.options.tuning(), this.options.seed);
-    this.input2 = new InputReader();
+    this.reader = new InputReader();
     this.g = this.add.graphics();
-    this.scoreText = this.add.text(0, 0, '', { fontFamily: 'system-ui, sans-serif', fontStyle: 'bold', color: c.boards }).setOrigin(0.5, 0);
+    const font = 'system-ui, sans-serif';
+    this.scoreText = this.add.text(0, 0, '', { fontFamily: font, fontStyle: 'bold', color: c.boards }).setOrigin(0.5, 0);
     this.goalText = this.add
-      .text(0, 0, 'GOAL!', { fontFamily: 'system-ui, sans-serif', fontStyle: 'bold', color: c.redLine })
+      .text(0, 0, 'GOAL!', { fontFamily: font, fontStyle: 'bold', color: c.redLine })
       .setOrigin(0.5, 0.5)
       .setVisible(false);
+    this.labels = this.world.players.map(() =>
+      this.add.text(0, 0, '', { fontFamily: font, color: c.debugText }).setOrigin(0.5, 1).setVisible(false),
+    );
   }
 
   override update(time: number, deltaMs: number): void {
-    const controls = this.input2.read(time);
+    const controls = this.reader.read(time);
     this.options.onControls(controls);
+    if (controls.debugPressed) this.showDebug = !this.showDebug;
 
     const t = this.options.tuning();
     this.leftover += Math.min(deltaMs / 1000, MAX_CATCH_UP_SECONDS);
@@ -72,8 +79,14 @@ export class RinkScene extends Phaser.Scene {
     return this.originY + y * this.zoom;
   }
 
+  private playerColour(p: Player): number {
+    if (p.team === 0) return colour(p.role === 'goalie' ? c.teamHomeGoalie : c.teamHome);
+    return colour(p.role === 'goalie' ? c.teamAwayGoalie : c.teamAway);
+  }
+
   private draw(t: Tuning): void {
     const g = this.g;
+    const world = this.world;
     const { width, height } = this.scale;
     const z = Math.min(
       (width - look.marginPixels * 2) / t.rink.length,
@@ -126,55 +139,78 @@ export class RinkScene extends Phaser.Scene {
       for (const post of net.posts) g.fillCircle(this.sx(post.x), this.sy(post.y), Math.max(2, t.net.postRadius * z));
     }
 
-    // Skater: a circle, with a stick reaching to where the puck is carried.
-    const s = this.world.skater;
-    const blade = carrySpot(s, t);
-    g.lineStyle(Math.max(2, line * 1.5), colour(c.stick));
-    g.lineBetween(this.sx(s.pos.x), this.sy(s.pos.y), this.sx(blade.x), this.sy(blade.y));
-    g.fillStyle(colour(s.sprinting ? c.skaterSprint : c.skater));
-    g.fillCircle(this.sx(s.pos.x), this.sy(s.pos.y), t.skater.radius * z);
-    g.lineStyle(line, colour(c.ice));
-    g.lineBetween(
-      this.sx(s.pos.x),
-      this.sy(s.pos.y),
-      this.sx(s.pos.x + Math.cos(s.facing) * t.skater.radius),
-      this.sy(s.pos.y + Math.sin(s.facing) * t.skater.radius),
-    );
+    // Players
+    const controlled = world.human ? world.players[world.human.controlled] : undefined;
+    world.players.forEach((p, i) => {
+      const x = this.sx(p.pos.x);
+      const y = this.sy(p.pos.y);
+      const radius = (p.role === 'goalie' ? Math.max(t.goalie.bodyRadius, p.goalie!.fx.coverRadius) : t.skater.radius) * z;
 
-    // Puck
-    const p = this.world.puck;
+      if (p === controlled) {
+        g.lineStyle(Math.max(2, line * 1.5), colour(c.controlRing));
+        g.strokeCircle(x, y, radius * look.controlRingScale);
+      }
+      if (p.role === 'skater') {
+        const blade = carrySpot(p, t);
+        g.lineStyle(Math.max(2, line * 1.5), colour(c.stick));
+        g.lineBetween(x, y, this.sx(blade.x), this.sy(blade.y));
+      }
+      // A staggered skater is drawn faded.
+      g.fillStyle(this.playerColour(p), p.stagger > 0 ? 0.45 : 1);
+      g.fillCircle(x, y, radius);
+      g.lineStyle(line, colour(c.ice));
+      g.lineBetween(x, y, x + Math.cos(p.facing) * radius, y + Math.sin(p.facing) * radius);
+
+      const label = this.labels[i];
+      if (label) {
+        const isAi = p.role === 'skater' && p !== controlled;
+        label.setVisible(this.showDebug && isAi);
+        if (this.showDebug && isAi) {
+          label.setFontSize(Math.max(9, z * 0.9));
+          label.setPosition(x, y - radius * 1.3);
+          label.setText(p.ai.state);
+        }
+      }
+    });
+
+    // Puck: drawn a little larger while it is in the air.
+    const puck = world.puck;
     g.fillStyle(colour(c.puck));
-    g.fillCircle(this.sx(p.pos.x), this.sy(p.pos.y), Math.max(2, t.puck.radius * z));
+    g.fillCircle(this.sx(puck.pos.x), this.sy(puck.pos.y), Math.max(2, t.puck.radius * z) * (puck.air > 0 ? 1.6 : 1));
 
-    // Shot charge, above the skater while winding up.
-    const charge = chargeFraction(s.charge, t);
-    if (s.charge > 0) {
-      const w = t.skater.radius * 3 * z;
-      const h = Math.max(3, 0.25 * z);
-      const x = this.sx(s.pos.x) - w / 2;
-      const y = this.sy(s.pos.y - t.skater.radius * 2);
+    if (controlled) {
+      // Shot or pass wind-up, above the controlled skater.
+      const held = Math.max(controlled.charge, controlled.passCharge);
+      if (held > 0) {
+        const fill =
+          controlled.charge > 0 ? chargeFraction(controlled.charge, t) : Math.min(1, controlled.passCharge / t.pass.saucerHoldTime);
+        const w = t.skater.radius * 3 * z;
+        const h = Math.max(3, 0.25 * z);
+        const x = this.sx(controlled.pos.x) - w / 2;
+        const y = this.sy(controlled.pos.y - t.skater.radius * 2.4);
+        g.fillStyle(colour(c.barBack));
+        g.fillRect(x, y, w, h);
+        g.fillStyle(colour(c.charge));
+        g.fillRect(x, y, w * fill, h);
+      }
+
+      // Stamina of the controlled skater, bottom left.
+      const barW = Math.min(width * 0.25, 220);
+      const barH = Math.max(6, height * 0.02);
+      const barX = look.marginPixels * 2;
+      const barY = height - look.marginPixels * 2 - barH;
       g.fillStyle(colour(c.barBack));
-      g.fillRect(x, y, w, h);
-      g.fillStyle(colour(c.charge));
-      g.fillRect(x, y, w * charge, h);
+      g.fillRect(barX, barY, barW, barH);
+      g.fillStyle(colour(controlled.sprintLocked ? c.staminaLocked : c.stamina));
+      g.fillRect(barX, barY, barW * controlled.stamina, barH);
     }
-
-    // Stamina, bottom left.
-    const barW = Math.min(width * 0.25, 220);
-    const barH = Math.max(6, height * 0.02);
-    const barX = look.marginPixels * 2;
-    const barY = height - look.marginPixels * 2 - barH;
-    g.fillStyle(colour(c.barBack));
-    g.fillRect(barX, barY, barW, barH);
-    g.fillStyle(colour(s.sprintLocked ? c.staminaLocked : c.stamina));
-    g.fillRect(barX, barY, barW * s.stamina, barH);
 
     // Text
     this.scoreText.setFontSize(Math.max(12, height * 0.045));
     this.scoreText.setPosition(width / 2, this.sy(-hy) + look.marginPixels);
-    this.scoreText.setText(`Goals ${this.world.goals}`);
+    this.scoreText.setText(`You ${world.score[0]} – ${world.score[1]} CPU`);
     this.goalText.setFontSize(Math.max(24, height * 0.2));
     this.goalText.setPosition(width / 2, height / 2);
-    this.goalText.setVisible(this.world.phase === 'goal');
+    this.goalText.setVisible(world.phase === 'goal');
   }
 }

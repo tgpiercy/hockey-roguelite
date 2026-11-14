@@ -16,8 +16,15 @@
     "stamina": "#2a9d8f",
     "staminaLocked": "#8d99ae",
     "charge": "#ffd166",
-    "text": "#e8f4fb"
+    "text": "#e8f4fb",
+    "teamHome": "#1d3557",
+    "teamHomeGoalie": "#457b9d",
+    "teamAway": "#c1121f",
+    "teamAwayGoalie": "#e5989b",
+    "controlRing": "#ffd166",
+    "debugText": "#13315c"
   },
+  "controlRingScale": 1.5,
   "marginPixels": 10,
   "blueLineFraction": 0.17,
   "creaseRadius": 2,

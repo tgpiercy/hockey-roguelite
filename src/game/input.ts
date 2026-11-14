@@ -8,6 +8,8 @@ export interface Controls {
   frame: InputFrame;
   /** True on the frame the menu button (or key) goes down. */
   menuPressed: boolean;
+  /** True on the frame the view button (or key) goes down: toggles the AI debug overlay. */
+  debugPressed: boolean;
   /** D-pad presses for the tuning panel, with hold-to-repeat: -1, 0 or 1 on each axis. */
   navX: -1 | 0 | 1;
   navY: -1 | 0 | 1;
@@ -24,6 +26,7 @@ export class InputReader {
   private readonly keysDown = new Set<string>();
   private hasKeyboard = false;
   private menuWasDown = false;
+  private debugWasDown = false;
   private navHeld = '';
   private navNextAt = 0;
 
@@ -63,6 +66,10 @@ export class InputReader {
     const menuPressed = menuDown && !this.menuWasDown;
     this.menuWasDown = menuDown;
 
+    const debugDown = down(b.view) || this.key(controls.keys.debug);
+    const debugPressed = debugDown && !this.debugWasDown;
+    this.debugWasDown = debugDown;
+
     const [navX, navY] = this.readNav(pad, nowMs);
 
     return {
@@ -71,8 +78,12 @@ export class InputReader {
         moveY: move.y,
         sprint: value(b.sprint) >= controls.triggerThreshold || down(b.sprint) || this.key(controls.keys.sprint),
         shoot: down(b.shoot) || this.key(controls.keys.shoot),
+        pass: down(b.pass) || this.key(controls.keys.pass),
+        check: down(b.check) || this.key(controls.keys.check),
+        switchPlayer: down(b.switchPlayer) || this.key(controls.keys.switchPlayer),
       },
       menuPressed,
+      debugPressed,
       navX,
       navY,
       hasPad: pad !== null,

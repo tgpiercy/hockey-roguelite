@@ -67,10 +67,55 @@ Aim: classic arcade hockey. Quick, slightly slippery, never floaty.
 | shot.powerFloor | 0.6 | A skater with no shot power still shoots at 60% of those speeds |
 | shot.maxSpreadDegrees / minSpreadDegrees | 14 / 1.5 | How far a shot can stray from the aim, for the least and most accurate skater |
 | shot.skaterSpeedShare | 0.3 | How much of the skater's own speed carries into the shot |
-| player.shotPower / player.accuracy | 0.7 / 0.7 | The test skater's abilities, 0 to 1; player ratings replace these in Phase 2 |
 | game.goalPauseSeconds | 1.5 | Celebration pause before the reset |
+
+## Phase 2 values (2026-11-13)
+
+These were added for 3-on-3 and set only so that both sides can score; Phase 3 tunes them properly against the balance targets.
+
+### In `physics.json` (editable in the tuning panel)
+
+| Value | Start | In hockey terms |
+| --- | --- | --- |
+| game.opponentDifficulty | 0.5 | How sharp the other team is, 0 easy to 1 hard |
+| pass.speed / pass.saucerSpeed | 20 / 17 | Speed of a flat pass and of a saucer pass |
+| pass.saucerHoldTime | 0.25 | Hold A this long for a saucer pass |
+| pass.aimConeDegrees | 150 | How far off line a teammate can be and still be picked as the target |
+| pass.receiveRadius / interceptRadius | 1.3 / 0.7 | How close the receiver, or an opponent in the lane, must be to take a pass |
+| check.bodyRange / minClosingSpeed | 1.5 / 2.5 | How close and how fast you must be closing for a body check |
+| check.bodyBaseChance / pokeBaseChance | 0.6 / 0.3 | How often a body check or a poke check works between equal players |
+| check.ratingSwing | 0.4 | How much checking against puck control shifts those odds |
+| check.cooldownSeconds | 0.9 | Wait between checks |
+| check.staggerSeconds | 0.7 | How long a checked skater is off balance |
+| check.pokeRange | 1.9 | Reach of a poke check |
+| body.handleSpeed | 16 | The fastest puck a skater rated 70 can collect; anything faster deflects off him |
+| goalie.creaseHalfWidth | 1.6 | How far side to side the goalie will go |
+| goalie.holdSeconds | 1 | How long a goalie holds a frozen puck before passing it out |
+| goalie.shotSpeedThreshold | 10 | A loose puck faster than this, heading for the net, is treated as a shot |
+
+### In `ratings.json` (effect at rating 0 and at rating 100)
+
+| Rating | Effect | 0 | 100 |
+| --- | --- | --- | --- |
+| speed | top speed and acceleration scale | 0.79 | 1.09 |
+| shooting | shot power and accuracy | 0 | 1 |
+| passing | pass speed scale; scatter in degrees | 0.72; 12 | 1.12; 1 |
+| checking | check strength | 0 | 1 |
+| puck control | resistance to checks; fastest puck he can collect (scale) | 0; 0.65 | 1; 1.15 |
+| stamina | drain scale; recovery scale | 1.35; 0.65 | 0.85; 1.15 |
+| goalie reflexes | reaction delay in seconds; speed across the crease | 0.5; 1.5 | 0.1; 4.5 |
+| goalie positioning | how much net he covers (radius); how far out he plays | 0.3; 0.7 | 0.6; 1.3 |
+| goalie rebound control | fastest shot he can freeze; share of speed left in a rebound | 6; 0.55 | 30; 0.2 |
+
+AI ranges (easy to hard) and positioning distances are in `src/data/ai.json`.
 
 ## Change log
 
 | Date | Value | From | To | Why |
 | --- | --- | --- | --- | --- |
+| 2026-11-13 | goalie positioning cover radius (ratings.json) | 0.5 to 0.9 | 0.3 to 0.6 | All-AI games averaged under 1 goal per 5 minutes; now about 3 |
+| 2026-11-13 | check.bodyBaseChance | 0.75 | 0.6 | Puck carriers were stripped almost at once |
+| 2026-11-13 | check.pokeBaseChance | 0.45 | 0.3 | Same |
+| 2026-11-13 | check.cooldownSeconds | 0.6 | 0.9 | Same |
+| 2026-11-13 | AI checkEagerness (ai.json) | 0.3 to 0.95 | 0.2 to 0.8 | Same |
+| 2026-11-13 | player.shotPower, player.accuracy | 0.7 | removed | Replaced by the shooting rating (70 gives the same 0.7) |

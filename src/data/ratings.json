@@ -1,0 +1,20 @@
+{
+  "defaults": {
+    "skater": { "shooting": 70, "passing": 70, "speed": 70, "checking": 70, "puckControl": 70, "stamina": 70 },
+    "goalie": { "reflexes": 70, "positioning": 70, "reboundControl": 70, "stamina": 70 }
+  },
+  "skater": {
+    "speed": { "topSpeedScale": [0.79, 1.09], "accelerationScale": [0.79, 1.09] },
+    "shooting": { "shotPower": [0, 1], "accuracy": [0, 1] },
+    "passing": { "passSpeedScale": [0.72, 1.12], "passSpreadDegrees": [12, 1] },
+    "checking": { "checkStrength": [0, 1] },
+    "puckControl": { "puckSecurity": [0, 1], "handleSpeedScale": [0.65, 1.15] },
+    "stamina": { "drainScale": [1.35, 0.85], "recoverScale": [0.65, 1.15] }
+  },
+  "goalie": {
+    "reflexes": { "reactionSeconds": [0.5, 0.1], "lateralSpeed": [1.5, 4.5] },
+    "positioning": { "coverRadius": [0.3, 0.6], "depth": [0.7, 1.3] },
+    "reboundControl": { "freezeSpeed": [6, 30], "reboundKeep": [0.55, 0.2] },
+    "stamina": {}
+  }
+}

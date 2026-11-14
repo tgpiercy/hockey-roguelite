@@ -3,28 +3,37 @@ import type { Tuning } from './tuning';
 import type { Puck, Skater, Vec } from './types';
 
 export function createPuck(x: number, y: number): Puck {
-  return { pos: { x, y }, vel: { x: 0, y: 0 }, carried: false, pickupCooldown: 0 };
+  return { pos: { x, y }, vel: { x: 0, y: 0 }, carrier: null, air: 0, passTarget: null, lastTeam: null };
+}
+
+/** Something round that stops the puck, such as a goalie. */
+export interface Blocker {
+  pos: Vec;
+  radius: number;
 }
 
 export interface PuckStepResult {
   /** Side of the net scored on, or 0. */
   scored: -1 | 0 | 1;
   hitPost: boolean;
+  /** Index of the blocker the puck ran into, or -1. The puck stops moving for this step when it does. */
+  blocker: number;
 }
 
 /**
  * Moves a loose puck for dt seconds: friction, then bounces off boards, posts and netting.
  * The move is split into sub-steps short enough that a hard shot cannot pass through anything.
  */
-export function stepLoosePuck(puck: Puck, t: Tuning, dt: number): PuckStepResult {
-  const result: PuckStepResult = { scored: 0, hitPost: false };
+export function stepLoosePuck(puck: Puck, t: Tuning, dt: number, blockers: Blocker[] = []): PuckStepResult {
+  const result: PuckStepResult = { scored: 0, hitPost: false, blocker: -1 };
   const speedNow = Math.hypot(puck.vel.x, puck.vel.y);
   const parts = Math.max(1, Math.ceil((speedNow * dt) / (t.puck.radius * 0.5)));
   const h = dt / parts;
 
   for (let i = 0; i < parts; i++) {
     const speed = Math.hypot(puck.vel.x, puck.vel.y);
-    if (speed > 0) {
+    // A puck in the air (saucer pass) does not rub on the ice.
+    if (speed > 0 && puck.air <= 0) {
       const slowed = Math.max(0, speed - (speed * t.puck.drag + t.puck.slideDecel) * h);
       puck.vel.x *= slowed / speed;
       puck.vel.y *= slowed / speed;
@@ -38,7 +47,26 @@ export function stepLoosePuck(puck: Puck, t: Tuning, dt: number): PuckStepResult
     if (hitNets(puck.pos, puck.vel, t.puck.radius, t.net.postBounce, t.net.nettingBounce, t) === 'post') {
       result.hitPost = true;
     }
+
+    for (let b = 0; b < blockers.length; b++) {
+      const blocker = blockers[b] as Blocker;
+      const dx = puck.pos.x - blocker.pos.x;
+      const dy = puck.pos.y - blocker.pos.y;
+      const d = Math.hypot(dx, dy);
+      const reach = blocker.radius + t.puck.radius;
+      if (d < reach) {
+        // Put the puck on the blocker's surface, on the side it came from.
+        const nx = d > 0 ? dx / d : speed > 0 ? -puck.vel.x / speed : 1;
+        const ny = d > 0 ? dy / d : speed > 0 ? -puck.vel.y / speed : 0;
+        puck.pos.x = blocker.pos.x + nx * reach;
+        puck.pos.y = blocker.pos.y + ny * reach;
+        result.blocker = b;
+        return result;
+      }
+    }
+
     if (result.scored === 0) result.scored = goalCrossed(prev, puck.pos, t);
+    if (result.scored !== 0) return result;
   }
   return result;
 }
@@ -68,10 +96,4 @@ export function stepCarriedPuck(puck: Puck, s: Skater, t: Tuning, dt: number): -
   hitBoards(puck.pos, still, t.puck.radius, 0, t);
   hitNets(puck.pos, still, t.puck.radius, 0, 0, t);
   return goalCrossed(prev, puck.pos, t);
-}
-
-/** Can this skater pick the puck up right now? */
-export function canPickUp(puck: Puck, s: Skater, t: Tuning): boolean {
-  if (puck.carried || puck.pickupCooldown > 0) return false;
-  return Math.hypot(puck.pos.x - s.pos.x, puck.pos.y - s.pos.y) <= t.puck.pickupRadius;
 }

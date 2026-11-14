@@ -16,6 +16,14 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-13 | Keyboard controls? | Yes, as a fallback for checking things on a computer: arrows or WASD skate, Space shoots, Shift sprints, Tab opens tuning. Feel is judged on the controller. | Phase 1 |
 | 2026-11-13 | Units and step | Metres and seconds. The simulation always advances 60 fixed steps a second; a fast puck is moved in shorter sub-steps so it cannot pass through a post or the netting. | Phase 1 |
 | 2026-11-13 | Can the puck be carried into the net? | Yes, it counts as a goal. Revisit when goalies arrive in Phase 2. | Phase 1 |
+| 2026-11-13 | Start Phase 2 before the controller tests? | Yes, at the owner's request. Existing skating values were left alone; only new values were added. | Phase 2 |
+| 2026-11-13 | How do humans and AI share the game? | One set of mechanics. The AI produces the same input a controller does and cannot do anything a player cannot. | Phase 2 |
+| 2026-11-13 | What does a rating of 70 mean? | It reproduces the plain physics values. Every player starts at 70 until Phase 4 generates real players. | Phase 2 |
+| 2026-11-13 | Opponent difficulty | One number from 0 (easy) to 1 (hard), `game.opponentDifficulty`, starting at 0.5. It changes reaction time, aim, passing awareness, checking and shot selection, never physics. The AI teammate plays at a fixed 0.6. | Phase 2 |
+| 2026-11-13 | When does control switch? | To the puck carrier whenever your team has it; to the receiver the moment you pass; on defence, Y jumps to the skater nearest the puck (or the other one if you are already on him). | Phase 2 |
+| 2026-11-13 | Who can collect a loose puck? | The intended receiver of a pass; anyone close enough if the puck is slow enough to handle; an opponent standing in the lane of a flat pass. A puck too fast to handle deflects off bodies. A saucer pass cannot be touched until it lands. | Phase 2 |
+| 2026-11-13 | Stoppages | None yet. A goalie who freezes the puck holds it for a second, then lobs it to his most open teammate. After a goal everyone resets and the puck drops loose at centre. Faceoffs and periods come in Phase 3. | Phase 2 |
+| 2026-11-13 | Can the puck be carried into the net? | Yes if the goalie is out of position, but a goalie smothers a puck carried into him. Replaces the Phase 1 answer. | Phase 2 |
 
 ## Open
 

@@ -27,30 +27,46 @@ export function createSkater(x: number, y: number): Skater {
   };
 }
 
-function stepStamina(s: Skater, wantsSprint: boolean, t: Tuning, dt: number): void {
+/** Scales from a player's ratings. All 1 means the plain physics values. */
+export interface SkaterScales {
+  topSpeedScale: number;
+  accelerationScale: number;
+  drainScale: number;
+  recoverScale: number;
+}
+
+const PLAIN: SkaterScales = { topSpeedScale: 1, accelerationScale: 1, drainScale: 1, recoverScale: 1 };
+
+function stepStamina(s: Skater, wantsSprint: boolean, t: Tuning, dt: number, scales: SkaterScales): void {
   s.sprinting = wantsSprint && !s.sprintLocked && s.stamina > 0;
   if (s.sprinting) {
-    s.stamina = Math.max(0, s.stamina - t.stamina.drainPerSecond * dt);
+    s.stamina = Math.max(0, s.stamina - t.stamina.drainPerSecond * scales.drainScale * dt);
     s.restTime = 0;
     if (s.stamina === 0) s.sprintLocked = true;
     return;
   }
   s.restTime += dt;
   if (s.restTime >= t.stamina.recoverDelay) {
-    s.stamina = Math.min(1, s.stamina + t.stamina.recoverPerSecond * dt);
+    s.stamina = Math.min(1, s.stamina + t.stamina.recoverPerSecond * scales.recoverScale * dt);
   }
   if (s.sprintLocked && s.stamina >= t.stamina.lockoutUntil) s.sprintLocked = false;
 }
 
 /** Advances one skater by dt seconds: stamina, momentum skating, then collisions. */
-export function stepSkater(s: Skater, input: InputFrame, t: Tuning, dt: number): void {
+export function stepSkater(
+  s: Skater,
+  input: Pick<InputFrame, 'moveX' | 'moveY' | 'sprint'>,
+  t: Tuning,
+  dt: number,
+  scales: SkaterScales = PLAIN,
+): void {
   const k = t.skater;
   const tilt = Math.min(1, Math.hypot(input.moveX, input.moveY));
 
-  stepStamina(s, input.sprint && tilt > 0, t, dt);
+  stepStamina(s, input.sprint && tilt > 0, t, dt, scales);
 
-  const top = k.topSpeed * (s.sprinting ? k.sprintSpeedBoost : 1);
-  const accel = k.acceleration * (s.sprinting ? k.sprintAccelBoost : 1);
+  const top = k.topSpeed * scales.topSpeedScale * (s.sprinting ? k.sprintSpeedBoost : 1);
+  const accel = k.acceleration * scales.accelerationScale * (s.sprinting ? k.sprintAccelBoost : 1);
   let speed = Math.hypot(s.vel.x, s.vel.y);
 
   if (tilt > 0) {
@@ -58,7 +74,7 @@ export function stepSkater(s: Skater, input: InputFrame, t: Tuning, dt: number):
     let heading = speed > 1e-3 ? Math.atan2(s.vel.y, s.vel.x) : want;
 
     // The faster the skater is going, the slower the direction of travel can swing round.
-    const speedFraction = Math.min(1, speed / k.topSpeed);
+    const speedFraction = Math.min(1, speed / (k.topSpeed * scales.topSpeedScale));
     const turnRate = k.turnRateSlow + (k.turnRateFast - k.turnRateSlow) * speedFraction;
     const off = wrapAngle(want - heading);
     const turn = clamp(off, -turnRate * dt, turnRate * dt);

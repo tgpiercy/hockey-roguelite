@@ -53,12 +53,50 @@
     "minSpreadDegrees": 1.5,
     "skaterSpeedShare": 0.3
   },
-  "player": {
-    "shotPower": 0.7,
-    "accuracy": 0.7
-  },
   "game": {
     "goalPauseSeconds": 1.5,
-    "skaterStartX": -6
+    "skaterStartX": -6,
+    "wingStartX": 10,
+    "wingStartY": 5,
+    "opponentDifficulty": 0.5
+  },
+  "pass": {
+    "speed": 20,
+    "saucerSpeed": 17,
+    "saucerHoldTime": 0.25,
+    "saucerAirShare": 0.8,
+    "saucerMaxAirSeconds": 0.7,
+    "aimConeDegrees": 150,
+    "receiveRadius": 1.3,
+    "interceptRadius": 0.7
+  },
+  "check": {
+    "bodyRange": 1.5,
+    "minClosingSpeed": 2.5,
+    "bodyBaseChance": 0.6,
+    "pokeRange": 1.9,
+    "pokeConeDegrees": 80,
+    "pokeBaseChance": 0.3,
+    "ratingSwing": 0.4,
+    "cooldownSeconds": 0.9,
+    "staggerSeconds": 0.7,
+    "staggerDrag": 4,
+    "knockSpeed": 7,
+    "pickupLockSeconds": 0.5,
+    "checkerSpeedKeep": 0.5
+  },
+  "body": {
+    "handleSpeed": 16,
+    "deflectBounce": 0.35
+  },
+  "goalie": {
+    "bodyRadius": 0.6,
+    "creaseHalfWidth": 1.6,
+    "shotSpeedThreshold": 10,
+    "holdSeconds": 1,
+    "ignoreSeconds": 0.4,
+    "reboundMinSpeed": 5,
+    "reboundScatterDegrees": 35,
+    "outletSpeed": 16
   }
 }

@@ -23,13 +23,15 @@ export function shotSpread(accuracy: number, t: Tuning): number {
 }
 
 /**
- * Tracks the shoot button while the skater has the puck.
- * Holding builds charge; letting go shoots. Returns the shot's speed, or null if no shot left the stick.
+ * Tracks the shoot button for a skater. With the puck, holding builds charge and letting go shoots:
+ * the puck is given its velocity and the shot's speed is returned (the caller releases the puck).
+ * Returns null if no shot left the stick.
  */
 export function stepShooting(
   s: Skater,
+  hasPuck: boolean,
   puck: Puck,
-  input: InputFrame,
+  input: Pick<InputFrame, 'moveX' | 'moveY' | 'shoot'>,
   params: SkaterParams,
   t: Tuning,
   rng: Rng,
@@ -38,7 +40,7 @@ export function stepShooting(
   const wasHeld = s.shootHeld;
   s.shootHeld = input.shoot;
 
-  if (!puck.carried) {
+  if (!hasPuck) {
     s.charge = 0;
     return null;
   }
@@ -54,8 +56,6 @@ export function stepShooting(
   const angle = aim + rng.range(-1, 1) * shotSpread(params.accuracy, t);
   const speed = shotSpeed(s.charge, params.shotPower, t);
 
-  puck.carried = false;
-  puck.pickupCooldown = t.puck.pickupCooldown;
   puck.vel.x = Math.cos(angle) * speed + s.vel.x * t.shot.skaterSpeedShare;
   puck.vel.y = Math.sin(angle) * speed + s.vel.y * t.shot.skaterSpeedShare;
   s.charge = 0;

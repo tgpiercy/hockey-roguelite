@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { createSkater, stepSkater } from '../src/sim/skater';
 import { cloneTuning } from '../src/sim/tuning';
-import type { InputFrame, Skater } from '../src/sim/types';
+import { NO_INPUT, type InputFrame, type Skater } from '../src/sim/types';
 import { STEP_SECONDS, STEPS_PER_SECOND } from '../src/sim/world';
 
 const t = cloneTuning();
 
-const input = (moveX: number, moveY: number, sprint = false): InputFrame => ({ moveX, moveY, sprint, shoot: false });
+const input = (moveX: number, moveY: number, sprint = false): InputFrame => ({ ...NO_INPUT, moveX, moveY, sprint });
 const speedOf = (s: Skater): number => Math.hypot(s.vel.x, s.vel.y);
 const run = (s: Skater, frame: InputFrame, seconds: number): void => {
   for (let i = 0; i < Math.round(seconds * STEPS_PER_SECOND); i++) stepSkater(s, frame, t, STEP_SECONDS);
