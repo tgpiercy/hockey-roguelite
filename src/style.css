@@ -407,3 +407,95 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Icons, gear art and portraits. */
+.icon { flex: none; display: inline-block; vertical-align: middle; }
+.portrait { flex: none; display: inline-block; vertical-align: middle; border-radius: 50%; }
+.gear-art {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px;
+  border: 2px solid #c9d6df; background: var(--bg-deep); color: #c9d6df;
+}
+.gear-art svg { fill: currentColor; stroke: var(--bg-deep); }
+.gear-art svg [fill="none"] { stroke: var(--bg-deep); }
+.gear-art-rare { border-color: var(--rare); color: var(--rare); }
+.gear-art-epic { border-color: var(--epic); color: var(--epic); box-shadow: 0 0 8px rgba(199, 155, 255, 0.35); }
+.gear-art-legendary { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 12px rgba(255, 183, 3, 0.55); background: rgba(255, 183, 3, 0.1); }
+
+/* The art sheet (?sheet): everything drawn, on one page. */
+.mode-sheet #menu { overflow-y: auto; }
+.art-sheet { padding: 10px 14px; }
+.art-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
+.art-cell { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; width: 62px; }
+.art-cell small { font-size: 9px; color: var(--dim); }
+
+/* Rows with an icon. */
+.tile .icon { color: var(--ice); }
+.tile.primary .icon { color: var(--accent); }
+.menu-item.disabled .tile .icon { color: var(--dim); }
+
+/* A grid of items: the hub's dashboard. */
+.menu-list.grid { display: grid; gap: 6px; align-content: start; grid-auto-rows: min-content; }
+.menu-list.grid .menu-item.wide { grid-column: 1 / -1; }
+.menu-list.grid .menu-item { min-height: 54px; }
+.menu-list.grid .menu-item.wide { min-height: 44px; }
+.dash-tile { display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; }
+.dash-tile .icon { color: var(--accent); }
+.menu-item.disabled .dash-tile .icon { color: var(--dim); }
+.dash-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.dash-name { font: 800 16px/1.15 var(--heading); letter-spacing: 0.08em; text-transform: uppercase; }
+.dash-status { font-size: 12px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* The team card on the hub, and the title screen. */
+.team-card { display: flex; align-items: center; gap: 12px; }
+.team-card-text { display: flex; flex-direction: column; min-width: 0; font-size: 13px; color: var(--ice); }
+.team-card-text b { font: 800 20px/1.1 var(--heading); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text); }
+.title-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; flex: 1; padding: 6px 0; }
+.title-mark {
+  font: 800 54px/1 var(--heading); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text);
+  text-shadow: 0 3px 0 var(--accent), 0 0 28px rgba(255, 183, 3, 0.35);
+}
+.title-tag { color: var(--dim); font-size: 14px; letter-spacing: 0.04em; }
+.title-team { display: flex; align-items: center; gap: 14px; margin-top: 12px; text-align: left; background: var(--bg-deep); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 16px; }
+.title-team div { display: flex; flex-direction: column; font-size: 13px; color: var(--ice); }
+.title-team b { font: 800 22px/1.1 var(--heading); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text); }
+
+/* A player's own card. */
+.player-card { display: flex; align-items: center; gap: 12px; }
+.player-card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 13px; color: var(--ice); }
+.player-card-top { display: flex; align-items: center; gap: 8px; }
+.player-card-ovr { font: 800 28px/1 var(--heading); color: var(--text); }
+.player-card-pos { font: 800 12px/1 var(--heading); letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); }
+.mascot-face { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--accent); color: var(--accent-ink); flex: none; }
+.reward-who { display: inline-flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gear-card-head { display: flex; align-items: center; gap: 12px; }
+.gear-row { align-items: center; }
+
+/* The end of a game: crests, the score, three stars, the tables. */
+.summary-score { display: flex; align-items: center; justify-content: center; gap: 22px; margin-bottom: 6px; }
+.summary-side { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 150px; font: 800 13px/1.2 var(--heading); letter-spacing: 0.06em; text-transform: uppercase; }
+.summary-middle { display: flex; flex-direction: column; align-items: center; }
+.summary-verdict { font: 800 15px/1 var(--heading); letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim); }
+.summary-verdict.won { color: var(--good); }
+.summary-verdict.lost { color: var(--bad); }
+.summary-numbers { font: 800 52px/1 var(--heading); letter-spacing: 0.04em; }
+.summary-numbers i { font-style: normal; color: var(--dim); }
+.summary-ot { font-size: 12px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; }
+.summary-stars { display: flex; justify-content: center; gap: 10px; margin: 4px 0 8px; flex-wrap: wrap; }
+.summary-star { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 5px 10px; text-align: left; }
+.star-rank { display: inline-flex; color: var(--accent); width: 38px; }
+.star-who { display: flex; flex-direction: column; line-height: 1.2; }
+.star-who small { color: var(--dim); font-size: 12px; }
+.summary-team h2 { display: flex; align-items: center; gap: 6px; justify-content: center; }
+.summary tr.scored td { color: var(--text); font-weight: 600; }
+.summary td { color: var(--ice); }
+
+.gear-art-empty { opacity: 0.35; border-style: dashed; }
+
+/* Gear rows stay on one line; the full description is in the side panel. */
+.gear-row { flex-wrap: nowrap; width: 100%; }
+.gear-row .gear { flex: none; white-space: nowrap; }
+.gear-row .gear-what, .gear-row .note { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.pack-card { height: 92px; }
+
+/* The end-of-game screen covers everything behind it. */
+.summary { background: var(--bg-deep); }

@@ -128,7 +128,11 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - `src/ui/Menu.tsx` is still every screen: the list on the left, and a side panel with the screen's facts (`header`) above the focused item's `detail`. `stack` puts the facts across the top instead, for screens that are mostly to read (rewards, pack reveal). `onFocus` tells the screen which item is focused (the season map lights it up). The help line draws "A ..." and "B ..." as button glyphs.
 - The top bar's strip of cap space, cash, tape and Pucks is `Wallet` in `parts.tsx`, handed to every `Menu` through the `MenuChrome` context in `App.tsx`.
 - Shared pieces in `parts.tsx`: `PlayerRow`, `Ratings` and `RatingBar` (bars from 40 to 99), `Meter`, `CapLine`, `Dots`. In `App.tsx`, `tile(...)` makes a hub-style row (bold name, what it is, optional badge or lock).
-- The hub is the primary actions plus four groups (`team`, `office`, `collection`, `settings` screens). `home()` goes back to the group the player came through; `top()` goes to the very top.
+- The hub is a dashboard: the primary actions as wide buttons, then the four groups (`team`, `office`, `collection`, `settings` screens) and Exhibition as `card(...)` tiles. `Menu` takes `columns` for a grid and items take `wide`; which tile the d-pad moves to is `gridMove` in `src/ui/gridMove.ts` (pure, tested). `home()` goes back to the group the player came through; `top()` goes to the very top. The game opens on the `title` screen.
+- Icons are line drawings in `src/ui/Icon.tsx`; a `tile` gets its icon from `TILE_ICONS` by its key, or names one. Gear drawings are in `src/ui/GearArt.tsx`.
+- Faces: `src/core/portrait.ts` works a portrait out of the player's id and age; `src/ui/Portrait.tsx` draws it; `Face` in `parts.tsx` adds the colours he wears, which `App.tsx` provides through `WearingContext`. `PlayerRow` shows it, so every list has faces.
+- Three stars: `src/core/stars.ts`, shown by `src/ui/GameSummary.tsx`.
+- `?sheet` opens `src/ui/ArtSheet.tsx`: every portrait style, icon, gear drawing and crest on one page. Look at it after changing any art.
 - `src/ui/SeasonMap.tsx` draws one region of the map as SVG from `season.map`, `season.visited` (the route walked) and the stops that can be reached.
 - After a season game `recordGame` (or `simulateGame`) returns `rewards`, and the `rewards` screen steps through it.
 - The rink is drawn in code in `src/game/RinkScene.ts` (`drawRink`, `drawPlayers`, `drawPuck`, `drawHud`); every colour and proportion is in `src/data/rinkLook.json`. Team colours come from `src/core/teamColours.ts`.
@@ -159,7 +163,7 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 ## Notes for future sessions
 
 - On the ice it is 3 skaters and a goalie a side; 6 skaters and 1 goalie are dressed (two lines of 3). Where a prompt in `docs/IMPLEMENTATION_PLAN.md` says 2 skaters, 4 skaters or lines of 2, `docs/GDD.md` and `docs/DECISIONS.md` win.
-- The plain link opens the hub. "Start the season" begins a run; "Exhibition" is a one-off that does not count. The Phase 0 controller read-out is at `?controller`.
+- The plain link opens the title screen, then the hub. "Start the season" begins a run; "Exhibition" is a one-off that does not count. The Phase 0 controller read-out is at `?controller`.
 - Difficulty (`f.difficulty`, set in Settings between seasons) shifts opponent AI level only. Ordinary map games can be simulated (`simulateGame`); the run currency is called Pucks in everything the player reads (the field is still `season.currency`).
 - Keyboard fallback: arrows or WASD skate, Space shoot, Z or J pass and faceoff draw, X or K check, C or L switch player, Q line change (LB), 1 and 2 powerups (LT and RB), Shift sprint, Tab tuning, I AI debug overlay (View button).
 - Balance (AI against AI, level 0.5) meets the Phase 3 targets. Human against AI is not balanced yet: a scripted player that only skates to the slot and shoots still wins about two games in three at the default difficulty of 0.75.

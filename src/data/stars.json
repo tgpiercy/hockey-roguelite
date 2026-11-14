@@ -1,0 +1,13 @@
+{
+  "count": 3,
+  "goal": 3,
+  "assist": 2,
+  "shot": 0.15,
+  "hit": 0.3,
+  "block": 0.4,
+  "save": 0.22,
+  "goalAgainst": 1.2,
+  "shutout": 3,
+  "goalieWin": 1.5,
+  "winningTeam": 0.75
+}

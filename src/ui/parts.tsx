@@ -1,14 +1,66 @@
-import type { ComponentChildren } from 'preact';
+import { createContext, type ComponentChildren } from 'preact';
+import { useContext, useEffect, useState } from 'preact/hooks';
 import { goaliesOn, skatersOn, userTeam, type League, type Team } from '../core/league';
+import { MASCOT_ID } from '../core/mascot';
 import type { PlayerRecord } from '../core/player';
+import { portraitOf } from '../core/portrait';
 import { capSpace, payroll } from '../core/roster';
 import type { Franchise } from '../core/season';
 import gearData from '../data/gear.json';
 import rules from '../data/league.json';
+import { Icon } from './Icon';
+import { PortraitFace } from './Portrait';
 
 const ratingNames = gearData.ratingNames as Record<string, string>;
 
 export const money = (dollars: number): string => `${dollars < 0 ? '−' : ''}$${(Math.abs(dollars) / 1_000_000).toFixed(2)}M`;
+
+/** The colours a player is wearing: his team's main and second colour. */
+export interface Wearing {
+  primary: string;
+  secondary: string;
+}
+
+/** What a player with no team wears in a portrait. */
+export const NO_TEAM: Wearing = { primary: '#3a4a63', secondary: '#9fb6cc' };
+
+/** Says what any player is wearing, by his id. The app provides it; without one everybody is in neutral colours. */
+export const WearingContext = createContext<(playerId: string) => Wearing>(() => NO_TEAM);
+
+/** A player's face, in the colours of the team he plays for. The mascot gets his own head. */
+export function Face({ player, size = 26 }: { player: PlayerRecord; size?: number }) {
+  const wearing = useContext(WearingContext)(player.id);
+  if (player.id === MASCOT_ID) {
+    return (
+      <span class="mascot-face" style={{ width: `${size}px`, height: `${size}px` }}>
+        <Icon name="mascot" size={size * 0.72} />
+      </span>
+    );
+  }
+  return <PortraitFace portrait={portraitOf(player.id, player.age)} primary={wearing.primary} secondary={wearing.secondary} size={size} />;
+}
+
+/**
+ * A number that counts up to its value when it first appears. It jumps straight there if the device asks
+ * for reduced motion.
+ */
+export function CountUp({ value, format }: { value: number; format: (value: number) => string }) {
+  const still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [shown, setShown] = useState(still ? value : 0);
+  useEffect(() => {
+    if (still) return setShown(value);
+    const steps = 18;
+    let step = 0;
+    const timer = setInterval(() => {
+      step += 1;
+      // Ease out: fast at first, settling on the exact value.
+      setShown(step >= steps ? value : value * (1 - (1 - step / steps) ** 3));
+      if (step >= steps) clearInterval(timer);
+    }, 28);
+    return () => clearInterval(timer);
+  }, [value, still]);
+  return <>{format(shown)}</>;
+}
 
 export function Grade({ player }: { player: PlayerRecord }) {
   return <span class={`grade grade-${player.grade.replace('+', 'plus')}`}>{player.grade}</span>;
@@ -18,6 +70,7 @@ export function Grade({ player }: { player: PlayerRecord }) {
 export function PlayerRow({ player, note, bump = 0 }: { player: PlayerRecord; note?: string; bump?: number }) {
   return (
     <span class="player-row">
+      <Face player={player} />
       <Grade player={player} />
       <span class="ovr">{player.overall}</span>
       <span class="pname">{player.name}</span>

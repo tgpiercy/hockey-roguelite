@@ -1,4 +1,5 @@
 import { itemName, type GearItem } from '../core/gear';
+import { GearArt } from './GearArt';
 import { GearCard } from './gearParts';
 
 interface Props {
@@ -37,6 +38,7 @@ export function PackOpening({ title, items, shown }: Props) {
             <div key={item.id} class={`pack-card${up ? ` turned rarity-${item.rarity}` : ""}${fresh ? ' fresh' : ''}`}>
               {up ? (
                 <>
+                  <GearArt slot={item.slot} rarity={item.rarity} size={30} />
                   <span class="pack-card-rarity">{item.rarity}</span>
                   <span class="pack-card-name">{itemName(item)}</span>
                 </>

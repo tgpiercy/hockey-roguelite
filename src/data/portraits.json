@@ -1,0 +1,15 @@
+{
+  "skins": ["#f6d7c3", "#eec3a3", "#dba77f", "#c08a5e", "#9a6642", "#6f4526"],
+  "hairColours": ["#1c1410", "#3a2616", "#5b3a1d", "#8a5a2b", "#c79a4a", "#b5482a"],
+  "greyHair": "#b9bec6",
+  "greyFromAge": 32,
+  "greyChancePerYear": 0.14,
+  "hairStyles": ["short", "buzz", "flow", "curly", "side", "bald"],
+  "hairWeights": [5, 3, 3, 2, 3, 1],
+  "faces": ["round", "square", "long"],
+  "brows": ["flat", "arched", "heavy"],
+  "beards": ["none", "stubble", "full", "moustache"],
+  "beardWeights": [6, 3, 2, 1],
+  "beardFromAge": 21,
+  "eyeColours": ["#3b2a1a", "#2f4f6f", "#3f5f3a", "#5a4632"]
+}

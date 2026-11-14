@@ -376,8 +376,13 @@ export class RinkScene extends Phaser.Scene {
         g.fillStyle(colour(c.goalLight), 0.9 * pulse);
         g.fillCircle(lx, this.sy(0), 0.55 * z);
       }
+      // The back of the net bulges outward for a moment as the puck hits it.
+      const sinceGoal = lit > 0 ? fx.goalLightSeconds - lit : Number.POSITIVE_INFINITY;
+      const bulge = this.full && sinceGoal < fx.netBulgeSeconds ? fx.netBulge * Math.sin((sinceGoal / fx.netBulgeSeconds) * Math.PI) : 0;
+      const out = side === 0 ? -1 : 1;
+      const bx = (x: number): number => (Math.abs(x) > gx + 0.05 ? x + out * bulge : x);
       g.lineStyle(Math.max(1.5, line), colour(c.net));
-      for (const [a, b] of net.netting) g.lineBetween(this.sx(a.x), this.sy(a.y), this.sx(b.x), this.sy(b.y));
+      for (const [a, b] of net.netting) g.lineBetween(this.sx(bx(a.x)), this.sy(a.y), this.sx(bx(b.x)), this.sy(b.y));
       g.fillStyle(colour(c.post));
       for (const post of net.posts) g.fillCircle(this.sx(post.x), this.sy(post.y), Math.max(2, t.net.postRadius * z));
     });
@@ -439,8 +444,10 @@ export class RinkScene extends Phaser.Scene {
           g.fillCircle(x + ax * r * 0.38 * side + fxDir * along, y + ay * r * 0.38 * side + fyDir * along, Math.max(1.5, r * 0.26));
         }
         const blade = carrySpot(p, t);
-        const bx = this.sx(blade.x);
-        const by = this.sy(blade.y);
+        // Without the puck his stick sweeps a little with his stride. With it, the blade stays exactly on the puck.
+        const sweep = this.full && world.puck.carrier !== p.id ? Math.sin((this.effects.stride.get(p.id) ?? 0) * 0.5) * r * fx.stickSweep : 0;
+        const bx = this.sx(blade.x) + ax * sweep;
+        const by = this.sy(blade.y) + ay * sweep;
         g.lineStyle(Math.max(2, line * 1.6), colour(c.stick), alpha);
         g.lineBetween(x, y, bx, by);
         g.lineStyle(Math.max(3, line * 2.6), colour(c.stick), alpha);

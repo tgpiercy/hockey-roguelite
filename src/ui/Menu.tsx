@@ -1,6 +1,7 @@
 import { createContext, type ComponentChildren } from 'preact';
 import { useContext, useEffect, useRef, useState } from 'preact/hooks';
 import { gameAudio } from '../game/audio';
+import { gridMove } from './gridMove';
 import { onMenuAction } from './menuInput';
 
 export interface MenuItem {
@@ -15,6 +16,8 @@ export interface MenuItem {
   onRight?: () => void;
   /** Greyed out; can still be focused so its detail can be read. */
   disabled?: boolean;
+  /** On a grid screen: this item takes a whole row to itself. */
+  wide?: boolean;
 }
 
 interface Props {
@@ -36,6 +39,8 @@ interface Props {
   onFocus?: (key: string | null) => void;
   /** Put the screen's facts across the top with the list beneath, for screens that are mostly something to read. */
   stack?: boolean;
+  /** Lay the items out as a grid this many columns wide, moved around with all four directions. */
+  columns?: number;
 }
 
 /** Something every menu screen shows in its top bar: the strip of cap space, cash, tape and Pucks. */
@@ -77,7 +82,7 @@ function Help({ text }: { text: string }) {
  * with a side panel for the screen's facts and the focused item's details.
  * Every screen in the game is one of these, so they all look and behave the same.
  */
-export function Menu({ title, header, items, onBack, help, message, initialFocus = 0, remember, onFocus, stack = false }: Props) {
+export function Menu({ title, header, items, onBack, help, message, initialFocus = 0, remember, onFocus, stack = false, columns }: Props) {
   const chrome = useContext(MenuChrome);
   const [focus, setFocus] = useState((remember !== undefined ? remembered.get(remember) : undefined) ?? initialFocus);
   const current = Math.min(focus, Math.max(0, items.length - 1));
@@ -85,8 +90,8 @@ export function Menu({ title, header, items, onBack, help, message, initialFocus
   const focused = useRef<HTMLDivElement>(null);
 
   // The handlers change every render; keep the latest where the listener can reach them.
-  const latest = useRef({ items, current, onBack, onFocus });
-  latest.current = { items, current, onBack, onFocus };
+  const latest = useRef({ items, current, onBack, onFocus, columns });
+  latest.current = { items, current, onBack, onFocus, columns };
 
   useEffect(
     () =>
@@ -96,7 +101,17 @@ export function Menu({ title, header, items, onBack, help, message, initialFocus
         const item = now.items[now.current];
         // Any press is the player's own, which is what browsers need before they allow sound.
         gameAudio.unlock();
-        if (action === 'up' && count > 0) {
+        if (now.columns && count > 0 && (action === 'up' || action === 'down' || action === 'left' || action === 'right')) {
+          // A grid: all four directions move the focus.
+          const next = gridMove(
+            now.items.map((i) => Boolean(i.wide)),
+            now.columns,
+            now.current,
+            action,
+          );
+          if (next !== now.current) gameAudio.play('tick');
+          setFocus(next);
+        } else if (action === 'up' && count > 0) {
           setFocus((now.current - 1 + count) % count);
           gameAudio.play('tick');
         } else if (action === 'down' && count > 0) {
@@ -142,12 +157,12 @@ export function Menu({ title, header, items, onBack, help, message, initialFocus
       </div>
       {message && <div class="menu-message">{message}</div>}
       <div class={`menu-body${side ? ' two' : ''}${stack ? ' stack' : ''}`}>
-        <div class="menu-list">
+        <div class={`menu-list${columns ? ' grid' : ''}`} style={columns ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}>
           {items.map((item, i) => (
             <div
               key={item.key}
               ref={i === current ? focused : undefined}
-              class={`menu-item${i === current ? ' focused' : ''}${item.disabled ? ' disabled' : ''}`}
+              class={`menu-item${i === current ? ' focused' : ''}${item.disabled ? ' disabled' : ''}${item.wide ? ' wide' : ''}`}
               onMouseMove={() => i !== current && setFocus(i)}
               onClick={() => {
                 gameAudio.unlock();

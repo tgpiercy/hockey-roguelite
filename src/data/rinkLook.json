@@ -90,7 +90,10 @@
     "trailMinSpeed": 20,
     "trailSeconds": 0.22,
     "trailWidth": 0.12,
-    "trailAlpha": 0.4
+    "trailAlpha": 0.4,
+    "netBulge": 0.4,
+    "netBulgeSeconds": 0.5,
+    "stickSweep": 0.2
   },
   "arena": {
     "maxRows": 14,

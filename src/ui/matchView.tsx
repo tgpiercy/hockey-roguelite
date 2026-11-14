@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { render } from 'preact';
+import { teamCrest } from '../core/crest';
 import type { DressedTeam } from '../core/matchup';
 import look from '../data/rinkLook.json';
 import seasonRules from '../data/season.json';
@@ -97,7 +98,11 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour 
       onControls,
       onEvents: (events, world, t) => gameAudio.onEvents(events, world, t),
       onFrame: (_world, _t, seconds) => gameAudio.onFrame(seconds),
-      onResult: (result) => render(<GameSummary result={result} teams={[home, away]} />, summary),
+      onResult: (result) =>
+        render(
+          <GameSummary result={result} teams={[home, away]} crests={[teamCrest(home.name, homeColour ?? look.colours.teamHome), teamCrest(away.name, awayColour ?? look.colours.teamAway)]} />,
+          summary,
+        ),
       onDone: (result) => {
         render(null, summary);
         render(null, touch);

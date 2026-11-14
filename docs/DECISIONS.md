@@ -116,6 +116,12 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Motion | Screens settle in, bars fill, the focus changes smoothly. All switched off when the device asks for reduced motion. | Graphics round |
 | 2026-11-14 | Not done from the plan | Numbers counting up on the rewards screen, a sweeping stick, and the net bulging on a goal were planned and not built. The closer camera was not chosen. | Graphics round |
 | 2026-11-14 | Skating sound | Removed after the owner listened: the constant skate noise was unwanted. The other sounds stay as they are. | Graphics round |
+| 2026-11-14 | Hub | A dashboard: a team card, one large button for the next thing to do, and the four groups and Exhibition as tiles in a two-column grid, each with an icon and its live status. The d-pad moves in all four directions on this screen only. | Interface round two |
+| 2026-11-14 | Icons and gear art | Every menu row has a drawn line icon. Every kind of gear has a drawing, framed and tinted in its rarity colour, in the gear list, the gear card, a player's slots and the pack-opening cards. | Interface round two |
+| 2026-11-14 | Player portraits | Every player has a face worked out from his id: head shape, skin tone, hair style and colour, brows, eye colour, and for some a beard. It never changes, except that hair turns grey at an age fixed per player (from 32 on) and the youngest have no beard yet. He wears his team's colours; a free agent wears neutral ones; the mascot has his own head. | Interface round two |
+| 2026-11-14 | Title screen | The game opens on a title screen with the working title, your crest and where your franchise stands. The title and tagline are in `src/data/game.json`, so the name can change in one place. | Interface round two |
+| 2026-11-14 | End-of-game screen | Both crests, the score, and the three stars of the game: skaters scored by goals, assists, shots, hits and blocks, goalies by saves, goals against, a shutout and the win, with a little extra for the winning side. A player who did nothing is never a star. | Interface round two |
+| 2026-11-14 | Leftovers finished | Cash, Pucks and XP count up on the rewards screen; the net bulges for half a second on a goal; a skater's stick sweeps with his stride when he does not have the puck. | Interface round two |
 
 ## Open
 

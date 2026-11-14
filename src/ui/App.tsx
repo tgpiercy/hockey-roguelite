@@ -60,18 +60,22 @@ import prestigeRules from '../data/prestige.json';
 import rules from '../data/season.json';
 import { EquipPreview, GearCard, GearedRatings, GearRow, setProgress, slotName } from './gearParts';
 import { gameAudio } from '../game/audio';
+import gameInfo from '../data/game.json';
 import { CrestBadge } from './Crest';
+import { GearArt } from './GearArt';
+import { Icon, type IconName } from './Icon';
 import { Menu, MenuChrome, type MenuItem } from './Menu';
 import { PackOpening } from './PackOpening';
 import { loadPrefs, savePrefs, VOLUME_STEPS, type Prefs } from './prefs';
 import { menuInput } from './menuInput';
 import { playMatch } from './matchView';
 import type { PlayerRecord } from '../core/player';
-import { CapLine, Dots, Grade, Meter, money, PlayerRow, Ratings, Wallet } from './parts';
+import { CapLine, CountUp, Dots, Face, Grade, Meter, money, NO_TEAM, PlayerRow, Ratings, Wallet, WearingContext, type Wearing } from './parts';
 import { MapKey, SeasonMapView } from './SeasonMap';
 import { downloadText, loadStored, pickTextFile, store } from './storage';
 
 type Screen =
+  | { name: 'title' }
   | { name: 'home' }
   | { name: 'roster' }
   | { name: 'player'; playerId: string }
@@ -115,6 +119,42 @@ type Screen =
 
 type Sort = 'overall' | 'cost' | 'position';
 type Group = 'team' | 'office' | 'collection' | 'settings';
+
+/** The icon each hub-style row carries, by the row's key. A row can also name its own. */
+const TILE_ICONS: Record<string, IconName> = {
+  team: 'team',
+  office: 'office',
+  collection: 'collection',
+  settings: 'settings',
+  roster: 'roster',
+  lineup: 'lineup',
+  fa: 'freeAgents',
+  trade: 'trade',
+  powerups: 'powerups',
+  mascot: 'mascot',
+  finances: 'finances',
+  staff: 'staff',
+  facilities: 'facilities',
+  prestige: 'prestige',
+  report: 'report',
+  packs: 'packs',
+  gear: 'gear',
+  artifacts: 'artifacts',
+  jersey: 'jersey',
+  difficulty: 'difficulty',
+  sound: 'sound',
+  volume: 'sound',
+  detail: 'detail',
+  saves: 'save',
+  play: 'play',
+  start: 'play',
+  simulate: 'simulate',
+  exhibition: 'exhibition',
+  contracts: 'contracts',
+  bailout: 'bailout',
+  'load-0': 'powerups',
+  'load-1': 'powerups',
+};
 const BUTTONS = ['LT', 'RB'];
 
 /** The gear screen's filters, cycled with left and right. */
@@ -130,7 +170,7 @@ const RARITY_ORDER = gearData.rarities.map((r) => r.id as string);
 export function App() {
   const [, redraw] = useReducer((n: number) => n + 1, 0);
   const ref = useRef<Franchise | null>(null);
-  const [screen, setScreen] = useState<Screen>({ name: 'home' });
+  const [screen, setScreen] = useState<Screen>({ name: 'title' });
   const [message, setMessage] = useState('');
   const [sort, setSort] = useState<Sort>('overall');
   const [gearFilter, setGearFilter] = useState(0);
@@ -185,6 +225,8 @@ export function App() {
   const { league, season } = f;
   const team = userTeam(league);
   const locked = rosterLocked(f);
+  // Your crest wears the jersey colour you chose; every other team's comes from its name.
+  const myCrest = teamCrest(team.name, jerseyColour(f));
   // A new screen is a new list: its focus starts afresh.
   const screenKey = `${JSON.stringify(screen)}|${season.phase}|${season.current}|${season.stage}`;
 
@@ -210,10 +252,18 @@ export function App() {
     go({ name });
   };
   /** A hub row: a bold name, a line saying what is inside, and an optional count or lock. */
-  const tile = (key: string, name: string, what: string, onSelect: () => void, extra: { badge?: number; lock?: string; primary?: boolean; disabled?: boolean; detail?: ComponentChildren } = {}): MenuItem => ({
+  const tile = (
+    key: string,
+    name: string,
+    what: string,
+    onSelect: () => void,
+    extra: { badge?: number; lock?: string; primary?: boolean; disabled?: boolean; detail?: ComponentChildren; icon?: IconName; wide?: boolean } = {},
+  ): MenuItem => ({
     key,
+    wide: extra.wide,
     label: (
       <span class={`tile${extra.primary ? ' primary' : ''}`}>
+        {(extra.icon ?? TILE_ICONS[key]) && <Icon name={(extra.icon ?? TILE_ICONS[key]) as IconName} size={20} />}
         <span class="tile-name">{name}</span>
         <span class="tile-what">{what}</span>
         {extra.badge ? <span class="badge">{extra.badge}</span> : null}
@@ -224,6 +274,30 @@ export function App() {
     disabled: extra.disabled ?? Boolean(extra.lock),
     onSelect,
   });
+  /** A dashboard tile for the hub's grid: a big icon, a name, and what is going on in there right now. */
+  const card = (key: string, name: string, status: string, onSelect: () => void, extra: { badge?: number; disabled?: boolean; detail?: ComponentChildren } = {}): MenuItem => ({
+    key,
+    label: (
+      <span class="dash-tile">
+        <Icon name={TILE_ICONS[key] as IconName} size={30} />
+        <span class="dash-text">
+          <span class="dash-name">{name}</span>
+          <span class="dash-status">{status}</span>
+        </span>
+        {extra.badge ? <span class="badge">{extra.badge}</span> : null}
+      </span>
+    ),
+    detail: extra.detail,
+    disabled: extra.disabled,
+    onSelect,
+  });
+  /** What every player is wearing, for the portraits: his team's colours, yours in the jersey you chose. */
+  const wearingById = new Map<string, Wearing>();
+  for (const club of league.teams) {
+    const crest = club.id === league.userTeamId ? myCrest : teamCrest(club.name);
+    for (const id of club.roster) wearingById.set(id, { primary: crest.primary, secondary: crest.secondary });
+  }
+  const wearing = (playerId: string): Wearing => wearingById.get(playerId) ?? NO_TEAM;
   // Staff, facilities and prestige open once you have finished a season, so the first run is not a wall of systems.
   const earlyLock = f.books.length === 0 ? 'Opens after your first season.' : undefined;
   /** The four groups every hub screen ends with. */
@@ -235,8 +309,6 @@ export function App() {
   ];
   const bump = (id: string): number => season.bumps[id] ?? 0;
   const fireSale = inFireSale(f);
-  // Your crest wears the jersey colour you chose; every other team's comes from its name.
-  const myCrest = teamCrest(team.name, jerseyColour(f));
   const cashLine = (
     <div>
       Cash <b class={f.cash < 0 ? 'down' : ''}>{money(f.cash)}</b> · Franchise value <b>{money(f.value)}</b>
@@ -311,6 +383,37 @@ export function App() {
   );
 
   const view = ((): ComponentChildren => {
+  // ---------------------------------------------------------------- title
+
+  if (screen.name === 'title') {
+    const last = f.books[f.books.length - 1];
+    return (
+      <Menu
+        key="title"
+        stack
+        title={team.name}
+        header={
+          <div class="title-screen">
+            <div class="title-mark">{gameInfo.title}</div>
+            <div class="title-tag">{gameInfo.tagline}</div>
+            <div class="title-team">
+              <CrestBadge crest={myCrest} size={64} />
+              <div>
+                <b>{team.name}</b>
+                <span>
+                  {locked ? `Season ${league.season} in progress` : `Off-season before season ${league.season}`} · {difficultyInfo(f.difficulty).name}
+                </span>
+                <span>{last ? `Last season: ${last.wins} wins${last.champion ? ', champions' : ''}` : 'A new franchise'}</span>
+              </div>
+            </div>
+          </div>
+        }
+        help="A continue"
+        items={[{ key: 'continue', label: <b>Continue</b>, onSelect: () => go({ name: 'home' }) }]}
+      />
+    );
+  }
+
   // ---------------------------------------------------------------- home
 
   if (screen.name === 'home') {
@@ -318,20 +421,27 @@ export function App() {
     if (season.phase === 'offseason') {
       const ready = canPlay(league, team);
       const pending = f.offseason.pending.length;
+      const lastBooks = f.books[f.books.length - 1];
       return (
         <Menu
           key={screenKey}
           remember="hub"
+          columns={2}
           title={team.name}
           message={message}
           header={
             <>
-              <div class="team-head">
-                <CrestBadge crest={myCrest} size={46} />
-                <div>
-                  Off-season before season {league.season}
-                  <br />
-                  All-time {f.record.wins}-{f.record.losses}-{f.record.overtimeLosses} · {difficultyInfo(f.difficulty).name}
+              <div class="team-card">
+                <CrestBadge crest={myCrest} size={58} />
+                <div class="team-card-text">
+                  <b>{team.name}</b>
+                  <span>
+                    Off-season before season {league.season} · {difficultyInfo(f.difficulty).name}
+                  </span>
+                  <span>
+                    All-time {f.record.wins}-{f.record.losses}-{f.record.overtimeLosses}
+                    {lastBooks ? ` · last season ${lastBooks.wins} wins${lastBooks.champion ? ', champions' : ''}` : ''}
+                  </span>
                 </div>
               </div>
               <CapLine league={league} team={team} />
@@ -343,37 +453,55 @@ export function App() {
                 </div>
               )}
               {f.prestige.level > 0 && <div>Prestige level {f.prestige.level}: {prestigeEffects(f.prestige.level).slice(0, 2).join(' ')}</div>}
-              {pending > 0 && (
-                <div class="warn">
-                  {pending} contract{pending === 1 ? ' has' : 's have'} run out. Decide {pending === 1 ? 'it' : 'them'} before the season can start.
-                </div>
-              )}
               {!ready.ok && <div class="warn">Cannot play yet: {ready.reason}</div>}
             </>
           }
+          help="A select · left/right and up/down move"
           items={[
             ...(pending > 0
-              ? [tile('contracts', 'Contracts', `${pending} to decide before the season can start`, () => go({ name: 'contracts' }), { badge: pending, primary: true, detail: 'Re-sign each player or let him go.' })]
+              ? [
+                  tile('contracts', 'Decide contracts', `${pending} to settle before the season can start`, () => go({ name: 'contracts' }), {
+                    badge: pending,
+                    primary: true,
+                    wide: true,
+                    detail: 'Re-sign each player or let him go.',
+                  }),
+                ]
               : []),
-            tile('start', 'Start the season', `Season ${league.season}`, () => after(startSeason(f)), {
+            tile('start', 'Start the season', `Season ${league.season}: three regions, then the playoffs`, () => after(startSeason(f)), {
               primary: pending === 0,
+              wide: true,
               disabled: !ready.ok || pending > 0 || fireSale,
               detail: pending > 0
                 ? 'Decide your expiring contracts first.'
                 : fireSale
                   ? 'You are out of cash. Raise money first.'
-                  : 'Three regions, then the playoffs. Your seventh skater is the spare: you can swap him in between games.',
+                  : 'Your seventh skater is the spare: you can swap him in between games.',
             }),
             ...(canBailOut(f)
               ? [
                   tile('bailout', 'League bail-out', 'Ask the league to cover your debt', () => {
                     const result = bailOut(f);
                     after(result.ok ? { ok: true, message: 'The league has covered your debt. Your franchise value has dropped.' } : result);
-                  }, { detail: 'You have nothing left to sell. The league pays what you owe and your franchise value drops by a tenth.' }),
+                  }, { wide: true, detail: 'You have nothing left to sell. The league pays what you owe and your franchise value drops by a tenth.' }),
                 ]
               : []),
-            tile('exhibition', 'Exhibition', 'A one-off game that does not count', () => go({ name: 'exhibition' }), { disabled: !ready.ok }),
-            ...groupItems(),
+            card('team', 'Team', pending > 0 ? `${pending} contract${pending === 1 ? '' : 's'} due` : `${rosterOf(league, team).length} players`, () => openGroup('team'), {
+              badge: pending,
+              detail: 'Roster, lineup, free agents, trades and the mascot.',
+            }),
+            card('office', 'Front office', `Cash ${money(f.cash)}`, () => openGroup('office'), { detail: 'Finances, staff, facilities and prestige.' }),
+            card('collection', 'Collection', f.packs.length > 0 ? `${f.packs.length} pack${f.packs.length === 1 ? '' : 's'} to open` : `${f.gear.length} pieces of gear`, () => openGroup('collection'), {
+              badge: f.packs.length,
+              detail: 'Packs, gear, artifacts and your jersey.',
+            }),
+            card('settings', 'Settings', `${difficultyInfo(f.difficulty).name} · sound ${prefs.sound ? 'on' : 'off'}`, () => openGroup('settings'), {
+              detail: 'Difficulty, sound, rink detail, save and load.',
+            }),
+            card('exhibition', 'Exhibition', 'A game that does not count', () => go({ name: 'exhibition' }), {
+              disabled: !ready.ok,
+              detail: 'A one-off game against any team. Nothing is won or lost.',
+            }),
           ]}
         />
       );
@@ -616,6 +744,7 @@ export function App() {
             const d = describe(s);
             return tile(s.id, d.kind, d.what, () => after(travel(f, s.id)), {
               primary: true,
+              icon: s.kind,
               detail: (
                 <>
                   {d.detail}
@@ -721,6 +850,7 @@ export function App() {
             : shown.map((item) => ({
                 key: item.id,
                 label: <GearRow item={item} wearer={nameOf(item.wornBy)} />,
+                detail: <GearCard item={item} />,
                 onLeft: () => cycle(-1),
                 onRight: () => cycle(1),
                 onSelect: () => go({ name: 'item', itemId: item.id }),
@@ -821,17 +951,33 @@ export function App() {
         message={message}
         header={
           <>
-            <div>
-              <PlayerRow player={p} bump={bump(p.id)} />
+            <div class="player-card">
+              <Face player={p} size={64} />
+              <div class="player-card-text">
+                <div class="player-card-top">
+                  <Grade player={p} />
+                  <b class="player-card-ovr">{p.overall}</b>
+                  <span class="player-card-pos">{p.position === 'F' ? 'Forward' : p.position === 'D' ? 'Defence' : 'Goalie'}</span>
+                  {bump(p.id) !== 0 && <span class="bump">+{bump(p.id)} this season</span>}
+                </div>
+                <span>
+                  Age {p.age} · {money(p.capHit)} a season · {p.contractYears} year{p.contractYears === 1 ? '' : 's'} left
+                </span>
+                <span>Potential: {potentialText(f, p)}</span>
+              </div>
             </div>
-            <div>
-              <GearedRatings f={f} player={p} />
-            </div>
-            <div>Potential: {potentialText(f, p)}</div>
-            <div>
-              Level {p.level} · {Math.floor(p.xp)} of {xpForLevel(p.level)} XP to the next level
-              {(season.xp[p.id] ?? 0) > 0 && <> · {Math.round(season.xp[p.id] ?? 0)} XP earned this season, banked when it ends</>}
-            </div>
+            <Meter
+              label={`Level ${p.level}`}
+              tone="cool"
+              share={(p.xp + (season.xp[p.id] ?? 0)) / xpForLevel(p.level)}
+              value={
+                <>
+                  {Math.floor(p.xp)} of {xpForLevel(p.level)} XP
+                  {(season.xp[p.id] ?? 0) > 0 && <> · +{Math.round(season.xp[p.id] ?? 0)} this season, banked when it ends</>}
+                </>
+              }
+            />
+            <GearedRatings f={f} player={p} />
             {!progress && <div>Gear changes ratings on the ice. It never changes his grade or cap hit.</div>}
           </>
         }
@@ -844,6 +990,7 @@ export function App() {
               key: slot,
               label: (
                 <span class="slot-row">
+                  {!item && <GearArt slot={slot} rarity="empty" size={26} />}
                   <span class="slot-name">{slotName(slot)}</span>
                   {item ? <GearRow item={item} /> : <span class="note">empty</span>}
                 </span>
@@ -1647,13 +1794,12 @@ export function App() {
                 <div class="reward">
                   <i>Cash</i>
                   <b class={r.cash < 0 ? 'down' : 'up'}>
-                    {r.cash >= 0 ? '+' : ''}
-                    {money(r.cash)}
+                    <CountUp value={r.cash} format={(v) => `${r.cash >= 0 ? '+' : ''}${money(v)}`} />
                   </b>
                 </div>
                 <div class="reward">
                   <i>Pucks</i>
-                  <b>{r.pucks > 0 ? `+${r.pucks}` : '0'}</b>
+                  <b>{r.pucks > 0 ? <CountUp value={r.pucks} format={(v) => `+${Math.round(v)}`} /> : '0'}</b>
                 </div>
                 {!r.won && season.phase !== 'ended' && (
                   <div class="reward">
@@ -1689,12 +1835,15 @@ export function App() {
                   const need = xpForLevel(p.level);
                   return (
                     <>
-                      <span>{x.name}</span>
+                      <span class="reward-who">
+                        <Face player={p} size={22} /> {x.name}
+                      </span>
                       <span class="meter-bar">
                         <span class={`meter-fill${banked >= need ? '' : ' cool'}`} style={{ width: `${Math.min(1, banked / need) * 100}%`, display: 'block' }} />
                       </span>
                       <span>
-                        +{Math.round(x.earned)} XP{banked >= need ? ' · level up' : ''}
+                        <CountUp value={x.earned} format={(v) => `+${Math.round(v)} XP`} />
+                        {banked >= need ? ' · level up' : ''}
                       </span>
                     </>
                   );
@@ -2109,5 +2258,9 @@ export function App() {
     />
   );
   })();
-  return <MenuChrome.Provider value={<Wallet f={f} />}>{view}</MenuChrome.Provider>;
+  return (
+    <WearingContext.Provider value={wearing}>
+      <MenuChrome.Provider value={<Wallet f={f} />}>{view}</MenuChrome.Provider>
+    </WearingContext.Provider>
+  );
 }

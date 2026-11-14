@@ -2,6 +2,7 @@ import { boostedRatings, gearModifiers, itemName, itemSummary, setCounts, setInf
 import type { PlayerRecord } from '../core/player';
 import type { Franchise } from '../core/season';
 import gearData from '../data/gear.json';
+import { GearArt } from './GearArt';
 import { RatingBar } from './parts';
 
 const ratingNames = gearData.ratingNames as Record<string, string>;
@@ -16,6 +17,7 @@ export function GearName({ item }: { item: GearItem }) {
 export function GearRow({ item, wearer }: { item: GearItem; wearer?: string }) {
   return (
     <span class="gear-row">
+      <GearArt slot={item.slot} rarity={item.rarity} size={26} />
       <GearName item={item} />
       <span class="gear-what">{itemSummary(item)}</span>
       {wearer && <span class="note">worn by {wearer}</span>}
@@ -28,8 +30,13 @@ export function GearCard({ item }: { item: GearItem }) {
   const set = item.set ? setInfo(item.set) : null;
   return (
     <div class={`gear-card gear-card-${item.rarity}`}>
-      <div class="gear-card-name">{itemName(item)}</div>
-      <div>{itemSummary(item)}</div>
+      <div class="gear-card-head">
+        <GearArt slot={item.slot} rarity={item.rarity} size={46} />
+        <div>
+          <div class="gear-card-name">{itemName(item)}</div>
+          <div>{itemSummary(item)}</div>
+        </div>
+      </div>
       {set && (
         <div class="gear-card-set">
           {set.name} set: {set.bonuses.map((b) => `${b.pieces} pieces: ${b.description}`).join(' · ')}

@@ -241,3 +241,25 @@ Built, deployed and checked with a simulated controller. Still open:
 - Not done from the plan: numbers counting up on the rewards screen, a sweeping stick, the net bulging on a goal. The sound-synthesis checks are measurements made in the browser, not unit tests, because the test environment has no audio; the unit tests cover the event-to-sound map and the recipes' validity.
 - Not checked: what any of it sounds like; smoothness of the animation (only still frames); a phone's frame rate; whether a controller button alone unlocks sound; jersey numbers (they only show on a bigger screen, seen once at 1280 x 720).
 - The rink is about 7.5% smaller than before, a little more than the 6% in the plan.
+
+# Interface round two: dashboard, icons, faces, title and end screens
+
+- [x] Skating sound removed
+- [x] Hub as a dashboard with a two-dimensional grid
+- [x] Icons on every row; gear art by rarity
+- [x] Player portraits and the player card
+- [x] Title screen; end-of-game screen with three stars
+- [x] Leftovers: count-up, net bulge, stick sweep
+- [x] Checked in pictures
+- [ ] Commit, push, deploy green
+- [ ] Look at it on the phone (owner)
+
+## Review (interface round two)
+
+- Type check, 719 tests (29 new) and the build pass. No rule changed: the balance series is unchanged.
+- Checked on an art sheet first (`?sheet`): 36 faces at two sizes, one player aged 19 to 38, every icon at 20 and 32 pixels, every gear drawing in each rarity, every crest. The faces held up, so the initials fallback was not needed. The sheet showed the shoulder pads looked like a second jersey and the skate blade was invisible; both were redrawn.
+- Seen in pictures at phone size: the title screen; the dashboard, with and without contracts due; the Team group with icons; the roster with faces; the player card; the gear list; a pack opened with gear art; the end-of-game screen after a game with the three stars; the rewards screen; the rink with the goal light on.
+- By keyboard: the dashboard grid moved correctly in all four directions, including from a wide button into the tiles and back. The rewards count-up finished on the right figure (+$1.59M, matching the change in cash).
+- Found by looking: gear rows wrapping onto uneven second lines (now one line, with the full description in the side panel); a pack card clipping a long name; the keyboard hint showing faintly through the end-of-game screen.
+- Not checked: motion (the count-up was checked by its end value, the net bulge and stick sweep only as single frames, and the stick sweep is too small to make out in a phone-size still); a real phone; free-agent and trade lists with faces (same row component as the roster, not separately pictured).
+- Simplifications: faces are simple and stylised; at row size only hair, skin and colours read. The map and in-season screens keep their list layout.
