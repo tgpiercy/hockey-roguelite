@@ -208,7 +208,7 @@ Built, deployed and checked with a simulated controller.
 - [x] Touch controls
 - [x] Checked in a browser, with pictures
 - [ ] Commit, push, deploy green
-- [ ] Play it on the phone (owner)
+- [x] Play it on the phone (owner)
 
 ## Review (design round)
 
@@ -229,7 +229,7 @@ Built, deployed and checked with a simulated controller.
 - [x] Pack opening; menu motion with a reduced-motion rule
 - [x] Checked in pictures and by measurement
 - [ ] Commit, push, deploy green
-- [ ] Listen to it and play it on the phone (owner)
+- [x] Listen to it and play it on the phone (owner)
 
 ## Review (graphics round)
 
@@ -252,7 +252,7 @@ Built, deployed and checked with a simulated controller.
 - [x] Leftovers: count-up, net bulge, stick sweep
 - [x] Checked in pictures
 - [x] Commit, push, deploy green
-- [ ] Look at it on the phone (owner)
+- [x] Look at it on the phone (owner)
 
 ## Review (interface round two)
 
@@ -276,7 +276,7 @@ Built, deployed and checked with a simulated controller.
 - [x] Mascot panel and prestige ladder
 - [x] Checked in pictures
 - [x] Commit, push, deploy green
-- [ ] Look at it on the phone (owner)
+- [x] Look at it on the phone (owner)
 
 ## Review (interface round three)
 

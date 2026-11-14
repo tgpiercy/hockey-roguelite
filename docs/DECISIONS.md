@@ -136,6 +136,8 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Ending a game early | In a season it is a forfeit: a loss whatever the score, with a strike, after a confirmation. What happened in the game still counts for XP and milestones, as in any loss. In an exhibition the game just ends. | Pause menu |
 | 2026-11-14 | On-screen controls setting | Automatic (as before: shown on touch, hidden for a controller or keyboard), Always or Never. Kept with the device preferences. | Pause menu |
 | 2026-11-14 | Controller confirmed | The owner tested the controller through the menus, a game and the pause menu: no input problems. The Phase 0 test page at `?controller` is removed. | After the pause menu |
+| 2026-11-14 | On-screen Swap button | Moved from the left of Pass and Check, where it covered the ice, to the corner under Shoot, mirroring Sprint above it. Asked for by the owner after playing on the phone. | Phone playtest |
+| 2026-11-14 | Phone playtest | The owner played on the phone: it runs acceptably and is enjoyable so far. | Phone playtest |
 
 ## Open
 
