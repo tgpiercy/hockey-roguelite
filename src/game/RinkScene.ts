@@ -527,7 +527,10 @@ export class RinkScene extends Phaser.Scene {
           g.strokeEllipse(x, y, ring * 2, ring * 2 * FIG.ringSquash);
           g.lineBetween(tx, ty, tx + Math.cos(p.facing) * ring * FIG.ringTick, ty + Math.sin(p.facing) * ring * FIG.ringTick * FIG.ringSquash);
         }
-        // An arrow over his head, bobbing, so he can be found in a crowd. Drawn above the players.
+      }
+
+      if (world.puck.carrier === p.id) {
+        // An arrow over the head of whoever has the puck, on either team, bobbing. Drawn above the players.
         const tipY = y + fig.top * unit - unit * RET.arrowGap + Math.sin(this.clock * RET.bobPerSecond) * unit * RET.bobUnits;
         const half = (unit * RET.arrowWidth) / 2;
         const tall = unit * RET.arrowHeight;

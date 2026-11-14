@@ -148,6 +148,7 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Poke check reach | 2.8 m, about a stick length (was 1.9 m). A poke knocks the puck loose with no stun; inside 1.5 m while closing in, a check is still a body check that staggers. The AI has the same reach. Asked for by the owner. | Second playtest |
 | 2026-11-14 | Home and away jerseys | Each team has two kits from its own colours: its colour at home, and on the road a white jersey with the team colour on the helmet, pattern, gloves, pants and socks. The home team wears colour and the road team white, following the season schedule; an exhibition is a home game. | Second playtest |
 | 2026-11-14 | Reticle | The ring under the player you control is bright red with a white edge and thicker; a red arrow with a white edge bobs over his head. Asked for by the owner: the old yellow ring was hard to see on the phone. | Second playtest |
+| 2026-11-14 | Arrow over the puck carrier | The bobbing red arrow marks whoever has the puck, on either team (a goalie holding it included), not the player you control. The red ring still marks the player you control. Asked for by the owner. | Second playtest |
 
 ## Open
 
