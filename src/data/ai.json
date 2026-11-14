@@ -2,13 +2,46 @@
   "teammateLevel": 0.6,
   "faceoffJitterSeconds": 0.15,
   "levels": {
-    "reactionSeconds": [0.45, 0.12],
-    "aimErrorDegrees": [5, 0.5],
-    "passAwareness": [0.08, 0.35],
-    "checkEagerness": [0.12, 0.55],
-    "shotCharge": [0.1, 0.7],
-    "shootRange": [8, 11],
-    "faceoffSeconds": [0.5, 0.2]
+    "reactionSeconds": [
+      0.45,
+      0.12
+    ],
+    "aimErrorDegrees": [
+      5,
+      0.5
+    ],
+    "passAwareness": [
+      0.08,
+      0.35
+    ],
+    "checkEagerness": [
+      0.12,
+      0.55
+    ],
+    "shotCharge": [
+      0.1,
+      0.7
+    ],
+    "shootRange": [
+      8,
+      11
+    ],
+    "faceoffSeconds": [
+      0.5,
+      0.2
+    ],
+    "longShotRange": [
+      11,
+      16
+    ],
+    "longShotChance": [
+      0.1,
+      0.25
+    ],
+    "longShotCharge": [
+      0.4,
+      0.8
+    ]
   },
   "positions": {
     "slotDistance": 3,
@@ -34,6 +67,16 @@
     "puckLeadSeconds": 0.25,
     "betterSpotMargin": 2,
     "trailBehind": 3,
-    "slotSpacing": 2
+    "slotSpacing": 2,
+    "zoneLineX": 9,
+    "wideY": 5,
+    "netFrontDepth": 3.5,
+    "wingDepth": 7,
+    "wingY": 8,
+    "pointInset": 1.5,
+    "pointFollowY": 0.3,
+    "holdDepth": 7,
+    "postFilledRadius": 3,
+    "plantTilt": 0.1
   }
 }

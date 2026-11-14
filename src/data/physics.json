@@ -62,8 +62,8 @@
     "opponentDifficulty": 0.75
   },
   "pass": {
-    "speed": 20,
-    "saucerSpeed": 17,
+    "speed": 26,
+    "saucerSpeed": 22,
     "saucerHoldTime": 0.25,
     "saucerAirShare": 0.8,
     "saucerMaxAirSeconds": 0.7,

@@ -138,6 +138,10 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Controller confirmed | The owner tested the controller through the menus, a game and the pause menu: no input problems. The Phase 0 test page at `?controller` is removed. | After the pause menu |
 | 2026-11-14 | On-screen Swap button | Moved from the left of Pass and Check, where it covered the ice, to the corner under Shoot, mirroring Sprint above it. Asked for by the owner after playing on the phone. | Phone playtest |
 | 2026-11-14 | Phone playtest | The owner played on the phone: it runs acceptably and is enjoyable so far. | Phone playtest |
+| 2026-11-14 | Attacking shape | In the attacking zone a team spreads out: one in front of the net, one on the wing, one at the point (the defenceman), instead of all three near the crease. Applies to the opponent and to your own AI teammates. Asked for by the owner. | First playtest |
+| 2026-11-14 | Shots from distance | The AI takes a shot from distance when it is in the zone, beyond normal range, with a clear lane. It stops to wind up. These rarely score; they are there to vary the attack. | First playtest |
+| 2026-11-14 | Pass speed | 26 m/s, up from 20: passes felt slow. | First playtest |
+| 2026-11-14 | Your shooting | Left alone for now. The owner felt the goalie saves a lot but was not sure; revisit after more games. | First playtest |
 
 ## Open
 

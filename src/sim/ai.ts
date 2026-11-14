@@ -20,6 +20,10 @@ export interface AiLevel {
   shootRange: number;
   /** How long after a faceoff drop the centre goes for the puck. */
   faceoffSeconds: number;
+  /** From how far out he will try a shot from distance, how readily each time he thinks, and how much he winds up. */
+  longShotRange: number;
+  longShotChance: number;
+  longShotCharge: number;
 }
 
 export function aiLevel(level: number): AiLevel {
@@ -34,6 +38,9 @@ export function aiLevel(level: number): AiLevel {
     shotCharge: at(l.shotCharge),
     shootRange: at(l.shootRange),
     faceoffSeconds: at(l.faceoffSeconds),
+    longShotRange: at(l.longShotRange),
+    longShotChance: at(l.longShotChance),
+    longShotCharge: at(l.longShotCharge),
   };
 }
 
@@ -51,6 +58,7 @@ export function createAiMemory(): AiMemory {
     aimY: 0,
     wantCheck: false,
     carryTime: 0,
+    plant: false,
   };
 }
 
@@ -101,6 +109,49 @@ export function chooseState(world: World, p: Player, _t: Tuning): AiState {
   return dir * puck.pos.x < 0 ? 'defend' : 'support';
 }
 
+/** True if this spot is inside the zone `team` attacks: past the blue line at the far end. */
+export function inZone(team: 0 | 1, x: number): boolean {
+  return attackDir(team) * x > P.zoneLineX;
+}
+
+/** The three places an attacking team holds in the zone. */
+export type Post = 'netFront' | 'wing' | 'point';
+
+/**
+ * Where a post is for `team`, given where the puck is: net-front in the slot, the wing out wide on the side
+ * away from the puck (or on `wingSide` if given), the point just inside the blue line, shading toward the puck.
+ */
+export function postSpot(post: Post, team: 0 | 1, puck: Vec, t: Tuning, wingSide?: 1 | -1): Vec {
+  const dir = attackDir(team);
+  const net = targetNet(team, t);
+  if (post === 'netFront') return { x: net.x - dir * P.netFrontDepth, y: 0 };
+  if (post === 'wing') return { x: net.x - dir * P.wingDepth, y: (wingSide ?? (puck.y > 0 ? -1 : 1)) * P.wingY };
+  return { x: dir * (P.zoneLineX + P.pointInset), y: puck.y * P.pointFollowY };
+}
+
+/**
+ * Which posts the two skaters without the puck take in the zone. A carrier out wide is the wing himself, so
+ * the others go net-front and to the point; a carrier in the middle leaves the wing and the point.
+ * The point goes to a defenceman if exactly one helper is one, otherwise to whoever is furthest back.
+ */
+export function postsFor(team: 0 | 1, carrier: Vec, helpers: readonly Player[]): Map<number, Post> {
+  const out = new Map<number, Post>();
+  const front: Post = Math.abs(carrier.y) > P.wideY ? 'netFront' : 'wing';
+  const [a, b] = helpers;
+  if (!a) return out;
+  if (!b) {
+    out.set(a.id, front);
+    return out;
+  }
+  const dir = attackDir(team);
+  const aIsD = a.position === 'D';
+  const bIsD = b.position === 'D';
+  const back = aIsD !== bIsD ? (aIsD ? a : b) : dir * a.pos.x < dir * b.pos.x || (a.pos.x === b.pos.x && a.id < b.id) ? a : b;
+  out.set(back.id, 'point');
+  out.set(back.id === a.id ? b.id : a.id, front);
+  return out;
+}
+
 /** True if no opposing skater stands near the straight line from a to b. */
 export function laneClear(world: World, team: 0 | 1, a: Vec, b: Vec): boolean {
   return skatersOf(world, otherTeam(team)).every((o) => distToSegment(o.pos, a, b) > P.laneClearance);
@@ -130,6 +181,7 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   const pressured = nearestOpp !== null && dist(nearestOpp.pos, p.pos) < P.pressureRadius;
   const range = dist(puck, net);
   const inFront = dir * (net.x - puck.x) > 1;
+  m.plant = false;
 
   // Shoot: in range, in front of the net, with a clear look (or after holding it too long).
   if (inFront && range <= lv.shootRange) {
@@ -140,6 +192,19 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
       aimAt(m, puck, corner, lv.aimErrorDegrees, world);
       const windUp = lv.shotCharge * world.rng.next() * t.shot.chargeTime;
       m.shootSteps = 2 + Math.round(windUp * STEPS_PER_SECOND);
+      return;
+    }
+  }
+
+  // A shot from distance: inside the zone, beyond normal range, with a clear lane. Not every look is taken.
+  if (inFront && inZone(p.team, puck.x) && range > lv.shootRange && range <= lv.longShotRange && world.rng.chance(lv.longShotChance)) {
+    const goalie = goalieOf(world, otherTeam(p.team));
+    const side = goalie ? (goalie.pos.y > 0 ? -1 : 1) : world.rng.chance(0.5) ? 1 : -1;
+    const corner: Vec = { x: net.x, y: side * (t.net.mouthWidth / 2 - P.cornerInset) };
+    if (laneClear(world, p.team, puck, corner)) {
+      aimAt(m, puck, corner, lv.aimErrorDegrees, world);
+      m.shootSteps = 2 + Math.round(lv.longShotCharge * t.shot.chargeTime * STEPS_PER_SECOND);
+      m.plant = true;
       return;
     }
   }
@@ -161,9 +226,14 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
     }
   }
 
-  // Carry: head for the slot, swinging wide of a defender who is in the way.
-  const slotX = net.x - dir * P.slotDistance;
-  let y = Math.max(-P.slotHalfWidth, Math.min(P.slotHalfWidth, p.pos.y));
+  // Carry: head for the slot, swinging wide of a defender who is in the way. With a teammate already in
+  // front of the net he holds up further out instead of crowding him, until he has held the puck too long.
+  const front = postSpot('netFront', p.team, puck, t);
+  const filled = mates.some((mate) => dist(mate.pos, front) < P.postFilledRadius);
+  const holdUp = filled && inZone(p.team, puck.x) && m.carryTime <= P.maxCarrySeconds;
+  const slotX = net.x - dir * (holdUp ? P.holdDepth : P.slotDistance);
+  const halfWidth = holdUp ? P.wingY : P.slotHalfWidth;
+  let y = Math.max(-halfWidth, Math.min(halfWidth, p.pos.y));
   if (nearestOpp && dist(nearestOpp.pos, p.pos) < P.avoidRadius && dir * (nearestOpp.pos.x - p.pos.x) > 0) {
     y += (p.pos.y >= nearestOpp.pos.y ? 1 : -1) * P.avoidShift;
   }
@@ -186,6 +256,16 @@ function planSupport(world: World, p: Player, t: Tuning): void {
     .sort((a, b) => Number(a.position === 'D') - Number(b.position === 'D') || a.id - b.id);
   const maxX = goalLineX(t) - P.slotDistance * 0.5;
   const clampX = (x: number): number => Math.max(-maxX, Math.min(maxX, x));
+
+  // In the attacking zone the team spreads out: net-front, a wing and the point, not a crowd at the crease.
+  if (inZone(p.team, ref.x)) {
+    const post = postsFor(p.team, ref, helpers).get(p.id);
+    if (post) {
+      const spot = postSpot(post, p.team, ref, t);
+      goTo(p.ai, spot.x, spot.y);
+      return;
+    }
+  }
 
   // The first helper goes ahead into the far lane; any other trails behind the play as the safety valve.
   if (helpers[0]?.id === p.id || helpers.length === 1) {
@@ -309,8 +389,10 @@ export function aiInput(world: World, p: Player, t: Tuning, lv: AiLevel): InputF
 
   // A shot or pass in progress is carried through: hold the button, then let go while aiming.
   if (m.shootSteps > 0 || m.passSteps > 0) {
-    input.moveX = m.aimX;
-    input.moveY = m.aimY;
+    // A planted shooter barely tilts the stick: enough to aim, not enough to skate.
+    const tilt = m.shootSteps > 0 && m.plant ? P.plantTilt : 1;
+    input.moveX = m.aimX * tilt;
+    input.moveY = m.aimY * tilt;
     if (m.shootSteps > 0) {
       m.shootSteps -= 1;
       input.shoot = m.shootSteps > 0;
@@ -328,8 +410,9 @@ export function aiInput(world: World, p: Player, t: Tuning, lv: AiLevel): InputF
     think(world, p, t, lv);
     m.thinkIn = lv.reactionSeconds;
     if (m.shootSteps > 0 || m.passSteps > 0) {
-      input.moveX = m.aimX;
-      input.moveY = m.aimY;
+      const tilt = m.shootSteps > 0 && m.plant ? P.plantTilt : 1;
+      input.moveX = m.aimX * tilt;
+      input.moveY = m.aimY * tilt;
       input.shoot = m.shootSteps > 0;
       input.pass = m.passSteps > 0;
       return input;

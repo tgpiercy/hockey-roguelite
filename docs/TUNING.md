@@ -298,6 +298,48 @@ Nobody has listened to these yet. Each sound was rendered to numbers in the brow
 
 Frame time on this PC at 844 x 390, sim step and drawing together, averaged over 600 frames: 5.2 ms with full detail, 4.8 ms with low detail (a frame at 60 a second has 16.7 ms). Low detail saves little here because the crowd is still drawn, only held still. A phone is slower; that is untested.
 
+## Spread-out attack, long shots and faster passes (2026-11-14)
+
+Asked for by the owner after a first game on the phone: attackers crowded the front of the net and passed back and forth there, and passes felt slow.
+
+What changed:
+
+- **Posts in the attacking zone.** Past the blue line (9 m from centre) the two skaters without the puck take two of three posts: net-front (3.5 m out), the wing (7 m out, 8 m wide, on the side away from the puck) and the point (1.5 m inside the blue line). A carrier out wide counts as the wing. The defenceman takes the point. A carrier holds up 7 m out when a teammate is already in front of the net.
+- **Shots from distance.** In the zone, beyond normal range, with a clear lane: he plants his feet (the stick barely tilted) and winds up. Chance each time he thinks 0.10 to 0.25, range 11 to 16 m, wind-up 0.4 to 0.8 of a full charge (easy to hard).
+- **Pass speed** 20 to 26 m/s; saucer pass 17 to 22.
+
+Measured over 60 all-AI games at level 0.5, per team per game (the same script before and after):
+
+| | Before | After |
+| --- | --- | --- |
+| Share of zone time with all three attackers within 7 m of the net | 4% | 0% |
+| Share with two or more within 7 m | 10% | 4 to 5% |
+| Shots from beyond normal range | 0.5 | about 2 |
+| Goals from those | 0.01 | 0.02 |
+| Passes made inside the zone | 10.0 | about 10 |
+
+So the crowd at the net is gone and long shots are four times as common, but long shots almost never score (a goalie stops a straight shot from distance), and the number of passes in the zone did not fall.
+
+What was learned on the way: a first version let the shooter skate in while winding up, which turned every "long shot" into a hard shot from the slot (6.3 goals a team at level 0.8). Releasing early instead made them harmless and cost possessions (2.2 goals). Planting the feet is what keeps the shot at distance.
+
+Balance after, 200 games each:
+
+| Target | Before | After |
+| --- | --- | --- |
+| Equal teams score 3 to 5 each | 3.37 and 3.16 | 3.06 and 3.27 |
+| 90 beats 70 about 75% of the time | 75.5% | 75.5% |
+| Save percentage .850 to .920 | .855 | .852 (equal teams), .864 (90 against 70) |
+
+The scripted human-style player (skates to the slot and shoots; never passes) against the AI, 60 games each:
+
+| AI level | Where the player meets it | Record | Goals for and against |
+| --- | --- | --- | --- |
+| 0.3 | Rookie, first region | 52 wins, 8 losses | 5.95 and 2.32 |
+| 0.5 | Pro, first region | 46 wins, 14 losses | 4.92 and 2.93 |
+| 0.75 | Exhibition; Pro, later regions | 34 wins, 26 losses | 4.28 and 3.58 |
+
+At 0.75 that is closer than before this change (41 wins, 19 losses), so the AI is a little harder to beat by simply driving the net. Shots on target per shot were not split out for the scripted player; that part of the plan is still to do.
+
 ## Change log
 
 | Date | Value | From | To | Why |
@@ -311,4 +353,6 @@ Frame time on this PC at 844 x 390, sim step and drawing together, averaged over
 | 2026-11-13 | ratings.json and ai.json | Phase 2 values | see "Phase 3 balance" above | To meet the three balance targets |
 | 2026-11-13 | game.opponentDifficulty | 0.5 | 0.75 | A simple direct player beat 0.5 easily |
 | 2026-11-14 | aging.json, offseason.json | first guesses | see "League health over 20 seasons" above | To keep the league stable for 20 seasons |
+| 2026-11-14 | pass.speed, pass.saucerSpeed | 20, 17 | 26, 22 | Passes felt slow to the owner |
+| 2026-11-14 | ai.json: zone posts, longShotRange, longShotChance, longShotCharge, plantTilt | none | see "Spread-out attack" above | Attackers crowded the net |
 | 2026-11-14 | economy.json sponsorShareOfValue | 0.04 | 0.18 | Every manager style was bankrupt by season 3: income was per game but seasons can be 4 games long |

@@ -305,3 +305,22 @@ Built, deployed and checked with a simulated controller.
 - Found while checking: the menu reopened on the row last used, so a quick press toggled sound instead of resuming. It now always opens on Resume.
 - Not checked: the controller's Menu button, d-pad and A/B in the pause menu (same menu code as every other screen, but not pressed on a real pad); the on-screen Pause button under a finger; the crowd dropping while paused (not listened to); pausing when the phone locks.
 - Also in this stretch, since round three: powerups moved into Collection; Exhibition during a season; abandoning a season.
+
+# First playtest: spread-out attack, long shots, faster passes
+
+- [x] Posts in the attacking zone: net-front, wing, point
+- [x] Shots from distance, feet planted
+- [x] Pass speed 20 to 26
+- [x] Tests; balance back inside the three targets
+- [ ] Commit, push, deploy green
+- [ ] Human-style player's shots on target and scoring rate, split out (not done)
+- [ ] Play it: does the attack look spread out, do passes feel right? (owner)
+
+## Review (first playtest)
+
+- Type check, 762 tests (12 new) and the build pass. Balance, 200 games: 3.06 and 3.27 goals, 75.5%, save percentage .852: all three targets met.
+- Measured before and after with one script: all three attackers within 7 m of the net fell from 4% of zone time to 0%; long shots rose from 0.5 to about 2 a team a game.
+- Honest limits: long shots almost never score (0.02 a game), and passes made in the zone did not fall (about 10 a team a game, as before). If the passing back and forth still looks too busy, the lever is how readily a carrier passes (`passAwareness`), which this change did not touch.
+- Two wrong turns, both caught by measuring: a wind-up that let the shooter skate into the slot (scoring doubled), then an early release that made the shot harmless (scoring fell by a third).
+- Seen in one picture from a live game: the carrier in the corner, one teammate in front of the net, one high. The browser sampling was of the human's own AI teammates; I did not get a picture of the opponent in the same shape, though it is the same code.
+- Not done from the plan: the report on the human-style player's shots on target and scoring rate per shot; only its wins and goals were measured. Not checked: how any of it feels with a controller.

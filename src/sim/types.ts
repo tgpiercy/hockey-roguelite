@@ -91,6 +91,8 @@ export interface AiMemory {
   wantCheck: boolean;
   /** Seconds it has carried the puck in the attacking half. */
   carryTime: number;
+  /** True while winding up a shot from distance: he plants his feet instead of skating in as he charges. */
+  plant: boolean;
 }
 
 export interface GoalieState {

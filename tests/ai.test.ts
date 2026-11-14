@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { aiInput, aiLevel, chooseState, laneClear } from '../src/sim/ai';
+import { aiInput, aiLevel, chooseState, inZone, laneClear, postsFor, postSpot, think } from '../src/sim/ai';
+import positions from '../src/data/ai.json';
 import { goalLineX } from '../src/sim/rink';
 import { cloneTuning } from '../src/sim/tuning';
 import { NO_INPUT, type SimEvent, type World } from '../src/sim/types';
@@ -257,5 +258,172 @@ describe('AI behaviour', () => {
     place(world, ID.away1, 5, 0.3);
     expect(laneClear(world, 0, { x: 0, y: 0 }, { x: 10, y: 0 })).toBe(false);
     expect(laneClear(world, 0, { x: 0, y: 5 }, { x: 10, y: 5 })).toBe(true);
+  });
+});
+
+describe('AI in the attacking zone: spreading out', () => {
+  const P = positions.positions;
+  const play = (world: World, seconds: number): SimEvent[] => {
+    const events: SimEvent[] = [];
+    for (let i = 0; i < Math.round(seconds * STEPS_PER_SECOND); i++) events.push(...step(world, NO_INPUT, t));
+    return events;
+  };
+  const apart = (world: World, a: number, b: number): number => {
+    const p = player(world, a).pos;
+    const q = player(world, b).pos;
+    return Math.hypot(p.x - q.x, p.y - q.y);
+  };
+
+  it('the zone starts at the blue line, at either end', () => {
+    expect(inZone(0, P.zoneLineX + 1)).toBe(true);
+    expect(inZone(0, P.zoneLineX - 1)).toBe(false);
+    expect(inZone(1, -P.zoneLineX - 1)).toBe(true);
+    expect(inZone(1, P.zoneLineX + 1)).toBe(false);
+  });
+
+  it('a carrier out wide is the wing: the others take net-front and the point', () => {
+    const world = setUp();
+    const ahead = place(world, ID.home2, 16, 0);
+    const behind = place(world, ID.home3, 11, 0);
+    const posts = postsFor(0, { x: 15, y: P.wideY + 2 }, [ahead, behind]);
+    expect(posts.get(ID.home2)).toBe('netFront');
+    expect(posts.get(ID.home3)).toBe('point');
+  });
+
+  it('a carrier in the middle leaves the wing and the point', () => {
+    const world = setUp();
+    const ahead = place(world, ID.home2, 16, 3);
+    const behind = place(world, ID.home3, 11, -3);
+    const posts = postsFor(0, { x: 15, y: 1 }, [ahead, behind]);
+    expect(posts.get(ID.home2)).toBe('wing');
+    expect(posts.get(ID.home3)).toBe('point');
+  });
+
+  it('a defenceman takes the point even when he is the one further up ice', () => {
+    const world = setUp();
+    const ahead = place(world, ID.home2, 18, 0);
+    const behind = place(world, ID.home3, 11, 0);
+    ahead.position = 'D';
+    behind.position = 'F';
+    const posts = postsFor(0, { x: 15, y: 1 }, [ahead, behind]);
+    expect(posts.get(ID.home2)).toBe('point');
+    expect(posts.get(ID.home3)).toBe('wing');
+  });
+
+  it('the posts: net-front in the slot, the wing wide on the far side from the puck, the point inside the blue line', () => {
+    const puck = { x: 15, y: 6 };
+    const front = postSpot('netFront', 0, puck, t);
+    const wing = postSpot('wing', 0, puck, t);
+    const point = postSpot('point', 0, puck, t);
+    expect(front).toEqual({ x: gx - P.netFrontDepth, y: 0 });
+    expect(wing.y).toBe(-P.wingY);
+    expect(wing.x).toBe(gx - P.wingDepth);
+    expect(point.x).toBeGreaterThan(P.zoneLineX);
+    expect(point.x).toBeLessThan(wing.x);
+    // Mirrored for the team attacking the other way.
+    expect(postSpot('netFront', 1, puck, t).x).toBe(-front.x);
+    expect(postSpot('point', 1, puck, t).x).toBe(-point.x);
+  });
+
+  it('in play, the three attackers hold three different areas instead of crowding the net', () => {
+    const world = setUp('spread');
+    clearIce(world, [ID.home1, ID.home2, ID.home3]);
+    // All three start bunched in front of the net; the carrier is held still on the wing.
+    place(world, ID.home1, gx - 6, P.wideY + 2, 0);
+    place(world, ID.home2, gx - 4, 1);
+    place(world, ID.home3, gx - 5, -1);
+    giveTo(world, ID.home1);
+    // Looked at after a second and a half: long enough to get there, before the defenders arrive and take the puck.
+    player(world, ID.home1).stagger = 3;
+    play(world, 1.5);
+    expect(apart(world, ID.home2, ID.home3)).toBeGreaterThan(6);
+    expect(apart(world, ID.home1, ID.home2)).toBeGreaterThan(4);
+    expect(apart(world, ID.home1, ID.home3)).toBeGreaterThan(4);
+    // One is in front of the net and one has gone back to the point.
+    const xs = [player(world, ID.home2).pos.x, player(world, ID.home3).pos.x].sort((a, b) => a - b);
+    expect(xs[0]).toBeLessThan(P.zoneLineX + P.pointInset + 2);
+    expect(xs[1]).toBeGreaterThan(gx - P.netFrontDepth - 3);
+  });
+
+  it('outside the zone nothing changes: one helper ahead in the far lane, one trailing', () => {
+    const world = setUp('rush');
+    clearIce(world, [ID.home1, ID.home2, ID.home3]);
+    place(world, ID.home1, 0, 4, 0);
+    place(world, ID.home2, -2, 2);
+    place(world, ID.home3, -2, 6);
+    giveTo(world, ID.home1);
+    player(world, ID.home1).stagger = 2;
+    play(world, 1.5);
+    expect(player(world, ID.home2).pos.x).toBeGreaterThan(player(world, ID.home1).pos.x);
+    expect(player(world, ID.home3).pos.x).toBeLessThan(player(world, ID.home1).pos.x);
+  });
+
+  describe('shots from distance', () => {
+    const hard = aiLevel(1);
+    /** The carrier at the point, beyond normal shooting range, thinking many times over. Returns the longest wind-up he chose. */
+    const looks = (world: World): number => {
+      const p = player(world, ID.home1);
+      let longest = 0;
+      for (let i = 0; i < 80; i++) {
+        p.ai.shootSteps = 0;
+        p.ai.passSteps = 0;
+        think(world, p, t, hard);
+        longest = Math.max(longest, p.ai.shootSteps);
+      }
+      return longest;
+    };
+    const atPoint = (seed: string): World => {
+      const world = setUp(seed);
+      clearIce(world, [ID.home1]);
+      place(world, ID.home1, P.zoneLineX + 1, 0, 0);
+      giveTo(world, ID.home1);
+      return world;
+    };
+
+    it('the point is beyond normal range but inside long range for a sharp AI', () => {
+      const range = gx - (P.zoneLineX + 1) - 0.9;
+      expect(range).toBeGreaterThan(hard.shootRange);
+      expect(range).toBeLessThan(hard.longShotRange);
+      expect(aiLevel(0).longShotChance).toBeLessThan(hard.longShotChance);
+    });
+
+    it('with a clear lane he winds up and shoots', () => {
+      const steps = looks(atPoint('long-clear'));
+      expect(steps).toBe(2 + Math.round(hard.longShotCharge * t.shot.chargeTime * STEPS_PER_SECOND));
+    });
+
+    it('he plants his feet to wind up, instead of skating in as he charges', () => {
+      const world = atPoint('long-plant');
+      const p = player(world, ID.home1);
+      for (let i = 0; i < 80 && p.ai.shootSteps === 0; i++) {
+        p.ai.passSteps = 0;
+        think(world, p, t, hard);
+      }
+      expect(p.ai.plant).toBe(true);
+      const input = aiInput(world, p, t, hard);
+      expect(input.shoot).toBe(true);
+      expect(Math.hypot(input.moveX, input.moveY)).toBeCloseTo(P.plantTilt);
+      // An ordinary shot from the slot is taken on the move.
+      place(world, ID.home1, gx - 6, 0, 0);
+      giveTo(world, ID.home1);
+      p.ai.shootSteps = 0;
+      think(world, p, t, hard);
+      expect(p.ai.shootSteps).toBeGreaterThan(0);
+      expect(p.ai.plant).toBe(false);
+    });
+
+    it('with a defender in the lane he does not', () => {
+      const world = atPoint('long-blocked');
+      place(world, ID.away1, gx - 6, 0);
+      expect(looks(world)).toBe(0);
+    });
+
+    it('outside the zone he never tries one', () => {
+      const world = setUp('long-outside');
+      clearIce(world, [ID.home1]);
+      place(world, ID.home1, P.zoneLineX - 3, 0, 0);
+      giveTo(world, ID.home1);
+      expect(looks(world)).toBe(0);
+    });
   });
 });
