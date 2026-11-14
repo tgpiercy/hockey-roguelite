@@ -132,6 +132,9 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Where powerups are chosen | In Collection, beside Gear, during a season. The LT and RB tiles are gone from the game screen (asked for by the owner) and the Powerups row is gone from Team; the game poster still says what each button has loaded. | After interface round three |
 | 2026-11-14 | Exhibition during a season | The Exhibition tile is on the in-season screens too. The game does not count and uses your team as it stands, without the season's training gains, artifacts or powerups. | After interface round three |
 | 2026-11-14 | Abandoning a season | Settings, Save and load, Abandon this season. The season ends at once without a title and the ordinary off-season follows: XP banked, a year older, contracts tick, bills paid. Pucks and unused powerups are lost as at any season's end. There is no replaying a season from its start. | After interface round three |
+| 2026-11-14 | Pause menu | The Menu button, Tab, Escape or the on-screen Pause button freezes the game and opens a menu: resume, sound, volume, controls, tuning, end game. The game also pauses when the page is hidden. The button that resumes does not also pass or shoot. The tuning panel now opens from the pause menu, not from the Menu button. | Pause menu |
+| 2026-11-14 | Ending a game early | In a season it is a forfeit: a loss whatever the score, with a strike, after a confirmation. What happened in the game still counts for XP and milestones, as in any loss. In an exhibition the game just ends. | Pause menu |
+| 2026-11-14 | On-screen controls setting | Automatic (as before: shown on touch, hidden for a controller or keyboard), Always or Never. Kept with the device preferences. | Pause menu |
 
 ## Open
 

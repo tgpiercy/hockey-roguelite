@@ -70,7 +70,8 @@
       "ShiftRight"
     ],
     "menu": [
-      "Tab"
+      "Tab",
+      "Escape"
     ]
   },
   "menuKeys": {

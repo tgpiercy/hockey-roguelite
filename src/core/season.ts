@@ -568,6 +568,8 @@ const milestoneWords = (fresh: MilestoneInfo[]): string =>
 /** What a season game earned, for the rewards screen. Not saved: it describes the game just recorded. */
 export interface GameRewards {
   won: boolean;
+  /** True when the player gave the game up. */
+  forfeit: boolean;
   score: [number, number];
   /** Cash in or out for the game, milestone bonuses included. */
   cash: number;
@@ -607,7 +609,7 @@ export function recordGame(f: Franchise, result: GameResult): GameOutcome {
     xp.push({ id, name: playerOf(f.league, id).name, earned: amount });
   }
   const millions = (Math.abs(net) / 1_000_000).toFixed(2);
-  let message = `${outcome.message} Cash ${net >= 0 ? '+' : '-'}$${millions}M.`;
+  let message = `${result.forfeit ? 'You forfeit the game. ' : ''}${outcome.message} Cash ${net >= 0 ? '+' : '-'}$${millions}M.`;
   const pack = packForWin(result, game.kind === 'boss');
   if (pack) {
     awardPack(f, pack, game.title);
@@ -619,6 +621,7 @@ export function recordGame(f: Franchise, result: GameResult): GameOutcome {
     message: message + milestoneWords(fresh),
     rewards: {
       won: result.winner === 0,
+      forfeit: result.forfeit === true,
       score: [result.score[0], result.score[1]],
       cash: f.cash - cashBefore,
       pucks: f.season.currency - pucksBefore,

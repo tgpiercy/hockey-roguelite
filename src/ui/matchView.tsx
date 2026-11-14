@@ -10,6 +10,8 @@ import { RinkScene } from '../game/RinkScene';
 import type { GameResult } from '../sim/match';
 import type { PowerupSpec } from '../sim/modifiers';
 import { GameSummary } from './GameSummary';
+import { menuInput } from './menuInput';
+import { PauseMenu } from './PauseMenu';
 import { loadPrefs } from './prefs';
 import { TouchControls } from './TouchControls';
 import { TuningPanel } from './TuningPanel';
@@ -20,8 +22,14 @@ const hint = document.getElementById('hint') as HTMLElement;
 const tuneButton = document.getElementById('tune') as HTMLElement;
 const summary = document.getElementById('summary') as HTMLElement;
 const touch = document.getElementById('touch-root') as HTMLElement;
+const pauseRoot = document.getElementById('pause') as HTMLElement;
+
+/** How long after the pause menu opens or closes the pause key is ignored: Escape both closes the menu and is the pause key. */
+const PAUSE_DEBOUNCE_MS = 300;
 
 let wired = false;
+/** What the on-screen pause button does in the game being played. */
+let onPauseButton: (() => void) | null = null;
 
 /** One-time wiring of the tuning panel, which stays available during every game. */
 function wireTuningPanel(): void {
@@ -33,7 +41,7 @@ function wireTuningPanel(): void {
   };
   tuningStore.subscribe(showPanel);
   showPanel();
-  tuneButton.addEventListener('click', () => tuningStore.toggle());
+  tuneButton.addEventListener('click', () => onPauseButton?.());
 }
 
 export interface MatchOptions {
@@ -50,13 +58,15 @@ export interface MatchOptions {
   /** Each team's jersey colour, as "#rrggbb". */
   homeColour?: string;
   awayColour?: string;
+  /** What giving the game up costs, shown before the player confirms. Left out for a game that does not count. */
+  forfeitNote?: string;
 }
 
 /**
  * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch({ home, away, level, powerups, homeColour, awayColour }: MatchOptions, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
   const shift = tuningStore.tuning.game.opponentDifficulty - seasonRules.defaultDifficulty;
   const opponentLevel = level === undefined ? null : Math.max(0, Math.min(1, level + shift));
@@ -65,26 +75,69 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour 
 
   // The on-screen controls show once the screen is touched, and step aside for a controller or keyboard.
   let touchHidden = false;
-  render(<TouchControls hidden={touchHidden} />, touch);
+  let touchMode = loadPrefs().touch;
+  const showTouch = (): void => render(<TouchControls hidden={touchHidden} mode={touchMode} />, touch);
+  showTouch();
+
+  // Pausing: the game freezes and the pause menu, an ordinary menu screen, opens over the rink.
+  let paused = false;
+  let toggledAt = 0;
+  const setPaused = (on: boolean): void => {
+    if (on === paused || (on && scene.over)) return;
+    paused = on;
+    toggledAt = performance.now();
+    gameAudio.hush(on);
+    document.body.classList.toggle('paused', on);
+    if (on) {
+      menuInput.start();
+      render(
+        <PauseMenu
+          {...(forfeitNote ? { endNote: forfeitNote } : {})}
+          onResume={() => setPaused(false)}
+          onTuning={() => {
+            setPaused(false);
+            if (!tuningStore.open) tuningStore.toggle();
+          }}
+          onEnd={() => scene.forfeit()}
+          onPrefs={(prefs) => {
+            touchMode = prefs.touch;
+            showTouch();
+          }}
+        />,
+        pauseRoot,
+      );
+    } else {
+      menuInput.stop();
+      render(null, pauseRoot);
+    }
+  };
+  /** The pause button or key: closes the tuning panel if that is open, otherwise pauses or resumes. */
+  const pausePressed = (): void => {
+    if (performance.now() - toggledAt < PAUSE_DEBOUNCE_MS) return;
+    if (tuningStore.open) tuningStore.toggle();
+    else setPaused(!paused);
+  };
+  onPauseButton = pausePressed;
+  // A locked phone or a switch to another app pauses the game.
+  const onHidden = (): void => {
+    if (document.hidden) setPaused(true);
+  };
+  document.addEventListener('visibilitychange', onHidden);
+
   const onControls = (controls: Controls): void => {
     hint.hidden = controls.hasPad || controls.hasKeyboard || controls.hasTouch;
     const hide = controls.hasPad || controls.hasKeyboard;
     if (hide !== touchHidden) {
       touchHidden = hide;
-      render(<TouchControls hidden={touchHidden} />, touch);
+      showTouch();
     }
-    if (controls.menuPressed) tuningStore.toggle();
+    if (controls.menuPressed) pausePressed();
     if (!tuningStore.open) return;
     if (controls.navY !== 0) tuningStore.select(tuningStore.selected + controls.navY);
     if (controls.navX !== 0) tuningStore.adjust(tuningStore.selected, controls.navX);
   };
 
-  const game = new Phaser.Game({
-    type: Phaser.AUTO,
-    parent: 'game',
-    backgroundColor: look.colours.background,
-    scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
-    scene: new RinkScene({
+  const scene: RinkScene = new RinkScene({
       // The clock only picks which game this is; the game itself replays exactly from its seed.
       seed: String(Date.now()),
       teams: [home.setup, away.setup],
@@ -96,6 +149,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour 
       detail: loadPrefs().detail,
       tuning: () => tuningStore.tuning,
       onControls,
+      paused: () => paused,
       onEvents: (events, world, t) => gameAudio.onEvents(events, world, t),
       onFrame: (_world, _t, seconds) => gameAudio.onFrame(seconds),
       onResult: (result) =>
@@ -104,6 +158,11 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour 
           summary,
         ),
       onDone: (result) => {
+        document.removeEventListener('visibilitychange', onHidden);
+        onPauseButton = null;
+        paused = false;
+        document.body.classList.remove('paused');
+        render(null, pauseRoot);
         render(null, summary);
         render(null, touch);
         gameAudio.stopBeds();
@@ -111,7 +170,13 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour 
         game.destroy(true);
         onDone(result);
       },
-    }),
+  });
+  const game = new Phaser.Game({
+    type: Phaser.AUTO,
+    parent: 'game',
+    backgroundColor: look.colours.background,
+    scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
+    scene,
   });
   // Local development only: lets a debugging session drive frames by hand.
   if (import.meta.env.DEV) (window as unknown as { __game: Phaser.Game }).__game = game;

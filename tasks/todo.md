@@ -275,7 +275,7 @@ Built, deployed and checked with a simulated controller. Still open:
 - [x] Free agents with sort, filter and comparison; trade offer side by side
 - [x] Mascot panel and prestige ladder
 - [x] Checked in pictures
-- [ ] Commit, push, deploy green
+- [x] Commit, push, deploy green
 - [ ] Look at it on the phone (owner)
 
 ## Review (interface round three)
@@ -286,3 +286,21 @@ Built, deployed and checked with a simulated controller. Still open:
 - Found by looking: the finance bars filled the whole screen in red (a class name already used by the old controller test page; renamed); cash and value drew as one line because each was scaled to its own range (now one shared scale from zero); the prestige ladder ran off the panel (each rung is now one line).
 - Not checked: buying in the shop by keyboard this round (the shop was only pictured); the chart with more than two seasons or with negative cash (covered by the unit tests of the arithmetic, not by a picture); motion; a real phone or controller.
 - Different from the plan: only the rebuilt screens' drawn pieces moved to `src/ui/screens/`; the older screens' markup is still in `App.tsx`. There is no `Cards.tsx`: the cards reuse the hub's tile shape. The lineup is a formation grid, not a drawn rink with a crease and bench. Training shows the gain as text on the player's row rather than a before-and-after bar for every rating.
+
+# Pause menu
+
+- [x] The game freezes; resume without a stray pass
+- [x] Sound and volume; controls page with the layout and the on-screen controls setting
+- [x] Tuning panel opens from the pause menu
+- [x] End game: forfeit in a season, plain end in an exhibition
+- [x] Tests; checked in the browser by keyboard
+- [ ] Commit, push, deploy green
+- [ ] Try the Menu button on the controller and the Pause button by touch (owner)
+
+## Review (pause menu)
+
+- Type check, 752 tests (4 new) and the build pass. No physics or balance change.
+- In the browser, by keyboard, in a live game: Escape froze the simulation (0 steps over 30 frames) and resumed it (30 steps over 30 frames); resuming with the pass key held ignored the key until it was let go; sound off and the on-screen controls setting were saved to the device and took effect; the tuning panel opened from the menu and Escape closed it; ending an exhibition returned to the hub; forfeiting a season game showed "Forfeit" and lit one strike. No console errors.
+- Found while checking: the menu reopened on the row last used, so a quick press toggled sound instead of resuming. It now always opens on Resume.
+- Not checked: the controller's Menu button, d-pad and A/B in the pause menu (same menu code as every other screen, but not pressed on a real pad); the on-screen Pause button under a finger; the crowd dropping while paused (not listened to); pausing when the phone locks.
+- Also in this stretch, since round three: powerups moved into Collection; Exhibition during a season; abandoning a season.

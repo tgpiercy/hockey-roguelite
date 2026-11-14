@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import controls from '../data/controls.json';
 import { releaseTouch, stickFromTouch, touchState, type TouchButton } from '../game/touch';
+import { touchVisible, type Prefs } from './prefs';
 
 const layout = controls.touch;
 
@@ -28,10 +29,11 @@ function TouchKey({ button, label, size, style }: { button: TouchButton; label: 
 
 /**
  * On-screen controls for playing without a controller: a virtual stick on the left and buttons on the right.
- * They appear on the first touch and are hidden again once a controller or keyboard is used.
+ * Left to themselves they appear on the first touch and are hidden again once a controller or keyboard is
+ * used (`hidden`); `mode` can force them to always or never show.
  * They only write to the shared touch state; the game reads that the same way it reads a controller.
  */
-export function TouchControls({ hidden }: { hidden: boolean }) {
+export function TouchControls({ hidden, mode = 'auto' }: { hidden: boolean; mode?: Prefs['touch'] }) {
   const [shown, setShown] = useState(touchState.used);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
   const stick = useRef<HTMLDivElement>(null);
@@ -71,7 +73,7 @@ export function TouchControls({ hidden }: { hidden: boolean }) {
   };
 
   return (
-    <div id="touch" class={shown && !hidden ? 'shown' : ''}>
+    <div id="touch" class={touchVisible(mode, shown, hidden) ? 'shown' : ''}>
       <div
         class="touch-stick"
         ref={stick}

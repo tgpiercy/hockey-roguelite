@@ -41,7 +41,7 @@ import bosses from '../src/data/bosses.json';
 import events from '../src/data/events.json';
 import powerups from '../src/data/powerups.json';
 import rules from '../src/data/season.json';
-import type { GameResult } from '../src/sim/match';
+import { forfeitResult, type GameResult } from '../src/sim/match';
 import { goalieEffects, skaterEffects, defaultGoalieRatings, defaultSkaterRatings } from '../src/sim/ratings';
 
 const fresh = (seed = 'season-test'): Franchise => newFranchise(generateLeague(seed));
@@ -380,6 +380,23 @@ describe('moving on the map', () => {
     expect(f.season.currency).toBe(0);
     expect(f.record.losses).toBe(1);
     expect(availableStops(f).length).toBeGreaterThan(0);
+  });
+
+  it('a forfeited game is a loss whatever the score: a strike and no pack', () => {
+    const f = started();
+    goTo(f, 'game');
+    // Ahead 3-0 and not yet finished when the player gives up.
+    const ahead: GameResult = { ...result(true, 3), winner: null, finished: false };
+    const given = forfeitResult(ahead, 0);
+    expect(given).toMatchObject({ winner: 1, finished: true, forfeit: true, score: [3, 0] });
+    const packs = f.packs.length;
+    const outcome = recordGame(f, given);
+    expect(outcome.ok && outcome.message).toMatch(/^You forfeit the game\. .*Strike 1/);
+    expect(f.season.strikes).toBe(1);
+    expect(f.record.losses).toBe(1);
+    expect(f.packs.length).toBe(packs);
+    // The other side forfeiting would be a win for team 0.
+    expect(forfeitResult(ahead, 1).winner).toBe(0);
   });
 
   it('an unfinished game does not count', () => {

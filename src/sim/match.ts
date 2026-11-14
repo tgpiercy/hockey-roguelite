@@ -185,6 +185,13 @@ export interface GameResult {
   players: PlayerLine[];
   /** Ids of the powerups team 0 used, in order. */
   powerupsUsed: string[];
+  /** True when the game was given up before the end: the winner is the other team, whatever the score. */
+  forfeit?: boolean;
+}
+
+/** The result of a game `team` gave up: everything that happened stands, and the other team wins. */
+export function forfeitResult(result: GameResult, team: 0 | 1): GameResult {
+  return { ...result, finished: true, winner: team === 0 ? 1 : 0, forfeit: true };
 }
 
 export function gameResult(world: World): GameResult {

@@ -669,3 +669,12 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 
 .poster-loadout { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--ice); }
 .poster-loadout .icon { color: var(--accent); flex: none; }
+
+/* ------------------------------------------------------------------ pause menu */
+#pause:empty { display: none; }
+#pause { position: fixed; inset: 0; z-index: 6; background: rgba(4, 16, 31, 0.9); }
+.paused #tune, .paused #hint { display: none !important; }
+.controls-table { display: flex; flex-direction: column; gap: 1px; font-size: 13px; }
+.controls-row { display: grid; grid-template-columns: 1.300fr 1fr 1.200fr; gap: 8px; padding: 1px 0; border-bottom: 1px solid rgba(207, 232, 247, 0.08); }
+.controls-row.head { font: 800 10px/1.6 var(--heading); letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); }
+.controls-row span:nth-child(2) { color: var(--accent); font-weight: 700; }

@@ -8,10 +8,23 @@ export interface Prefs {
   volume: number;
   /** "low" drops skate marks, snow and crowd movement on the ice. */
   detail: 'full' | 'low';
+  /** The on-screen controls: shown when the screen is touched ("auto"), always, or never. */
+  touch: 'auto' | 'always' | 'never';
 }
 
-export const DEFAULT_PREFS: Prefs = { sound: true, volume: 0.7, detail: 'full' };
+export const DEFAULT_PREFS: Prefs = { sound: true, volume: 0.7, detail: 'full', touch: 'auto' };
 export const VOLUME_STEPS = [0.2, 0.4, 0.7, 1];
+export const TOUCH_MODES: Prefs['touch'][] = ['auto', 'always', 'never'];
+
+/**
+ * Whether the on-screen controls show. Left to itself ("auto") they appear once the screen has been touched
+ * and step aside when a controller or keyboard is in use.
+ */
+export function touchVisible(mode: Prefs['touch'], touched: boolean, padOrKeys: boolean): boolean {
+  if (mode === 'always') return true;
+  if (mode === 'never') return false;
+  return touched && !padOrKeys;
+}
 
 const KEY = 'hockey-prefs';
 
@@ -26,6 +39,7 @@ export function parsePrefs(raw: string | null): Prefs {
       sound: typeof v.sound === 'boolean' ? v.sound : DEFAULT_PREFS.sound,
       volume: typeof v.volume === 'number' && Number.isFinite(v.volume) ? Math.max(0, Math.min(1, v.volume)) : DEFAULT_PREFS.volume,
       detail: v.detail === 'low' || v.detail === 'full' ? v.detail : DEFAULT_PREFS.detail,
+      touch: v.touch === 'auto' || v.touch === 'always' || v.touch === 'never' ? v.touch : DEFAULT_PREFS.touch,
     };
   } catch {
     return { ...DEFAULT_PREFS };

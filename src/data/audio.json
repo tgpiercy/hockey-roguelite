@@ -8,6 +8,7 @@
     "restGain": 0.05,
     "maxGain": 0.32,
     "calmPerSecond": 0.25,
+    "pausedScale": 0.3,
     "shotLift": 0.35,
     "saveLift": 0.3
   },

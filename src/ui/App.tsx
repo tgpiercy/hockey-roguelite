@@ -346,8 +346,10 @@ export function App() {
     if (!game) return;
     setPlaying(true);
     const homeColour = jerseyColour(f);
-    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour) }, (result) => {
+    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), forfeitNote: 'Giving the game up counts as a loss, whatever the score.' }, (result) => {
       showOutcome(recordGame(f, result));
+      // The pause menu may have changed the sound or the controls.
+      setPrefs(loadPrefs());
       setPlaying(false);
     });
   };
@@ -1796,7 +1798,7 @@ export function App() {
           <div class="rewards">
             <div>
             <div class={`result-banner ${r.won ? 'won' : 'lost'}`}>
-              {r.won ? 'You win' : 'You lose'} {r.score[0]} – {r.score[1]}
+              {r.won ? 'You win' : r.forfeit ? 'Forfeit' : 'You lose'} {r.score[0]} – {r.score[1]}
             </div>
             {shown >= 2 && (
               <div>
@@ -2148,7 +2150,8 @@ export function App() {
               playMatch({ home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour) }, (result) => {
                 const verdict = result.winner === 0 ? 'won' : result.winner === 1 ? 'lost' : 'tied';
                 setScreen({ name: 'home' });
-                setMessage(`Exhibition: ${verdict} ${result.score[0]}-${result.score[1]} against ${opponent.name}.`);
+                setMessage(result.forfeit ? `Exhibition against ${opponent.name} ended early.` : `Exhibition: ${verdict} ${result.score[0]}-${result.score[1]} against ${opponent.name}.`);
+                setPrefs(loadPrefs());
                 setPlaying(false);
               });
             },

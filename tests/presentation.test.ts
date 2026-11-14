@@ -8,7 +8,7 @@ import prestigeRules from '../src/data/prestige.json';
 import { crowdLift, cuesFor, soundSeconds, type SoundName } from '../src/game/soundMap';
 import { cloneTuning } from '../src/sim/tuning';
 import type { SimEvent } from '../src/sim/types';
-import { DEFAULT_PREFS, parsePrefs, VOLUME_STEPS } from '../src/ui/prefs';
+import { DEFAULT_PREFS, parsePrefs, touchVisible, VOLUME_STEPS } from '../src/ui/prefs';
 
 describe('team crests', () => {
   const league = generateLeague('crests');
@@ -155,12 +155,12 @@ describe('the sound recipes', () => {
 describe('device preferences', () => {
   it('start with sound on at a moderate volume and full detail', () => {
     expect(parsePrefs(null)).toEqual(DEFAULT_PREFS);
-    expect(DEFAULT_PREFS).toEqual({ sound: true, volume: 0.7, detail: 'full' });
+    expect(DEFAULT_PREFS).toEqual({ sound: true, volume: 0.7, detail: 'full', touch: 'auto' });
     expect(VOLUME_STEPS).toContain(DEFAULT_PREFS.volume);
   });
 
   it('are read back as they were saved', () => {
-    const saved = { sound: false, volume: 0.4, detail: 'low' as const };
+    const saved = { sound: false, volume: 0.4, detail: 'low' as const, touch: 'never' as const };
     expect(parsePrefs(JSON.stringify(saved))).toEqual(saved);
   });
 
@@ -172,5 +172,18 @@ describe('device preferences', () => {
     expect(parsePrefs('{"sound":false}')).toEqual({ ...DEFAULT_PREFS, sound: false });
     expect(parsePrefs('{"volume":7}').volume).toBe(1);
     expect(parsePrefs('{"volume":-3}').volume).toBe(0);
+  });
+
+  it('keep preferences stored before the on-screen controls setting existed', () => {
+    expect(parsePrefs('{"sound":false,"volume":0.4,"detail":"low"}')).toEqual({ sound: false, volume: 0.4, detail: 'low', touch: 'auto' });
+    expect(parsePrefs('{"touch":"sometimes"}').touch).toBe('auto');
+  });
+
+  it('show the on-screen controls when asked, and by themselves only for a touch player', () => {
+    expect(touchVisible('auto', false, false)).toBe(false);
+    expect(touchVisible('auto', true, false)).toBe(true);
+    expect(touchVisible('auto', true, true)).toBe(false);
+    expect(touchVisible('always', false, true)).toBe(true);
+    expect(touchVisible('never', true, false)).toBe(false);
   });
 });

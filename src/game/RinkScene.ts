@@ -3,7 +3,7 @@ import { teamCrest, type Crest } from '../core/crest';
 import { lighten } from '../core/teamColours';
 import look from '../data/rinkLook.json';
 import { benchDoor, lineEnergy } from '../sim/lines';
-import { gameResult, type GameResult } from '../sim/match';
+import { forfeitResult, gameResult, type GameResult } from '../sim/match';
 import type { PowerupSpec } from '../sim/modifiers';
 import { carrySpot } from '../sim/puck';
 import { goalLineX, nets } from '../sim/rink';
@@ -44,6 +44,8 @@ export interface RinkSceneOptions {
   tuning: () => Tuning;
   /** Called once per frame with the controls, for the menus. */
   onControls: (controls: Controls) => void;
+  /** True while the game is paused: it is still drawn, but nothing moves and no time passes. */
+  paused?: () => boolean;
   /** Called with what happened in the simulation this frame, and once per frame with the world: for sound. */
   onEvents?: (events: SimEvent[], world: World, t: Tuning) => void;
   onFrame?: (world: World, t: Tuning, seconds: number) => void;
@@ -86,6 +88,8 @@ export class RinkScene extends Phaser.Scene {
   private reported = false;
   private done = false;
   private passWasDown = false;
+  /** After a pause: the action buttons are ignored until all are let go, so the press that resumed does not also pass. */
+  private holdButtons = false;
   /** Seconds of real time since the game started, for anything that only animates. */
   private clock = 0;
   /** Seconds the current banner has been showing, so it can slide in. */
@@ -143,12 +147,29 @@ export class RinkScene extends Phaser.Scene {
   override update(time: number, deltaMs: number): void {
     const controls = this.reader.read(time);
     this.options.onControls(controls);
+    if (this.done) return;
     if (controls.debugPressed) this.showDebug = !this.showDebug;
+    const t = this.options.tuning();
+    const real = Math.min(deltaMs / 1000, MAX_CATCH_UP_SECONDS);
+
+    if (this.options.paused?.()) {
+      this.holdButtons = true;
+      this.passWasDown = controls.frame.pass;
+      this.options.onFrame?.(this.world, t, real);
+      this.draw(t, 0);
+      return;
+    }
+    const f = controls.frame;
+    if (this.holdButtons) {
+      if (f.pass || f.shoot || f.check || f.switchPlayer || f.lineChange || f.powerupA || f.powerupB) {
+        controls.frame = { ...f, pass: false, shoot: false, check: false, switchPlayer: false, lineChange: false, powerupA: false, powerupB: false };
+      } else {
+        this.holdButtons = false;
+      }
+    }
     const passPressed = controls.frame.pass && !this.passWasDown;
     this.passWasDown = controls.frame.pass;
 
-    const t = this.options.tuning();
-    const real = Math.min(deltaMs / 1000, MAX_CATCH_UP_SECONDS);
     this.clock += real;
     const happened: SimEvent[] = [];
     let played = 0;
@@ -179,6 +200,18 @@ export class RinkScene extends Phaser.Scene {
     if (happened.length > 0) this.options.onEvents?.(happened, this.world, t);
     this.options.onFrame?.(this.world, t, real);
     this.draw(t, real);
+  }
+
+  /** Gives the game up: it ends now as a loss for the human's team, without the summary screen. */
+  forfeit(): void {
+    if (this.done) return;
+    this.done = true;
+    this.options.onDone(forfeitResult(gameResult(this.world), 0));
+  }
+
+  /** True once the final whistle has gone: the summary is showing, so there is nothing left to pause. */
+  get over(): boolean {
+    return this.reported || this.done;
   }
 
   private sx(x: number): number {
