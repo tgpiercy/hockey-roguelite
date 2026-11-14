@@ -130,6 +130,8 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Trades | The offer is laid out side by side with the other team's answer between the two players, before and at the confirmation. | Interface round three |
 | 2026-11-14 | Prestige screen | Always open from the Front office: it shows the ladder of levels, the one you hold and what each gives, even when you cannot climb yet. | Interface round three |
 | 2026-11-14 | Where powerups are chosen | In Collection, beside Gear, during a season. The LT and RB tiles are gone from the game screen (asked for by the owner) and the Powerups row is gone from Team; the game poster still says what each button has loaded. | After interface round three |
+| 2026-11-14 | Exhibition during a season | The Exhibition tile is on the in-season screens too. The game does not count and uses your team as it stands, without the season's training gains, artifacts or powerups. | After interface round three |
+| 2026-11-14 | Abandoning a season | Settings, Save and load, Abandon this season. The season ends at once without a title and the ordinary off-season follows: XP banked, a year older, contracts tick, bills paid. Pucks and unused powerups are lost as at any season's end. There is no replaying a season from its start. | After interface round three |
 
 ## Open
 

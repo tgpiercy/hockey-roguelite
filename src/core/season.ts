@@ -70,7 +70,7 @@ export interface SeasonState {
   playoffs: { round: number; wins: number; losses: number; opponentId: string } | null;
   /** The six skaters and the goalie locked in for the run. */
   dressed: string[];
-  outcome: null | 'champion' | 'eliminated' | 'struckOut';
+  outcome: null | 'champion' | 'eliminated' | 'struckOut' | 'abandoned';
   /** How many seeded rolls have been made, so each one is different and repeatable. */
   rolls: number;
   gamesPlayed: number;
@@ -382,6 +382,19 @@ export function startSeason(f: Franchise): ActionResult {
 }
 
 /** Wraps up a finished season: powerups, currency, bumps and effects are wiped; artifacts stay. */
+/**
+ * Gives up the season under way. It ends at once, as a season that fell short: the off-season follows as
+ * after any other, so everyone still ages a year and contracts tick down.
+ */
+export function abandonSeason(f: Franchise): ActionResult {
+  if (f.season.phase !== 'map' && f.season.phase !== 'playoffs') return refuse('There is no season under way to abandon.');
+  f.season.phase = 'ended';
+  f.season.outcome = 'abandoned';
+  f.season.current = null;
+  f.season.stage = 'none';
+  return { ok: true, message: 'You abandon the season.' };
+}
+
 export function endSeason(f: Franchise): ActionResult {
   if (f.season.phase !== 'ended') return refuse('The season is not over.');
   f.league.season += 1;

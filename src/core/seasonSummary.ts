@@ -28,6 +28,7 @@ function finishOf(f: Franchise): string {
     const round = season.playoffs?.round ?? 0;
     return round >= rules.playoffRounds - 1 ? 'Lost in the final' : 'Lost in the semi-final';
   }
+  if (season.outcome === 'abandoned') return 'Season abandoned';
   // Struck out on the map: say which region it happened in.
   const last = season.last && season.map ? season.map.stops[season.last] : undefined;
   const region = last ? last.region + 1 : 1;

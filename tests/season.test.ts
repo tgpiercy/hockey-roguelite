@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { decideContract, finishSeason } from '../src/core/offseason';
+import { abandonSeason } from '../src/core/season';
+import { seasonSummary } from '../src/core/seasonSummary';
 import { aiTeamsByStrength, buildBoss, teamStrength } from '../src/core/bosses';
 import { generateLeague } from '../src/core/generate';
 import { skatersOn, userTeam } from '../src/core/league';
@@ -307,6 +310,38 @@ describe('starting a season', () => {
     const other = team.lineup.line2[0]!;
     expect(setSeasonLineupSlot(f, 0, 0, other).ok).toBe(true);
     expect(team.lineup.line1[0]).toBe(other);
+  });
+});
+
+describe('abandoning a season', () => {
+  it('ends a season under way at once, without a title', () => {
+    const f = fresh();
+    startSeason(f);
+    expect(abandonSeason(f)).toMatchObject({ ok: true });
+    expect(f.season.phase).toBe('ended');
+    expect(f.season.outcome).toBe('abandoned');
+    expect(matchup(f)).toBeNull();
+    expect(seasonSummary(f).finish).toBe('Season abandoned');
+    expect(seasonSummary(f).champion).toBe(false);
+  });
+
+  it('is refused when no season is under way', () => {
+    const f = fresh();
+    expect(abandonSeason(f).ok).toBe(false);
+    startSeason(f);
+    abandonSeason(f);
+    expect(abandonSeason(f).ok).toBe(false);
+  });
+
+  it('leads into an ordinary off-season and a new season', () => {
+    const f = fresh();
+    startSeason(f);
+    const season = f.league.season;
+    abandonSeason(f);
+    expect(finishSeason(f)).toMatchObject({ ok: true });
+    for (const id of [...f.offseason.pending]) decideContract(f, id, 1);
+    expect(f.league.season).toBe(season + 1);
+    expect(f.season.phase).toBe('offseason');
   });
 });
 

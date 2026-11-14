@@ -41,6 +41,7 @@ import {
   rosterLocked,
   setDifficulty,
   setLoadout,
+  abandonSeason,
   setSeasonLineupSlot,
   shopPrice,
   simulateGame,
@@ -122,6 +123,7 @@ type Screen =
   | { name: 'rewards'; shown: number }
   | { name: 'jersey' }
   | { name: 'saves' }
+  | { name: 'confirmAbandon' }
   | { name: 'confirmNew' };
 
 type Sort = PlayerSort;
@@ -560,6 +562,7 @@ export function App() {
       card('office', 'Front office', `Cash ${money(f.cash)}`, () => openGroup('office')),
       card('collection', 'Collection', f.packs.length > 0 ? `${f.packs.length} to open` : `${f.gear.length} pieces`, () => openGroup('collection'), { badge: f.packs.length }),
       card('settings', 'Settings', 'Sound, detail, save', () => openGroup('settings')),
+      card('exhibition', 'Exhibition', 'A game that does not count', () => go({ name: 'exhibition' })),
     ];
     const best = (players: PlayerRecord[]): PlayerRecord[] => [...players].sort((x, y) => y.overall - x.overall).slice(0, 3);
 
@@ -2257,7 +2260,31 @@ export function App() {
               });
             },
           },
+          ...(locked ? [{ key: 'abandon', label: 'Abandon this season', detail: 'Ends the season now and goes to the off-season. You keep your franchise.', onSelect: () => go({ name: 'confirmAbandon' }) }] : []),
           { key: 'new', label: 'Start a new franchise', onSelect: () => go({ name: 'confirmNew' }) },
+        ]}
+      />
+    );
+  }
+
+  if (screen.name === 'confirmAbandon') {
+    return (
+      <Menu
+        key={screenKey}
+        title="Abandon this season?"
+        header="The season ends now, without a title. Then the off-season runs as usual: XP is banked, everyone is a year older, contracts tick down and the season's bills are paid. Your Pucks and unused powerups are lost. You keep your team, gear, cash and artifacts. This cannot be undone."
+        onBack={() => go({ name: 'saves' })}
+        initialFocus={1}
+        items={[
+          {
+            key: 'yes',
+            label: 'Yes, abandon the season',
+            onSelect: () => {
+              setGroup(null);
+              after(abandonSeason(f), { name: 'home' });
+            },
+          },
+          { key: 'no', label: 'No, keep playing', onSelect: () => go({ name: 'saves' }) },
         ]}
       />
     );
