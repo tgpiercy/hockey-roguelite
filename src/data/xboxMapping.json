@@ -1,0 +1,27 @@
+{
+  "buttons": [
+    { "label": "A", "action": "Pass" },
+    { "label": "B", "action": "Check" },
+    { "label": "X", "action": "Shoot" },
+    { "label": "Y", "action": "Switch player" },
+    { "label": "LB", "action": "Line change" },
+    { "label": "RB", "action": "Powerup" },
+    { "label": "LT", "action": "Powerup" },
+    { "label": "RT", "action": "Sprint" },
+    { "label": "View", "action": "" },
+    { "label": "Menu", "action": "" },
+    { "label": "L stick click", "action": "" },
+    { "label": "R stick click", "action": "" },
+    { "label": "D-pad up", "action": "" },
+    { "label": "D-pad down", "action": "" },
+    { "label": "D-pad left", "action": "" },
+    { "label": "D-pad right", "action": "" },
+    { "label": "Xbox", "action": "" }
+  ],
+  "axes": [
+    { "label": "Left stick X", "action": "Skate" },
+    { "label": "Left stick Y", "action": "Skate" },
+    { "label": "Right stick X", "action": "" },
+    { "label": "Right stick Y", "action": "" }
+  ]
+}

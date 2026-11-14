@@ -1,0 +1,13 @@
+{
+  "world": { "width": 800, "height": 400 },
+  "rink": { "margin": 12, "cornerRadius": 60, "lineWidth": 4 },
+  "colours": {
+    "background": "#0b2545",
+    "ice": "#e8f4fb",
+    "boards": "#13315c",
+    "centreLine": "#d62828",
+    "square": "#1d3557"
+  },
+  "square": { "size": 36, "speed": 320 },
+  "stick": { "deadzone": 0.15 }
+}
