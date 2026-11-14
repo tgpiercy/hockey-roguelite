@@ -122,6 +122,13 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Title screen | The game opens on a title screen with the working title, your crest and where your franchise stands. The title and tagline are in `src/data/game.json`, so the name can change in one place. | Interface round two |
 | 2026-11-14 | End-of-game screen | Both crests, the score, and the three stars of the game: skaters scored by goals, assists, shots, hits and blocks, goalies by saves, goals against, a shutout and the win, with a little extra for the winning side. A player who did nothing is never a star. | Interface round two |
 | 2026-11-14 | Leftovers finished | Cash, Pucks and XP count up on the rewards screen; the net bulges for half a second on a goal; a skater's stick sweeps with his stride when he does not have the puck. | Interface round two |
+| 2026-11-14 | Season screens | The map's stops are cards (a game shows the opponent's crest and strength against yours); the game screen is a matchup poster; the shop, training, events and the season's end each have a drawn layout. Strikes show as three lights. | Interface round three |
+| 2026-11-14 | Lineup | Drawn as the lines stand: a wing, the centre, the other wing, twice, then the goalie; anyone not dressed is listed beside it. | Interface round three |
+| 2026-11-14 | Finances | Income and expenses are bars against the largest line. Cash and franchise value over your closed seasons are two lines on one chart that share a scale starting at zero, so cash sits low and value high. | Interface round three |
+| 2026-11-14 | Staff and facilities | Cards in a two-column grid. An unfilled job shows as an open desk. Staff have faces of their own in neutral colours. | Interface round three |
+| 2026-11-14 | Free agents | Sorted by best, cheapest or youngest (left and right), shown as all, forwards, defence or goalies (the Show row). The focused player is compared with the weakest player you have at his position, the one he would most likely replace. Sorting by position was replaced by the Show filter. | Interface round three |
+| 2026-11-14 | Trades | The offer is laid out side by side with the other team's answer between the two players, before and at the confirmation. | Interface round three |
+| 2026-11-14 | Prestige screen | Always open from the Front office: it shows the ladder of levels, the one you hold and what each gives, even when you cannot climb yet. | Interface round three |
 
 ## Open
 

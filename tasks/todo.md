@@ -251,7 +251,7 @@ Built, deployed and checked with a simulated controller. Still open:
 - [x] Title screen; end-of-game screen with three stars
 - [x] Leftovers: count-up, net bulge, stick sweep
 - [x] Checked in pictures
-- [ ] Commit, push, deploy green
+- [x] Commit, push, deploy green
 - [ ] Look at it on the phone (owner)
 
 ## Review (interface round two)
@@ -263,3 +263,26 @@ Built, deployed and checked with a simulated controller. Still open:
 - Found by looking: gear rows wrapping onto uneven second lines (now one line, with the full description in the side panel); a pack card clipping a long name; the keyboard hint showing faintly through the end-of-game screen.
 - Not checked: motion (the count-up was checked by its end value, the net bulge and stick sweep only as single frames, and the stick sweep is too small to make out in a phone-size still); a real phone; free-agent and trade lists with faces (same row component as the roster, not separately pictured).
 - Simplifications: faces are simple and stylised; at row size only hair, skin and colours read. The map and in-season screens keep their list layout.
+
+# Interface round three: season screens and management screens
+
+- [x] Pure helpers with tests: chart maths, sorting and comparing players, the season summary
+- [x] Map, game poster, shop, training, event, season end
+- [x] Off-season report
+- [x] Lineup as the lines stand
+- [x] Finances with bars and a chart
+- [x] Staff, hiring and facilities as cards
+- [x] Free agents with sort, filter and comparison; trade offer side by side
+- [x] Mascot panel and prestige ladder
+- [x] Checked in pictures
+- [ ] Commit, push, deploy green
+- [ ] Look at it on the phone (owner)
+
+## Review (interface round three)
+
+- Type check, 745 tests (26 new) and the build pass. No rule changed: the balance series is unchanged (3.37 and 3.16 goals a game, save percentage .855).
+- Seen in pictures at phone size (844 x 390): map, game poster, shop, training, event, season end, off-season report (before and after the league's moves), lineup, choosing a player for a slot, free agents, the trade offer and its confirmation, finances, staff, hiring, facilities, mascot, prestige.
+- By keyboard: a trade refused (with the reason) and a trade accepted and made; a facility built; a staff member hired; a lineup slot swapped; an event choice taken; a training session taken; a contract re-signed. No console errors.
+- Found by looking: the finance bars filled the whole screen in red (a class name already used by the old controller test page; renamed); cash and value drew as one line because each was scaled to its own range (now one shared scale from zero); the prestige ladder ran off the panel (each rung is now one line).
+- Not checked: buying in the shop by keyboard this round (the shop was only pictured); the chart with more than two seasons or with negative cash (covered by the unit tests of the arithmetic, not by a picture); motion; a real phone or controller.
+- Different from the plan: only the rebuilt screens' drawn pieces moved to `src/ui/screens/`; the older screens' markup is still in `App.tsx`. There is no `Cards.tsx`: the cards reuse the hub's tile shape. The lineup is a formation grid, not a drawn rink with a crease and bench. Training shows the gain as text on the player's row rather than a before-and-after bar for every rating.
