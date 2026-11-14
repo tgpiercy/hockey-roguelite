@@ -5,6 +5,8 @@ import { NO_INPUT, type InputFrame, type SimEvent, type World } from '../src/sim
 import { createWorld, step, STEPS_PER_SECOND } from '../src/sim/world';
 
 const t = cloneTuning();
+// These tests are about the shot itself, so aim assist (covered in aim.test.ts) is switched off.
+t.aimAssist.strength = 0;
 const release: InputFrame = NO_INPUT;
 const hold: InputFrame = { ...NO_INPUT, shoot: true };
 
@@ -71,6 +73,7 @@ describe('shooting in the world', () => {
 
   it('aims where the stick points, or straight ahead with the stick centred', () => {
     const exact = cloneTuning();
+    exact.aimAssist.strength = 0;
     exact.shot.maxSpreadDegrees = 0;
     exact.shot.minSpreadDegrees = 0;
 

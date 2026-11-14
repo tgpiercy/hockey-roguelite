@@ -1,5 +1,6 @@
 import { createRng } from '../core/rng';
 import { aiInput, aiLevel, createAiMemory } from './ai';
+import { assistedAim } from './aim';
 import { stepChecking } from './check';
 import { STEP_SECONDS } from './clock';
 import { resolveLoosePuck, separateBodies } from './contact';
@@ -270,7 +271,9 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
     if (p.role !== 'skater') return;
     const input = p.stagger > 0 ? NO_INPUT : (inputs[i] as InputFrame);
     const hadPuck = puck.carrier === p.id;
-    const speed = stepShooting(p, hadPuck, puck, input, currentFx(p, t), t, world.rng, dt);
+    // The skater the human controls gets aim assist; the AI aims for itself.
+    const assist = world.human && world.human.controlled === p.id ? (aim: number) => assistedAim(world, p, aim, t) : undefined;
+    const speed = stepShooting(p, hadPuck, puck, input, currentFx(p, t), t, world.rng, dt, assist);
     if (speed !== null) {
       loosePuck(world);
       puck.shotBy = p.id;

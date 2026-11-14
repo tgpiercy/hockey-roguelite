@@ -35,6 +35,7 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-13 | What counts as a shot, a save, an assist, a hit? | A shot is any shot attempt. A save is a goalie stopping a puck that an opponent shot (loose pucks and passes do not count). Up to two assists go to the teammates who had the puck before the scorer, as long as the other team did not have it in between. A hit is a body check that lands. | Phase 3 |
 | 2026-11-13 | Can a goalie be skated around? | A goalie smothers any puck carried within 1.2 m of him. | Phase 3 |
 | 2026-11-13 | Default opponent difficulty | 0.75 (was 0.5), because a scripted player that only skates to the slot and shoots beat level 0.5 easily. Balance targets are measured AI against AI at 0.5. | Phase 3 |
+| 2026-11-13 | Aim assist | The skater the human controls gets it; the AI does not. A shot pointed within 50 degrees of the net is steered to the corner further from the goalie; pointed anywhere else it is left alone. Strength, cone and corner inset are in `physics.json` under `aimAssist`. Added because aiming at the net from a keyboard's eight directions was too hard. | Phase 3 |
 
 ## Open
 

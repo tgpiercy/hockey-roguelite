@@ -155,6 +155,9 @@ So the default opponent is still too easy for anyone who plays directly. That ne
 | energy.goalieDrainPerSecond / goalieReactionPenalty | 0.0008 / 0.4 | How slowly a goalie tires, and how much later a spent goalie reacts |
 | goalie.smotherReach | 1.2 | A goalie smothers a puck carried this close to him |
 | game.opponentDifficulty | 0.75 | Raised from 0.5 |
+| aimAssist.strength | 1 | How much your shot is steered to the open corner: 1 is fully, 0 is off |
+| aimAssist.coneDegrees | 100 | How close to the net (total width of the cone) your stick must point for the assist to act |
+| aimAssist.cornerInset | 0.35 | How far inside the post the assisted shot is aimed |
 
 ## Change log
 

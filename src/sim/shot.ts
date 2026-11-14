@@ -36,6 +36,8 @@ export function stepShooting(
   t: Tuning,
   rng: Rng,
   dt: number,
+  /** Optional aim assist: takes the direction the stick asks for and returns the direction to shoot in. */
+  assist?: (aim: number) => number,
 ): number | null {
   const wasHeld = s.shootHeld;
   s.shootHeld = input.shoot;
@@ -52,7 +54,8 @@ export function stepShooting(
 
   // Released: aim along the stick, or straight ahead if the stick is centred.
   const tilt = Math.hypot(input.moveX, input.moveY);
-  const aim = tilt > 0 ? Math.atan2(input.moveY, input.moveX) : s.facing;
+  const asked = tilt > 0 ? Math.atan2(input.moveY, input.moveX) : s.facing;
+  const aim = assist ? assist(asked) : asked;
   const angle = aim + rng.range(-1, 1) * shotSpread(params.accuracy, t);
   const speed = shotSpeed(s.charge, params.shotPower, t);
 

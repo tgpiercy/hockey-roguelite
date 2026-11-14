@@ -132,5 +132,10 @@
     "changeMargin": 0.15,
     "goalieDrainPerSecond": 0.0008,
     "goalieReactionPenalty": 0.4
+  },
+  "aimAssist": {
+    "strength": 1,
+    "coneDegrees": 100,
+    "cornerInset": 0.35
   }
 }
