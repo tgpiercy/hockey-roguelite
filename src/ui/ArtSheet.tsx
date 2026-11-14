@@ -3,7 +3,9 @@ import { generateLeague } from '../core/generate';
 import { portraitOf } from '../core/portrait';
 import crestRules from '../data/crests.json';
 import gearData from '../data/gear.json';
+import { skinTone, STANDING, type PoseInput } from '../game/figure';
 import { CrestBadge } from './Crest';
+import { FigureArt } from './FigureArt';
 import { GEAR_ART_SLOTS, GearArt } from './GearArt';
 import { Icon, ICON_NAMES } from './Icon';
 import { PortraitFace } from './Portrait';
@@ -12,6 +14,20 @@ import { PortraitFace } from './Portrait';
  * Every piece of drawn art on one page, opened with ?sheet. It exists so the art can be checked together:
  * that no icon is missing or unreadable at the size it is used, and that faces and crests vary.
  */
+/** The on-ice figure in each pose worth checking. */
+const POSES: [string, PoseInput][] = [
+  ['standing', STANDING],
+  ['stride A', { ...STANDING, stride: Math.PI / 2, speed: 1 }],
+  ['mid stride', { ...STANDING, stride: Math.PI, speed: 1 }],
+  ['stride B', { ...STANDING, stride: (3 * Math.PI) / 2, speed: 1 }],
+  ['facing left', { ...STANDING, stride: Math.PI / 2, speed: 0.6, side: -1, pattern: 'yoke' }],
+  ['wind-up', { ...STANDING, windUp: 1, pattern: 'sash' }],
+  ['off balance', { ...STANDING, tilt: 0.5, pattern: 'yoke' }],
+  ['goalie', { ...STANDING, goalie: true }],
+  ['goalie down', { ...STANDING, goalie: true, down: true }],
+  ['goalie left', { ...STANDING, goalie: true, side: -1, pattern: 'sash' }],
+];
+
 export function ArtSheet() {
   const league = generateLeague('art-sheet');
   const players = Object.values(league.players).slice(0, 36);
@@ -53,6 +69,20 @@ export function ArtSheet() {
           ))}
         </div>
       ))}
+      <h2>Players on the ice</h2>
+      <div class="art-row figure-row">
+        {POSES.map(([name, pose], i) => (
+          <span key={name} class="figure-cell">
+            <FigureArt pose={pose} crest={teamCrest(league.teams[i % league.teams.length]?.name ?? 'sheet')} skin={skinTone(i)} size={110} />
+            <small>{name}</small>
+          </span>
+        ))}
+      </div>
+      <div class="art-row figure-row">
+        {league.teams.slice(0, 12).map((team, i) => (
+          <FigureArt key={team.id} pose={{ ...STANDING, stride: i, speed: 0.6, side: i % 2 === 0 ? 1 : -1, pattern: teamCrest(team.name).pattern }} crest={teamCrest(team.name)} skin={skinTone(i)} size={40} />
+        ))}
+      </div>
       <h2>Crests</h2>
       <div class="art-row">
         {league.teams.map((team) => (

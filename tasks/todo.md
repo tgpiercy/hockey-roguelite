@@ -324,3 +324,22 @@ Built, deployed and checked with a simulated controller.
 - Two wrong turns, both caught by measuring: a wind-up that let the shooter skate into the slot (scoring doubled), then an early release that made the shot harmless (scoring fell by a third).
 - Seen in one picture from a live game: the carrier in the corner, one teammate in front of the net, one high. The browser sampling was of the human's own AI teammates; I did not get a picture of the opponent in the same shape, though it is the same code.
 - Not done from the plan: the report on the human-style player's shots on target and scoring rate per shot; only its wins and goals were measured. Not checked: how any of it feels with a controller.
+
+# Cartoon players on the ice
+
+- [x] Pose and shapes, pure and tested; proportions in the look table
+- [x] Art sheet: every pose large, and a row at game size
+- [x] In the game: depth order, shadow, control ring with a direction tick, stick to the blade
+- [x] Goalie, standing and down
+- [x] Frame time brought back down (cached sprites)
+- [ ] Commit, push, deploy green
+- [ ] Look at it moving on the phone (owner)
+
+## Review (cartoon players)
+
+- Type check, 777 tests (15 new) and the build pass. Drawing only: the simulation and balance are untouched.
+- Looked at on the art sheet first, twice. The first version had the legs hidden under the body and only a sliver of face; the proportions were changed and it was looked at again. The outline was white, which vanished against the ice; it is now dark.
+- Seen in the game at phone size (844 x 390), from a live game stepped by hand: a faceoff, open play, players near the net, a goalie down on his knees, and a 4x close-up of a group of skaters.
+- Frame time: painting the shapes every frame took it from about 5 ms to 12.4 ms. Painting each pose once and reusing it as a sprite brought it back to about 6 ms (noisy: 4.4 to 7.4 over three runs). Up to about 180 small pictures were made in two minutes of play.
+- Not checked: motion (the stride changes in 8 steps, which may look choppy; only still frames were seen); a real phone's frame rate; jersey numbers (they only show on a bigger screen); the off-balance tilt and the wind-up pose in a real game (seen on the art sheet only); a picture of a goal with the new figures.
+- Different from the plan: the plan said Phaser graphics would paint the shapes; that was too slow, so they are painted into cached textures instead. No picture of a crowd at the net or of a goal was kept.

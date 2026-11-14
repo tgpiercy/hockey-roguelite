@@ -142,6 +142,9 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Shots from distance | The AI takes a shot from distance when it is in the zone, beyond normal range, with a clear lane. It stops to wind up. These rarely score; they are there to vary the attack. | First playtest |
 | 2026-11-14 | Pass speed | 26 m/s, up from 20: passes felt slow. | First playtest |
 | 2026-11-14 | Your shooting | Left alone for now. The owner felt the goalie saves a lot but was not sure; revisit after more games. | First playtest |
+| 2026-11-14 | Players on the ice | Upright cartoon figures showing the whole body (big helmet, chunky jersey, gloves, legs, skates, stick), standing on the top-down rink, facing left or right as they skate. Asked for by the owner. Feet and shadow are where the simulation has the player, so nothing about play changes. Goalies are wider, in pads and a caged mask, and drop to their knees for a save. | Cartoon players |
+| 2026-11-14 | What the upright figure loses | A figure faces only left or right, so the exact direction a player faces no longer shows in his body. The stick and puck still point the true way, and the ring under the player you control has a tick for it. | Cartoon players |
+| 2026-11-14 | Menus | Keep their face portraits; the full-body figure is on the ice only. | Cartoon players |
 
 ## Open
 

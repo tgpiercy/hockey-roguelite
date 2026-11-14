@@ -13,13 +13,19 @@ import type { SimEvent, World } from '../sim/types';
 import { createGame, step, STEP_SECONDS, type TeamSetup } from '../sim/world';
 import { Crowd } from './drawArena';
 import { drawCrest } from './drawCrest';
+import { FIGURE_BOX, paintFigure } from './drawFigure';
 import { Effects, type View } from './effects';
+import { facingSide, figure, figureColours, skinTone, withStick, type PoseInput } from './figure';
 import { InputReader, type Controls } from './input';
 
 const colour = (hex: string): number => Number.parseInt(hex.slice(1), 16);
 const c = look.colours;
 const fx = look.effects;
 const arena = look.arena;
+const FIG = look.figure;
+const TAU = Math.PI * 2;
+/** What is drawn over what. Players sit between two graphics layers and are sorted among themselves by how far down the screen they are. */
+const DEPTH = { ground: 1, players: 2, top: 3, labels: 4, hud: 5 };
 
 /** Longest stretch of real time caught up in one frame, so a stalled tab does not fast-forward. */
 const MAX_CATCH_UP_SECONDS = 0.25;
@@ -88,6 +94,15 @@ export class RinkScene extends Phaser.Scene {
   private reported = false;
   private done = false;
   private passWasDown = false;
+  /** Drawn above the players: the puck, sparks and the wind-up bar. */
+  private top!: Phaser.GameObjects.Graphics;
+  /** One picture per player, showing the texture of the pose he is in. */
+  private sprites: Phaser.GameObjects.Image[] = [];
+  /** Every pose painted so far, and the size they were painted at; repainted when the rink is resized. */
+  private readonly figureKeys = new Set<string>();
+  private figurePixels = 0;
+  /** Which way each player faced on screen last frame: left or right. */
+  private readonly sides = new Map<number, 1 | -1>();
   /** After a pause: the action buttons are ignored until all are let go, so the press that resumed does not also pass. */
   private holdButtons = false;
   /** Seconds of real time since the game started, for anything that only animates. */
@@ -128,8 +143,12 @@ export class RinkScene extends Phaser.Scene {
       levels: this.options.levels,
       powerups: this.options.powerups,
     });
-    this.numbers = this.world.players.map((p) => this.add.text(0, 0, p.role === 'goalie' ? '1' : String(p.line * 3 + p.slot + 2), { ...heading, color: c.text }).setOrigin(0.5, 0.5).setVisible(false));
-    this.labels = this.world.players.map(() => this.add.text(0, 0, '', { fontFamily: look.font, color: c.debugText }).setOrigin(0.5, 1).setVisible(false));
+    // Layers, bottom to top: the ice; shadows, rings and sticks; the players; the puck and sparks; labels; the scoreboard.
+    this.g.setDepth(DEPTH.ground);
+    this.sprites = this.world.players.map(() => this.add.image(0, 0, '__DEFAULT').setVisible(false).setDepth(DEPTH.players));
+    this.top = this.add.graphics().setDepth(DEPTH.top);
+    this.numbers = this.world.players.map((p) => this.add.text(0, 0, p.role === 'goalie' ? '1' : String(p.line * 3 + p.slot + 2), { ...heading, color: c.text }).setOrigin(0.5, 0.5).setVisible(false).setDepth(DEPTH.labels));
+    this.labels = this.world.players.map(() => this.add.text(0, 0, '', { fontFamily: look.font, color: c.debugText }).setOrigin(0.5, 1).setVisible(false).setDepth(DEPTH.labels));
 
     this.hud = this.add.graphics();
     this.nameTexts = [0, 1].map(() => this.add.text(0, 0, '', { ...heading, color: c.text }).setOrigin(0.5, 0.5));
@@ -141,6 +160,7 @@ export class RinkScene extends Phaser.Scene {
       .setOrigin(0.5, 0.5)
       .setVisible(false);
     this.powerText = this.add.text(0, 0, '', { ...heading, color: c.text }).setOrigin(1, 0.5);
+    for (const item of [this.hud, ...this.nameTexts, ...this.scoreTexts, this.clockTextObject, ...this.barLabels, this.bigText, this.powerText]) item.setDepth(DEPTH.hud);
     this.events.once('destroy', () => this.reader.dispose());
   }
 
@@ -252,13 +272,14 @@ export class RinkScene extends Phaser.Scene {
 
     this.ice.clear();
     this.g.clear();
+    this.top.clear();
     this.hud.clear();
     this.drawArena(t, width, height);
     this.drawRink(t);
     this.effects.drawUnder(this.ice, this.view);
     this.drawPlayers(t);
     this.drawPuck(t);
-    this.effects.drawOver(this.g, this.view);
+    this.effects.drawOver(this.top, this.view);
     this.drawHud(t, width, height, real);
   }
 
@@ -422,8 +443,8 @@ export class RinkScene extends Phaser.Scene {
   }
 
   /**
-   * Every player on the ice, seen from above: skates striding under him, shoulders across the way he faces,
-   * his team's second colour worn as its jersey pattern, a helmet, a stick. Goalies are wider, in a lighter shade.
+   * Every player on the ice as an upright cartoon figure standing on the top-down rink: his feet and shadow
+   * are where the simulation has him, and the body rises above that spot. The shapes come from figure.ts.
    */
   private drawPlayers(t: Tuning): void {
     const g = this.g;
@@ -432,99 +453,108 @@ export class RinkScene extends Phaser.Scene {
     const line = Math.max(1, look.lineWidth * z);
     const controlled = world.human ? world.players[world.human.controlled] : undefined;
 
-    world.players.forEach((p, i) => {
+    // Each pose is painted once, at this many pixels to a footprint radius, and kept. A resized rink repaints them.
+    const pixels = Math.min(FIG.maxTexturePixels, t.skater.radius * z * look.playerScale * FIG.textureScale);
+    if (Math.abs(pixels - this.figurePixels) > 0.05) {
+      for (const key of this.figureKeys) this.textures.remove(key);
+      this.figureKeys.clear();
+      this.figurePixels = pixels;
+    }
+    for (const [i, p] of world.players.entries()) {
       const label = this.labels[i];
       const number = this.numbers[i];
       if (!p.onIce) {
         label?.setVisible(false);
         number?.setVisible(false);
-        return;
+        this.sprites[i]?.setVisible(false);
+        this.sides.delete(p.id);
+        continue;
       }
       const x = this.sx(p.pos.x);
       const y = this.sy(p.pos.y);
       const goalie = p.role === 'goalie';
       const base = (goalie ? Math.max(t.goalie.bodyRadius, p.goalie!.fx.coverRadius) : t.skater.radius) * z;
-      const r = base * look.playerScale;
+      // One footprint radius of the figure, in pixels.
+      const unit = base * look.playerScale;
       // A staggered skater, or one heading to the bench, is drawn faded.
       const alpha = p.stagger > 0 || p.leaving ? 0.45 : 1;
       const crest = this.crests[p.team];
-      const jersey = colour(goalie ? lighten(crest.primary, look.goalieLighten) : crest.primary);
-      const second = colour(crest.secondary);
-      const fxDir = Math.cos(p.facing);
-      const fyDir = Math.sin(p.facing);
-      // Across his shoulders: at right angles to the way he faces.
-      const ax = -fyDir;
-      const ay = fxDir;
+      const side = facingSide(p.facing, this.sides.get(p.id));
+      this.sides.set(p.id, side);
       const down = goalie && (this.effects.padsDown.get(p.id) ?? 0) > 0;
-      const spread = r * (goalie ? (down ? 1.15 : 0.85) : 0.55);
-      const shoulder = r * (goalie ? 0.62 : 0.7);
+      const speed = Math.min(1, Math.hypot(p.vel.x, p.vel.y) / FIG.fullSpeed);
+      const stride = this.effects.stride.get(p.id) ?? 0;
+      // The pose is rounded to one of a few steps, so the same few pictures are reused instead of painting him every frame.
+      const strideStep = goalie ? 0 : Math.round((((stride % TAU) + TAU) % TAU) / TAU * FIG.poseSteps) % FIG.poseSteps;
+      const speedStep = goalie ? 0 : Math.round(speed * FIG.speedSteps);
+      const wound = !goalie && p.charge > 0 && chargeFraction(p.charge, t) > FIG.windUpAt ? 1 : 0;
+      const pose: PoseInput = {
+        side: 1,
+        stride: (strideStep / FIG.poseSteps) * TAU,
+        speed: speedStep / FIG.speedSteps,
+        windUp: wound,
+        goalie,
+        down,
+        tilt: 0,
+        pattern: crest.pattern,
+      };
+      const skin = skinTone(p.id);
+      const key = `figure-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${strideStep}-${speedStep}-${wound}`;
+      if (!this.textures.exists(key)) {
+        const canvas = document.createElement('canvas');
+        paintFigure(canvas, figure(pose).shapes, figureColours(crest, goalie, skin), pixels);
+        this.textures.addCanvas(key, canvas);
+        this.figureKeys.add(key);
+      }
+      const fig = figure({ ...pose, side });
 
-      // Shadow on the ice.
-      g.fillStyle(colour(c.shadow), 0.2 * alpha);
-      g.fillCircle(x + r * 0.18, y + r * 0.28, r * 1.05);
+      // His shadow on the ice marks where he really is, and how big.
+      g.fillStyle(colour(c.shadow), 0.22 * alpha);
+      g.fillEllipse(x, y, unit * FIG.shadowWidth * 2, unit * FIG.shadowHeight * 2);
 
       if (p === controlled) {
+        // The ring lies flat on the ice under him, with a tick pointing the way he truly faces.
+        const ring = base * look.controlRingScale;
         g.lineStyle(Math.max(2, line * 1.8), colour(c.controlRing));
-        g.strokeCircle(x, y, base * look.controlRingScale);
+        g.strokeEllipse(x, y, ring * 2, ring * 2 * FIG.ringSquash);
+        const tx = x + Math.cos(p.facing) * ring;
+        const ty = y + Math.sin(p.facing) * ring * FIG.ringSquash;
+        g.lineBetween(tx, ty, tx + Math.cos(p.facing) * ring * FIG.ringTick, ty + Math.sin(p.facing) * ring * FIG.ringTick * FIG.ringSquash);
       }
 
-      // Skates: one forward and one back, swapping as he strides.
-      if (!goalie) {
-        const stride = Math.sin(this.effects.stride.get(p.id) ?? 0) * r * fx.strideReach;
-        g.fillStyle(colour(c.skate), alpha);
-        for (const side of [-1, 1]) {
-          const along = stride * side;
-          g.fillCircle(x + ax * r * 0.38 * side + fxDir * along, y + ay * r * 0.38 * side + fyDir * along, Math.max(1.5, r * 0.26));
-        }
+      // The stick: a skater's blade sits exactly where the puck is carried; a goalie's rests on the ice in front of him.
+      let end = fig.stickEnd;
+      if (!end) {
         const blade = carrySpot(p, t);
-        // Without the puck his stick sweeps a little with his stride. With it, the blade stays exactly on the puck.
-        const sweep = this.full && world.puck.carrier !== p.id ? Math.sin((this.effects.stride.get(p.id) ?? 0) * 0.5) * r * fx.stickSweep : 0;
-        const bx = this.sx(blade.x) + ax * sweep;
-        const by = this.sy(blade.y) + ay * sweep;
-        g.lineStyle(Math.max(2, line * 1.6), colour(c.stick), alpha);
-        g.lineBetween(x, y, bx, by);
-        g.lineStyle(Math.max(3, line * 2.6), colour(c.stick), alpha);
-        g.lineBetween(bx, by, bx + ax * r * 0.35, by + ay * r * 0.35);
+        // Without the puck his stick sweeps a little with his stride.
+        const sweep = this.full && world.puck.carrier !== p.id ? Math.sin(stride * 0.5) * fx.stickSweep : 0;
+        end = { x: (this.sx(blade.x) - x) / unit + sweep * side, y: (this.sy(blade.y) - y) / unit };
+      }
+      for (const piece of withStick(fig, end, side)) {
+        if (piece.tag !== 'stick' || piece.kind !== 'limb') continue;
+        g.lineStyle(Math.max(1.5, piece.w * unit), colour(c.stick), alpha);
+        g.lineBetween(x + piece.x1 * unit, y + piece.y1 * unit, x + piece.x2 * unit, y + piece.y2 * unit);
       }
 
-      // An outline first, then the jersey on top of it. The main colour always dominates, so the two teams
-      // are told apart at a glance; the second colour is an accent worn one of three ways.
-      const edge = Math.max(1, r * 0.14);
-      g.fillStyle(crest.pattern === 'yoke' ? second : colour(c.outline), alpha);
-      g.fillCircle(x + ax * spread, y + ay * spread, shoulder + edge);
-      g.fillCircle(x - ax * spread, y - ay * spread, shoulder + edge);
-      g.fillCircle(x, y, r * 0.8 + edge);
-      g.fillStyle(jersey, alpha);
-      g.fillCircle(x + ax * spread, y + ay * spread, shoulder);
-      g.fillCircle(x - ax * spread, y - ay * spread, shoulder);
-      g.fillCircle(x, y, r * 0.8);
-      if (crest.pattern === 'hoop') {
-        // A band round the body.
-        g.lineStyle(Math.max(1.5, r * 0.16), second, alpha);
-        g.strokeCircle(x, y, r * 0.66);
-      } else if (crest.pattern === 'sash') {
-        // A patch on each shoulder.
-        g.fillStyle(second, alpha);
-        g.fillCircle(x + ax * spread * 1.15, y + ay * spread * 1.15, shoulder * 0.42);
-        g.fillCircle(x - ax * spread * 1.15, y - ay * spread * 1.15, shoulder * 0.42);
-      }
+      const sprite = this.sprites[i];
+      sprite
+        ?.setTexture(key)
+        .setOrigin(0.5, FIGURE_BOX.feetY / FIGURE_BOX.height)
+        .setPosition(x, y)
+        .setScale(unit / pixels)
+        .setFlipX(side === -1)
+        .setRotation(p.stagger > 0 ? FIG.staggerTilt * side : 0)
+        .setAlpha(alpha)
+        .setDepth(DEPTH.players + (p.pos.y + t.rink.width) / (t.rink.width * 4))
+        .setVisible(true);
 
-      // Helmet, a little forward of centre and leaning into his skating, with a visor line showing which way he faces.
-      const lean = Math.min(1, Math.hypot(p.vel.x, p.vel.y) / 9) * r * 0.1;
-      const hxp = x + fxDir * (r * 0.12 + lean);
-      const hyp = y + fyDir * (r * 0.12 + lean);
-      g.fillStyle(colour(lighten(crest.primary, goalie ? 0.15 : look.helmetLighten)), alpha);
-      g.fillCircle(hxp, hyp, r * 0.46);
-      g.lineStyle(Math.max(1, r * 0.14), jersey, alpha);
-      g.lineBetween(hxp + fxDir * r * 0.3 + ax * r * 0.28, hyp + fyDir * r * 0.3 + ay * r * 0.28, hxp + fxDir * r * 0.3 - ax * r * 0.28, hyp + fyDir * r * 0.3 - ay * r * 0.28);
-
-      // A number on his back, when he is drawn big enough to read one.
+      // A number on his chest, when he is drawn big enough to read one.
       if (number) {
-        const show = r >= look.numberMinRadius;
+        const show = unit >= look.numberMinRadius && !down;
         number.setVisible(show);
         if (show) {
-          number.setFontSize(r * 0.8);
-          number.setPosition(x - fxDir * r * 0.42, y - fyDir * r * 0.42);
+          number.setFontSize(unit * 0.7);
+          number.setPosition(x, y - unit * FIG.numberHeight);
           number.setAlpha(alpha);
           number.setColor(crest.trim);
         }
@@ -535,11 +565,11 @@ export class RinkScene extends Phaser.Scene {
         label.setVisible(this.showDebug && isAi);
         if (this.showDebug && isAi) {
           label.setFontSize(Math.max(9, z * 0.9));
-          label.setPosition(x, y - r * 1.5);
+          label.setPosition(x, y + fig.top * unit - 2);
           label.setText(p.leaving ? 'bench' : p.ai.state);
         }
       }
-    });
+    }
 
     // Shot or pass wind-up, above the controlled skater.
     if (controlled) {
@@ -549,18 +579,18 @@ export class RinkScene extends Phaser.Scene {
         const w = t.skater.radius * 4 * z;
         const h = Math.max(4, 0.3 * z);
         const bx = this.sx(controlled.pos.x) - w / 2;
-        const by = this.sy(controlled.pos.y - t.skater.radius * 3);
-        g.fillStyle(colour(c.panel), 0.85);
-        g.fillRoundedRect(bx - 1, by - 1, w + 2, h + 2, (h + 2) / 2);
-        g.fillStyle(colour(c.charge));
-        g.fillRoundedRect(bx, by, Math.max(h, w * fill), h, h / 2);
+        const by = this.sy(controlled.pos.y) - t.skater.radius * z * look.playerScale * (FIG.height + FIG.chargeBarGap);
+        this.top.fillStyle(colour(c.panel), 0.85);
+        this.top.fillRoundedRect(bx - 1, by - 1, w + 2, h + 2, (h + 2) / 2);
+        this.top.fillStyle(colour(c.charge));
+        this.top.fillRoundedRect(bx, by, Math.max(h, w * fill), h, h / 2);
       }
     }
   }
 
   /** The puck with a shadow; a ring while it is held for a faceoff, larger while it is in the air. */
   private drawPuck(t: Tuning): void {
-    const g = this.g;
+    const g = this.top;
     const z = this.zoom;
     const world = this.world;
     const puck = world.puck;
