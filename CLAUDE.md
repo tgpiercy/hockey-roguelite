@@ -75,6 +75,16 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - Menus are in `src/ui`: `App.tsx` holds every screen; each screen is one `Menu` (`Menu.tsx`), so all of them work the same way with the controller. `menuInput.ts` turns d-pad, left stick, A and B (and arrows, Enter, Escape) into menu moves. `storage.ts` is the IndexedDB wrapper; the game saves after every roster move, lineup change and game.
 - `matchView.tsx` starts a game on the ice between two dressed teams and tears it down when the player leaves the summary; the menus are hidden meanwhile.
 
+## How the season run fits together
+
+- `src/core/season.ts` is the season as a state machine. `Franchise` (league, record, season state, artifacts) is everything that is saved. Every action (`startSeason`, `travel`, `recordGame`, `train`, `chooseEvent`, `buy`, `healStrike`, `leaveShop`, `pickArtifact`, `setLoadout`, `endSeason`) takes the franchise, changes it, and returns `{ ok, message }` or `{ ok: false, reason }` written for the player. `matchup(f)` gives the game waiting to be played, or null.
+- `src/core/seasonMap.ts` generates the map from a seed; `src/core/bosses.ts` builds boss teams and ranks the AI teams by strength.
+- Content is data: `src/data/season.json` (map shape, strikes, rewards, prices, AI level by region), `powerups.json`, `artifacts.json`, `events.json`, `bosses.json`. Tests in `tests/season.test.ts` check every entry is valid, so new content only needs a data entry.
+- **One modifier system** (`src/sim/modifiers.ts`). A modifier is `{ stat, op: 'add' | 'mul', value }`. Stats the simulation reads are the fields of `SkaterEffects` and `GoalieEffects`; anything else (`currencyGain`, `shopPrice`, `trainingBonus`, `powerupDropChance`) is read by the season rules. Artifacts, boss traits, event effects and powerups are all lists of these. Gear (Phase 6) and staff (Phase 8) should use the same system, not new special cases.
+- Lasting team modifiers go into a game through `TeamSetup.modifiers`. A powerup is loaded through `WorldOptions.powerups`; `src/sim/powerups.ts` starts its timed boost when the button is pressed and ends it on the game clock. `GameResult.powerupsUsed` tells the season which ones to take out of the bag.
+- All randomness in a season comes from its seed and a roll counter, so a season replays exactly.
+- `tests/seasonRun.test.ts` plays whole seasons automatically with real simulated games; it prints how each ended.
+
 ## How the on-ice game fits together
 
 - `src/sim/world.ts`: `createGame(tuning, seed, options)` starts a full game; `createWorld(...)` starts a scrimmage (endless play, no clock, faceoffs or line changes; used by most tests). `step(world, humanInput, tuning)` advances either by one fixed step of 1/60 second and returns the events that happened. Nothing else advances the game.
@@ -94,8 +104,8 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 ## Notes for future sessions
 
 - On the ice it is 3 skaters and a goalie a side; 6 skaters and 1 goalie are dressed (two lines of 3). Where a prompt in `docs/IMPLEMENTATION_PLAN.md` says 2 skaters, 4 skaters or lines of 2, `docs/GDD.md` and `docs/DECISIONS.md` win.
-- The plain link opens the Hub menu; a game starts from Play. The Phase 0 controller read-out is at `?controller`.
-- Keyboard fallback: arrows or WASD skate, Space shoot, Z or J pass and faceoff draw, X or K check, C or L switch player, Q line change (LB), Shift sprint, Tab tuning, I AI debug overlay (View button).
+- The plain link opens the Hub menu. "Start the season" begins a run; "Exhibition game" is a one-off that does not count. The Phase 0 controller read-out is at `?controller`.
+- Keyboard fallback: arrows or WASD skate, Space shoot, Z or J pass and faceoff draw, X or K check, C or L switch player, Q line change (LB), 1 and 2 powerups (LT and RB), Shift sprint, Tab tuning, I AI debug overlay (View button).
 - Balance (AI against AI, level 0.5) meets the Phase 3 targets. Human against AI is not balanced yet: a scripted player that only skates to the slot and shoots still wins about two games in three at the default difficulty of 0.75.
 - In local development `window.__game` is the Phaser game. When the browser tab is hidden, animation frames stop; drive them by hand with `__game.loop.step(timeMs)`.
 - The desktop app's "start preview" tool hung on this PC right after Node.js was installed. If it still does, start the server from a shell with `npm run dev` and open http://localhost:5173/hockey-roguelite/.

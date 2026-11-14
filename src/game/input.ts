@@ -93,6 +93,8 @@ export class InputReader {
         check: down(b.check) || this.key(controls.keys.check),
         switchPlayer: down(b.switchPlayer) || this.key(controls.keys.switchPlayer),
         lineChange: down(b.lineChange) || this.key(controls.keys.lineChange),
+        powerupA: value(b.powerupA) >= controls.triggerThreshold || down(b.powerupA) || this.key(controls.keys.powerupA),
+        powerupB: down(b.powerupB) || this.key(controls.keys.powerupB),
       },
       menuPressed,
       debugPressed,

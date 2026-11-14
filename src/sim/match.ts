@@ -183,6 +183,8 @@ export interface GameResult {
   overtime: boolean;
   periods: number;
   players: PlayerLine[];
+  /** Ids of the powerups team 0 used, in order. */
+  powerupsUsed: string[];
 }
 
 export function gameResult(world: World): GameResult {
@@ -195,5 +197,6 @@ export function gameResult(world: World): GameResult {
     overtime: world.overtime,
     periods: world.period,
     players: world.players.map((p: Player) => ({ id: p.id, team: p.team, role: p.role, line: p.line, slot: p.slot, ...p.stats })),
+    powerupsUsed: [...world.teams[0].powerupsUsed],
   };
 }

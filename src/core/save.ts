@@ -1,14 +1,10 @@
 import type { League } from './league';
+import { newSeasonState, type Franchise, type SeasonState, type TeamRecord } from './season';
+
+export { emptyRecord, type TeamRecord } from './season';
 
 /** Bump this whenever the shape of a save changes, and add a step to `migrations`. */
-export const SAVE_VERSION = 1;
-
-export interface TeamRecord {
-  wins: number;
-  losses: number;
-  /** Games lost in overtime. */
-  overtimeLosses: number;
-}
+export const SAVE_VERSION = 2;
 
 export interface SaveFile {
   schemaVersion: number;
@@ -16,23 +12,31 @@ export interface SaveFile {
   savedAt: string;
   league: League;
   record: TeamRecord;
+  /** Where the season stands: map, position, strikes, currency, powerups and so on. Added in version 2. */
+  season: SeasonState;
+  /** Artifact ids owned. Added in version 2. */
+  artifacts: string[];
 }
 
 export type LoadResult = { ok: true; save: SaveFile } | { ok: false; reason: string };
 
-export function emptyRecord(): TeamRecord {
-  return { wins: 0, losses: 0, overtimeLosses: 0 };
+export function toSave(franchise: Franchise, savedAt: string): SaveFile {
+  return { schemaVersion: SAVE_VERSION, savedAt, ...franchise };
 }
 
-export function toSave(league: League, record: TeamRecord, savedAt: string): SaveFile {
-  return { schemaVersion: SAVE_VERSION, savedAt, league, record };
+/** The part of a save the game plays with. */
+export function franchiseOf(save: SaveFile): Franchise {
+  return { league: save.league, record: save.record, season: save.season, artifacts: save.artifacts };
 }
 
 /**
  * One step per version: `migrations[n]` turns a version-n save into a version n+1 save.
- * There are none yet. When the save shape changes, add the step here rather than breaking old saves.
+ * When the save shape changes, add the step here rather than breaking old saves.
  */
-const migrations: Record<number, (old: Record<string, unknown>) => Record<string, unknown>> = {};
+const migrations: Record<number, (old: Record<string, unknown>) => Record<string, unknown>> = {
+  // Version 2 (Phase 5) added the season run and artifacts. An older save starts in the off-season with none.
+  1: (old) => ({ ...old, season: newSeasonState(), artifacts: [] }),
+};
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
@@ -53,6 +57,8 @@ function problemWith(save: Record<string, unknown>): string | null {
   if ((league.freeAgents as unknown[]).some((id) => typeof id !== 'string' || !(id in players))) return 'the free-agent list names a player who does not exist';
   const record = save.record;
   if (!isObject(record) || typeof record.wins !== 'number' || typeof record.losses !== 'number') return 'it has no win-loss record';
+  if (!isObject(save.season) || typeof save.season.phase !== 'string') return 'it does not say where the season stands';
+  if (!Array.isArray(save.artifacts)) return 'it has no artifact list';
   return null;
 }
 

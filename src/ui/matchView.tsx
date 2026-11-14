@@ -2,9 +2,11 @@ import * as Phaser from 'phaser';
 import { render } from 'preact';
 import type { DressedTeam } from '../core/matchup';
 import look from '../data/rinkLook.json';
+import seasonRules from '../data/season.json';
 import type { Controls } from '../game/input';
 import { RinkScene } from '../game/RinkScene';
 import type { GameResult } from '../sim/match';
+import type { PowerupSpec } from '../sim/modifiers';
 import { GameSummary } from './GameSummary';
 import { TuningPanel } from './TuningPanel';
 import { tuningStore } from './tuningStore';
@@ -29,12 +31,27 @@ function wireTuningPanel(): void {
   tuneButton.addEventListener('click', () => tuningStore.toggle());
 }
 
+export interface MatchOptions {
+  /** The human's team. */
+  home: DressedTeam;
+  away: DressedTeam;
+  /**
+   * How sharp the opponent's AI is for this game, 0 to 1. The tuning panel's difficulty shifts it up or
+   * down. Left out, the tuning panel's difficulty is used as it is.
+   */
+  level?: number;
+  /** The powerups loaded on the two buttons. */
+  powerups?: (PowerupSpec | null)[];
+}
+
 /**
- * Plays one game on the ice between two dressed teams (the first is the human's).
+ * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch(home: DressedTeam, away: DressedTeam, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
+  const shift = tuningStore.tuning.game.opponentDifficulty - seasonRules.defaultDifficulty;
+  const opponentLevel = level === undefined ? null : Math.max(0, Math.min(1, level + shift));
   document.body.className = 'mode-rink';
   if (tuningStore.open) tuningStore.toggle();
 
@@ -56,6 +73,8 @@ export function playMatch(home: DressedTeam, away: DressedTeam, onDone: (result:
       seed: String(Date.now()),
       teams: [home.setup, away.setup],
       names: ['You', away.name],
+      levels: [null, opponentLevel],
+      powerups: powerups ?? [],
       tuning: () => tuningStore.tuning,
       onControls,
       onResult: (result) => render(<GameSummary result={result} teams={[home, away]} />, summary),

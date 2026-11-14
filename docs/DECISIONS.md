@@ -47,7 +47,18 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-13 | The league | Your team plus 12 AI teams whose average overall runs from about 66 to 80, and 24 free agents from D grade up to one A. Your team averages about 68. Everything is rebuilt exactly from the league seed. | Phase 4 |
 | 2026-11-13 | Who do you play? | Any AI team, chosen from a list, until the season run arrives in Phase 5. Wins, losses and overtime losses are kept. | Phase 4 |
 | 2026-11-13 | New signings and the lineup | A signing fills an empty lineup spot if there is one; otherwise he waits undressed and the game says so. | Phase 4 |
+| 2026-11-13 | How long is a season? | 3 regions, each a game, a stop, a game, a stop and a boss (with a choice of two at every step but the boss), then a semi-final and a final, each best of 3: 13 to 15 games. | Phase 5 |
+| 2026-11-13 | What does a loss cost? | Three strikes. A lost map game is a strike and you move on; a lost boss game is a strike and a rematch; the third strike ends the season. A lost playoff series ends it outright. | Phase 5 |
+| 2026-11-13 | Powerups and artifacts | Powerups are consumables: load one on LT and one on RB before a game; pressing the trigger uses it up for a timed boost or an instant effect. Artifacts are always-on team bonuses kept across seasons until prestige. The AI does not use powerups; bosses have a signature trait instead. | Phase 5 |
+| 2026-11-13 | What does a season reset? | Powerups, run currency, training bumps and temporary effects are wiped at season end. Artifacts, the roster and the record carry on. | Phase 5 |
+| 2026-11-13 | Roster during a season | Locked. The dressed six skaters and goalie are fixed for the run and the seventh skater stays home; the six can still swap lines. Signing and releasing happen only in the off-season. | Phase 5 |
+| 2026-11-13 | Stops on the map | Game: a win pays 20 currency plus 5 per goal of margin (up to 15 more), with a 35% chance of a powerup. Training: one dressed player gains 3 in every rating for the season. Event: a text choice with a trade-off (18 written). Shop: three powerups for sale and a strike wiped for 120. Boss: a generated team 3 points stronger than its region's best, with a trait; a win pays 40 and a choice of three artifacts. | Phase 5 |
+| 2026-11-13 | Who are the opponents? | Region 1 draws from the four weakest AI teams, region 2 the middle four, region 3 the four strongest; the playoffs are against the second strongest and then the strongest. The AI is sharper each region (0.5, 0.65, 0.8; bosses 0.1 more; playoffs 0.9). The tuning panel's difficulty shifts all of these together. | Phase 5 |
+| 2026-11-13 | Champion's prize | One artifact, awarded automatically. | Phase 5 |
+| 2026-11-13 | Can an event end the season? | No. Events can add or wipe a strike but never deliver the third; currency never goes below zero. | Phase 5 |
+| 2026-11-13 | Quitting mid-game | The season is saved after every step, but a game in progress is not: quit during a game and you replay it. | Phase 5 |
+| 2026-11-13 | Exhibition games | Still available in the off-season against any team; they no longer count toward the record. | Phase 5 |
 
 ## Open
 
-The Phase 5 to 9 decisions in docs/IMPLEMENTATION_PLAN.md ("Decisions to settle") are still open: season length, what a loss costs, powerups and artifacts, what a season resets, gear ownership, milestone targets, prestige, poaching, the mascot questions and the game name. Settle each before the phase that needs it.
+The Phase 6 to 9 decisions in docs/IMPLEMENTATION_PLAN.md ("Decisions to settle") are still open: gear ownership, milestone targets, prestige, poaching, the mascot questions and the game name. Settle each before the phase that needs it.

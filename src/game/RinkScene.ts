@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import look from '../data/rinkLook.json';
 import { benchDoor, lineEnergy } from '../sim/lines';
 import { gameResult, type GameResult } from '../sim/match';
+import type { PowerupSpec } from '../sim/modifiers';
 import { carrySpot } from '../sim/puck';
 import { goalLineX, nets } from '../sim/rink';
 import { chargeFraction } from '../sim/shot';
@@ -23,6 +24,10 @@ export interface RinkSceneOptions {
   teams: [TeamSetup, TeamSetup];
   /** What to call each team on the scoreboard. */
   names: [string, string];
+  /** AI level per team, 0 to 1; null takes it from the tuning. */
+  levels: [number | null, number | null];
+  /** The powerups loaded on the human's two buttons. */
+  powerups: (PowerupSpec | null)[];
   /** The live tuning values; read every step, so the tuning panel takes effect at once. */
   tuning: () => Tuning;
   /** Called once per frame with the controls, for the menus. */
@@ -49,6 +54,7 @@ export class RinkScene extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.Text;
   private bigText!: Phaser.GameObjects.Text;
   private barLabels: Phaser.GameObjects.Text[] = [];
+  private powerText!: Phaser.GameObjects.Text;
   private labels: Phaser.GameObjects.Text[] = [];
   private showDebug = false;
   private leftover = 0;
@@ -77,7 +83,12 @@ export class RinkScene extends Phaser.Scene {
       .text(0, 0, '', { fontFamily: font, fontStyle: 'bold', color: c.redLine })
       .setOrigin(0.5, 0.5)
       .setVisible(false);
-    this.world = createGame(this.options.tuning(), this.options.seed, { teams: this.options.teams });
+    this.world = createGame(this.options.tuning(), this.options.seed, {
+      teams: this.options.teams,
+      levels: this.options.levels,
+      powerups: this.options.powerups,
+    });
+    this.powerText = this.add.text(0, 0, '', { fontFamily: font, fontStyle: 'bold', color: c.text }).setOrigin(1, 0.5).setStroke(c.boards, 3);
     this.events.once('destroy', () => this.reader.dispose());
     this.labels = this.world.players.map(() =>
       this.add.text(0, 0, '', { fontFamily: font, color: c.debugText }).setOrigin(0.5, 1).setVisible(false),
@@ -302,6 +313,17 @@ export class RinkScene extends Phaser.Scene {
         }
         x += bar.width + barH * 2;
       });
+    }
+
+    // Bottom right: the powerup on each button, and any boost that is running.
+    const mine = world.human ? world.teams[world.human.team] : null;
+    if (mine) {
+      const buttons = ['LT', 'RB'].map((button, slot) => `${button} ${mine.powerups[slot]?.name ?? '—'}`);
+      const running = mine.boosts.map((b) => `${b.name} ${Math.ceil(b.secondsLeft)}s`);
+      this.powerText.setFontSize(Math.max(9, height * 0.028));
+      this.powerText.setPosition(width - look.marginPixels * 2, height - look.marginPixels * 2 - Math.max(6, height * 0.02) / 2);
+      this.powerText.setText([...running, ...buttons].join('   '));
+      this.powerText.setColor(running.length > 0 ? c.charge : c.text);
     }
 
     // Text

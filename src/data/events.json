@@ -1,0 +1,180 @@
+[
+  {
+    "id": "bus-breakdown",
+    "title": "The bus breaks down",
+    "text": "Two hours from the rink, the team bus gives up. A local garage can fix it fast for a price, or the players can push on by foot and thumb.",
+    "choices": [
+      { "label": "Pay the garage (25 currency)", "outcomes": [{ "result": "The bus is rolling again within the hour. Everyone arrives rested.", "effects": [{ "type": "currency", "amount": -25 }] }] },
+      { "label": "Walk it", "outcomes": [{ "result": "They make it, but on heavy legs. Your skaters tire faster next game.", "effects": [{ "type": "temp", "label": "Heavy legs", "games": 1, "modifiers": [{ "stat": "drainScale", "op": "mul", "value": 1.4 }] }] }] }
+    ]
+  },
+  {
+    "id": "sponsor-dinner",
+    "title": "Sponsor dinner",
+    "text": "A local sponsor wants the whole team at a long dinner the night before a game.",
+    "choices": [
+      { "label": "Go, and collect the cheque", "outcomes": [{ "result": "A late night, a fat cheque. The team is a step slow next game.", "effects": [{ "type": "currency", "amount": 45 }, { "type": "temp", "label": "Late night", "games": 1, "modifiers": [{ "stat": "topSpeedScale", "op": "mul", "value": 0.96 }] }] }] },
+      { "label": "Send your regrets", "outcomes": [{ "result": "An early night. Nothing gained, nothing lost.", "effects": [] }] }
+    ]
+  },
+  {
+    "id": "extra-practice",
+    "title": "Extra practice",
+    "text": "The rink is free for a late session. The coaches want it. The players want their beds.",
+    "choices": [
+      { "label": "Run the practice", "outcomes": [{ "result": "A hard skate. One of your players sharpens up for the season, but the team starts the next game tired.", "effects": [{ "type": "bump", "who": "random", "amount": 2 }, { "type": "temp", "label": "Tired from practice", "games": 1, "modifiers": [{ "stat": "drainScale", "op": "mul", "value": 1.25 }] }] }] },
+      { "label": "Give them the night off", "outcomes": [{ "result": "Fresh legs. Your skaters tire more slowly next game.", "effects": [{ "type": "temp", "label": "Well rested", "games": 1, "modifiers": [{ "stat": "drainScale", "op": "mul", "value": 0.8 }] }] }] }
+    ]
+  },
+  {
+    "id": "equipment-salesman",
+    "title": "The equipment salesman",
+    "text": "A man with a van full of unmarked boxes says he has just the thing for a team like yours. Cash only.",
+    "choices": [
+      { "label": "Buy a mystery box (30 currency)", "outcomes": [
+        { "weight": 3, "result": "Inside: something useful. You gain a powerup.", "effects": [{ "type": "currency", "amount": -30 }, { "type": "powerup" }] },
+        { "weight": 1, "result": "Inside: two useful things. You gain two powerups.", "effects": [{ "type": "currency", "amount": -30 }, { "type": "powerup" }, { "type": "powerup" }] },
+        { "weight": 1, "result": "Inside: old socks. The van is already gone.", "effects": [{ "type": "currency", "amount": -30 }] }
+      ] },
+      { "label": "Walk away", "outcomes": [{ "result": "You keep your money.", "effects": [] }] }
+    ]
+  },
+  {
+    "id": "rival-taunts",
+    "title": "Words in the tunnel",
+    "text": "The other team's captain has plenty to say about your roster on the way past.",
+    "choices": [
+      { "label": "Let the players answer on the ice", "outcomes": [{ "result": "They come out hitting. Checks land more often next game, but tempers cost some finesse on the puck.", "effects": [{ "type": "temp", "label": "Fired up", "games": 1, "modifiers": [{ "stat": "checkStrength", "op": "add", "value": 0.15 }, { "stat": "puckSecurity", "op": "add", "value": -0.1 }] }] }] },
+      { "label": "Keep everyone calm", "outcomes": [{ "result": "Heads stay cool. Passing is crisper next game.", "effects": [{ "type": "temp", "label": "Cool heads", "games": 1, "modifiers": [{ "stat": "passSpreadDegrees", "op": "mul", "value": 0.6 }] }] }] }
+    ]
+  },
+  {
+    "id": "charity-game",
+    "title": "Charity game",
+    "text": "The town asks for an exhibition for the children's hospital. It means a day's skating with nothing at stake.",
+    "choices": [
+      { "label": "Play it", "outcomes": [{ "result": "A good day. The crowd's goodwill wipes away one strike, but your skaters are tired next game.", "effects": [{ "type": "strike", "amount": -1 }, { "type": "temp", "label": "Tired from the charity game", "games": 1, "modifiers": [{ "stat": "drainScale", "op": "mul", "value": 1.3 }] }] }] },
+      { "label": "Send a donation instead (20 currency)", "outcomes": [{ "result": "A cheque is sent. The team rests.", "effects": [{ "type": "currency", "amount": -20 }] }] }
+    ]
+  },
+  {
+    "id": "goalie-coach",
+    "title": "A goalie coach passes through",
+    "text": "A retired goalie offers a day with your netminder, or a clinic for the skaters on getting pucks through traffic.",
+    "choices": [
+      { "label": "Work with the goalie", "outcomes": [{ "result": "Your goalie reads the play sooner for the next two games.", "effects": [{ "type": "temp", "label": "Goalie coaching", "games": 2, "modifiers": [{ "stat": "reactionSeconds", "op": "mul", "value": 0.85 }] }] }] },
+      { "label": "Work with the shooters", "outcomes": [{ "result": "Your shooters pick their spots better for the next two games.", "effects": [{ "type": "temp", "label": "Shooting clinic", "games": 2, "modifiers": [{ "stat": "accuracy", "op": "add", "value": 0.1 }] }] }] }
+    ]
+  },
+  {
+    "id": "card-game",
+    "title": "The card game",
+    "text": "The equipment manager runs a card game on the road. The pot is tempting.",
+    "choices": [
+      { "label": "Stake 30 currency", "outcomes": [
+        { "weight": 1, "result": "The cards fall your way. You double it.", "effects": [{ "type": "currency", "amount": 30 }] },
+        { "weight": 1, "result": "Cleaned out.", "effects": [{ "type": "currency", "amount": -30 }] }
+      ] },
+      { "label": "Stay out of it", "outcomes": [{ "result": "You watch someone else lose.", "effects": [] }] }
+    ]
+  },
+  {
+    "id": "veteran-speech",
+    "title": "The veteran speaks",
+    "text": "Your oldest player asks for the room before the next game.",
+    "choices": [
+      { "label": "Let him talk about heart", "outcomes": [{ "result": "They will run through walls. Your best player lifts his game for the season.", "effects": [{ "type": "bump", "who": "best", "amount": 2 }] }] },
+      { "label": "Let him talk about the youngsters", "outcomes": [{ "result": "The kids sit up straighter. Your weakest dressed player lifts his game for the season.", "effects": [{ "type": "bump", "who": "worst", "amount": 4 }] }] }
+    ]
+  },
+  {
+    "id": "bad-ice",
+    "title": "Bad ice",
+    "text": "The next rink's ice is slush. You can pay to have it scraped and flooded, or play it as it lies.",
+    "choices": [
+      { "label": "Pay for good ice (20 currency)", "outcomes": [{ "result": "A clean sheet. Nothing holds you back.", "effects": [{ "type": "currency", "amount": -20 }] }] },
+      { "label": "Play on it", "outcomes": [{ "result": "The puck bobbles all night. Passes scatter and pucks are harder to handle next game.", "effects": [{ "type": "temp", "label": "Bad ice", "games": 1, "modifiers": [{ "stat": "passSpreadDegrees", "op": "mul", "value": 1.8 }, { "stat": "handleSpeedScale", "op": "mul", "value": 0.85 }] }] }] }
+    ]
+  },
+  {
+    "id": "lost-luggage",
+    "title": "Lost luggage",
+    "text": "A bag of gear has gone missing in transit. It held some of your powerups.",
+    "choices": [
+      { "label": "Pay to have it found (25 currency)", "outcomes": [{ "result": "The bag turns up before the game.", "effects": [{ "type": "currency", "amount": -25 }] }] },
+      { "label": "Let it go", "outcomes": [{ "result": "One powerup is gone for good, if you had any.", "effects": [{ "type": "losePowerup" }] }] }
+    ]
+  },
+  {
+    "id": "local-hero",
+    "title": "A local hero",
+    "text": "A crowd gathers at the hotel. They want autographs and a kind word, and it will take all evening.",
+    "choices": [
+      { "label": "Stay and sign", "outcomes": [{ "result": "The town loves you. Merchandise money rolls in.", "effects": [{ "type": "currency", "amount": 30 }] }] },
+      { "label": "Slip out the back for a skate", "outcomes": [{ "result": "A quiet hour on the ice. One player sharpens up for the season.", "effects": [{ "type": "bump", "who": "random", "amount": 2 }] }] }
+    ]
+  },
+  {
+    "id": "superstition",
+    "title": "Superstition",
+    "text": "Your goalie insists the team eats at the same diner as before the last win. It is a long drive in the wrong direction.",
+    "choices": [
+      { "label": "Humour him", "outcomes": [
+        { "weight": 2, "result": "The pie is good and the goalie is serene. He covers more net next game.", "effects": [{ "type": "temp", "label": "Lucky diner", "games": 1, "modifiers": [{ "stat": "coverRadius", "op": "mul", "value": 1.12 }] }] },
+        { "weight": 1, "result": "The diner is closed. He sulks, and reacts late next game.", "effects": [{ "type": "temp", "label": "Sulking goalie", "games": 1, "modifiers": [{ "stat": "reactionSeconds", "op": "mul", "value": 1.2 }] }] }
+      ] },
+      { "label": "Stick to the schedule", "outcomes": [{ "result": "He grumbles. Nothing changes.", "effects": [] }] }
+    ]
+  },
+  {
+    "id": "scrimmage-offer",
+    "title": "An offer of a scrimmage",
+    "text": "A semi-pro team offers a hard scrimmage. Good practice, real risk of knocks.",
+    "choices": [
+      { "label": "Take it", "outcomes": [
+        { "weight": 2, "result": "A sharp session. Every dressed player gains a point for the season.", "effects": [{ "type": "bump", "who": "all", "amount": 1 }] },
+        { "weight": 1, "result": "It turns nasty. The team limps away sore and plays slow next game.", "effects": [{ "type": "temp", "label": "Bruised", "games": 1, "modifiers": [{ "stat": "topSpeedScale", "op": "mul", "value": 0.95 }, { "stat": "accelerationScale", "op": "mul", "value": 0.95 }] }] }
+      ] },
+      { "label": "Decline", "outcomes": [{ "result": "A quiet day.", "effects": [] }] }
+    ]
+  },
+  {
+    "id": "tv-crew",
+    "title": "The television crew",
+    "text": "A crew wants to film behind the scenes for a week. The fee is good; the cameras are everywhere.",
+    "choices": [
+      { "label": "Let them in", "outcomes": [{ "result": "The fee is paid up front. With cameras in their faces, the players grip their sticks tight for two games.", "effects": [{ "type": "currency", "amount": 60 }, { "type": "temp", "label": "Camera nerves", "games": 2, "modifiers": [{ "stat": "accuracy", "op": "add", "value": -0.1 }] }] }] },
+      { "label": "Keep the room closed", "outcomes": [{ "result": "The crew films the parking lot instead.", "effects": [] }] }
+    ]
+  },
+  {
+    "id": "found-wallet",
+    "title": "A wallet on the bench",
+    "text": "Someone left a wallet on your bench after the last game. There is cash in it, and an address.",
+    "choices": [
+      { "label": "Return it", "outcomes": [{ "result": "The owner turns out to run a sports shop, and presses a gift on you. You gain a powerup.", "effects": [{ "type": "powerup" }] }] },
+      { "label": "Put the cash in the team fund", "outcomes": [{ "result": "Nobody asks questions.", "effects": [{ "type": "currency", "amount": 25 }] }] }
+    ]
+  },
+  {
+    "id": "weather",
+    "title": "Snowed in",
+    "text": "A storm closes the roads. You can charter a small plane, or wait it out and arrive just before the puck drops.",
+    "choices": [
+      { "label": "Charter the plane (40 currency)", "outcomes": [{ "result": "You land with a day to spare, well rested for the next game.", "effects": [{ "type": "currency", "amount": -40 }, { "type": "temp", "label": "Well rested", "games": 1, "modifiers": [{ "stat": "drainScale", "op": "mul", "value": 0.8 }] }] }] },
+      { "label": "Wait for the plough", "outcomes": [{ "result": "Straight off the bus and onto the ice. Stiff legs next game.", "effects": [{ "type": "temp", "label": "Stiff legs", "games": 1, "modifiers": [{ "stat": "accelerationScale", "op": "mul", "value": 0.9 }] }] }] }
+    ]
+  },
+  {
+    "id": "old-rival",
+    "title": "An old rival's challenge",
+    "text": "A coach you have history with offers a wager on a shooting contest between your best and his.",
+    "choices": [
+      { "label": "Accept (stake 25 currency)", "outcomes": [
+        { "weight": 3, "result": "Your shooter wins it going away.", "effects": [{ "type": "currency", "amount": 35 }] },
+        { "weight": 2, "result": "His shooter does not miss.", "effects": [{ "type": "currency", "amount": -25 }] }
+      ] },
+      { "label": "Shake hands and move on", "outcomes": [{ "result": "No harm done.", "effects": [] }] }
+    ]
+  }
+]

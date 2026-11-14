@@ -119,6 +119,11 @@ h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity
 .grade-Bplus, .grade-B { background: #2a9d8f; color: #fff; }
 .grade-Cplus, .grade-C { background: #a9d6f5; }
 .ratings { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; }
+.dots { display: inline-flex; gap: 3px; vertical-align: middle; }
+.dot { width: 9px; height: 9px; border-radius: 50%; border: 1px solid #e8f4fb; display: inline-block; }
+.dot.on { background: #ffd166; border-color: #ffd166; }
+.event-text { font-size: 15px; line-height: 1.45; max-width: 46em; margin-bottom: 4px; }
+.player-row .bump { color: #ffd166; font-weight: 700; }
 .slot-row { display: inline-flex; align-items: baseline; gap: 10px; }
 .slot-name { width: 7.5em; opacity: 0.8; }
 .team-row { display: inline-flex; align-items: baseline; gap: 16px; }

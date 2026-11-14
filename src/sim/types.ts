@@ -1,4 +1,5 @@
 import type { Rng } from '../core/rng';
+import type { Boost, PowerupSpec } from './modifiers';
 import type { GoalieEffects, SkaterEffects } from './ratings';
 
 export interface Vec {
@@ -19,6 +20,9 @@ export interface InputFrame {
   check: boolean;
   switchPlayer: boolean;
   lineChange: boolean;
+  /** The two powerup buttons (LT and RB). */
+  powerupA: boolean;
+  powerupB: boolean;
 }
 
 export const NO_INPUT: InputFrame = {
@@ -30,6 +34,8 @@ export const NO_INPUT: InputFrame = {
   check: false,
   switchPlayer: false,
   lineChange: false,
+  powerupA: false,
+  powerupB: false,
 };
 
 /** Per-skater shooting abilities, 0 to 1. */
@@ -85,6 +91,8 @@ export interface AiMemory {
 
 export interface GoalieState {
   fx: GoalieEffects;
+  /** His abilities before any running boost. */
+  baseFx: GoalieEffects;
   /** Recent puck positions, newest last: the goalie reacts to an old one. */
   seen: { pos: Vec; vel: Vec; loose: boolean }[];
   /** Seconds left holding a frozen puck. */
@@ -114,7 +122,10 @@ export interface Player extends Skater {
   role: 'skater' | 'goalie';
   /** Forward, defenceman or goalie. For skaters it only nudges where the AI sends them. */
   position: 'F' | 'D' | 'G';
+  /** His abilities right now: ratings, the team's lasting modifiers, and any running boost. */
   fx: SkaterEffects;
+  /** His abilities before any running boost. */
+  baseFx: SkaterEffects;
   goalie: GoalieState | null;
   ai: AiMemory;
   passCharge: number;
@@ -161,6 +172,7 @@ export type SimEvent =
   | { type: 'period'; period: number }
   | { type: 'final' }
   | { type: 'change'; team: 0 | 1; off: number; on: number }
+  | { type: 'powerup'; team: 0 | 1; slot: number; id: string }
   | { type: 'shot'; speed: number; player: number }
   | { type: 'pass'; player: number; target: number | null; saucer: boolean }
   | { type: 'post' }
@@ -206,6 +218,14 @@ export interface TeamState {
   changeCooldown: number;
   /** Whether the line-change button was held on the previous step. */
   changeHeld: boolean;
+  /** The powerups loaded for this game, one per button. A used slot becomes null. */
+  powerups: (PowerupSpec | null)[];
+  /** Ids of the powerups used so far, in order. */
+  powerupsUsed: string[];
+  /** Whether each powerup button was held on the previous step. */
+  powerupHeld: boolean[];
+  /** Timed boosts that are running. */
+  boosts: Boost[];
 }
 
 export interface FaceoffState {

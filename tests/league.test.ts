@@ -8,6 +8,7 @@ import { capHitOf, gradeOf, overallOf } from '../src/core/player';
 import { createRng } from '../src/core/rng';
 import { canPlay, canSign, capSpace, payroll, release, sign } from '../src/core/roster';
 import { emptyRecord, fromSave, parseSave, SAVE_VERSION, toSave } from '../src/core/save';
+import { newFranchise } from '../src/core/season';
 import rules from '../src/data/league.json';
 import type { GameResult } from '../src/sim/match';
 
@@ -306,7 +307,7 @@ describe('saves', () => {
   it('a save round-trips through text unchanged', () => {
     const league = fresh();
     release(league, userTeam(league), skatersOn(league, userTeam(league))[6]!.id);
-    const save = toSave(league, { wins: 3, losses: 1, overtimeLosses: 2 }, '2026-11-13T12:00:00.000Z');
+    const save = toSave({ ...newFranchise(league), record: { wins: 3, losses: 1, overtimeLosses: 2 } }, '2026-11-13T12:00:00.000Z');
     expect(save.schemaVersion).toBe(SAVE_VERSION);
     const loaded = parseSave(JSON.stringify(save));
     expect(loaded.ok).toBe(true);
@@ -314,7 +315,7 @@ describe('saves', () => {
   });
 
   it('refuses a save from a newer version of the game', () => {
-    const save = { ...toSave(fresh(), emptyRecord(), 'now'), schemaVersion: SAVE_VERSION + 1 };
+    const save = { ...toSave(newFranchise(fresh()), 'now'), schemaVersion: SAVE_VERSION + 1 };
     const loaded = fromSave(save);
     expect(loaded.ok).toBe(false);
     expect(!loaded.ok && loaded.reason).toMatch(/newer version/);
@@ -330,7 +331,7 @@ describe('saves', () => {
   });
 
   it('refuses a damaged save', () => {
-    const good = (): Record<string, any> => JSON.parse(JSON.stringify(toSave(fresh(), emptyRecord(), 'now')));
+    const good = (): Record<string, any> => JSON.parse(JSON.stringify(toSave(newFranchise(fresh()), 'now')));
     const noPlayers = good();
     delete noPlayers.league.players;
     expect(fromSave(noPlayers).ok).toBe(false);
@@ -381,6 +382,7 @@ describe('taking a team onto the ice', () => {
       overtime,
       periods: 3,
       players: [],
+      powerupsUsed: [],
     });
     const start = emptyRecord();
     expect(applyResult(start, result(0, false))).toEqual({ wins: 1, losses: 0, overtimeLosses: 0 });

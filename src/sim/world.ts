@@ -9,6 +9,8 @@ import { afterGoal, levelFor, startFaceoff, stepBreak, stepFaceoff, tickClock } 
 import { makeSave, recordPuck, stepGoalie, stepGoalieHold } from './goalie';
 import { autoChange, benchDoor, callChange, currentFx, putOnIce, stepChanges, stepEnergy } from './lines';
 import { stepPassing } from './pass';
+import { applyModifiers, type Modifier, type PowerupSpec } from './modifiers';
+import { stepPowerups } from './powerups';
 import { createPuck, stepCarriedPuck, stepLoosePuck, type Blocker } from './puck';
 import {
   defaultGoalieRatings,
@@ -32,6 +34,8 @@ export interface TeamSetup {
   goalie: GoalieRatings;
   /** Forward or defenceman for each skater, in the same order. Left out, everyone is a forward. */
   positions?: ('F' | 'D')[];
+  /** Lasting modifiers for the whole team: artifacts, boss traits, event effects. */
+  modifiers?: Modifier[];
 }
 
 export interface WorldOptions {
@@ -48,6 +52,8 @@ export interface WorldOptions {
   teams?: [TeamSetup, TeamSetup];
   /** Game rules only: overtime ends in a tie after this many seconds. Left out, it runs until someone scores. */
   overtimeLimit?: number;
+  /** The human team's loaded powerups: one for each of the two buttons, or null. */
+  powerups?: (PowerupSpec | null)[];
 }
 
 /** Dressed per team: two lines of three skaters, then the goalie. A team's ids run from team * 7. */
@@ -58,14 +64,18 @@ export const PLAYERS_PER_TEAM = 7;
 function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index: number, options: WorldOptions): Player {
   const skater = options.teams?.[team].skaters[index] ?? options.skaterRatings?.[team] ?? defaultSkaterRatings;
   const goalie = options.teams?.[team].goalie ?? options.goalieRatings?.[team] ?? defaultGoalieRatings;
+  const modifiers = options.teams?.[team].modifiers ?? [];
+  const fx = applyModifiers(skaterEffects(role === 'skater' ? skater : defaultSkaterRatings), modifiers);
+  const goalieFx = applyModifiers(goalieEffects(goalie), modifiers);
   return {
     ...createSkater(0, 0),
     id,
     team,
     role,
     position: role === 'goalie' ? 'G' : (options.teams?.[team].positions?.[index] ?? 'F'),
-    fx: skaterEffects(role === 'skater' ? skater : defaultSkaterRatings),
-    goalie: role === 'goalie' ? { fx: goalieEffects(goalie), seen: [], hold: 0, ignorePuck: 0 } : null,
+    fx,
+    baseFx: fx,
+    goalie: role === 'goalie' ? { fx: goalieFx, baseFx: goalieFx, seen: [], hold: 0, ignorePuck: 0 } : null,
     ai: createAiMemory(),
     passCharge: 0,
     passHeld: false,
@@ -110,6 +120,18 @@ function createPlayers(t: Tuning, options: WorldOptions): Player[] {
   return players;
 }
 
+function newTeamState(powerups: (PowerupSpec | null)[]): World['teams'][number] {
+  return {
+    line: 0,
+    changeCooldown: 0,
+    changeHeld: false,
+    powerups: [powerups[0] ?? null, powerups[1] ?? null],
+    powerupsUsed: [],
+    powerupHeld: [false, false],
+    boosts: [],
+  };
+}
+
 /** Scrimmage reset: the line on the ice back to its starting spots, goalies home, puck loose at centre. */
 function lineUp(world: World, t: Tuning): void {
   for (const p of onIce(world)) {
@@ -152,10 +174,7 @@ export function createWorld(t: Tuning, seed: number | string, options: WorldOpti
     overtime: false,
     overtimeLimit: options.overtimeLimit ?? 0,
     faceoff: null,
-    teams: [
-      { line: 0, changeCooldown: 0, changeHeld: false },
-      { line: 0, changeCooldown: 0, changeHeld: false },
-    ],
+    teams: [newTeamState(options.human === false ? [] : (options.powerups ?? [])), newTeamState([])],
   };
   lineUp(world, t);
   return world;
@@ -252,7 +271,8 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
     return events;
   }
 
-  // Line changes, who is in control, and what everyone wants to do.
+  // Powerups, line changes, who is in control, and what everyone wants to do.
+  stepPowerups(world, humanInput, events);
   if (game) stepLineChanges(world, humanInput, t, events);
   updateControl(world, humanInput);
   const active = onIce(world);

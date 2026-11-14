@@ -29,6 +29,8 @@
     "switchPlayer": ["KeyC", "KeyL"],
     "debug": ["KeyI"],
     "lineChange": ["KeyQ"],
+    "powerupA": ["Digit1"],
+    "powerupB": ["Digit2"],
     "sprint": ["ShiftLeft", "ShiftRight"],
     "menu": ["Tab"]
   },

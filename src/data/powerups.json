@@ -1,0 +1,14 @@
+[
+  { "id": "speed-burst", "name": "Speed burst", "description": "Your whole team skates 15% faster for 10 seconds.", "price": 40, "seconds": 10, "modifiers": [{ "stat": "topSpeedScale", "op": "mul", "value": 1.15 }, { "stat": "accelerationScale", "op": "mul", "value": 1.15 }] },
+  { "id": "cannon", "name": "Cannon", "description": "Much harder shots for 10 seconds.", "price": 45, "seconds": 10, "modifiers": [{ "stat": "shotPower", "op": "add", "value": 0.3 }] },
+  { "id": "dead-eye", "name": "Dead eye", "description": "Shots barely stray from their aim for 15 seconds.", "price": 40, "seconds": 15, "modifiers": [{ "stat": "accuracy", "op": "add", "value": 0.3 }] },
+  { "id": "iron-wall", "name": "Iron wall", "description": "Your goalie covers 30% more net for 12 seconds.", "price": 55, "seconds": 12, "modifiers": [{ "stat": "coverRadius", "op": "mul", "value": 1.3 }] },
+  { "id": "cat-reflexes", "name": "Cat reflexes", "description": "Your goalie reacts twice as fast for 12 seconds.", "price": 50, "seconds": 12, "modifiers": [{ "stat": "reactionSeconds", "op": "mul", "value": 0.5 }, { "stat": "lateralSpeed", "op": "mul", "value": 1.3 }] },
+  { "id": "second-wind", "name": "Second wind", "description": "The line on the ice is fully rested at once.", "price": 35, "effect": "restoreLineEnergy" },
+  { "id": "fresh-legs", "name": "Fresh legs", "description": "The line on the bench is fully rested at once.", "price": 30, "effect": "restoreBenchEnergy" },
+  { "id": "adrenaline", "name": "Adrenaline", "description": "Sprinting and skating cost almost no energy for 15 seconds.", "price": 40, "seconds": 15, "modifiers": [{ "stat": "drainScale", "op": "mul", "value": 0.1 }] },
+  { "id": "magnet-hands", "name": "Magnet hands", "description": "Very hard to check off the puck for 15 seconds.", "price": 45, "seconds": 15, "modifiers": [{ "stat": "puckSecurity", "op": "add", "value": 0.5 }, { "stat": "handleSpeedScale", "op": "mul", "value": 1.3 }] },
+  { "id": "wrecking-crew", "name": "Wrecking crew", "description": "Your checks land far more often for 15 seconds.", "price": 40, "seconds": 15, "modifiers": [{ "stat": "checkStrength", "op": "add", "value": 0.5 }] },
+  { "id": "laser-passes", "name": "Laser passes", "description": "Faster, dead-straight passes for 15 seconds.", "price": 30, "seconds": 15, "modifiers": [{ "stat": "passSpeedScale", "op": "mul", "value": 1.3 }, { "stat": "passSpreadDegrees", "op": "mul", "value": 0.2 }] },
+  { "id": "full-reset", "name": "Smelling salts", "description": "Every skater, on the ice and on the bench, is fully rested at once.", "price": 60, "effect": "restoreAllEnergy" }
+]

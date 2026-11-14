@@ -1,0 +1,37 @@
+[
+  {
+    "id": "the-wall",
+    "name": "Greyport Wall",
+    "trait": "The Wall",
+    "description": "Their goalie covers more net and reacts sooner.",
+    "modifiers": [{ "stat": "coverRadius", "op": "mul", "value": 1.2 }, { "stat": "reactionSeconds", "op": "mul", "value": 0.85 }]
+  },
+  {
+    "id": "speed-demons",
+    "name": "Coldwater Gale",
+    "trait": "Speed demons",
+    "description": "Every skater is 8% faster.",
+    "modifiers": [{ "stat": "topSpeedScale", "op": "mul", "value": 1.08 }, { "stat": "accelerationScale", "op": "mul", "value": 1.08 }]
+  },
+  {
+    "id": "bruisers",
+    "name": "Ironvale Hammers",
+    "trait": "Bruisers",
+    "description": "Their checks land far more often.",
+    "modifiers": [{ "stat": "checkStrength", "op": "add", "value": 0.3 }]
+  },
+  {
+    "id": "iron-lungs",
+    "name": "Highmoor Marathon",
+    "trait": "Iron lungs",
+    "description": "They barely tire.",
+    "modifiers": [{ "stat": "drainScale", "op": "mul", "value": 0.4 }]
+  },
+  {
+    "id": "snipers",
+    "name": "Redcliff Marksmen",
+    "trait": "Snipers",
+    "description": "Harder, more accurate shots.",
+    "modifiers": [{ "stat": "shotPower", "op": "add", "value": 0.15 }, { "stat": "accuracy", "op": "add", "value": 0.15 }]
+  }
+]

@@ -89,7 +89,7 @@ Built, deployed and checked with a simulated controller. Still open:
 - [x] Menu system and screens: Hub, Roster, Free agents, Lineup, Play, Save and load
 - [x] Dressed lineups drive the game; positions on the ice; names in the summary
 - [x] Checked in a browser
-- [ ] Commit, push, deploy green
+- [x] Commit, push, deploy green
 - [ ] Exit test: build a legal roster under the cap, dress a lineup, play a game, close the page and find everything saved (owner)
 
 ## Review (Phase 4)
@@ -101,3 +101,25 @@ Built, deployed and checked with a simulated controller. Still open:
   - Importing a save through the file picker (the reading and checking code behind it is unit tested).
   - How the screens look: screenshots failed with the pane hidden, so layout on a phone is unseen.
 - Simplifications: contract years are stored but do not count down; AI teams never change their rosters; the hidden potential rating is generated but not used yet.
+
+# Phase 5: the season run
+
+- [x] Modifier system in the simulation; powerups triggered in a game
+- [x] Content: 12 powerups, 14 artifacts, 5 bosses, 18 events
+- [x] Seeded map generator
+- [x] Season state machine: strikes, bosses, playoffs, events, shop, training, loadout, season end
+- [x] Save version 2 with migration from version 1
+- [x] Screens: map, game preview, training, event, shop, artifact pick, playoff series, season summary, powerups, artifacts
+- [x] Powerups and running boosts shown on the ice
+- [x] Checked in a browser
+- [ ] Commit, push, deploy green
+- [ ] Exit test: a whole season plays from lineup to championship or elimination (owner)
+
+## Review (Phase 5)
+
+- Type check, 394 tests and the build pass. The uniform-team balance series is unchanged from Phase 3.
+- Automatic whole seasons (4 seeds, random legal choices, every game really simulated with an AI playing your team): all four ended, none got stuck. All four struck out, after 3 to 7 games, with 0 to 4 wins. So a starting C-grade team played by the AI does not survive region 1; whether a person does is the open balance question.
+- Browser check, by keyboard: a Phase 4 save loaded and migrated; started a season; loaded a powerup on LT, used it in a game and saw its timer on the ice and the powerup leave the bag; won (30 currency); trained a player; reloaded on a game stop and landed on the same stop; lost (strike 1); visited a shop; beat a boss and picked an artifact; went through events; won two more regions and both playoff series (results forced to save time); reached "Champions!" with 4 artifacts; continued to the off-season of season 2 with artifacts kept. No console errors.
+- Not checked: controller navigation and the trigger buttons (the browser pane was hidden, so only the keyboard was used); how the screens look; a season ending by strikes or playoff loss in the browser (both are unit tested).
+- A mistake of mine during the check: a test script wandered into Save and load and pressed Export about 35 times. No files were written to Downloads.
+- Simplifications: the map is a list of next stops with a line saying what each leads to, not a drawn map; the AI never uses powerups; rewards and prices are first guesses.
