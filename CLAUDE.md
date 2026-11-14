@@ -168,7 +168,7 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 ## Notes for future sessions
 
 - On the ice it is 3 skaters and a goalie a side; 6 skaters and 1 goalie are dressed (two lines of 3). Where a prompt in `docs/IMPLEMENTATION_PLAN.md` says 2 skaters, 4 skaters or lines of 2, `docs/GDD.md` and `docs/DECISIONS.md` win.
-- The plain link opens the title screen, then the hub. "Start the season" begins a run; "Exhibition" is a one-off that does not count. The Phase 0 controller read-out is at `?controller`.
+- The plain link opens the title screen, then the hub. "Start the season" begins a run; "Exhibition" is a one-off that does not count.
 - Difficulty (`f.difficulty`, set in Settings between seasons) shifts opponent AI level only. Ordinary map games can be simulated (`simulateGame`); the run currency is called Pucks in everything the player reads (the field is still `season.currency`).
 - Keyboard fallback: arrows or WASD skate, Space shoot, Z or J pass and faceoff draw, X or K check, C or L switch player, Q line change (LB), 1 and 2 powerups (LT and RB), Shift sprint, Tab or Escape pause (Menu button; the tuning panel opens from the pause menu), I AI debug overlay (View button).
 - Balance (AI against AI, level 0.5) meets the Phase 3 targets. Human against AI is not balanced yet: a scripted player that only skates to the slot and shoots still wins about two games in three at the default difficulty of 0.75.
@@ -178,4 +178,4 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - Controller input is read with the browser's Gamepad API in `src/game/gamepad.ts`, not Phaser's gamepad plugin. A controller only appears after its first button press.
 - Button and axis names for the standard Xbox layout, with the GDD action for each, are in `src/data/xboxMapping.json`.
 - iPhones ignore the manifest's landscape lock, so the page shows a "turn your phone sideways" notice in portrait.
-- The Phase 0 controller test page (`src/game/ControllerTestScene.ts`, `src/ui/ControllerReadout.tsx`, `src/data/controllerTest.json`) is scaffolding; remove it once the controller mapping is confirmed.
+- The controller mapping was confirmed on the owner's controller on 2026-11-14, and the Phase 0 test page at `?controller` was removed.

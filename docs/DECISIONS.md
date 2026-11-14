@@ -135,6 +135,7 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Pause menu | The Menu button, Tab, Escape or the on-screen Pause button freezes the game and opens a menu: resume, sound, volume, controls, tuning, end game. The game also pauses when the page is hidden. The button that resumes does not also pass or shoot. The tuning panel now opens from the pause menu, not from the Menu button. | Pause menu |
 | 2026-11-14 | Ending a game early | In a season it is a forfeit: a loss whatever the score, with a strike, after a confirmation. What happened in the game still counts for XP and milestones, as in any loss. In an exhibition the game just ends. | Pause menu |
 | 2026-11-14 | On-screen controls setting | Automatic (as before: shown on touch, hidden for a controller or keyboard), Always or Never. Kept with the device preferences. | Pause menu |
+| 2026-11-14 | Controller confirmed | The owner tested the controller through the menus, a game and the pause menu: no input problems. The Phase 0 test page at `?controller` is removed. | After the pause menu |
 
 ## Open
 

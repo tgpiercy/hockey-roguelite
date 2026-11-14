@@ -1,8 +1,8 @@
 # Phase 0: setup
 
-Built, deployed and checked with a simulated controller. Still open:
+Built, deployed and checked with a simulated controller.
 
-- [ ] Exit test on the phone with the real controller, at `?controller` (owner)
+- [x] Controller confirmed by the owner on 2026-11-14 (in the game itself; the `?controller` page is removed)
 - [ ] Tag `phase-0` once it passes
 
 # Phase 1: skating and puck
@@ -295,7 +295,8 @@ Built, deployed and checked with a simulated controller. Still open:
 - [x] End game: forfeit in a season, plain end in an exhibition
 - [x] Tests; checked in the browser by keyboard
 - [ ] Commit, push, deploy green
-- [ ] Try the Menu button on the controller and the Pause button by touch (owner)
+- [x] Menu button on the controller (owner, 2026-11-14)
+- [ ] The Pause button by touch (owner)
 
 ## Review (pause menu)
 
