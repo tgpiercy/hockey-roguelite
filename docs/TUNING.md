@@ -158,6 +158,10 @@ So the default opponent is still too easy for anyone who plays directly. That ne
 | aimAssist.strength | 1 | How much your shot is steered to the open corner: 1 is fully, 0 is off |
 | aimAssist.coneDegrees | 100 | How close to the net (total width of the cone) your stick must point for the assist to act |
 | aimAssist.cornerInset | 0.35 | How far inside the post the assisted shot is aimed |
+| passAssist.strength | 1 | Pass assist on (above 0) or off (0) |
+| passAssist.laneClearance | 1 | An opponent this close to the passing lane blocks it |
+| passAssist.blockedPenaltyDegrees | 40 | How much a blocked lane counts against a teammate, as if he were this many degrees further off your aim |
+| passAssist.roomCap / roomDegreesPerMetre | 6 / 5 | With the stick centred: how much a teammate's open space counts |
 
 ## Change log
 

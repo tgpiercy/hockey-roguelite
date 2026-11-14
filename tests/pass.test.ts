@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { updateControl } from '../src/sim/control';
-import { passTarget, stepPassing } from '../src/sim/pass';
+import { assistedPassTarget, passTarget, stepPassing } from '../src/sim/pass';
 import { cloneTuning } from '../src/sim/tuning';
 import { NO_INPUT, type InputFrame, type SimEvent, type World } from '../src/sim/types';
 import { createWorld, STEP_SECONDS, STEPS_PER_SECOND } from '../src/sim/world';
 import { clearIce, flyPuck, giveTo, ID, place, player } from './helpers';
 
 const t = cloneTuning();
+// These tests are about plain passing; pass assist has its own tests below.
+t.passAssist.strength = 0;
 
 /**
  * Passer at centre with the puck; one teammate 10 m up ice and 6 m to the right, the other off to the left;
@@ -147,5 +149,78 @@ describe('who the human controls', () => {
     updateControl(world, press);
     // Already on the nearest skater: the press moves to the other one.
     expect(world.human?.controlled).toBe(ID.home1);
+  });
+});
+
+describe('pass assist (human only)', () => {
+  const on = cloneTuning();
+
+  /**
+   * Passer at centre. Two teammates up ice in roughly the same direction: one almost dead ahead with an
+   * opponent standing in the lane, one a little further off line with a clear lane.
+   */
+  const twoOptions = (): World => {
+    const world = createWorld(on, 'assist');
+    clearIce(world, [ID.home1, ID.home2, ID.home3, ID.away1]);
+    place(world, ID.home1, 0, 0);
+    place(world, ID.home2, 10, 1);
+    place(world, ID.home3, 9, -5);
+    place(world, ID.away1, 5, 0.6);
+    giveTo(world, ID.home1);
+    return world;
+  };
+  const passer = (world: World) => player(world, ID.home1);
+
+  it('between two teammates in the same direction, picks the one whose lane is clear', () => {
+    const world = twoOptions();
+    expect(passTarget(world, passer(world), 0, on.pass.speed, on)?.id).toBe(ID.home2);
+    expect(assistedPassTarget(world, passer(world), 0, on.pass.speed, false, on)?.id).toBe(ID.home3);
+  });
+
+  it('still passes to the teammate you point at when his lane is clear', () => {
+    const world = twoOptions();
+    place(world, ID.away1, -15, 8);
+    expect(assistedPassTarget(world, passer(world), 0, on.pass.speed, false, on)?.id).toBe(ID.home2);
+  });
+
+  it('a saucer pass ignores the opponent in the lane', () => {
+    const world = twoOptions();
+    expect(assistedPassTarget(world, passer(world), 0, on.pass.saucerSpeed, true, on)?.id).toBe(ID.home2);
+  });
+
+  it('does not reach outside the aiming cone: pointing away from everyone still finds nobody', () => {
+    const world = twoOptions();
+    expect(assistedPassTarget(world, passer(world), Math.PI, on.pass.speed, false, on)).toBe(null);
+  });
+
+  it('with the stick centred, passes to the open teammate rather than where the passer faces', () => {
+    const world = twoOptions();
+    passer(world).facing = Math.PI;
+    // Plain passing would go nowhere (he faces away); the assist finds the teammate with the clear lane.
+    expect(passTarget(world, passer(world), Math.PI, on.pass.speed, on)).toBe(null);
+    expect(assistedPassTarget(world, passer(world), null, on.pass.speed, false, on)?.id).toBe(ID.home3);
+  });
+
+  it('in play: the human gets the assist, the AI passer does not', () => {
+    const release = { ...NO_INPUT, moveX: 1 };
+    const human = twoOptions();
+    stepPassing(human, passer(human), { ...NO_INPUT, pass: true }, on, STEP_SECONDS, []);
+    stepPassing(human, passer(human), release, on, STEP_SECONDS, []);
+    expect(human.puck.passTarget).toBe(ID.home3);
+
+    const ai = twoOptions();
+    ai.human = null;
+    stepPassing(ai, passer(ai), { ...NO_INPUT, pass: true }, on, STEP_SECONDS, []);
+    stepPassing(ai, passer(ai), release, on, STEP_SECONDS, []);
+    expect(ai.puck.passTarget).toBe(ID.home2);
+  });
+
+  it('can be switched off', () => {
+    const off = cloneTuning();
+    off.passAssist.strength = 0;
+    const world = twoOptions();
+    stepPassing(world, passer(world), { ...NO_INPUT, pass: true }, off, STEP_SECONDS, []);
+    stepPassing(world, passer(world), { ...NO_INPUT, moveX: 1 }, off, STEP_SECONDS, []);
+    expect(world.puck.passTarget).toBe(ID.home2);
   });
 });

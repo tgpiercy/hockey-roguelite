@@ -36,6 +36,7 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-13 | Can a goalie be skated around? | A goalie smothers any puck carried within 1.2 m of him. | Phase 3 |
 | 2026-11-13 | Default opponent difficulty | 0.75 (was 0.5), because a scripted player that only skates to the slot and shoots beat level 0.5 easily. Balance targets are measured AI against AI at 0.5. | Phase 3 |
 | 2026-11-13 | Aim assist | The skater the human controls gets it; the AI does not. A shot pointed within 50 degrees of the net is steered to the corner further from the goalie; pointed anywhere else it is left alone. Strength, cone and corner inset are in `physics.json` under `aimAssist`. Added because aiming at the net from a keyboard's eight directions was too hard. | Phase 3 |
+| 2026-11-13 | Pass assist | For the skater the human controls only. Between teammates in the direction you point, one with a clear lane is preferred over one with an opponent in the way (a saucer pass ignores the lane). With the stick centred, the pass goes to the teammate with a clear lane and the most room. It never picks a teammate outside the aiming cone. Values are in `physics.json` under `passAssist`. | Phase 3 |
 
 ## Open
 

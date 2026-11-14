@@ -1,5 +1,5 @@
 import { wrapAngle } from './skater';
-import { availableSkaters, dist, loosePuck } from './team';
+import { availableSkaters, dist, distToSegment, loosePuck, otherTeam, skatersOf } from './team';
 import type { Tuning } from './tuning';
 import type { InputFrame, Player, SimEvent, Vec, World } from './types';
 
@@ -30,6 +30,53 @@ export function passTarget(world: World, passer: Player, aim: number, speed: num
 }
 
 /**
+ * Pass assist for a human passer: like passTarget, but it also looks at whether the pass can get there.
+ *
+ * - With the stick pointed somewhere, teammates inside the aiming cone are compared on how far off the
+ *   aim they are, and one whose lane is blocked by an opponent counts as further off. So between two
+ *   teammates in roughly the same direction, the one who can actually be reached is chosen.
+ * - With the stick centred, the pass goes to the teammate with a clear lane and the most room,
+ *   rather than wherever the passer happens to be facing.
+ *
+ * A saucer pass flies over sticks, so its lane is never counted as blocked.
+ */
+export function assistedPassTarget(
+  world: World,
+  passer: Player,
+  aim: number | null,
+  speed: number,
+  saucer: boolean,
+  t: Tuning,
+): Player | null {
+  const a = t.passAssist;
+  const halfCone = (t.pass.aimConeDegrees * Math.PI) / 360;
+  const opponents = skatersOf(world, otherTeam(passer.team));
+  const from = world.puck.pos;
+  let best: Player | null = null;
+  let bestScore = Infinity;
+  for (const mate of availableSkaters(world, passer.team)) {
+    if (mate.id === passer.id) continue;
+    const lead = leadPoint(from, mate, speed);
+    const blocked = !saucer && opponents.some((o) => distToSegment(o.pos, from, lead) <= a.laneClearance);
+    let score = blocked ? a.blockedPenaltyDegrees : 0;
+    if (aim === null) {
+      // No direction given: the more room he has, the better.
+      const room = opponents.length === 0 ? a.roomCap : Math.min(a.roomCap, ...opponents.map((o) => dist(o.pos, mate.pos)));
+      score -= room * a.roomDegreesPerMetre;
+    } else {
+      const off = Math.abs(wrapAngle(Math.atan2(lead.y - from.y, lead.x - from.x) - aim));
+      if (off > halfCone) continue;
+      score += (off * 180) / Math.PI;
+    }
+    if (score < bestScore) {
+      best = mate;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+/**
  * Tracks the pass button for the puck carrier. Letting go passes: a tap along the ice,
  * a longer hold as a saucer pass that flies over sticks.
  */
@@ -54,7 +101,11 @@ export function stepPassing(world: World, p: Player, input: InputFrame, t: Tunin
   const aim = tilt > 0 ? Math.atan2(input.moveY, input.moveX) : p.facing;
   const puck = world.puck;
 
-  const target = passTarget(world, p, aim, speed, t);
+  // The skater the human controls gets pass assist; the AI picks its own targets.
+  const assisted = t.passAssist.strength > 0 && world.human !== null && world.human.controlled === p.id;
+  const target = assisted
+    ? assistedPassTarget(world, p, tilt > 0 ? aim : null, speed, saucer, t)
+    : passTarget(world, p, aim, speed, t);
   let angle = aim;
   let flight = 0;
   if (target) {

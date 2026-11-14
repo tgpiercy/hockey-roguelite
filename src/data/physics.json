@@ -137,5 +137,12 @@
     "strength": 1,
     "coneDegrees": 100,
     "cornerInset": 0.35
+  },
+  "passAssist": {
+    "strength": 1,
+    "laneClearance": 1,
+    "blockedPenaltyDegrees": 40,
+    "roomCap": 6,
+    "roomDegreesPerMetre": 5
   }
 }
