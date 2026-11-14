@@ -2,6 +2,7 @@ import { boostedRatings, gearModifiers, itemName, itemSummary, setCounts, setInf
 import type { PlayerRecord } from '../core/player';
 import type { Franchise } from '../core/season';
 import gearData from '../data/gear.json';
+import { RatingBar } from './parts';
 
 const ratingNames = gearData.ratingNames as Record<string, string>;
 export const slotName = (slot: string): string => (gearData.slotNames as Record<string, string>)[slot] ?? slot;
@@ -60,15 +61,17 @@ export function GearedRatings({ f, player }: { f: Franchise; player: PlayerRecor
   const now = boostedRatings(player.ratings, gearModifiers(items)) as unknown as Record<string, number>;
   const progress = setProgress(items);
   return (
-    <span class="ratings">
+    <div class="ratings">
       {Object.keys(base).map((key) => (
-        <span key={key}>
-          {ratingNames[key] ?? key} <b>{now[key]}</b>
-          {now[key] !== base[key] && <span class="bump"> (+{(now[key] as number) - (base[key] as number)})</span>}
-        </span>
+        <RatingBar
+          key={key}
+          name={ratingNames[key] ?? key}
+          value={now[key] as number}
+          extra={now[key] !== base[key] ? <span class="bump"> +{(now[key] as number) - (base[key] as number)}</span> : undefined}
+        />
       ))}
-      {progress && <span class="note">{progress}</span>}
-    </span>
+      {progress && <span class="rnote note">{progress}</span>}
+    </div>
   );
 }
 
@@ -84,15 +87,24 @@ export function EquipPreview({ f, player, slot, candidate }: { f: Franchise; pla
   const changed = Object.keys(now).filter((key) => now[key] !== after[key]);
   const progress = setProgress(afterItems);
   return (
-    <span class="ratings">
-      {changed.length === 0 && <span>No rating changes.</span>}
+    <div class="ratings">
+      {changed.length === 0 && <span class="rnote">No rating changes.</span>}
       {changed.map((key) => (
-        <span key={key}>
-          {ratingNames[key] ?? key} {now[key]} → <b class={(after[key] as number) > (now[key] as number) ? 'up' : 'down'}>{after[key]}</b>
-        </span>
+        <RatingBar
+          key={key}
+          name={ratingNames[key] ?? key}
+          value={after[key] as number}
+          extra={
+            <span class={(after[key] as number) > (now[key] as number) ? 'up' : 'down'}>
+              {' '}
+              ({(after[key] as number) > (now[key] as number) ? '+' : ''}
+              {(after[key] as number) - (now[key] as number)})
+            </span>
+          }
+        />
       ))}
-      {candidate && <span>{itemSummary(candidate)}</span>}
-      {progress && <span class="note">Sets after: {progress}</span>}
-    </span>
+      {candidate && <span class="rnote">{itemSummary(candidate)}</span>}
+      {progress && <span class="rnote note">Sets after: {progress}</span>}
+    </div>
   );
 }

@@ -197,3 +197,25 @@ Built, deployed and checked with a simulated controller. Still open:
 - Found and fixed during the check: negative cash was written "$-2.00M"; a 36-year-old showed a potential range up to 90 (players of 31 or over now show "past his peak").
 - Not seen in the browser: crowd surge, distraction and the cannon shot firing (my team never scored in that game; all five are unit tested), a boss or AI mascot on the ice (unit tested), the league bail-out (unit tested), the controller, and how the screens look (the browser pane was hidden, so only text was read).
 - Simplifications: AI teams have no money; home and road only change money; trainers work by position because XP is per player; talents all trigger by themselves; the automatic managers play poorly on the ice, so their income understates what a person would earn.
+
+# Design round: design fixes, a real look, touch controls
+
+- [x] Difficulty choice; simulate a game; swap the spare; rewards record; save version 6
+- [x] Real set bonuses (one-timer, big hit, breakaway)
+- [x] Menu style: one palette and type scale, two-panel layout, player cards, rating bars, wallet strip
+- [x] Grouped hub with early locks; drawn season map; rewards screen; Pucks
+- [x] On-ice look: rink markings, top-down players, team colours, scoreboard, banners
+- [x] Touch controls
+- [x] Checked in a browser, with pictures
+- [ ] Commit, push, deploy green
+- [ ] Play it on the phone (owner)
+
+## Review (design round)
+
+- Type check, 663 tests (42 new) and the build pass. The equal-teams balance series and the 20-season reports are unchanged.
+- For the first time I could see the game. The app window was not open, so ordinary screenshots still timed out; instead the page rendered itself to an image and posted it to a local receiver. Every claim below about how something looks comes from those pictures, at phone-landscape size (844 x 390) for menus and 1280 x 720 for the rink.
+- Seen in pictures: the hub with its groups and badges; the season map with the route drawn; the game screen with Play and Simulate; the rewards screen; roster, lineup, free agents with rating bars; finances; facilities; hiring; a pack reveal; the off-season report; the rink in play, with a goal banner, and with the touch controls over it.
+- Looking found bugs that reading text never would have: labels overlapping the amounts on the finances and facilities screens; a default white scrollbar; the map too small to read; touch buttons sitting on the bottom HUD bars. All fixed.
+- Driven by keyboard: simulate a game and step through its rewards; swap the spare in mid-season; change difficulty; re-sign and let go (an AI team signed the player I let go); build; a new season. By simulated touches in a real game: the virtual stick skated the player and a held Shoot registered as held. No console errors.
+- Not checked: a real phone, a real finger or a real controller; the touch layout at phone size on top of the rink (seen only at 1280 x 720); one-timers, big hits and breakaway speed in live play (unit tested on the simulation); the difficulty choice on a brand-new franchise (the Settings path was used).
+- Simplifications: players are simple shapes with no numbers (they are about 10 pixels across on a phone); the map shows one region at a time; the first load still starts a franchise on Pro without asking.

@@ -23,7 +23,7 @@ import {
 } from './ratings';
 import { stepShooting } from './shot';
 import { createSkater, stepSkater } from './skater';
-import { attackDir, carrierOf, dist, givePuck, goalieOf, loosePuck, onIce, otherTeam, ownNet, skatersOf } from './team';
+import { attackDir, carrierOf, clearAhead, dist, givePuck, goalieOf, loosePuck, onIce, otherTeam, ownNet, skatersOf } from './team';
 import type { Tuning } from './tuning';
 import { NO_INPUT, type InputFrame, type Player, type SimEvent, type World } from './types';
 
@@ -97,6 +97,7 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index:
     slot: role === 'skater' ? index % SKATERS_PER_LINE : 0,
     energy: 1,
     leaving: false,
+    oneTimer: 0,
     talents: role === 'skater' ? [...(setup?.skaterTalents?.[index] ?? [])] : [],
     talentCooldown: {},
     rallyPeriod: 0,
@@ -241,12 +242,14 @@ function goal(world: World, side: -1 | 1, t: Tuning, events: SimEvent[]): void {
   events.push({ type: 'goal', side, team, scorer, assists });
 }
 
-function stepSkaterBody(p: Player, input: InputFrame, t: Tuning, dt: number, hasPuck = false): void {
+function stepSkaterBody(p: Player, input: InputFrame, t: Tuning, dt: number, hasPuck = false, breakaway = false): void {
   p.checkCooldown = Math.max(0, p.checkCooldown - dt);
   p.pickupLock = Math.max(0, p.pickupLock - dt);
+  p.oneTimer = Math.max(0, p.oneTimer - dt);
   let fx = currentFx(p, t);
-  // Some gear makes a skater faster with the puck on his stick.
+  // Some gear makes a skater faster with the puck on his stick, or faster still on a breakaway.
   if (hasPuck && fx.carrySpeedScale !== 1) fx = { ...fx, topSpeedScale: fx.topSpeedScale * fx.carrySpeedScale };
+  if (hasPuck && breakaway && fx.breakawaySpeedScale !== 1) fx = { ...fx, topSpeedScale: fx.topSpeedScale * fx.breakawaySpeedScale };
   if (p.stagger > 0) {
     // Knocked off balance: no control, and he slows quickly.
     p.stagger = Math.max(0, p.stagger - dt);
@@ -317,7 +320,10 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
 
   // Move.
   active.forEach((p, i) => {
-    if (p.role === 'skater') stepSkaterBody(p, inputs[i] as InputFrame, t, dt, puck.carrier === p.id);
+    if (p.role === 'skater') {
+      const carrying = puck.carrier === p.id;
+      stepSkaterBody(p, inputs[i] as InputFrame, t, dt, carrying, carrying && p.fx.breakawaySpeedScale !== 1 && clearAhead(world, p));
+    }
     else stepGoalie(p, world, t, dt);
   });
   separateBodies(active, t);
@@ -329,7 +335,10 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
     const hadPuck = puck.carrier === p.id;
     // The skater the human controls gets aim assist; the AI aims for itself.
     const assist = world.human && world.human.controlled === p.id ? (aim: number) => assistedAim(world, p, aim, t) : undefined;
-    const speed = stepShooting(p, hadPuck, puck, input, currentFx(p, t), t, world.rng, dt, assist);
+    const fx = currentFx(p, t);
+    // With the right gear, a shot let go just after receiving a pass is a one-timer.
+    const params = p.oneTimer > 0 && fx.oneTimerScale !== 1 ? { ...fx, oneTimer: fx.oneTimerScale } : fx;
+    const speed = stepShooting(p, hadPuck, puck, input, params, t, world.rng, dt, assist);
     if (speed !== null) {
       loosePuck(world);
       puck.shotBy = p.id;

@@ -8,6 +8,7 @@ import { RinkScene } from '../game/RinkScene';
 import type { GameResult } from '../sim/match';
 import type { PowerupSpec } from '../sim/modifiers';
 import { GameSummary } from './GameSummary';
+import { TouchControls } from './TouchControls';
 import { TuningPanel } from './TuningPanel';
 import { tuningStore } from './tuningStore';
 
@@ -15,6 +16,7 @@ const panel = document.getElementById('panel') as HTMLElement;
 const hint = document.getElementById('hint') as HTMLElement;
 const tuneButton = document.getElementById('tune') as HTMLElement;
 const summary = document.getElementById('summary') as HTMLElement;
+const touch = document.getElementById('touch-root') as HTMLElement;
 
 let wired = false;
 
@@ -42,23 +44,32 @@ export interface MatchOptions {
   level?: number;
   /** The powerups loaded on the two buttons. */
   powerups?: (PowerupSpec | null)[];
-  /** Your jersey colour, as "#rrggbb". */
+  /** Each team's jersey colour, as "#rrggbb". */
   homeColour?: string;
+  awayColour?: string;
 }
 
 /**
  * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch({ home, away, level, powerups, homeColour }: MatchOptions, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups, homeColour, awayColour }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
   const shift = tuningStore.tuning.game.opponentDifficulty - seasonRules.defaultDifficulty;
   const opponentLevel = level === undefined ? null : Math.max(0, Math.min(1, level + shift));
   document.body.className = 'mode-rink';
   if (tuningStore.open) tuningStore.toggle();
 
+  // The on-screen controls show once the screen is touched, and step aside for a controller or keyboard.
+  let touchHidden = false;
+  render(<TouchControls hidden={touchHidden} />, touch);
   const onControls = (controls: Controls): void => {
-    hint.hidden = controls.hasPad || controls.hasKeyboard;
+    hint.hidden = controls.hasPad || controls.hasKeyboard || controls.hasTouch;
+    const hide = controls.hasPad || controls.hasKeyboard;
+    if (hide !== touchHidden) {
+      touchHidden = hide;
+      render(<TouchControls hidden={touchHidden} />, touch);
+    }
     if (controls.menuPressed) tuningStore.toggle();
     if (!tuningStore.open) return;
     if (controls.navY !== 0) tuningStore.select(tuningStore.selected + controls.navY);
@@ -74,15 +85,17 @@ export function playMatch({ home, away, level, powerups, homeColour }: MatchOpti
       // The clock only picks which game this is; the game itself replays exactly from its seed.
       seed: String(Date.now()),
       teams: [home.setup, away.setup],
-      names: ['You', away.name],
+      names: [home.name, away.name],
       levels: [null, opponentLevel],
       powerups: powerups ?? [],
       ...(homeColour ? { homeColour } : {}),
+      ...(awayColour ? { awayColour } : {}),
       tuning: () => tuningStore.tuning,
       onControls,
       onResult: (result) => render(<GameSummary result={result} teams={[home, away]} />, summary),
       onDone: (result) => {
         render(null, summary);
+        render(null, touch);
         if (tuningStore.open) tuningStore.toggle();
         game.destroy(true);
         onDone(result);

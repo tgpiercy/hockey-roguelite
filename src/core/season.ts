@@ -16,7 +16,8 @@ import { playerGearModifiers, type GearItem } from './gear';
 import { playerOf, teamOf, userTeam, type League } from './league';
 import { dressedSkaters, setLineupSlot } from './lineup';
 import { applyResult, dress, type DressedTeam } from './matchup';
-import { newMilestones, tally } from './milestones';
+import { newMilestones, tally, type MilestoneInfo } from './milestones';
+import { levelEdge, quickResult } from './quickGame';
 import { awardPack, packForWin, packName, type Pack } from './packs';
 import { gameXp, homeShare } from './xp';
 import { createRng, type Rng } from './rng';
@@ -54,6 +55,8 @@ export interface SeasonState {
   offer: string[];
   /** The last stop finished. */
   last: string | null;
+  /** Every stop finished this season, in order: the route walked, for the map. */
+  visited: string[];
   strikes: number;
   /** Run currency: spent in shops, wiped at season end. */
   currency: number;
@@ -160,6 +163,8 @@ export interface Franchise {
   mascot: MascotState;
   /** Seasons each of your players has been with you, by player id: scouting knows them better. */
   tenure: Record<string, number>;
+  /** How sharp the opponents' AI is: a difficulty id from season.json. */
+  difficulty: string;
 }
 
 export type ActionResult = { ok: true; message: string } | { ok: false; reason: string };
@@ -175,6 +180,7 @@ export function newSeasonState(): SeasonState {
     stage: 'none',
     offer: [],
     last: null,
+    visited: [],
     strikes: 0,
     currency: 0,
     powerups: [],
@@ -203,7 +209,7 @@ export function newOffseasonState(): OffseasonState {
   return { report: null, pending: [], released: [], leagueMoved: true, signed: [] };
 }
 
-export function newFranchise(league: League): Franchise {
+export function newFranchise(league: League, difficulty: string = rules.startingDifficulty): Franchise {
   return {
     league,
     record: emptyRecord(),
@@ -217,6 +223,7 @@ export function newFranchise(league: League): Franchise {
     prestige: newPrestigeState(),
     offseason: newOffseasonState(),
     ...newClub(league.seed, league.season),
+    difficulty: difficultyInfo(difficulty).id,
   };
 }
 
@@ -236,6 +243,31 @@ export function newClub(seed: string, season: number): Pick<Franchise, 'cash' | 
 }
 
 // ---------- look-ups ----------
+
+export interface DifficultyInfo {
+  id: string;
+  name: string;
+  /** Added to every opponent's AI level. */
+  levelShift: number;
+  description: string;
+}
+
+export const DIFFICULTIES = rules.difficulties as DifficultyInfo[];
+
+/** The difficulty with this id, or the starting one if the id is unknown. */
+export function difficultyInfo(id: string): DifficultyInfo {
+  return (DIFFICULTIES.find((d) => d.id === id) ?? DIFFICULTIES.find((d) => d.id === rules.startingDifficulty) ?? DIFFICULTIES[0]) as DifficultyInfo;
+}
+
+/** Changes the difficulty. Only between seasons, so a run is played at one level throughout. */
+export function setDifficulty(f: Franchise, id: string): ActionResult {
+  if (f.season.phase !== 'offseason') return refuse('The difficulty can only be changed between seasons.');
+  if (!DIFFICULTIES.some((d) => d.id === id)) return refuse('There is no such difficulty.');
+  f.difficulty = id;
+  return done(`Difficulty set to ${difficultyInfo(id).name}.`);
+}
+
+const clampLevel = (level: number): number => Math.max(0, Math.min(1, level));
 
 export interface PowerupInfo extends PowerupSpec {
   description: string;
@@ -371,6 +403,7 @@ function finishStop(f: Franchise): void {
   const { season } = f;
   const stop = currentStop(f);
   season.last = season.current;
+  if (season.current !== null) season.visited.push(season.current);
   season.current = null;
   season.stage = 'none';
   season.offer = [];
@@ -452,7 +485,8 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
   const loaded = season.loadout.map((id) => (id ? powerupInfo(id) : null));
   // Each prestige level makes every opponent a little better and a little sharper.
   const tougher = f.prestige.level * prestigeRules.opponentRatingPerLevel;
-  const sharper = f.prestige.level * prestigeRules.opponentLevelPerLevel;
+  // The difficulty shifts every opponent's AI level, and each prestige level sharpens it a little more.
+  const sharper = f.prestige.level * prestigeRules.opponentLevelPerLevel + difficultyInfo(f.difficulty).levelShift;
 
   if (season.phase === 'playoffs' && season.playoffs) {
     const away = dress(league, teamOf(league, season.playoffs.opponentId), { bumpAll: tougher });
@@ -461,7 +495,7 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
     return {
       home,
       away,
-      level: Math.min(1, rules.playoffLevel + sharper),
+      level: clampLevel(rules.playoffLevel + sharper),
       kind: 'playoff',
       title: `${round}, game ${season.playoffs.wins + season.playoffs.losses + 1}`,
       powerups: loaded,
@@ -470,13 +504,13 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
 
   const stop = currentStop(f);
   if (season.phase !== 'map' || !stop || season.stage !== 'arrived') return null;
-  const level = Math.min(1, (rules.regionLevels[stop.region] ?? rules.regionLevels[rules.regionLevels.length - 1]!) + sharper);
+  const level = clampLevel((rules.regionLevels[stop.region] ?? rules.regionLevels[rules.regionLevels.length - 1]!) + sharper);
   if (stop.kind === 'boss' && stop.bossId) {
     const boss = bossInfo(stop.bossId);
     return {
       home,
       away: buildBoss(league, stop.bossId, stop.region, season.seed, tougher),
-      level: Math.min(1, level + rules.bossLevelBonus),
+      level: clampLevel(level + rules.bossLevelBonus),
       kind: 'boss',
       title: `Boss: ${boss.name}`,
       trait: `${boss.trait}: ${boss.description}`,
@@ -507,25 +541,44 @@ function strike(f: Franchise): boolean {
   return true;
 }
 
-/** A Gold pack and a cash bonus for any season milestones just reached. Returns the words to add to a message. */
-function awardMilestones(f: Franchise): string {
+/** A Gold pack and a cash bonus for any season milestones just reached. Returns the milestones. */
+function awardMilestones(f: Franchise): MilestoneInfo[] {
   const fresh = newMilestones(f);
   if (fresh.length > 0) bookMilestones(f, fresh.length);
-  return fresh
-    .map((m) => {
-      awardPack(f, 'gold', `Milestone: ${m.name}`);
-      return ` Milestone reached: ${m.name}. You earn a ${packName('gold')} and a cash bonus.`;
-    })
-    .join('');
+  for (const m of fresh) awardPack(f, 'gold', `Milestone: ${m.name}`);
+  return fresh;
 }
+
+const milestoneWords = (fresh: MilestoneInfo[]): string =>
+  fresh.map((m) => ` Milestone reached: ${m.name}. You earn a ${packName('gold')} and a cash bonus.`).join('');
+
+/** What a season game earned, for the rewards screen. Not saved: it describes the game just recorded. */
+export interface GameRewards {
+  won: boolean;
+  score: [number, number];
+  /** Cash in or out for the game, milestone bonuses included. */
+  cash: number;
+  /** Pucks won. */
+  pucks: number;
+  /** XP each of your players earned, dressed or not, in roster order. */
+  xp: { id: string; name: string; earned: number }[];
+  /** The name of the pack earned, or null. */
+  pack: string | null;
+  /** Names of the season milestones this game completed. */
+  milestones: string[];
+}
+
+export type GameOutcome = ActionResult & { rewards?: GameRewards };
 
 /**
  * Records the game just played at the current stop or playoff round, and moves the season on.
- * A win earns a pack, and any season milestone it completes earns a Gold pack.
+ * A win earns a pack, and any season milestone it completes earns a Gold pack and a cash bonus.
  */
-export function recordGame(f: Franchise, result: GameResult): ActionResult {
+export function recordGame(f: Franchise, result: GameResult): GameOutcome {
   const game = matchup(f);
   const played = f.season.gamesPlayed;
+  const pucksBefore = f.season.currency;
+  const cashBefore = f.cash;
   const outcome = settleGame(f, result);
   if (!outcome.ok || !game || f.season.gamesPlayed === played) return outcome;
 
@@ -534,8 +587,11 @@ export function recordGame(f: Franchise, result: GameResult): ActionResult {
   // XP: dressed players earn their own; anyone on the roster who did not dress gets a share.
   const earned = gameXp(result, game.home);
   const share = homeShare(earned, game.home);
+  const xp: GameRewards['xp'] = [];
   for (const id of userTeam(f.league).roster) {
-    f.season.xp[id] = (f.season.xp[id] ?? 0) + (earned[id] ?? share);
+    const amount = earned[id] ?? share;
+    f.season.xp[id] = (f.season.xp[id] ?? 0) + amount;
+    xp.push({ id, name: playerOf(f.league, id).name, earned: amount });
   }
   const millions = (Math.abs(net) / 1_000_000).toFixed(2);
   let message = `${outcome.message} Cash ${net >= 0 ? '+' : '-'}$${millions}M.`;
@@ -544,7 +600,38 @@ export function recordGame(f: Franchise, result: GameResult): ActionResult {
     awardPack(f, pack, game.title);
     message += ` You earn a ${packName(pack)}.`;
   }
-  return { ok: true, message: message + awardMilestones(f) };
+  const fresh = awardMilestones(f);
+  return {
+    ok: true,
+    message: message + milestoneWords(fresh),
+    rewards: {
+      won: result.winner === 0,
+      score: [result.score[0], result.score[1]],
+      cash: f.cash - cashBefore,
+      pucks: f.season.currency - pucksBefore,
+      xp,
+      pack: pack ? packName(pack) : null,
+      milestones: fresh.map((m) => m.name),
+    },
+  };
+}
+
+/** True if the game waiting is an ordinary map game, which can be simulated instead of played. */
+export function canSimulate(f: Franchise): boolean {
+  return matchup(f)?.kind === 'game';
+}
+
+/**
+ * Settles an ordinary map game from team strength instead of playing it. Your team is counted a few
+ * rating points weaker than it is, so playing is the better bet. Bosses and playoff games must be played.
+ * Powerups are not used. Everything else (XP, cash, packs, strikes) is as for a played game.
+ */
+export function simulateGame(f: Franchise): GameOutcome {
+  const game = matchup(f);
+  if (!game) return refuse('There is no game to simulate.');
+  if (game.kind !== 'game') return refuse('Bosses and playoff games have to be played.');
+  const rng = roll(f.season, 'simulate');
+  return recordGame(f, quickResult(rng, game.home, game.away, levelEdge(game.level) + rules.simPenalty));
 }
 
 function settleGame(f: Franchise, result: GameResult): ActionResult {
@@ -577,7 +664,7 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
     if (won) {
       series.wins += 1;
       const amount = pay(rules.playoffWinCurrency);
-      if (series.wins < rules.seriesWins) return done(`You win the game and ${amount} currency. The series stands ${series.wins}-${series.losses}.`);
+      if (series.wins < rules.seriesWins) return done(`You win the game and ${amount} Pucks. The series stands ${series.wins}-${series.losses}.`);
       if (series.round < rules.playoffRounds - 1) {
         season.playoffs = { round: series.round + 1, wins: 0, losses: 0, opponentId: playoffOpponent(f, series.round + 1) };
         return done('You win the series and move on to the final.');
@@ -605,10 +692,10 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
     season.offer = artifactOffer(f, rules.artifactChoices);
     if (season.offer.length === 0) {
       finishStop(f);
-      return done(`You beat the boss and win ${amount} currency.`);
+      return done(`You beat the boss and win ${amount} Pucks.`);
     }
     season.stage = 'reward';
-    return done(`You beat the boss and win ${amount} currency. Choose an artifact.`);
+    return done(`You beat the boss and win ${amount} Pucks. Choose an artifact.`);
   }
 
   if (!won) {
@@ -617,7 +704,7 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
     return done(`You lose. Strike ${season.strikes} of ${rules.maxStrikes}.`);
   }
   const amount = pay(rules.winCurrency);
-  let message = `You win and earn ${amount} currency.`;
+  let message = `You win and earn ${amount} Pucks.`;
   const luck = roll(season, 'drop');
   if (luck.chance(stat(f, 'powerupDropChance', rules.powerupDropChance))) {
     const found = luck.pick(powerups);
@@ -634,7 +721,7 @@ export function pickArtifact(f: Franchise, artifactId: string): ActionResult {
   f.artifacts.push(artifactId);
   finishStop(f);
   // Beating the last boss puts you in the playoffs, which is a milestone.
-  return done(`You take ${artifactInfo(artifactId).name}.${awardMilestones(f)}`);
+  return done(`You take ${artifactInfo(artifactId).name}.${milestoneWords(awardMilestones(f))}`);
 }
 
 // ---------- loadout ----------
@@ -753,7 +840,7 @@ export function buy(f: Franchise, powerupId: string): ActionResult {
   const stock = stop.stock ?? [];
   if (!stock.includes(powerupId)) return refuse('The shop does not have that.');
   const price = shopPrice(f, powerupId);
-  if (f.season.currency < price) return refuse(`You need ${price} currency and have ${f.season.currency}.`);
+  if (f.season.currency < price) return refuse(`You need ${price} Pucks and have ${f.season.currency}.`);
   f.season.currency -= price;
   f.season.powerups.push(powerupId);
   stop.stock = stock.filter((_, i) => i !== stock.indexOf(powerupId));
@@ -765,7 +852,7 @@ export function healStrike(f: Franchise): ActionResult {
   if (!shopStop(f)) return refuse('You are not in a shop.');
   if (f.season.strikes === 0) return refuse('You have no strikes to wipe.');
   const price = healPrice(f);
-  if (f.season.currency < price) return refuse(`You need ${price} currency and have ${f.season.currency}.`);
+  if (f.season.currency < price) return refuse(`You need ${price} Pucks and have ${f.season.currency}.`);
   f.season.currency -= price;
   f.season.strikes -= 1;
   return done('One strike is wiped away.');
@@ -779,8 +866,13 @@ export function leaveShop(f: Franchise): ActionResult {
 
 // ---------- lineup during the season ----------
 
-/** During the season the dressed skaters can swap spots, but the spare cannot come in. */
+/**
+ * Puts a skater in a lineup spot. During the season this is how the dressed skaters swap spots and how
+ * the spare comes in for one of them between games; the season's dressed list follows the lineup.
+ */
 export function setSeasonLineupSlot(f: Franchise, line: 0 | 1, slot: number, playerId: string): ActionResult {
-  if (rosterLocked(f) && !f.season.dressed.includes(playerId)) return refuse('He was not dressed for this season, so he stays home until it ends.');
-  return setLineupSlot(f.league, userTeam(f.league), line, slot, playerId) ? done() : refuse('He cannot play there.');
+  const team = userTeam(f.league);
+  if (!setLineupSlot(f.league, team, line, slot, playerId)) return refuse('He cannot play there.');
+  if (rosterLocked(f) && team.lineup.goalie) f.season.dressed = [...dressedSkaters(team.lineup), team.lineup.goalie];
+  return done();
 }

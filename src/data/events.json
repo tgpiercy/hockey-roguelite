@@ -31,7 +31,7 @@
     "title": "The equipment salesman",
     "text": "A man with a van full of unmarked boxes says he has just the thing for a team like yours. Cash only.",
     "choices": [
-      { "label": "Buy a mystery box (30 currency)", "outcomes": [
+      { "label": "Buy a mystery box (30 Pucks)", "outcomes": [
         { "weight": 3, "result": "Inside: something useful. You gain a powerup.", "effects": [{ "type": "currency", "amount": -30 }, { "type": "powerup" }] },
         { "weight": 1, "result": "Inside: two useful things. You gain two powerups.", "effects": [{ "type": "currency", "amount": -30 }, { "type": "powerup" }, { "type": "powerup" }] },
         { "weight": 1, "result": "Inside: old socks. The van is already gone.", "effects": [{ "type": "currency", "amount": -30 }] }
@@ -71,7 +71,7 @@
     "title": "The card game",
     "text": "The equipment manager runs a card game on the road. The pot is tempting.",
     "choices": [
-      { "label": "Stake 30 currency", "outcomes": [
+      { "label": "Stake 30 Pucks", "outcomes": [
         { "weight": 1, "result": "The cards fall your way. You double it.", "effects": [{ "type": "currency", "amount": 30 }] },
         { "weight": 1, "result": "Cleaned out.", "effects": [{ "type": "currency", "amount": -30 }] }
       ] },
@@ -170,7 +170,7 @@
     "title": "An old rival's challenge",
     "text": "A coach you have history with offers a wager on a shooting contest between your best and his.",
     "choices": [
-      { "label": "Accept (stake 25 currency)", "outcomes": [
+      { "label": "Accept (stake 25 Pucks)", "outcomes": [
         { "weight": 3, "result": "Your shooter wins it going away.", "effects": [{ "type": "currency", "amount": 35 }] },
         { "weight": 2, "result": "His shooter does not miss.", "effects": [{ "type": "currency", "amount": -25 }] }
       ] },

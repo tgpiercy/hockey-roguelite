@@ -57,8 +57,11 @@ export function stepShooting(
   const asked = tilt > 0 ? Math.atan2(input.moveY, input.moveX) : s.facing;
   const aim = assist ? assist(asked) : asked;
   const angle = aim + rng.range(-1, 1) * shotSpread(params.accuracy, t);
-  const full = chargeFraction(s.charge, t) >= 1;
-  const speed = shotSpeed(s.charge, params.shotPower, t) * (full ? (params.chargedShotScale ?? 1) : 1);
+  // A one-timer counts as fully wound up however briefly the button was held.
+  const oneTimer = params.oneTimer ?? 1;
+  const held = oneTimer !== 1 ? Math.max(s.charge, t.shot.chargeTime) : s.charge;
+  const full = chargeFraction(held, t) >= 1;
+  const speed = shotSpeed(held, params.shotPower, t) * (full ? (params.chargedShotScale ?? 1) : 1) * oneTimer;
 
   puck.vel.x = Math.cos(angle) * speed + s.vel.x * t.shot.skaterSpeedShare;
   puck.vel.y = Math.sin(angle) * speed + s.vel.y * t.shot.skaterSpeedShare;

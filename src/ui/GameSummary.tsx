@@ -72,7 +72,7 @@ export function GameSummary({ result, teams }: Props) {
         <TeamTable team={teams[0]} players={result.players.filter((p) => p.team === 0)} />
         <TeamTable team={teams[1]} players={result.players.filter((p) => p.team === 1)} />
       </div>
-      <div class="summary-again">Press A (or Z) to continue</div>
+      <div class="summary-again">Press A, Z or Pass to continue</div>
     </div>
   );
 }

@@ -21,8 +21,11 @@ import {
   artifactInfo,
   availableStops,
   buy,
+  canSimulate,
   chooseEvent,
   currentStop,
+  DIFFICULTIES,
+  difficultyInfo,
   eventInfo,
   healPrice,
   healStrike,
@@ -33,16 +36,20 @@ import {
   powerupInfo,
   recordGame,
   rosterLocked,
+  setDifficulty,
   setLoadout,
   setSeasonLineupSlot,
   shopPrice,
+  simulateGame,
   startSeason,
   train,
   travel,
   type ActionResult,
   type Franchise,
+  type GameRewards,
 } from '../core/season';
 import type { Stop } from '../core/seasonMap';
+import { teamColour } from '../core/teamColours';
 import { evaluateTrade, trade } from '../core/trades';
 import { xpForLevel } from '../core/xp';
 import gearData from '../data/gear.json';
@@ -51,11 +58,12 @@ import mascotRules from '../data/mascot.json';
 import prestigeRules from '../data/prestige.json';
 import rules from '../data/season.json';
 import { EquipPreview, GearCard, GearedRatings, GearRow, setProgress, slotName } from './gearParts';
-import { Menu, type MenuItem } from './Menu';
+import { Menu, MenuChrome, type MenuItem } from './Menu';
 import { menuInput } from './menuInput';
 import { playMatch } from './matchView';
 import type { PlayerRecord } from '../core/player';
-import { CapLine, Dots, Grade, money, PlayerRow, Ratings } from './parts';
+import { CapLine, Dots, Grade, Meter, money, PlayerRow, Ratings, Wallet } from './parts';
+import { MapKey, SeasonMapView } from './SeasonMap';
 import { downloadText, loadStored, pickTextFile, store } from './storage';
 
 type Screen =
@@ -90,11 +98,18 @@ type Screen =
   | { name: 'staffMember'; staffId: string }
   | { name: 'facilities' }
   | { name: 'mascot' }
+  | { name: 'team' }
+  | { name: 'office' }
+  | { name: 'collection' }
+  | { name: 'settings' }
+  | { name: 'difficulty'; fresh: boolean }
+  | { name: 'rewards'; shown: number }
   | { name: 'jersey' }
   | { name: 'saves' }
   | { name: 'confirmNew' };
 
 type Sort = 'overall' | 'cost' | 'position';
+type Group = 'team' | 'office' | 'collection' | 'settings';
 const BUTTONS = ['LT', 'RB'];
 
 /** The gear screen's filters, cycled with left and right. */
@@ -115,6 +130,10 @@ export function App() {
   const [sort, setSort] = useState<Sort>('overall');
   const [gearFilter, setGearFilter] = useState(0);
   const [playing, setPlaying] = useState(false);
+  // The hub group the player came through, so B from a screen returns there and not to the top.
+  const [group, setGroup] = useState<Group | null>(null);
+  const [rewards, setRewards] = useState<GameRewards | null>(null);
+  const [mapFocus, setMapFocus] = useState<string | null>(null);
 
   /** Writes the franchise to storage and redraws. Call after anything changes. */
   const commit = (franchise: Franchise): void => {
@@ -122,7 +141,7 @@ export function App() {
     store(toSave(franchise, new Date().toISOString())).catch(() => setMessage('Could not save: storage is unavailable in this browser.'));
     redraw(0);
   };
-  const startOver = (): void => commit(newFranchise(generateLeague(String(Date.now()))));
+  const startOver = (difficulty?: string): void => commit(newFranchise(generateLeague(String(Date.now())), difficulty));
 
   // On start: load the stored franchise, or begin a new one.
   useEffect(() => {
@@ -167,7 +186,41 @@ export function App() {
     if (next && result.ok) setScreen(next);
     commit(f);
   };
-  const home = (): void => go({ name: 'home' });
+  /** Back to where the player came from: the hub group he opened, or the top. */
+  const home = (): void => go(group ? { name: group } : { name: 'home' });
+  /** Back to the very top, leaving any group. */
+  const top = (): void => {
+    setGroup(null);
+    go({ name: 'home' });
+  };
+  const openGroup = (name: Group): void => {
+    setGroup(name);
+    go({ name });
+  };
+  /** A hub row: a bold name, a line saying what is inside, and an optional count or lock. */
+  const tile = (key: string, name: string, what: string, onSelect: () => void, extra: { badge?: number; lock?: string; primary?: boolean; disabled?: boolean; detail?: ComponentChildren } = {}): MenuItem => ({
+    key,
+    label: (
+      <span class={`tile${extra.primary ? ' primary' : ''}`}>
+        <span class="tile-name">{name}</span>
+        <span class="tile-what">{what}</span>
+        {extra.badge ? <span class="badge">{extra.badge}</span> : null}
+        {extra.lock ? <span class="lock">Locked</span> : null}
+      </span>
+    ),
+    detail: extra.lock ?? extra.detail,
+    disabled: extra.disabled ?? Boolean(extra.lock),
+    onSelect,
+  });
+  // Staff, facilities and prestige open once you have finished a season, so the first run is not a wall of systems.
+  const earlyLock = f.books.length === 0 ? 'Opens after your first season.' : undefined;
+  /** The four groups every hub screen ends with. */
+  const groupItems = (): MenuItem[] => [
+    tile('team', 'Team', locked ? 'Roster, lineup, powerups, mascot' : 'Roster, lineup, free agents, trades, mascot', () => openGroup('team'), { badge: f.offseason.pending.length }),
+    tile('office', 'Front office', 'Finances, staff, facilities, prestige', () => openGroup('office')),
+    tile('collection', 'Collection', 'Packs, gear, artifacts, jersey', () => openGroup('collection'), { badge: f.packs.length }),
+    tile('settings', 'Settings', `Difficulty: ${difficultyInfo(f.difficulty).name} · save and load`, () => openGroup('settings')),
+  ];
   const bump = (id: string): number => season.bumps[id] ?? 0;
   const fireSale = inFireSale(f);
   const cashLine = (
@@ -184,7 +237,7 @@ export function App() {
   );
   const staffRow = (member: StaffMember, note = ''): ComponentChildren => (
     <span class="player-row">
-      <span class="grade">{member.grade}</span>
+      <span class={`grade grade-${member.grade}`}>{member.grade}</span>
       <span class="pname">{member.name}</span>
       <span>{roleOf(member).title}</span>
       <span class="cap">{money(member.salary)}</span>
@@ -192,52 +245,39 @@ export function App() {
       {note && <span class="note">{note}</span>}
     </span>
   );
-  const clubItems = (): MenuItem[] => [
-    { key: 'finances', label: `Finances · ${money(f.cash)}`, onSelect: () => go({ name: 'finances' }) },
-    { key: 'staff', label: `Staff (${f.staff.length})`, onSelect: () => go({ name: 'staff' }) },
-    { key: 'facilities', label: 'Facilities', onSelect: () => go({ name: 'facilities' }) },
-    { key: 'mascot', label: `Mascot: ${f.mascot.name}`, onSelect: () => go({ name: 'mascot' }) },
-  ];
 
   /** Plays the game waiting at the current stop or playoff round. */
   const playSeasonGame = (): void => {
     const game = matchup(f);
     if (!game) return;
     setPlaying(true);
-    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour: jerseyColour(f) }, (result) => {
-      const outcome = recordGame(f, result);
-      setScreen({ name: 'home' });
-      setMessage(outcome.ok ? outcome.message : outcome.reason);
-      commit(f);
+    const homeColour = jerseyColour(f);
+    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour) }, (result) => {
+      showOutcome(recordGame(f, result));
       setPlaying(false);
     });
   };
+  /** After a season game, played or simulated: save, and step through what it earned. */
+  const showOutcome = (outcome: ReturnType<typeof recordGame>): void => {
+    setGroup(null);
+    if (outcome.ok && outcome.rewards) {
+      setRewards(outcome.rewards);
+      setScreen({ name: 'rewards', shown: 1 });
+      setMessage(outcome.message);
+    } else {
+      setScreen({ name: 'home' });
+      setMessage(outcome.ok ? outcome.message : outcome.reason);
+    }
+    commit(f);
+  };
 
-  const gearItems = (): MenuItem[] => [
-    {
-      key: 'packs',
-      label: f.packs.length > 0 ? <b>Packs to open ({f.packs.length})</b> : 'Packs (0)',
-      detail: 'Packs are earned by winning season games and by reaching milestones.',
-      onSelect: () => go({ name: 'packs' }),
-    },
-    { key: 'gear', label: `Gear (${f.gear.length}) · ${f.tape} tape`, onSelect: () => go({ name: 'gear' }) },
-  ];
   const nameOf = (playerId: string | null): string | undefined => (playerId ? league.players[playerId]?.name : undefined);
 
-  const teamItems = (): MenuItem[] => [
-    { key: 'roster', label: 'Team', onSelect: () => go({ name: 'roster' }) },
-    { key: 'lineup', label: 'Lineup', onSelect: () => go({ name: 'lineup' }) },
-    ...gearItems(),
-    { key: 'powerups', label: `Powerups (${season.powerups.length})`, onSelect: () => go({ name: 'powerups' }) },
-    { key: 'artifacts', label: `Artifacts (${f.artifacts.length})`, onSelect: () => go({ name: 'artifacts' }) },
-    ...clubItems(),
-    { key: 'saves', label: 'Save and load', onSelect: () => go({ name: 'saves' }) },
-  ];
+  const teamItems = groupItems;
 
   const seasonLine = (
     <div>
-      Strikes <Dots filled={season.strikes} total={rules.maxStrikes} /> · Currency <b>{season.currency}</b> · Powerups {season.powerups.length} · Artifacts{' '}
-      {f.artifacts.length}
+      Strikes <Dots filled={season.strikes} total={rules.maxStrikes} /> · Powerups {season.powerups.length} · Artifacts {f.artifacts.length}
       {season.temps.length > 0 && <> · {season.temps.map((t) => `${t.label} (${t.games} game${t.games === 1 ? '' : 's'})`).join(', ')}</>}
     </div>
   );
@@ -256,6 +296,7 @@ export function App() {
     </div>
   );
 
+  const view = ((): ComponentChildren => {
   // ---------------------------------------------------------------- home
 
   if (screen.name === 'home') {
@@ -263,7 +304,6 @@ export function App() {
     if (season.phase === 'offseason') {
       const ready = canPlay(league, team);
       const pending = f.offseason.pending.length;
-      const mayPrestige = canPrestige(f);
       return (
         <Menu
           key={screenKey}
@@ -273,11 +313,10 @@ export function App() {
           header={
             <>
               <div>
-                Off-season · Season {league.season} · Record {f.record.wins}-{f.record.losses}-{f.record.overtimeLosses} (wins, losses, overtime losses)
+                Off-season before season {league.season} · all-time record {f.record.wins}-{f.record.losses}-{f.record.overtimeLosses} · difficulty{' '}
+                {difficultyInfo(f.difficulty).name}
               </div>
-              <div>
-                <CapLine league={league} team={team} />
-              </div>
+              <CapLine league={league} team={team} />
               {cashLine}
               {fireSale && (
                 <div class="warn">
@@ -296,61 +335,27 @@ export function App() {
           }
           items={[
             ...(pending > 0
-              ? [{ key: 'contracts', label: <b>Expiring contracts ({pending})</b>, detail: 'Re-sign each player or let him go.', onSelect: () => go({ name: 'contracts' }) }]
+              ? [tile('contracts', 'Contracts', `${pending} to decide before the season can start`, () => go({ name: 'contracts' }), { badge: pending, primary: true, detail: 'Re-sign each player or let him go.' })]
               : []),
-            {
-              key: 'start',
-              label: 'Start the season',
-              detail:
-                pending > 0
-                  ? 'Decide your expiring contracts first.'
-                  : 'Your dressed lineup is locked in for the whole season. The seventh skater stays home.',
+            tile('start', 'Start the season', `Season ${league.season}`, () => after(startSeason(f)), {
+              primary: pending === 0,
               disabled: !ready.ok || pending > 0 || fireSale,
-              onSelect: () => after(startSeason(f)),
-            },
+              detail: pending > 0
+                ? 'Decide your expiring contracts first.'
+                : fireSale
+                  ? 'You are out of cash. Raise money first.'
+                  : 'Three regions, then the playoffs. Your seventh skater is the spare: you can swap him in between games.',
+            }),
             ...(canBailOut(f)
               ? [
-                  {
-                    key: 'bailout',
-                    label: <b>Ask the league to cover your debt</b>,
-                    detail: 'You have nothing left to sell. The league pays what you owe and your franchise value drops by a tenth.',
-                    onSelect: () => {
-                      const result = bailOut(f);
-                      after(result.ok ? { ok: true, message: 'The league has covered your debt. Your franchise value has dropped.' } : result);
-                    },
-                  },
+                  tile('bailout', 'League bail-out', 'Ask the league to cover your debt', () => {
+                    const result = bailOut(f);
+                    after(result.ok ? { ok: true, message: 'The league has covered your debt. Your franchise value has dropped.' } : result);
+                  }, { detail: 'You have nothing left to sell. The league pays what you owe and your franchise value drops by a tenth.' }),
                 ]
               : []),
-            { key: 'roster', label: 'Roster', onSelect: () => go({ name: 'roster' }) },
-            { key: 'lineup', label: 'Lineup', onSelect: () => go({ name: 'lineup' }) },
-            { key: 'fa', label: 'Free agents', onSelect: () => go({ name: 'freeAgents' }) },
-            {
-              key: 'trade',
-              label: 'Trade',
-              detail: pending > 0 ? 'Decide your expiring contracts first.' : 'One player for one player with any other team.',
-              disabled: pending > 0,
-              onSelect: () => go({ name: 'tradeTeams' }),
-            },
-            ...clubItems(),
-            ...(f.offseason.report ? [{ key: 'report', label: `Off-season report: after season ${f.offseason.report.season}`, onSelect: () => go({ name: 'report' }) }] : []),
-            ...gearItems(),
-            { key: 'artifacts', label: `Artifacts (${f.artifacts.length})`, onSelect: () => go({ name: 'artifacts' }) },
-            {
-              key: 'exhibition',
-              label: 'Exhibition game',
-              detail: 'A one-off game against any team. It does not count.',
-              disabled: !ready.ok,
-              onSelect: () => go({ name: 'exhibition' }),
-            },
-            {
-              key: 'prestige',
-              label: mayPrestige.ok ? <b>Prestige: move up to level {f.prestige.level + 1}</b> : `Prestige (level ${f.prestige.level})`,
-              detail: mayPrestige.ok ? 'You are champions. Give up your artifacts for a harder league and better packs.' : mayPrestige.reason,
-              disabled: !mayPrestige.ok,
-              onSelect: () => go({ name: 'prestige' }),
-            },
-            { key: 'jersey', label: `Jersey colour: ${unlockedJerseys(f)[f.prestige.jersey]?.name ?? ''}`, onSelect: () => go({ name: 'jersey' }) },
-            { key: 'saves', label: 'Save and load', onSelect: () => go({ name: 'saves' }) },
+            tile('exhibition', 'Exhibition', 'A one-off game that does not count', () => go({ name: 'exhibition' }), { disabled: !ready.ok }),
+            ...groupItems(),
           ]}
         />
       );
@@ -370,7 +375,7 @@ export function App() {
               <div>
                 {season.gamesWon} wins in {season.gamesPlayed} games · {season.strikes} strike{season.strikes === 1 ? '' : 's'}
               </div>
-              <div>Powerups, currency and training bumps do not carry over. Your {f.artifacts.length} artifacts stay.</div>
+              <div>Powerups, Pucks and training bumps do not carry over. Your {f.artifacts.length} artifacts stay.</div>
               {season.outcome === 'champion' && f.prestige.level < prestigeRules.maxLevel && <div class="warn">As champions you can prestige in the off-season.</div>}
             </>
           }
@@ -417,8 +422,16 @@ export function App() {
           message={message}
           header={
             <>
-              <div>
-                <b>{game.away.name}</b> average {strength} · your dressed team averages {mine}
+              <div class="versus">
+                <div>
+                  <b>{mine}</b>
+                  <span>{team.name}</span>
+                </div>
+                <i>VS</i>
+                <div>
+                  <b>{strength}</b>
+                  <span>{game.away.name}</span>
+                </div>
               </div>
               {game.trait && <div class="warn">{game.trait}</div>}
               {game.mascots.home && (
@@ -433,7 +446,7 @@ export function App() {
                   {game.mascots.away.mascot.talents.map((id) => talentInfo(id).name).join(', ')}.
                 </div>
               )}
-              <div>{isHomeGame(season.gamesPlayed + 1) ? 'Home game: ticket money.' : 'Road game: travel costs.'}</div>
+
               {f.prestige.level > 0 && (
                 <div>
                   Prestige level {f.prestige.level}: they play {f.prestige.level * prestigeRules.opponentRatingPerLevel} rating points better than that, and react
@@ -450,15 +463,19 @@ export function App() {
             </>
           }
           items={[
-            { key: 'play', label: 'Play', onSelect: playSeasonGame },
+            tile('play', 'Play', isHomeGame(season.gamesPlayed + 1) ? 'Home game' : 'Road game', playSeasonGame, { primary: true }),
+            ...(canSimulate(f)
+              ? [
+                  tile('simulate', 'Simulate', 'Settle it without playing', () => showOutcome(simulateGame(f)), {
+                    detail: `The result comes from the two teams' ratings, with yours counted ${rules.simPenalty} points weaker, so playing is the better bet. Powerups are not used. Bosses and playoff games cannot be simulated.`,
+                  }),
+                ]
+              : []),
             ...BUTTONS.map((button, slot) => {
               const id = season.loadout[slot];
-              return {
-                key: `load-${slot}`,
-                label: `${button} powerup: ${id ? powerupInfo(id).name : 'empty'}`,
+              return tile(`load-${slot}`, `${button} powerup`, id ? powerupInfo(id).name : 'Empty', () => go({ name: 'load', slot }), {
                 detail: id ? powerupInfo(id).description : 'Choose a powerup to trigger with this button during the game.',
-                onSelect: () => go({ name: 'load', slot }),
-              };
+              });
             }),
             ...teamItems(),
           ]}
@@ -518,7 +535,7 @@ export function App() {
               const price = shopPrice(f, id);
               return {
                 key: `${id}-${i}`,
-                label: `${p.name} · ${price} currency`,
+                label: `${p.name} · ${price} Pucks`,
                 detail: p.description,
                 disabled: season.currency < price,
                 onSelect: () => after(buy(f, id)),
@@ -526,7 +543,7 @@ export function App() {
             }),
             {
               key: 'heal',
-              label: `Wipe one strike · ${healPrice(f)} currency`,
+              label: `Wipe one strike · ${healPrice(f)} Pucks`,
               detail: 'Removes one of your strikes.',
               disabled: season.strikes === 0 || season.currency < healPrice(f),
               onSelect: () => after(healStrike(f)),
@@ -540,18 +557,19 @@ export function App() {
     // The map: choose where to go next.
     const options = availableStops(f);
     const region = options[0]?.region ?? 0;
-    const describe = (s: Stop): { label: ComponentChildren; detail: ComponentChildren } => {
+    const describe = (s: Stop): { kind: string; what: string; detail: ComponentChildren } => {
       if (s.kind === 'game' && s.opponentId) {
         const opponent = league.teams.find((x) => x.id === s.opponentId) as Team;
-        return { label: `Game: ${opponent.name}`, detail: `Average ${Math.round(teamStrength(league, opponent.id))}. A win pays currency; a loss is a strike.` };
+        const strength = Math.round(teamStrength(league, opponent.id));
+        return { kind: 'Game', what: `${opponent.name} · average ${strength}`, detail: 'A win pays Pucks and a pack; a loss is a strike.' };
       }
       if (s.kind === 'boss' && s.bossId) {
         const boss = bossInfo(s.bossId);
-        return { label: `Boss: ${boss.name}`, detail: `${boss.trait}: ${boss.description} Beat him to choose an artifact; lose and it is a strike and a rematch.` };
+        return { kind: 'Boss', what: boss.name, detail: `${boss.trait}: ${boss.description} Beat him to choose an artifact; lose and it is a strike and a rematch.` };
       }
-      if (s.kind === 'training') return { label: 'Training', detail: 'One dressed player improves every rating for the rest of the season.' };
-      if (s.kind === 'shop') return { label: 'Shop', detail: 'Spend currency on powerups, or wipe a strike.' };
-      return { label: 'Event', detail: 'Something happens on the road, and you choose how to handle it.' };
+      if (s.kind === 'training') return { kind: 'Training', what: 'One player improves', detail: 'One dressed player improves every rating for the rest of the season.' };
+      if (s.kind === 'shop') return { kind: 'Shop', what: 'Powerups for Pucks', detail: 'Spend Pucks on powerups, or wipe a strike.' };
+      return { kind: 'Event', what: 'Something happens', detail: 'Something happens on the road, and you choose how to handle it.' };
     };
     const ahead = (s: Stop): string => {
       const next = s.next.map((id) => season.map?.stops[id]?.kind).filter(Boolean);
@@ -563,26 +581,28 @@ export function App() {
         remember="map"
         title={`Season ${league.season} · Region ${region + 1} of ${rules.regions}`}
         message={message}
+        onFocus={setMapFocus}
         header={
           <>
+            {season.map && (
+              <SeasonMapView map={season.map} last={season.last} current={season.current} open={options.map((o) => o.id)} focus={mapFocus} walked={season.visited} region={region} />
+            )}
+            <MapKey />
             {seasonLine}
-            <div>Each region: a game, a stop, a game, a stop, then the boss. Choose your next stop.</div>
           </>
         }
         items={[
           ...options.map((s) => {
             const d = describe(s);
-            return {
-              key: s.id,
-              label: <b>{d.label}</b>,
+            return tile(s.id, d.kind, d.what, () => after(travel(f, s.id)), {
+              primary: true,
               detail: (
                 <>
                   {d.detail}
                   {ahead(s)}
                 </>
               ),
-              onSelect: () => after(travel(f, s.id)),
-            };
+            });
           }),
           ...teamItems(),
         ]}
@@ -631,6 +651,7 @@ export function App() {
     return (
       <Menu
         key={`reveal-${screen.shown}`}
+        stack
         title={`${screen.title}: piece ${Math.min(screen.shown, items.length)} of ${items.length}`}
         header={
           <>
@@ -1193,17 +1214,17 @@ export function App() {
         key,
         disabled: true,
         label: (
-          <span class="slot-row">
-            <span class="slot-name">{name}</span>
-            <span>
+          <span class={`ledger-row${key.endsWith('-net') ? ' net' : ''}`}>
+            <span>{name}</span>
+            <b class={sign === '+' ? 'up' : 'down'}>
               {sign}
               {money(amount)}
-            </span>
+            </b>
           </span>
         ),
       });
       return [
-        { key: `${title}-head`, disabled: true, label: <b>{title}</b> },
+        { key: `${title}-head`, disabled: true, label: <span class="ledger-head">{title}</span> },
         ...INCOME_LINES.filter((line) => ledger[line] !== 0).map((line) => row(`${title}-${line}`, LINE_NAMES[line], ledger[line], '+')),
         ...EXPENSE_LINES.filter((line) => ledger[line] !== 0).map((line) => row(`${title}-${line}`, LINE_NAMES[line], ledger[line], '−')),
         row(`${title}-net`, t.profit >= 0 ? 'Profit' : 'Loss', Math.abs(t.profit), t.profit >= 0 ? '+' : '−'),
@@ -1252,9 +1273,9 @@ export function App() {
         ...Array.from({ length: empty }, (_, i) => ({
           key: `${kind}-empty-${i}`,
           label: (
-            <span class="slot-row">
-              <span class="slot-name">{kindName(kind)}</span>
-              <span class="note">nobody: hire one</span>
+            <span class="tile">
+              <span class="tile-name">{kindName(kind)}</span>
+              <span class="tile-what">Nobody yet: hire one</span>
             </span>
           ),
           onSelect: () => go({ name: 'hire' }),
@@ -1372,10 +1393,10 @@ export function App() {
           return {
             key: facility.id,
             label: (
-              <span class="slot-row">
-                <span class="slot-name">{facility.name}</span>
+              <span class="tile">
+                <span class="tile-name">{facility.name}</span>
                 <Dots filled={level} total={MAX_FACILITY_LEVEL} />
-                <span>{cost === null ? 'top level' : `next level ${money(cost)}`}</span>
+                <span class="tile-what">{cost === null ? 'Top level' : `Next level ${money(cost)}`}</span>
               </span>
             ),
             detail: facility.description,
@@ -1441,6 +1462,229 @@ export function App() {
     );
   }
 
+  // ---------------------------------------------------------------- hub groups
+
+  if (screen.name === 'team') {
+    const pending = f.offseason.pending.length;
+    return (
+      <Menu
+        key={screenKey}
+        remember="group-team"
+        title="Team"
+        message={message}
+        header={<CapLine league={league} team={team} />}
+        onBack={top}
+        items={[
+          ...(pending > 0 ? [tile('contracts', 'Contracts', `${pending} to decide`, () => go({ name: 'contracts' }), { badge: pending, primary: true })] : []),
+          tile('roster', locked ? 'Players' : 'Roster', `${rosterOf(league, team).length} players: gear, details${locked ? '' : ', release'}`, () => go({ name: 'roster' })),
+          tile('lineup', 'Lineup', 'Two lines of three and a goalie', () => go({ name: 'lineup' })),
+          tile('fa', 'Free agents', 'Sign players from the pool', () => go({ name: 'freeAgents' }), { lock: locked ? 'Signing happens in the off-season.' : undefined }),
+          tile('trade', 'Trade', 'One player for one player', () => go({ name: 'tradeTeams' }), {
+            lock: locked ? 'Trades happen in the off-season.' : pending > 0 ? 'Decide your expiring contracts first.' : undefined,
+          }),
+          ...(locked ? [tile('powerups', 'Powerups', `${season.powerups.length} in the bag`, () => go({ name: 'powerups' }))] : []),
+          tile('mascot', 'Mascot', f.mascot.name, () => go({ name: 'mascot' })),
+        ]}
+      />
+    );
+  }
+
+  if (screen.name === 'office') {
+    const mayPrestige = canPrestige(f);
+    return (
+      <Menu
+        key={screenKey}
+        remember="group-office"
+        title="Front office"
+        message={message}
+        header={cashLine}
+        onBack={top}
+        items={[
+          tile('finances', 'Finances', `Cash ${money(f.cash)}`, () => go({ name: 'finances' })),
+          tile('staff', 'Staff', `${f.staff.length} employed`, () => go({ name: 'staff' }), { lock: earlyLock }),
+          tile('facilities', 'Facilities', 'Six buildings to level up', () => go({ name: 'facilities' }), { lock: earlyLock }),
+          tile('prestige', 'Prestige', `Level ${f.prestige.level}`, () => go({ name: 'prestige' }), {
+            lock: mayPrestige.ok ? undefined : mayPrestige.reason,
+            primary: mayPrestige.ok,
+            detail: 'You are champions. Give up your artifacts for a harder league and better packs.',
+          }),
+          ...(f.offseason.report ? [tile('report', 'Report', `What changed after season ${f.offseason.report.season}`, () => go({ name: 'report' }))] : []),
+        ]}
+      />
+    );
+  }
+
+  if (screen.name === 'collection') {
+    return (
+      <Menu
+        key={screenKey}
+        remember="group-collection"
+        title="Collection"
+        message={message}
+        onBack={top}
+        items={[
+          tile('packs', 'Packs', f.packs.length > 0 ? 'Ready to open' : 'None to open', () => go({ name: 'packs' }), {
+            badge: f.packs.length,
+            primary: f.packs.length > 0,
+            detail: 'Packs are earned by winning season games and by reaching milestones.',
+          }),
+          tile('gear', 'Gear', `${f.gear.length} pieces · ${f.tape} tape`, () => go({ name: 'gear' }), { detail: 'Equip, level up with tape, or scrap for tape.' }),
+          tile('artifacts', 'Artifacts', `${f.artifacts.length} owned`, () => go({ name: 'artifacts' }), { detail: 'Always on, and kept from season to season until you prestige.' }),
+          tile('jersey', 'Jersey', unlockedJerseys(f)[f.prestige.jersey]?.name ?? '', () => go({ name: 'jersey' }), { detail: 'The colour your team wears on the ice.' }),
+        ]}
+      />
+    );
+  }
+
+  if (screen.name === 'settings') {
+    return (
+      <Menu
+        key={screenKey}
+        remember="group-settings"
+        title="Settings"
+        message={message}
+        onBack={top}
+        items={[
+          tile('difficulty', 'Difficulty', difficultyInfo(f.difficulty).name, () => go({ name: 'difficulty', fresh: false }), {
+            lock: locked ? 'The difficulty can only be changed between seasons.' : undefined,
+            detail: difficultyInfo(f.difficulty).description,
+          }),
+          tile('saves', 'Save and load', 'Export, import, or start again', () => go({ name: 'saves' }), {
+            detail: 'The game saves by itself after every move, every stop and every game.',
+          }),
+        ]}
+      />
+    );
+  }
+
+  if (screen.name === 'difficulty') {
+    const fresh = screen.fresh;
+    return (
+      <Menu
+        key={screenKey}
+        title={fresh ? 'New franchise: how hard?' : 'Difficulty'}
+        message={message}
+        header={
+          fresh
+            ? 'Your current team, record, season and artifacts are replaced. Difficulty only changes how sharp the opponents are, and you can change it between seasons.'
+            : 'Difficulty only changes how sharp the opponents are: how fast they react and how many mistakes they make. Ratings, money and rewards are the same on every level.'
+        }
+        onBack={() => go({ name: fresh ? 'saves' : 'settings' })}
+        initialFocus={Math.max(0, DIFFICULTIES.findIndex((d) => d.id === f.difficulty))}
+        items={DIFFICULTIES.map((d) => ({
+          key: d.id,
+          label: (
+            <span class="tile">
+              <span class="tile-name">{d.name}</span>
+              <span class="tile-what">{d.description}</span>
+              {!fresh && d.id === f.difficulty ? <span class="badge">Now</span> : null}
+            </span>
+          ),
+          onSelect: () => {
+            if (fresh) {
+              setGroup(null);
+              setScreen({ name: 'home' });
+              setMessage(`A new franchise has begun on ${d.name}.`);
+              startOver(d.id);
+            } else {
+              after(setDifficulty(f, d.id), { name: 'settings' });
+            }
+          },
+        }))}
+      />
+    );
+  }
+
+  if (screen.name === 'rewards') {
+    const r = rewards;
+    if (!r) return <Menu key={screenKey} title="Game over" items={[{ key: 'ok', label: 'Continue', onSelect: top }]} />;
+    // What is shown builds up one press at a time: result, money, XP, then packs and milestones.
+    const extras = r.pack !== null || r.milestones.length > 0;
+    const steps = extras ? 4 : 3;
+    const shown = Math.min(screen.shown, steps);
+    const last = shown >= steps;
+    return (
+      <Menu
+        key={`rewards-${shown}`}
+        stack
+        title={r.won ? 'Victory' : 'Defeat'}
+        header={
+          <div class="rewards">
+            <div>
+            <div class={`result-banner ${r.won ? 'won' : 'lost'}`}>
+              {r.won ? 'You win' : 'You lose'} {r.score[0]} – {r.score[1]}
+            </div>
+            {shown >= 2 && (
+              <div>
+                <div class="reward">
+                  <i>Cash</i>
+                  <b class={r.cash < 0 ? 'down' : 'up'}>
+                    {r.cash >= 0 ? '+' : ''}
+                    {money(r.cash)}
+                  </b>
+                </div>
+                <div class="reward">
+                  <i>Pucks</i>
+                  <b>{r.pucks > 0 ? `+${r.pucks}` : '0'}</b>
+                </div>
+                {!r.won && season.phase !== 'ended' && (
+                  <div class="reward">
+                    <i>Strikes</i>
+                    <Dots filled={season.strikes} total={rules.maxStrikes} />
+                  </div>
+                )}
+              </div>
+            )}
+            {shown >= 4 && (
+              <div>
+                {r.pack && (
+                  <div class="reward">
+                    <i>Pack</i>
+                    <b>{r.pack}</b>
+                  </div>
+                )}
+                {r.milestones.map((name) => (
+                  <div class="reward" key={name}>
+                    <i>Milestone</i>
+                    <b>{name}</b>
+                  </div>
+                ))}
+              </div>
+            )}
+            </div>
+            {shown >= 3 && (
+              <div class="reward-xp">
+                {r.xp.map((x) => {
+                  const p = league.players[x.id];
+                  if (!p) return null;
+                  const banked = p.xp + (season.xp[x.id] ?? 0);
+                  const need = xpForLevel(p.level);
+                  return (
+                    <>
+                      <span>{x.name}</span>
+                      <span class="meter-bar">
+                        <span class={`meter-fill${banked >= need ? '' : ' cool'}`} style={{ width: `${Math.min(1, banked / need) * 100}%`, display: 'block' }} />
+                      </span>
+                      <span>
+                        +{Math.round(x.earned)} XP{banked >= need ? ' · level up' : ''}
+                      </span>
+                    </>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        }
+        help="A next"
+        items={[
+          last
+            ? { key: 'done', label: <b>Continue</b>, detail: shown >= 3 ? 'XP is banked, and levels are gained, when the season ends.' : undefined, onSelect: top }
+            : { key: 'next', label: <b>Next</b>, onSelect: () => setScreen({ name: 'rewards', shown: shown + 1 }) },
+        ]}
+      />
+    );
+  }
+
   if (screen.name === 'roster') {
     const dressed = new Set([...dressedSkaters(team.lineup), team.lineup.goalie]);
     return (
@@ -1459,7 +1703,7 @@ export function App() {
         help="A gear and details · B back"
         items={rosterOf(league, team).map((p) => ({
           key: p.id,
-          label: <PlayerRow player={p} bump={bump(p.id)} note={dressed.has(p.id) ? '' : locked ? 'at home this season' : 'not dressed'} />,
+          label: <PlayerRow player={p} bump={bump(p.id)} note={dressed.has(p.id) ? '' : locked ? 'spare' : 'not dressed'} />,
           detail: <GearedRatings f={f} player={p} />,
           onSelect: () => go({ name: 'player', playerId: p.id }),
         }))}
@@ -1566,7 +1810,7 @@ export function App() {
     const slot = (line: 0 | 1, index: number): MenuItem => {
       const id = (line === 0 ? team.lineup.line1 : team.lineup.line2)[index] ?? null;
       const p = id ? playerOf(league, id) : null;
-      const label = `Line ${line + 1} ${index === 0 ? 'centre' : 'wing'}`;
+      const label = `L${line + 1} ${index === 0 ? "centre" : "wing"}`;
       return {
         key: `${line}-${index}`,
         label: (
@@ -1592,7 +1836,7 @@ export function App() {
             <div>Two lines of three skaters and a goalie. The centre takes faceoffs.</div>
             {spare.length > 0 && (
               <div>
-                {locked ? 'At home this season' : 'Not dressed'}: {spare.map((p) => p.name).join(', ')}
+                {locked ? 'Spare (swap him in between games)' : 'Not dressed'}: {spare.map((p) => p.name).join(', ')}
               </div>
             )}
             {problems.length > 0 && <div class="warn">{problems.join(' ')}</div>}
@@ -1641,9 +1885,9 @@ export function App() {
       const b = team.lineup.line2.indexOf(id);
       if (a !== -1) return `line 1 ${a === 0 ? 'centre' : 'wing'}`;
       if (b !== -1) return `line 2 ${b === 0 ? 'centre' : 'wing'}`;
-      return locked ? 'at home this season' : 'not dressed';
+      return locked ? 'spare' : 'not dressed';
     };
-    const choices = skatersOn(league, team).filter((p) => !locked || season.dressed.includes(p.id));
+    const choices = skatersOn(league, team);
     return (
       <Menu
         key={screenKey}
@@ -1690,7 +1934,8 @@ export function App() {
               const away = dress(league, opponent);
               if (!homeTeam || !away) return;
               setPlaying(true);
-              playMatch({ home: homeTeam, away, homeColour: jerseyColour(f) }, (result) => {
+              const homeColour = jerseyColour(f);
+              playMatch({ home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour) }, (result) => {
                 const verdict = result.winner === 0 ? 'won' : result.winner === 1 ? 'lost' : 'tied';
                 setScreen({ name: 'home' });
                 setMessage(`Exhibition: ${verdict} ${result.score[0]}-${result.score[1]} against ${opponent.name}.`);
@@ -1828,14 +2073,12 @@ export function App() {
         {
           key: 'yes',
           label: 'Yes, start again',
-          onSelect: () => {
-            setScreen({ name: 'home' });
-            setMessage('A new franchise has begun.');
-            startOver();
-          },
+          onSelect: () => go({ name: 'difficulty', fresh: true }),
         },
         { key: 'no', label: 'No, keep playing', onSelect: () => go({ name: 'saves' }) },
       ]}
     />
   );
+  })();
+  return <MenuChrome.Provider value={<Wallet f={f} />}>{view}</MenuChrome.Provider>;
 }

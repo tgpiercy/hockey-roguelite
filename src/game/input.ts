@@ -2,6 +2,7 @@ import controls from '../data/controls.json';
 import { applyDeadzone } from '../sim/stick';
 import type { InputFrame } from '../sim/types';
 import { readGamepad, type GamepadSnapshot } from './gamepad';
+import { mergeFrames, touchFrame, touchState } from './touch';
 
 export interface Controls {
   /** What the simulation needs this frame. */
@@ -17,6 +18,8 @@ export interface Controls {
   hasPad: boolean;
   /** True once any key has been pressed. */
   hasKeyboard: boolean;
+  /** True once the screen has been touched: the on-screen controls are in use. */
+  hasTouch: boolean;
 }
 
 const allKeys = new Set(Object.values(controls.keys).flat());
@@ -83,8 +86,9 @@ export class InputReader {
 
     const [navX, navY] = this.readNav(pad, nowMs);
 
-    return {
-      frame: {
+    // The on-screen controls count as well: whichever stick is tilted further, and any button held on either.
+    const frame = mergeFrames(
+      {
         moveX: move.x,
         moveY: move.y,
         sprint: value(b.sprint) >= controls.triggerThreshold || down(b.sprint) || this.key(controls.keys.sprint),
@@ -96,12 +100,18 @@ export class InputReader {
         powerupA: value(b.powerupA) >= controls.triggerThreshold || down(b.powerupA) || this.key(controls.keys.powerupA),
         powerupB: down(b.powerupB) || this.key(controls.keys.powerupB),
       },
+      touchFrame(touchState),
+    );
+
+    return {
+      frame,
       menuPressed,
       debugPressed,
       navX,
       navY,
       hasPad: pad !== null,
       hasKeyboard: this.hasKeyboard,
+      hasTouch: touchState.used,
     };
   }
 

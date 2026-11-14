@@ -1,7 +1,10 @@
 {
   "stickDeadzone": 0.15,
   "triggerThreshold": 0.3,
-  "axes": { "moveX": 0, "moveY": 1 },
+  "axes": {
+    "moveX": 0,
+    "moveY": 1
+  },
   "buttons": {
     "pass": 0,
     "check": 1,
@@ -19,28 +22,91 @@
     "dpadRight": 15
   },
   "keys": {
-    "up": ["ArrowUp", "KeyW"],
-    "down": ["ArrowDown", "KeyS"],
-    "left": ["ArrowLeft", "KeyA"],
-    "right": ["ArrowRight", "KeyD"],
-    "shoot": ["Space"],
-    "pass": ["KeyZ", "KeyJ"],
-    "check": ["KeyX", "KeyK"],
-    "switchPlayer": ["KeyC", "KeyL"],
-    "debug": ["KeyI"],
-    "lineChange": ["KeyQ"],
-    "powerupA": ["Digit1"],
-    "powerupB": ["Digit2"],
-    "sprint": ["ShiftLeft", "ShiftRight"],
-    "menu": ["Tab"]
+    "up": [
+      "ArrowUp",
+      "KeyW"
+    ],
+    "down": [
+      "ArrowDown",
+      "KeyS"
+    ],
+    "left": [
+      "ArrowLeft",
+      "KeyA"
+    ],
+    "right": [
+      "ArrowRight",
+      "KeyD"
+    ],
+    "shoot": [
+      "Space"
+    ],
+    "pass": [
+      "KeyZ",
+      "KeyJ"
+    ],
+    "check": [
+      "KeyX",
+      "KeyK"
+    ],
+    "switchPlayer": [
+      "KeyC",
+      "KeyL"
+    ],
+    "debug": [
+      "KeyI"
+    ],
+    "lineChange": [
+      "KeyQ"
+    ],
+    "powerupA": [
+      "Digit1"
+    ],
+    "powerupB": [
+      "Digit2"
+    ],
+    "sprint": [
+      "ShiftLeft",
+      "ShiftRight"
+    ],
+    "menu": [
+      "Tab"
+    ]
   },
   "menuKeys": {
-    "up": ["ArrowUp", "KeyW"],
-    "down": ["ArrowDown", "KeyS"],
-    "left": ["ArrowLeft", "KeyA"],
-    "right": ["ArrowRight", "KeyD"],
-    "confirm": ["Enter", "Space", "KeyZ"],
-    "back": ["Escape", "Backspace", "KeyX"]
+    "up": [
+      "ArrowUp",
+      "KeyW"
+    ],
+    "down": [
+      "ArrowDown",
+      "KeyS"
+    ],
+    "left": [
+      "ArrowLeft",
+      "KeyA"
+    ],
+    "right": [
+      "ArrowRight",
+      "KeyD"
+    ],
+    "confirm": [
+      "Enter",
+      "Space",
+      "KeyZ"
+    ],
+    "back": [
+      "Escape",
+      "Backspace",
+      "KeyX"
+    ]
   },
-  "panelRepeat": { "delaySeconds": 0.35, "intervalSeconds": 0.07 }
+  "panelRepeat": {
+    "delaySeconds": 0.35,
+    "intervalSeconds": 0.07
+  },
+  "touch": {
+    "deadzone": 0.15,
+    "stickTravel": 0.7
+  }
 }

@@ -12,6 +12,13 @@
   "playoffRounds": 2,
   "seriesWins": 2,
   "defaultDifficulty": 0.75,
+  "difficulties": [
+    { "id": "rookie", "name": "Rookie", "levelShift": -0.2, "description": "Opponents react slower and make more mistakes." },
+    { "id": "pro", "name": "Pro", "levelShift": 0, "description": "The standard game." },
+    { "id": "allstar", "name": "All-Star", "levelShift": 0.15, "description": "Opponents react sooner and make fewer mistakes." }
+  ],
+  "startingDifficulty": "pro",
+  "simPenalty": 4,
   "winCurrency": 20,
   "marginCurrency": 5,
   "maxMarginCurrency": 15,

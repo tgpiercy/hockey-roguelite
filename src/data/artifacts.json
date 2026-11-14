@@ -10,7 +10,7 @@
   { "id": "soft-hands", "name": "Soft hands", "description": "Harder to check off the puck.", "modifiers": [{ "stat": "puckSecurity", "op": "add", "value": 0.08 }] },
   { "id": "bruisers-code", "name": "Bruiser's code", "description": "Your checks land more often.", "modifiers": [{ "stat": "checkStrength", "op": "add", "value": 0.08 }] },
   { "id": "crisp-passes", "name": "Passing clinic", "description": "Passes are a little faster and much straighter.", "modifiers": [{ "stat": "passSpeedScale", "op": "mul", "value": 1.05 }, { "stat": "passSpreadDegrees", "op": "mul", "value": 0.6 }] },
-  { "id": "season-tickets", "name": "Season-ticket drive", "description": "25% more run currency from wins.", "modifiers": [{ "stat": "currencyGain", "op": "mul", "value": 1.25 }] },
+  { "id": "season-tickets", "name": "Season-ticket drive", "description": "25% more Pucks from wins.", "modifiers": [{ "stat": "currencyGain", "op": "mul", "value": 1.25 }] },
   { "id": "friendly-vendor", "name": "Friendly vendor", "description": "Shop prices are 20% lower.", "modifiers": [{ "stat": "shopPrice", "op": "mul", "value": 0.8 }] },
   { "id": "skills-coach", "name": "Skills coach", "description": "Training stops give 2 more rating points.", "modifiers": [{ "stat": "trainingBonus", "op": "add", "value": 2 }] }
 ]

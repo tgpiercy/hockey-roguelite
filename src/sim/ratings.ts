@@ -37,6 +37,12 @@ export interface SkaterEffects {
   chargedShotScale: number;
   /** Above 0, his flat passes cannot be picked off in the lane. 0 unless a modifier changes it. */
   passThrough: number;
+  /** Shot-speed scale for a one-timer: a shot let go just after receiving a pass, which also counts as fully charged. 1 unless a modifier changes it. */
+  oneTimerScale: number;
+  /** Above 0, his body checks at high closing speed always knock the puck loose. 0 unless a modifier changes it. */
+  bigHitKnock: number;
+  /** Top-speed scale while carrying the puck with no opposing skater between him and the net. 1 unless a modifier changes it. */
+  breakawaySpeedScale: number;
 }
 
 /** What a goalie's ratings do on the ice. */
@@ -83,6 +89,9 @@ export function skaterEffects(r: SkaterRatings): SkaterEffects {
     carrySpeedScale: 1,
     chargedShotScale: 1,
     passThrough: 0,
+    oneTimerScale: 1,
+    bigHitKnock: 0,
+    breakawaySpeedScale: 1,
   };
 }
 

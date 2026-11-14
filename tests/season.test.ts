@@ -301,11 +301,9 @@ describe('starting a season', () => {
     expect(started().season.map).toEqual(started().season.map);
   });
 
-  it('during the season the dressed skaters can swap spots, but the spare cannot come in', () => {
+  it('during the season the dressed skaters can swap spots', () => {
     const f = started();
     const team = userTeam(f.league);
-    const spare = skatersOn(f.league, team).find((p) => !f.season.dressed.includes(p.id))!;
-    expect(setSeasonLineupSlot(f, 0, 0, spare.id).ok).toBe(false);
     const other = team.lineup.line2[0]!;
     expect(setSeasonLineupSlot(f, 0, 0, other).ok).toBe(true);
     expect(team.lineup.line1[0]).toBe(other);

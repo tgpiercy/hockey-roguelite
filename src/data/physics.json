@@ -46,6 +46,7 @@
   "shot": {
     "tapTime": 0.18,
     "chargeTime": 0.9,
+    "oneTimerWindow": 0.5,
     "wristSpeed": 22,
     "maxSpeed": 38,
     "powerFloor": 0.6,
@@ -73,6 +74,7 @@
   "check": {
     "bodyRange": 1.5,
     "minClosingSpeed": 2.5,
+    "bigHitClosingSpeed": 5,
     "bodyBaseChance": 0.6,
     "pokeRange": 1.9,
     "pokeConeDegrees": 80,

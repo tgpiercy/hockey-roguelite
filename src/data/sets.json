@@ -6,7 +6,7 @@
     "rating": "shooting",
     "bonuses": [
       { "pieces": 2, "description": "+10% shot power", "modifiers": [{ "stat": "shotPower", "op": "mul", "value": 1.1 }] },
-      { "pieces": 4, "description": "A fully charged shot is 20% harder", "modifiers": [{ "stat": "chargedShotScale", "op": "mul", "value": 1.2 }] }
+      { "pieces": 4, "description": "One-timers: a shot let go within half a second of receiving a pass counts as fully charged and is 20% harder", "modifiers": [{ "stat": "oneTimerScale", "op": "mul", "value": 1.2 }] }
     ]
   },
   {
@@ -16,7 +16,7 @@
     "rating": "checking",
     "bonuses": [
       { "pieces": 2, "description": "+5 checking", "modifiers": [{ "stat": "rating.checking", "op": "add", "value": 5 }] },
-      { "pieces": 4, "description": "Checks land much more often", "modifiers": [{ "stat": "checkStrength", "op": "add", "value": 0.3 }] }
+      { "pieces": 4, "description": "Big hits: a body check at speed always knocks the puck loose", "modifiers": [{ "stat": "bigHitKnock", "op": "add", "value": 1 }] }
     ]
   },
   {
@@ -26,7 +26,7 @@
     "rating": "speed",
     "bonuses": [
       { "pieces": 2, "description": "+5 speed", "modifiers": [{ "stat": "rating.speed", "op": "add", "value": 5 }] },
-      { "pieces": 4, "description": "8% faster while carrying the puck", "modifiers": [{ "stat": "carrySpeedScale", "op": "mul", "value": 1.08 }] }
+      { "pieces": 4, "description": "Breakaway: 12% faster with the puck when no defender is between him and the net", "modifiers": [{ "stat": "breakawaySpeedScale", "op": "mul", "value": 1.12 }] }
     ]
   },
   {

@@ -1,9 +1,10 @@
+import seasonRules from '../data/season.json';
 import { newClub, newOffseasonState, newPrestigeState, newSeasonState, type Franchise } from './season';
 
 export { emptyRecord, type TeamRecord } from './season';
 
 /** Bump this whenever the shape of a save changes, and add a step to `migrations`. */
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 /** A save is the franchise plus a version number and a date. */
 export interface SaveFile extends Franchise {
@@ -68,6 +69,12 @@ const migrations: Record<number, (old: Record<string, unknown>) => Record<string
       ...newClub(seed, season),
     };
   },
+  // Version 6 added the difficulty choice and the route walked on the map. An older franchise plays on the standard level.
+  5: (old) => ({
+    ...old,
+    difficulty: seasonRules.startingDifficulty,
+    season: { ...newSeasonState(), ...(isObject(old.season) ? old.season : {}) },
+  }),
 };
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -94,6 +101,7 @@ function problemWith(save: Record<string, unknown>): string | null {
   if (!Array.isArray(save.gear) || !Array.isArray(save.packs)) return 'it has no gear or pack list';
   if (typeof save.tape !== 'number') return 'it has no tape count';
   if (!isObject(save.prestige) || !isObject(save.offseason)) return 'it has no prestige or off-season record';
+  if (typeof save.difficulty !== 'string') return 'it does not say how hard the game is';
   if (typeof save.cash !== 'number' || typeof save.value !== 'number' || !isObject(save.ledger)) return 'it has no finances';
   if (!Array.isArray(save.staff) || !Array.isArray(save.staffPool) || !isObject(save.facilities) || !isObject(save.mascot)) return 'it has no staff, facilities or mascot';
   return null;

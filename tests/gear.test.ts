@@ -295,8 +295,8 @@ describe('sets', () => {
     const worn = slots.map(sniper);
     expect(has(worn.slice(0, 1), 'shotPower')).toBe(false);
     expect(has(worn.slice(0, 2), 'shotPower')).toBe(true);
-    expect(has(worn.slice(0, 3), 'chargedShotScale')).toBe(false);
-    expect(has(worn.slice(0, 4), 'chargedShotScale')).toBe(true);
+    expect(has(worn.slice(0, 3), 'oneTimerScale')).toBe(false);
+    expect(has(worn.slice(0, 4), 'oneTimerScale')).toBe(true);
     expect(has(worn.slice(0, 4), 'shotPower')).toBe(true);
     expect(setCounts(worn)).toEqual({ sniper: 4 });
   });

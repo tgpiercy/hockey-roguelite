@@ -46,6 +46,12 @@ export function goalieOf(world: World, team: 0 | 1): Player | null {
   return world.players.find((p) => p.onIce && p.team === team && p.role === 'goalie') ?? null;
 }
 
+/** True if no opposing skater on the ice is between this player and the net he attacks: a breakaway. */
+export function clearAhead(world: World, p: Player): boolean {
+  const dir = attackDir(p.team);
+  return !world.players.some((o) => o.onIce && o.role === 'skater' && o.team !== p.team && (o.pos.x - p.pos.x) * dir > 0);
+}
+
 export function otherTeam(team: 0 | 1): 0 | 1 {
   return team === 0 ? 1 : 0;
 }

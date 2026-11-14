@@ -44,6 +44,8 @@ export interface SkaterParams {
   accuracy: number;
   /** Speed scale for a fully charged shot. Left out means 1. */
   chargedShotScale?: number;
+  /** Given when this shot is a one-timer: it counts as fully charged and its speed is scaled by this. */
+  oneTimer?: number;
 }
 
 /** The moving body of a player. */
@@ -153,6 +155,8 @@ export interface Player extends Skater {
   energy: number;
   /** True while heading to the bench on a line change. */
   leaving: boolean;
+  /** Seconds left in which a shot counts as a one-timer: set when he receives a pass meant for him. */
+  oneTimer: number;
   /** Talent ids he carries (mascots do); see talents.ts. Empty for ordinary players. */
   talents: string[];
   /** Seconds until each talent can trigger again, by talent id. */

@@ -44,7 +44,10 @@ export function stepChecking(world: World, p: Player, input: InputFrame, t: Tuni
   const swing = (strength - carrier.fx.puckSecurity) * t.check.ratingSwing;
   const base = kind === 'body' ? t.check.bodyBaseChance : t.check.pokeBaseChance;
   // A spin move turns a check that would have worked into one that does not.
-  const success = world.rng.chance(base + swing) && !spinEscape(carrier, events);
+  const rolled = world.rng.chance(base + swing);
+  // Some gear makes a body check at high closing speed a big hit, which always frees the puck.
+  const bigHit = kind === 'body' && p.fx.bigHitKnock > 0 && closingSpeed(p, carrier) >= t.check.bigHitClosingSpeed;
+  const success = (rolled || bigHit) && !spinEscape(carrier, events);
 
   if (kind === 'body') {
     p.vel.x *= t.check.checkerSpeedKeep;

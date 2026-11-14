@@ -60,7 +60,7 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 
 - Tuning numbers live in `src/data` and never in code.
 - Every rule in `src/core` has a unit test.
-- Placeholder shapes only, no art (until Phase 9).
+- No image or font files: menus are HTML and CSS, the rink is drawn in code.
 - Ask before adding a dependency.
 - `docs/GDD.md` is the source of truth for design; `docs/DECISIONS.md` records anything we decide that it does not cover.
 
@@ -78,6 +78,7 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 
 ## How the season run fits together
 
+- `src/core/quickGame.ts` settles a game from team strength without simulating it; the season uses it for "Simulate" and the health checks use it for whole seasons.
 - `src/core/season.ts` is the season as a state machine. `Franchise` (league, record, season state, artifacts) is everything that is saved. Every action (`startSeason`, `travel`, `recordGame`, `train`, `chooseEvent`, `buy`, `healStrike`, `leaveShop`, `pickArtifact`, `setLoadout`, `endSeason`) takes the franchise, changes it, and returns `{ ok, message }` or `{ ok: false, reason }` written for the player. `matchup(f)` gives the game waiting to be played, or null.
 - `src/core/seasonMap.ts` generates the map from a seed; `src/core/bosses.ts` builds boss teams and ranks the AI teams by strength.
 - Content is data: `src/data/season.json` (map shape, strikes, rewards, prices, AI level by region), `powerups.json`, `artifacts.json`, `events.json`, `bosses.json`. Tests in `tests/season.test.ts` check every entry is valid, so new content only needs a data entry.
@@ -92,7 +93,7 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - Tables: `src/data/gear.json` (slots, rarity table, which ratings each slot boosts, level costs, scrap values), `sets.json`, `perks.json`, `packs.json`, `milestones.json`.
 - Gear lives on the franchise (`gear`, `packs`, `tape`), not on players: `wornBy` on a piece names who has it on. Releasing a player goes through `releasePlayer`, which sends his gear back to the inventory.
 - Gear uses the modifier system (as do staff and facilities, see below). A rating boost is a modifier with a stat like `rating.shooting`; `matchup.dress` applies those to the ratings (so the grade and cap hit, which come from the stored ratings, never move) and passes the rest (perks, set bonuses) to the simulation as that player's own modifiers through `TeamSetup.skaterModifiers` and `goalieModifiers`.
-- Four abilities exist only for modifiers to switch on, and are off by default: `carrySpeedScale`, `chargedShotScale`, `passThrough` (skaters) and `periodAutoSaves` (goalies).
+- Seven abilities exist only for modifiers to switch on, and are off by default: `carrySpeedScale`, `chargedShotScale`, `passThrough`, `oneTimerScale`, `bigHitKnock`, `breakawaySpeedScale` (skaters) and `periodAutoSaves` (goalies). The set bonuses in `sets.json` use the last three skater ones.
 - `season.recordGame` awards the pack for a win and a Gold pack for each milestone the game completes.
 - `tests/gear.test.ts` includes the 100,000-pack check of the rarity table and the pity timer.
 
@@ -121,6 +122,19 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - Screens: Finances, Staff (and hiring), Facilities, Mascot, in `App.tsx`; reachable in and out of season.
 - Tests are in `tests/club.test.ts`, including 20 seasons under three manager styles. After changing any economy number, run `npm run seasons` and update `docs/TUNING.md`.
 
+## How the look fits together
+
+- Every colour and size the menus use is a CSS variable at the top of `src/style.css`. Do not hard-code colours in components.
+- `src/ui/Menu.tsx` is still every screen: the list on the left, and a side panel with the screen's facts (`header`) above the focused item's `detail`. `stack` puts the facts across the top instead, for screens that are mostly to read (rewards, pack reveal). `onFocus` tells the screen which item is focused (the season map lights it up). The help line draws "A ..." and "B ..." as button glyphs.
+- The top bar's strip of cap space, cash, tape and Pucks is `Wallet` in `parts.tsx`, handed to every `Menu` through the `MenuChrome` context in `App.tsx`.
+- Shared pieces in `parts.tsx`: `PlayerRow`, `Ratings` and `RatingBar` (bars from 40 to 99), `Meter`, `CapLine`, `Dots`. In `App.tsx`, `tile(...)` makes a hub-style row (bold name, what it is, optional badge or lock).
+- The hub is the primary actions plus four groups (`team`, `office`, `collection`, `settings` screens). `home()` goes back to the group the player came through; `top()` goes to the very top.
+- `src/ui/SeasonMap.tsx` draws one region of the map as SVG from `season.map`, `season.visited` (the route walked) and the stops that can be reached.
+- After a season game `recordGame` (or `simulateGame`) returns `rewards`, and the `rewards` screen steps through it.
+- The rink is drawn in code in `src/game/RinkScene.ts` (`drawRink`, `drawPlayers`, `drawPuck`, `drawHud`); every colour and proportion is in `src/data/rinkLook.json`. Team colours come from `src/core/teamColours.ts`.
+- Touch: `src/game/touch.ts` holds the shared touch state and turns it into an `InputFrame` (pure, tested); `src/ui/TouchControls.tsx` is the overlay that writes it; `InputReader` merges it with the controller and keyboard.
+- **Seeing the game when the app window is hidden.** Ordinary screenshots time out then. What works: in the page, serialise the DOM into an SVG `foreignObject`, draw it to a canvas, and POST the PNG to a small local Node receiver; for the rink, step a frame (`__game.loop.step`) and copy `__game.canvas` in the same task. Then read the PNG file. The SVG's size sets the viewport, so 844 x 390 gives a phone-landscape layout whatever the real window is.
+
 ## How the on-ice game fits together
 
 - `src/sim/world.ts`: `createGame(tuning, seed, options)` starts a full game; `createWorld(...)` starts a scrimmage (endless play, no clock, faceoffs or line changes; used by most tests). `step(world, humanInput, tuning)` advances either by one fixed step of 1/60 second and returns the events that happened. Nothing else advances the game.
@@ -140,7 +154,8 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 ## Notes for future sessions
 
 - On the ice it is 3 skaters and a goalie a side; 6 skaters and 1 goalie are dressed (two lines of 3). Where a prompt in `docs/IMPLEMENTATION_PLAN.md` says 2 skaters, 4 skaters or lines of 2, `docs/GDD.md` and `docs/DECISIONS.md` win.
-- The plain link opens the Hub menu. "Start the season" begins a run; "Exhibition game" is a one-off that does not count. The Phase 0 controller read-out is at `?controller`.
+- The plain link opens the hub. "Start the season" begins a run; "Exhibition" is a one-off that does not count. The Phase 0 controller read-out is at `?controller`.
+- Difficulty (`f.difficulty`, set in Settings between seasons) shifts opponent AI level only. Ordinary map games can be simulated (`simulateGame`); the run currency is called Pucks in everything the player reads (the field is still `season.currency`).
 - Keyboard fallback: arrows or WASD skate, Space shoot, Z or J pass and faceoff draw, X or K check, C or L switch player, Q line change (LB), 1 and 2 powerups (LT and RB), Shift sprint, Tab tuning, I AI debug overlay (View button).
 - Balance (AI against AI, level 0.5) meets the Phase 3 targets. Human against AI is not balanced yet: a scripted player that only skates to the slot and shoots still wins about two games in three at the default difficulty of 0.75.
 - In local development `window.__game` is the Phaser game. When the browser tab is hidden, animation frames stop; drive them by hand with `__game.loop.step(timeMs)`.

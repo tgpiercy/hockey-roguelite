@@ -262,6 +262,19 @@ What it shows:
 
 That is a profit of $11.6M, where the plan's first numbers gave a loss of $2.6M. A season that ends after 5 games still makes about $4M on the starting payroll. So the starting team is safe; the squeeze comes as the payroll grows toward the $35M cap and from choosing between players, staff and buildings ($270M to build everything).
 
+## Set bonuses and difficulty (design round, 2026-11-14)
+
+| Value | Where | Now | Note |
+| --- | --- | --- | --- |
+| One-timer window | `physics.json` shot.oneTimerWindow | 0.5 s | After receiving a pass meant for him |
+| One-timer shot scale | `sets.json` Sniper 4 | 1.2 | On top of counting as fully charged |
+| Big-hit closing speed | `physics.json` check.bigHitClosingSpeed | 5 m/s | The ordinary body check needs 2.5 |
+| Breakaway speed scale | `sets.json` Burner 4 | 1.12 | With the puck and nobody ahead |
+| Difficulty level shift | `season.json` difficulties | -0.2, 0, +0.15 | Added to every opponent's AI level, held between 0 and 1 |
+| Simulate penalty | `season.json` simPenalty | 4 rating points | Taken off your side in a simulated game |
+
+All are first guesses. The three set mechanics are off for a player without the set, so the equal-teams balance series is unchanged (3.37 and 3.16 goals, save percentage .855) and the 20-season reports are unchanged.
+
 ## Change log
 
 | Date | Value | From | To | Why |
