@@ -37,6 +37,39 @@ h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity
 .bar-fill { position: absolute; top: 0; bottom: 0; background: #ffd166; }
 .row.on .bar-fill { background: #0b2545; }
 
+/* Rink page: the game fills the screen; the tuning panel slides over the right side. */
+#tune, #hint { display: none; }
+.mode-rink #game { flex: 1 1 100%; }
+.mode-rink #panel { display: none; }
+.mode-rink.panel-open #panel {
+  display: block; position: fixed; top: 0; right: 0; bottom: 0; width: 44%; max-width: 380px;
+  background: rgba(11, 37, 69, 0.93); z-index: 5; touch-action: pan-y;
+}
+.mode-rink #tune {
+  display: block; position: fixed; top: 6px; left: 6px; z-index: 4;
+  font: inherit; color: #e8f4fb; background: rgba(19, 49, 92, 0.85);
+  border: 1px solid rgba(232, 244, 251, 0.4); border-radius: 4px; padding: 4px 10px;
+}
+.mode-rink #hint:not([hidden]) {
+  display: block; position: fixed; left: 50%; top: 64%; transform: translateX(-50%); z-index: 3;
+  width: max-content; max-width: 90%; text-align: center; padding: 5px 12px; border-radius: 4px;
+  background: rgba(11, 37, 69, 0.88); color: #ffd166; font-weight: 700; pointer-events: none;
+}
+
+.tuning-head { display: flex; align-items: center; gap: 6px; }
+.tuning-head strong { flex: 1; font-size: 15px; }
+.tuning button {
+  font: inherit; color: #e8f4fb; background: #13315c;
+  border: 1px solid rgba(232, 244, 251, 0.4); border-radius: 4px; padding: 3px 8px;
+}
+.tuning-help { font-size: 11px; opacity: 0.7; margin: 4px 0; }
+.tuning-status { color: #ffd166; margin-bottom: 4px; }
+.tuning-row { display: flex; align-items: center; gap: 6px; padding: 2px 4px; border-radius: 3px; font-variant-numeric: tabular-nums; }
+.tuning-row.selected { background: rgba(255, 209, 102, 0.25); outline: 1px solid #ffd166; }
+.tuning-row.changed .val { color: #ffd166; font-weight: 700; }
+.tuning-row .val { width: 4em; text-align: center; }
+.tuning-row button { min-width: 30px; padding: 3px 0; }
+
 #rotate { display: none; }
 @media (orientation: portrait) {
   #rotate {

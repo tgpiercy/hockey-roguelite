@@ -12,6 +12,10 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-13 | Which random number generator? | sfc32, seeded from a hashed string, in `src/core/rng.ts`. `fork(label)` gives each subsystem its own repeatable stream. `Math.random` is banned in `src` by a test. | Phase 0 |
 | 2026-11-13 | Which versions? | Node.js 26 LTS. Phaser 4.2.1 (current stable), Preact 11.2.0, Vite 8.3.8, Vitest 5.1.0, TypeScript 7.0.2, all pinned exactly. | Phase 0 |
 | 2026-11-13 | How is the controller read? | The browser's Gamepad API directly (`src/game/gamepad.ts`), not Phaser's gamepad plugin. | Phase 0 |
+| 2026-11-13 | Start Phase 1 before the Phase 0 controller test? | Yes. The Phase 0 page is still at `?controller`. No `phase-0` tag until the test passes with a real controller. | Phase 1 |
+| 2026-11-13 | Keyboard controls? | Yes, as a fallback for checking things on a computer: arrows or WASD skate, Space shoots, Shift sprints, Tab opens tuning. Feel is judged on the controller. | Phase 1 |
+| 2026-11-13 | Units and step | Metres and seconds. The simulation always advances 60 fixed steps a second; a fast puck is moved in shorter sub-steps so it cannot pass through a post or the netting. | Phase 1 |
+| 2026-11-13 | Can the puck be carried into the net? | Yes, it counts as a goal. Revisit when goalies arrive in Phase 2. | Phase 1 |
 
 ## Open
 

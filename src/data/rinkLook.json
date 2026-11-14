@@ -1,0 +1,27 @@
+{
+  "colours": {
+    "background": "#0b2545",
+    "ice": "#e8f4fb",
+    "boards": "#13315c",
+    "redLine": "#d62828",
+    "blueLine": "#1d6fb8",
+    "crease": "#a9d6f5",
+    "net": "#8d99ae",
+    "post": "#d62828",
+    "skater": "#1d3557",
+    "skaterSprint": "#e76f51",
+    "stick": "#5c4033",
+    "puck": "#111111",
+    "barBack": "#13315c",
+    "stamina": "#2a9d8f",
+    "staminaLocked": "#8d99ae",
+    "charge": "#ffd166",
+    "text": "#e8f4fb"
+  },
+  "marginPixels": 10,
+  "blueLineFraction": 0.17,
+  "creaseRadius": 2,
+  "lineWidth": 0.12,
+  "boardWidth": 0.25,
+  "stickLength": 1.1
+}

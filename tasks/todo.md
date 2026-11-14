@@ -1,25 +1,29 @@
 # Phase 0: setup
 
-- [x] Install Node.js LTS (v26.13.1)
-- [x] Scaffold: package.json, tsconfig (strict) plus DOM-free tsconfig for core and sim, Vite config, folders
-- [x] Seeded random number generator in `src/core/rng.ts` with tests
-- [x] Rule test: no forbidden imports or DOM in core and sim; no `Math.random` anywhere
-- [x] Controller test page: rink, square on the left stick, read-out of every button and axis, connect message
-- [x] Web app manifest and placeholder icons
-- [x] GitHub Actions workflow: type check, test, build, deploy to Pages
-- [x] `CLAUDE.md`
-- [x] Install dependencies, pin versions, record Phase 0 decisions in `docs/DECISIONS.md`
-- [x] Type check, tests and build pass locally
-- [x] Page checked in a browser (simulated controller)
-- [x] Commit and push
-- [ ] Pages switched on (owner) and deploy green
-- [ ] Exit test on the phone (owner)
+Built, deployed and checked with a simulated controller. Still open:
+
+- [ ] Exit test on the phone with the real controller, at `?controller` (owner)
+- [ ] Tag `phase-0` once it passes
+
+# Phase 1: skating and puck
+
+- [x] Data: `physics.json`, `controls.json`, `rinkLook.json`
+- [x] Rink geometry, boards, nets and collisions
+- [x] Puck: friction, bounces, pickup, carry
+- [x] Skater: momentum, turning, glide, braking, sprint and stamina
+- [x] Shooting: tap and charge, aim, power and accuracy parameters
+- [x] World step, goal detection, reset after a goal
+- [x] Tests for all of the above, plus exact replay from a seed
+- [x] Rink scene, controller and keyboard input, stamina and charge bars
+- [x] Tuning panel with export
+- [x] Docs: `TUNING.md`, `DECISIONS.md`, `CLAUDE.md`
+- [x] Checked in a browser
+- [ ] Commit, push, deploy green
+- [ ] Exit test on the phone: skating and shooting at an empty net is fun for 5 minutes (owner)
 
 ## Review
 
-- Type check, 24 tests and the production build pass locally.
-- A deliberate bad file in `src/core` (Phaser import, `src/game` import, `document`, `Math.random`) failed three rule tests and the DOM-free type check; it was removed afterwards.
-- Browser check on this PC with a simulated controller: the connect message shows, then the read-out lists 4 axes and 17 buttons with the right labels and highlights pressed ones; no console errors. The movement code moves the square at the set speed, ignores readings inside the dead zone and stops at the boards.
-- Not checked: the square moving on screen frame by frame (the browser pane was hidden, which pauses animation), and a real controller on a real phone. Both are covered by the phone test.
-- First deploy run: install, type check, tests and build passed on GitHub; the Pages step failed because Pages was not yet switched on.
-- The built script is about 1.4 MB (363 kB compressed) because it includes all of Phaser. Fine for now; revisit in Phase 9 with offline caching.
+- Type check, 86 tests and the build pass.
+- Browser check on this PC (frames driven by hand because the pane was hidden): with the keyboard the skater reached top speed, picked up the puck, sprinted (stamina drained), charged a shot, shot and scored; the goal pause and reset ran. With a simulated controller the left stick skated, RT sprinted, Menu opened the tuning panel, the d-pad chose and changed a value with hold-to-repeat, and the change was kept in the browser. Export offered `physics.json`; Reset restored the defaults. No console errors. The `?controller` page still loads.
+- Not checked: real-time play at full frame rate, touch on a phone, a real controller, and above all how it feels. Those are the owner's test.
+- Cut or simplified: the puck is always collected on contact (no bouncing off a skater at high speed); the skater can carry the puck into the net for a goal; no sound.

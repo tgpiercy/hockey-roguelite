@@ -1,0 +1,64 @@
+{
+  "rink": {
+    "length": 52,
+    "width": 26,
+    "cornerRadius": 7,
+    "goalLineFromEnd": 4,
+    "boardBounce": 0.6
+  },
+  "net": {
+    "mouthWidth": 2.6,
+    "depth": 1.3,
+    "postRadius": 0.12,
+    "postBounce": 0.7,
+    "nettingBounce": 0.15
+  },
+  "skater": {
+    "radius": 0.55,
+    "acceleration": 28,
+    "topSpeed": 9.5,
+    "glideDrag": 0.8,
+    "brakeDecel": 22,
+    "turnRateSlow": 9,
+    "turnRateFast": 3.2,
+    "facingTurnRate": 14,
+    "overspeedDrag": 3,
+    "sprintSpeedBoost": 1.35,
+    "sprintAccelBoost": 1.25,
+    "wallBounce": 0.1
+  },
+  "stamina": {
+    "drainPerSecond": 0.28,
+    "recoverPerSecond": 0.18,
+    "recoverDelay": 0.6,
+    "lockoutUntil": 0.25
+  },
+  "puck": {
+    "radius": 0.16,
+    "drag": 0.35,
+    "slideDecel": 1.5,
+    "pickupRadius": 1,
+    "pickupCooldown": 0.35,
+    "carryForward": 0.9,
+    "carrySide": 0.45,
+    "carryFollow": 25
+  },
+  "shot": {
+    "tapTime": 0.18,
+    "chargeTime": 0.9,
+    "wristSpeed": 22,
+    "maxSpeed": 38,
+    "powerFloor": 0.6,
+    "maxSpreadDegrees": 14,
+    "minSpreadDegrees": 1.5,
+    "skaterSpeedShare": 0.3
+  },
+  "player": {
+    "shotPower": 0.7,
+    "accuracy": 0.7
+  },
+  "game": {
+    "goalPauseSeconds": 1.5,
+    "skaterStartX": -6
+  }
+}
