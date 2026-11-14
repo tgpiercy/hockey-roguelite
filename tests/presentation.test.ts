@@ -5,10 +5,9 @@ import { colourDistance, teamColour } from '../src/core/teamColours';
 import audio from '../src/data/audio.json';
 import crestRules from '../src/data/crests.json';
 import prestigeRules from '../src/data/prestige.json';
-import { crowdLift, cuesFor, skateLevel, soundSeconds, type SoundName } from '../src/game/soundMap';
+import { crowdLift, cuesFor, soundSeconds, type SoundName } from '../src/game/soundMap';
 import { cloneTuning } from '../src/sim/tuning';
 import type { SimEvent } from '../src/sim/types';
-import { createWorld } from '../src/sim/world';
 import { DEFAULT_PREFS, parsePrefs, VOLUME_STEPS } from '../src/ui/prefs';
 
 describe('team crests', () => {
@@ -112,21 +111,15 @@ describe('which sound goes with what', () => {
     expect(crowdLift([{ type: 'pass', player: 0, target: 1, saucer: false }])).toBe(0);
     expect(crowdLift([])).toBe(0);
   });
-
-  it('skate noise follows how fast the skaters are moving, and stops when play does', () => {
-    const world = createWorld(t, 'skates', { human: false });
-    expect(skateLevel(world)).toBe(0);
-    for (const p of world.players) if (p.role === 'skater') p.vel = { x: audio.skate.fullSpeed / 2, y: 0 };
-    expect(skateLevel(world)).toBeCloseTo(0.5);
-    for (const p of world.players) if (p.role === 'skater') p.vel = { x: 50, y: 0 };
-    expect(skateLevel(world)).toBe(1);
-    world.phase = 'goal';
-    expect(skateLevel(world)).toBe(0);
-  });
 });
 
 describe('the sound recipes', () => {
   const sounds = Object.keys(audio.sounds) as SoundName[];
+
+  it('there is no skating sound: it was removed after listening', () => {
+    expect(audio).not.toHaveProperty('skate');
+    expect(sounds).not.toContain('skate');
+  });
 
   it('every sound the game asks for has a recipe', () => {
     const asked: SoundName[] = ['horn', 'roar', 'groan', 'shot', 'pass', 'post', 'save', 'hit', 'poke', 'tap', 'drop', 'whistle', 'chime', 'tick', 'select', 'back', 'reveal', 'legendary'];

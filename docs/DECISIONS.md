@@ -115,6 +115,7 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Pack opening | A sealed pack, then its cards face down, turned one at a time with a glow in the rarity colour, or all at once. | Graphics round |
 | 2026-11-14 | Motion | Screens settle in, bars fill, the focus changes smoothly. All switched off when the device asks for reduced motion. | Graphics round |
 | 2026-11-14 | Not done from the plan | Numbers counting up on the rewards screen, a sweeping stick, and the net bulging on a goal were planned and not built. The closer camera was not chosen. | Graphics round |
+| 2026-11-14 | Skating sound | Removed after the owner listened: the constant skate noise was unwanted. The other sounds stay as they are. | Graphics round |
 
 ## Open
 

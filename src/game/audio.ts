@@ -1,7 +1,7 @@
 import data from '../data/audio.json';
 import type { Tuning } from '../sim/tuning';
 import type { SimEvent, World } from '../sim/types';
-import { crowdLift, cuesFor, skateLevel, type Cue, type SoundName } from './soundMap';
+import { crowdLift, cuesFor, type Cue, type SoundName } from './soundMap';
 
 /** One layer of a sound, as written in audio.json: a tone or a burst of noise with a short envelope. */
 interface Layer {
@@ -79,8 +79,8 @@ export function playSound(ctx: Context, out: AudioNode, noise: AudioBuffer, name
 }
 
 /**
- * The game's sound: one-off sounds for what happens, and two beds that run all the time on the ice,
- * the crowd and the skates. Browsers only allow sound after the player has pressed or tapped something,
+ * The game's sound: one-off sounds for what happens, and the crowd, a bed that runs all the time on the ice.
+ * Browsers only allow sound after the player has pressed or tapped something,
  * so nothing is created until `unlock()` is called from such a press.
  */
 export class GameAudio {
@@ -88,7 +88,6 @@ export class GameAudio {
   private master: GainNode | null = null;
   private noise: AudioBuffer | null = null;
   private crowdGain: GainNode | null = null;
-  private skateGain: GainNode | null = null;
   private beds: AudioBufferSourceNode[] = [];
   private crowd = 0;
   private enabled = true;
@@ -136,15 +135,14 @@ export class GameAudio {
     this.crowd = Math.max(this.crowd, crowdLift(events));
   }
 
-  /** Once per frame during a game: keeps the crowd and skate beds running at the right level. */
-  onFrame(world: World, seconds: number): void {
+  /** Once per frame during a game: keeps the crowd running at the right level. */
+  onFrame(seconds: number): void {
     this.crowd = Math.max(0, this.crowd - seconds * data.crowd.calmPerSecond);
     if (!this.enabled || !this.ctx || !this.master || !this.noise || this.ctx.state !== 'running') return;
     if (this.beds.length === 0) this.startBeds();
     const now = this.ctx.currentTime;
     const crowd = data.crowd.restGain + (data.crowd.maxGain - data.crowd.restGain) * this.crowd;
     this.crowdGain?.gain.setTargetAtTime(crowd, now, 0.15);
-    this.skateGain?.gain.setTargetAtTime(data.skate.maxGain * skateLevel(world), now, 0.08);
   }
 
   private startBeds(): void {
@@ -167,10 +165,9 @@ export class GameAudio {
       return gain;
     };
     this.crowdGain = bed(data.crowd.filter, data.crowd.freq, data.crowd.q);
-    this.skateGain = bed(data.skate.filter, data.skate.freq, data.skate.q);
   }
 
-  /** Stops the crowd and skates: call when a game ends. */
+  /** Stops the crowd: call when a game ends. */
   stopBeds(): void {
     for (const source of this.beds) {
       try {
@@ -181,7 +178,6 @@ export class GameAudio {
     }
     this.beds = [];
     this.crowdGain = null;
-    this.skateGain = null;
     this.crowd = 0;
   }
 }

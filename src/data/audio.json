@@ -11,13 +11,6 @@
     "shotLift": 0.35,
     "saveLift": 0.3
   },
-  "skate": {
-    "filter": "highpass",
-    "freq": 3200,
-    "q": 0.7,
-    "maxGain": 0.09,
-    "fullSpeed": 8
-  },
   "shotMinGain": 0.35,
   "sounds": {
     "pass": [

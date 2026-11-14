@@ -96,7 +96,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour 
       tuning: () => tuningStore.tuning,
       onControls,
       onEvents: (events, world, t) => gameAudio.onEvents(events, world, t),
-      onFrame: (world, _t, seconds) => gameAudio.onFrame(world, seconds),
+      onFrame: (_world, _t, seconds) => gameAudio.onFrame(seconds),
       onResult: (result) => render(<GameSummary result={result} teams={[home, away]} />, summary),
       onDone: (result) => {
         render(null, summary);

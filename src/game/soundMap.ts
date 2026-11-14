@@ -1,6 +1,6 @@
 import data from '../data/audio.json';
 import type { Tuning } from '../sim/tuning';
-import type { SimEvent, World } from '../sim/types';
+import type { SimEvent } from '../sim/types';
 
 export type SoundName = keyof typeof data.sounds;
 
@@ -72,18 +72,6 @@ export function crowdLift(events: readonly SimEvent[]): number {
     else if (e.type === 'save' || e.type === 'post') lift = Math.max(lift, data.crowd.saveLift);
   }
   return lift;
-}
-
-/** How loud the skate noise should be, 0 to 1, from how fast the skaters on the ice are moving. */
-export function skateLevel(world: World): number {
-  let total = 0;
-  let count = 0;
-  for (const p of world.players) {
-    if (!p.onIce || p.role !== 'skater') continue;
-    total += Math.hypot(p.vel.x, p.vel.y);
-    count += 1;
-  }
-  return count === 0 || world.phase !== 'play' ? 0 : Math.min(1, total / count / data.skate.fullSpeed);
 }
 
 /** How long a sound lasts, in seconds: its longest layer, counting any delay before the layer starts. */
