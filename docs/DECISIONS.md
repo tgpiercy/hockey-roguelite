@@ -129,6 +129,7 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Free agents | Sorted by best, cheapest or youngest (left and right), shown as all, forwards, defence or goalies (the Show row). The focused player is compared with the weakest player you have at his position, the one he would most likely replace. Sorting by position was replaced by the Show filter. | Interface round three |
 | 2026-11-14 | Trades | The offer is laid out side by side with the other team's answer between the two players, before and at the confirmation. | Interface round three |
 | 2026-11-14 | Prestige screen | Always open from the Front office: it shows the ladder of levels, the one you hold and what each gives, even when you cannot climb yet. | Interface round three |
+| 2026-11-14 | Where powerups are chosen | In Collection, beside Gear, during a season. The LT and RB tiles are gone from the game screen (asked for by the owner) and the Powerups row is gone from Team; the game poster still says what each button has loaded. | After interface round three |
 
 ## Open
 

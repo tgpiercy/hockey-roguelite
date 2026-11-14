@@ -666,3 +666,6 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .chip-empty { width: 34px; height: 34px; border-radius: 50%; border: 2px dashed var(--dim); }
 .bench { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
 .bench-player { display: inline-flex; align-items: center; gap: 5px; background: var(--bg-deep); border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px 1px 2px; }
+
+.poster-loadout { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--ice); }
+.poster-loadout .icon { color: var(--accent); flex: none; }

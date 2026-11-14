@@ -159,8 +159,6 @@ const TILE_ICONS: Record<string, IconName> = {
   exhibition: 'exhibition',
   contracts: 'contracts',
   bailout: 'bailout',
-  'load-0': 'powerups',
-  'load-1': 'powerups',
 };
 const BUTTONS = ['LT', 'RB'];
 
@@ -310,9 +308,9 @@ export function App() {
   const earlyLock = f.books.length === 0 ? 'Opens after your first season.' : undefined;
   /** The four groups every hub screen ends with. */
   const groupItems = (): MenuItem[] => [
-    tile('team', 'Team', locked ? 'Roster, lineup, powerups, mascot' : 'Roster, lineup, free agents, trades, mascot', () => openGroup('team'), { badge: f.offseason.pending.length }),
+    tile('team', 'Team', locked ? 'Roster, lineup, mascot' : 'Roster, lineup, free agents, trades, mascot', () => openGroup('team'), { badge: f.offseason.pending.length }),
     tile('office', 'Front office', 'Finances, staff, facilities, prestige', () => openGroup('office')),
-    tile('collection', 'Collection', 'Packs, gear, artifacts, jersey', () => openGroup('collection'), { badge: f.packs.length }),
+    tile('collection', 'Collection', locked ? 'Packs, gear, powerups, artifacts, jersey' : 'Packs, gear, artifacts, jersey', () => openGroup('collection'), { badge: f.packs.length }),
     tile('settings', 'Settings', `Difficulty: ${difficultyInfo(f.difficulty).name} · save and load`, () => openGroup('settings')),
   ];
   const bump = (id: string): number => season.bumps[id] ?? 0;
@@ -558,7 +556,7 @@ export function App() {
 
     /** The four groups as dashboard tiles, for the foot of every in-season screen. */
     const groupCards = (): MenuItem[] => [
-      card('team', 'Team', 'Lineup, players, powerups', () => openGroup('team')),
+      card('team', 'Team', 'Lineup, players, mascot', () => openGroup('team')),
       card('office', 'Front office', `Cash ${money(f.cash)}`, () => openGroup('office')),
       card('collection', 'Collection', f.packs.length > 0 ? `${f.packs.length} to open` : `${f.gear.length} pieces`, () => openGroup('collection'), { badge: f.packs.length }),
       card('settings', 'Settings', 'Sound, detail, save', () => openGroup('settings')),
@@ -618,6 +616,11 @@ export function App() {
                 )}
                 <span>{isHomeGame(season.gamesPlayed + 1) ? 'Home' : 'Road'}</span>
               </div>
+              <div class="poster-loadout">
+                <Icon name="powerups" size={16} />
+                {loadoutLine}
+                <span class="note">Change in Collection</span>
+              </div>
             </MatchupPoster>
           }
           help="A select · left/right and up/down move"
@@ -631,23 +634,6 @@ export function App() {
                   }),
                 ]
               : []),
-            ...BUTTONS.map((button, slot): MenuItem => {
-              const id = season.loadout[slot];
-              return {
-                key: `load-${slot}`,
-                label: (
-                  <span class="dash-tile">
-                    <Icon name={id ? powerupIcon(id) : 'powerups'} size={26} />
-                    <span class="dash-text">
-                      <span class="dash-name">{button} powerup</span>
-                      <span class="dash-status">{id ? powerupInfo(id).name : 'Empty'}</span>
-                    </span>
-                  </span>
-                ),
-                detail: id ? powerupInfo(id).description : 'Choose a powerup to trigger with this button during the game.',
-                onSelect: () => go({ name: 'load', slot }),
-              };
-            }),
             ...groupCards(),
           ]}
         />
@@ -1660,7 +1646,6 @@ export function App() {
           tile('trade', 'Trade', 'One player for one player', () => go({ name: 'tradeTeams' }), {
             lock: locked ? 'Trades happen in the off-season.' : pending > 0 ? 'Decide your expiring contracts first.' : undefined,
           }),
-          ...(locked ? [tile('powerups', 'Powerups', `${season.powerups.length} in the bag`, () => go({ name: 'powerups' }))] : []),
           tile('mascot', 'Mascot', f.mascot.name, () => go({ name: 'mascot' })),
         ]}
       />
@@ -1707,6 +1692,13 @@ export function App() {
             detail: 'Packs are earned by winning season games and by reaching milestones.',
           }),
           tile('gear', 'Gear', `${f.gear.length} pieces · ${f.tape} tape`, () => go({ name: 'gear' }), { detail: 'Equip, level up with tape, or scrap for tape.' }),
+          ...(locked
+            ? [
+                tile('powerups', 'Powerups', `${season.powerups.length} in the bag`, () => go({ name: 'powerups' }), {
+                  detail: 'Choose what LT and RB trigger in a game. Powerups are used up, and any left over are lost when the season ends.',
+                }),
+              ]
+            : []),
           tile('artifacts', 'Artifacts', `${f.artifacts.length} owned`, () => go({ name: 'artifacts' }), { detail: 'Always on, and kept from season to season until you prestige.' }),
           tile('jersey', 'Jersey', unlockedJerseys(f)[f.prestige.jersey]?.name ?? '', () => go({ name: 'jersey' }), { detail: 'The colour your team wears on the ice.' }),
         ]}
@@ -2182,16 +2174,15 @@ export function App() {
         items={[
           ...BUTTONS.map((button, slot) => {
             const id = season.loadout[slot];
-            return {
-              key: `slot-${slot}`,
-              label: `${button}: ${id ? powerupInfo(id).name : 'empty'}`,
-              detail: id ? powerupInfo(id).description : 'Nothing loaded on this button.',
-              onSelect: () => go({ name: 'load', slot }),
-            };
+            return tile(`slot-${slot}`, `${button} button`, id ? powerupInfo(id).name : 'Empty', () => go({ name: 'load', slot }), {
+              icon: id ? powerupIcon(id) : 'powerups',
+              primary: true,
+              detail: id ? powerupInfo(id).description : 'Nothing loaded on this button. Press A to choose.',
+            });
           }),
           ...[...counts.entries()].map(([id, count]) => {
             const p = powerupInfo(id);
-            return { key: id, label: `${p.name}${count > 1 ? ` ×${count}` : ''}`, detail: p.description, disabled: true };
+            return tile(id, p.name, count > 1 ? `×${count} in the bag` : 'In the bag', () => undefined, { icon: powerupIcon(id), detail: p.description, disabled: true });
           }),
         ]}
       />
@@ -2205,18 +2196,13 @@ export function App() {
         key={screenKey}
         title={`${BUTTONS[screen.slot]} powerup`}
         header={distinct.length === 0 ? 'Your bag is empty. Win games, visit shops or take your chances at events.' : 'Choose what this button triggers in the next game.'}
-        onBack={home}
+        onBack={() => go({ name: 'powerups' })}
         items={[
-          { key: 'none', label: 'Nothing', onSelect: () => after(setLoadout(f, screen.slot, null), { name: 'home' }) },
+          { key: 'none', label: 'Nothing', onSelect: () => after(setLoadout(f, screen.slot, null), { name: 'powerups' }) },
           ...distinct.map((id) => {
             const p = powerupInfo(id);
             const count = season.powerups.filter((x) => x === id).length;
-            return {
-              key: id,
-              label: `${p.name}${count > 1 ? ` ×${count}` : ''}`,
-              detail: p.description,
-              onSelect: () => after(setLoadout(f, screen.slot, id), { name: 'home' }),
-            };
+            return tile(id, p.name, count > 1 ? `×${count}` : '', () => after(setLoadout(f, screen.slot, id), { name: 'powerups' }), { icon: powerupIcon(id), detail: p.description });
           }),
         ]}
       />
