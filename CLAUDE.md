@@ -63,6 +63,18 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - Ask before adding a dependency.
 - `docs/GDD.md` is the source of truth for design; `docs/DECISIONS.md` records anything we decide that it does not cover.
 
+## How the franchise side fits together
+
+- Rules live in `src/core`, each with tests in `tests/player.test.ts` and `tests/league.test.ts`:
+  `player.ts` (overall, grade, cap hit), `names.ts`, `generate.ts` (seeded league), `league.ts` (the data shapes and lookups),
+  `roster.ts` (cap, sign, release, can the team play), `lineup.ts` (two lines of 3 and a goalie; auto-fill; repair),
+  `save.ts` (save document, version check, migration steps), `matchup.ts` (a dressed lineup becomes the simulation's `TeamSetup`; a result updates the record).
+- Tables are in `src/data`: `grades.json` (bands and cap ranges), `overallWeights.json`, `league.json` (cap, roster sizes, how the league is generated), `names.json`.
+- Roster moves return `{ ok: true }` or `{ ok: false, reason }`; the reason is written to be shown to the player as it is.
+- A save is one JSON document with a `schemaVersion`. Loading always goes through `fromSave`. When the save shape changes, bump `SAVE_VERSION` and add a step to `migrations` in `save.ts`; never break old saves.
+- Menus are in `src/ui`: `App.tsx` holds every screen; each screen is one `Menu` (`Menu.tsx`), so all of them work the same way with the controller. `menuInput.ts` turns d-pad, left stick, A and B (and arrows, Enter, Escape) into menu moves. `storage.ts` is the IndexedDB wrapper; the game saves after every roster move, lineup change and game.
+- `matchView.tsx` starts a game on the ice between two dressed teams and tears it down when the player leaves the summary; the menus are hidden meanwhile.
+
 ## How the on-ice game fits together
 
 - `src/sim/world.ts`: `createGame(tuning, seed, options)` starts a full game; `createWorld(...)` starts a scrimmage (endless play, no clock, faceoffs or line changes; used by most tests). `step(world, humanInput, tuning)` advances either by one fixed step of 1/60 second and returns the events that happened. Nothing else advances the game.
@@ -82,7 +94,7 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 ## Notes for future sessions
 
 - On the ice it is 3 skaters and a goalie a side; 6 skaters and 1 goalie are dressed (two lines of 3). Where a prompt in `docs/IMPLEMENTATION_PLAN.md` says 2 skaters, 4 skaters or lines of 2, `docs/GDD.md` and `docs/DECISIONS.md` win.
-- The plain link opens the rink. The Phase 0 controller read-out is at `?controller`.
+- The plain link opens the Hub menu; a game starts from Play. The Phase 0 controller read-out is at `?controller`.
 - Keyboard fallback: arrows or WASD skate, Space shoot, Z or J pass and faceoff draw, X or K check, C or L switch player, Q line change (LB), Shift sprint, Tab tuning, I AI debug overlay (View button).
 - Balance (AI against AI, level 0.5) meets the Phase 3 targets. Human against AI is not balanced yet: a scripted player that only skates to the slot and shoots still wins about two games in three at the default difficulty of 0.75.
 - In local development `window.__game` is the Phaser game. When the browser tab is hidden, animation frames stop; drive them by hand with `__game.loop.step(timeMs)`.

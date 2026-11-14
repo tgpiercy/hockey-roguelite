@@ -235,6 +235,22 @@ describe('AI behaviour', () => {
     expect(player(world, ID.home3).pos.x).toBeLessThan(carrier.pos.x);
   });
 
+  it('support: a defenceman takes the trailing spot and the forward goes ahead, whatever their numbers', () => {
+    const world = setUp('positions');
+    clearIce(world, [ID.home1, ID.home2, ID.home3]);
+    place(world, ID.home1, 0, 4, 0);
+    place(world, ID.home2, -2, 2);
+    place(world, ID.home3, -2, 6);
+    // The lower-numbered helper would normally go ahead; as a defenceman he trails instead.
+    player(world, ID.home2).position = 'D';
+    giveTo(world, ID.home1);
+    player(world, ID.home1).stagger = 2;
+    play(world, 1.5);
+    const carrier = player(world, ID.home1);
+    expect(player(world, ID.home2).pos.x).toBeLessThan(carrier.pos.x);
+    expect(player(world, ID.home3).pos.x).toBeGreaterThan(carrier.pos.x);
+  });
+
   it('laneClear sees a defender standing in the way', () => {
     const world = setUp();
     clearIce(world, [ID.away1]);

@@ -62,7 +62,8 @@ Built, deployed and checked with a simulated controller. Still open:
 - [x] Tuned to the three targets (numbers in `docs/TUNING.md`)
 - [x] Scoreboard, faceoff cue, bench doors, line energy, end-of-game summary
 - [x] Checked in a browser
-- [ ] Commit, push, deploy green
+- [x] Commit, push, deploy green
+- [x] Aim assist and pass assist added at the owner's request
 - [ ] Exit test: a full game plays start to finish on the phone with the controller; go / no-go on whether it is fun (owner)
 
 ## Review (Phase 3)
@@ -77,3 +78,26 @@ Built, deployed and checked with a simulated controller. Still open:
   - During a line change a team is short-handed for a few seconds; the AI does not cover for that.
   - No one-timers; the AI never dumps the puck in.
 - Tried and removed: slowing the puck carrier a little so defenders can catch him. It lowered scoring without stopping the scripted player.
+
+# Phase 4: players and roster
+
+- [x] Player model: overall, grades, cap hit
+- [x] Names and the seeded league generator
+- [x] Roster rules: cap, sign, release, roster limit
+- [x] Lineup rules: two lines of 3 and a goalie, auto-fill, repair
+- [x] Save document with version check and migration; IndexedDB; export and import
+- [x] Menu system and screens: Hub, Roster, Free agents, Lineup, Play, Save and load
+- [x] Dressed lineups drive the game; positions on the ice; names in the summary
+- [x] Checked in a browser
+- [ ] Commit, push, deploy green
+- [ ] Exit test: build a legal roster under the cap, dress a lineup, play a game, close the page and find everything saved (owner)
+
+## Review (Phase 4)
+
+- Type check, 318 tests and the build pass. The uniform-team balance series is unchanged from Phase 3 (3.37 and 3.16 goals, save percentage .855).
+- Browser check, by keyboard: released a player (cap space rose), signed an A-grade free agent, was refused a second signing ("roster is full"), re-sorted the free agents, swapped a lineup spot, played and won a game (record 1-0-0, real names in the summary, opponent's name on the scoreboard), reloaded and found roster, lineup and record intact, lost a second game (1-1-0), exported the save, and started a new franchise after the confirmation. No console errors.
+- Not checked:
+  - Controller navigation in the menus. The browser pane was hidden, which stops the animation frames the controller polling runs on; only the keyboard path was exercised.
+  - Importing a save through the file picker (the reading and checking code behind it is unit tested).
+  - How the screens look: screenshots failed with the pane hidden, so layout on a phone is unseen.
+- Simplifications: contract years are stored but do not count down; AI teams never change their rosters; the hidden potential rating is generated but not used yet.

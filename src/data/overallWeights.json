@@ -1,0 +1,5 @@
+{
+  "F": { "shooting": 0.25, "passing": 0.2, "speed": 0.2, "puckControl": 0.2, "checking": 0.05, "stamina": 0.1 },
+  "D": { "shooting": 0.1, "passing": 0.2, "speed": 0.2, "puckControl": 0.15, "checking": 0.25, "stamina": 0.1 },
+  "G": { "reflexes": 0.4, "positioning": 0.35, "reboundControl": 0.15, "stamina": 0.1 }
+}

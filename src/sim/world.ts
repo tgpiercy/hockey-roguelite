@@ -30,6 +30,8 @@ export { STEP_SECONDS, STEPS_PER_SECOND } from './clock';
 export interface TeamSetup {
   skaters: SkaterRatings[];
   goalie: GoalieRatings;
+  /** Forward or defenceman for each skater, in the same order. Left out, everyone is a forward. */
+  positions?: ('F' | 'D')[];
 }
 
 export interface WorldOptions {
@@ -61,6 +63,7 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index:
     id,
     team,
     role,
+    position: role === 'goalie' ? 'G' : (options.teams?.[team].positions?.[index] ?? 'F'),
     fx: skaterEffects(role === 'skater' ? skater : defaultSkaterRatings),
     goalie: role === 'goalie' ? { fx: goalieEffects(goalie), seen: [], hold: 0, ignorePuck: 0 } : null,
     ai: createAiMemory(),

@@ -112,6 +112,8 @@ export interface Player extends Skater {
   /** Team 0 defends the left net and attacks right; team 1 the reverse. */
   team: 0 | 1;
   role: 'skater' | 'goalie';
+  /** Forward, defenceman or goalie. For skaters it only nudges where the AI sends them. */
+  position: 'F' | 'D' | 'G';
   fx: SkaterEffects;
   goalie: GoalieState | null;
   ai: AiMemory;

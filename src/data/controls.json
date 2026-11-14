@@ -32,5 +32,13 @@
     "sprint": ["ShiftLeft", "ShiftRight"],
     "menu": ["Tab"]
   },
+  "menuKeys": {
+    "up": ["ArrowUp", "KeyW"],
+    "down": ["ArrowDown", "KeyS"],
+    "left": ["ArrowLeft", "KeyA"],
+    "right": ["ArrowRight", "KeyD"],
+    "confirm": ["Enter", "Space", "KeyZ"],
+    "back": ["Escape", "Backspace", "KeyX"]
+  },
   "panelRepeat": { "delaySeconds": 0.35, "intervalSeconds": 0.07 }
 }

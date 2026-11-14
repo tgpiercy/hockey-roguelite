@@ -1,0 +1,14 @@
+{
+  "floorOverall": 40,
+  "capRounding": 50000,
+  "grades": [
+    { "grade": "S", "min": 95, "capMin": 11000000, "capMax": 13000000 },
+    { "grade": "A+", "min": 92, "capMin": 9500000, "capMax": 11000000 },
+    { "grade": "A", "min": 88, "capMin": 8000000, "capMax": 9500000 },
+    { "grade": "B+", "min": 83, "capMin": 6000000, "capMax": 8000000 },
+    { "grade": "B", "min": 78, "capMin": 4000000, "capMax": 6000000 },
+    { "grade": "C+", "min": 72, "capMin": 2750000, "capMax": 4000000 },
+    { "grade": "C", "min": 65, "capMin": 1500000, "capMax": 2750000 },
+    { "grade": "D", "min": 0, "capMin": 800000, "capMax": 1500000 }
+  ]
+}

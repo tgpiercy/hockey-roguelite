@@ -84,6 +84,46 @@ h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity
 .summary-goalie { margin-top: 4px; opacity: 0.85; }
 .summary-again { margin-top: 10px; font-weight: 700; color: #ffd166; animation: pulse 1.2s ease-in-out infinite alternate; }
 
+/* Menus: one list per screen, worked with the controller. */
+#menu { display: none; }
+.mode-menu #menu { display: block; position: fixed; inset: 0; z-index: 2; }
+.mode-menu #app, .mode-menu #tune, .mode-menu #hint { display: none; }
+.menu {
+  height: 100%; display: flex; flex-direction: column; gap: 4px; font-size: 14px;
+  padding: max(8px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+}
+.menu-title { display: flex; align-items: center; gap: 10px; }
+.menu-title h1 { font-size: 20px; margin: 0; color: #ffd166; }
+.menu-back { font: inherit; color: #e8f4fb; background: #13315c; border: 1px solid rgba(232, 244, 251, 0.4); border-radius: 4px; padding: 2px 8px; }
+.menu-header { opacity: 0.9; line-height: 1.4; }
+.menu-message { color: #ffd166; font-weight: 700; }
+.menu-list { flex: 1; overflow-y: auto; min-height: 0; touch-action: pan-y; }
+.menu-item { padding: 5px 8px; border-radius: 4px; border: 1px solid transparent; cursor: pointer; }
+.menu-item.focused { background: rgba(255, 209, 102, 0.18); border-color: #ffd166; }
+.menu-item.disabled { opacity: 0.55; }
+.menu-detail { border-top: 1px solid rgba(232, 244, 251, 0.25); padding-top: 4px; min-height: 1.5em; }
+.menu-help { font-size: 11px; opacity: 0.65; }
+.warn { color: #ffd166; }
+
+.player-row { display: inline-flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+.player-row .ovr { width: 1.6em; font-weight: 700; }
+.player-row .pname { min-width: 9.5em; }
+.player-row .pos { width: 1em; opacity: 0.8; }
+.player-row .age { width: 2.2em; opacity: 0.8; }
+.player-row .cap { width: 4.2em; text-align: right; }
+.player-row .years { width: 1.6em; opacity: 0.8; }
+.player-row .note { opacity: 0.7; font-style: italic; }
+.grade { display: inline-block; width: 2em; text-align: center; border-radius: 3px; font-weight: 700; color: #0b2545; background: #8d99ae; }
+.grade-S { background: #ffd166; }
+.grade-Aplus, .grade-A { background: #f4a261; }
+.grade-Bplus, .grade-B { background: #2a9d8f; color: #fff; }
+.grade-Cplus, .grade-C { background: #a9d6f5; }
+.ratings { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; }
+.slot-row { display: inline-flex; align-items: baseline; gap: 10px; }
+.slot-name { width: 7.5em; opacity: 0.8; }
+.team-row { display: inline-flex; align-items: baseline; gap: 16px; }
+.team-row .tname { min-width: 12em; font-weight: 700; }
+
 #rotate { display: none; }
 @media (orientation: portrait) {
   #rotate {

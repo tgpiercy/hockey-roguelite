@@ -1,7 +1,10 @@
+import type { DressedTeam } from '../core/matchup';
 import type { GameResult, PlayerLine } from '../sim/match';
 
 interface Props {
   result: GameResult | null;
+  /** The two dressed teams, so players can be shown by name. */
+  teams: [DressedTeam, DressedTeam];
 }
 
 const minutes = (seconds: number): string => {
@@ -9,18 +12,20 @@ const minutes = (seconds: number): string => {
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
 };
 
-/** "L1 C" for the first line's centre, "L2 W" for a second-line winger, "G" for the goalie. */
-const position = (p: PlayerLine): string => (p.role === 'goalie' ? 'G' : `L${p.line + 1} ${p.slot === 0 ? 'C' : 'W'}`);
+/** Where a simulation player sits in his team's dressed list: line 1, line 2, then the goalie. */
+const indexInTeam = (p: PlayerLine): number => (p.role === 'goalie' ? 6 : p.line * 3 + p.slot);
 
-function TeamTable({ name, players }: { name: string; players: PlayerLine[] }) {
+function TeamTable({ team, players }: { team: DressedTeam; players: PlayerLine[] }) {
+  const named = (p: PlayerLine) => team.players[indexInTeam(p)];
   const skaters = players.filter((p) => p.role === 'skater');
   const goalies = players.filter((p) => p.role === 'goalie');
   return (
     <div class="summary-team">
-      <h2>{name}</h2>
+      <h2>{team.name}</h2>
       <table>
         <thead>
           <tr>
+            <th></th>
             <th></th>
             <th title="Goals">G</th>
             <th title="Assists">A</th>
@@ -32,7 +37,8 @@ function TeamTable({ name, players }: { name: string; players: PlayerLine[] }) {
         <tbody>
           {skaters.map((p) => (
             <tr key={p.id}>
-              <td>{position(p)}</td>
+              <td>{named(p)?.name ?? `Line ${p.line + 1}`}</td>
+              <td>{named(p)?.position ?? ''}</td>
               <td>{p.goals}</td>
               <td>{p.assists}</td>
               <td>{p.shots}</td>
@@ -44,7 +50,7 @@ function TeamTable({ name, players }: { name: string; players: PlayerLine[] }) {
       </table>
       {goalies.map((p) => (
         <div class="summary-goalie" key={p.id}>
-          Goalie: {p.saves} saves, {p.goalsAgainst} against
+          {named(p)?.name ?? 'Goalie'} (G): {p.saves} saves, {p.goalsAgainst} against
         </div>
       ))}
     </div>
@@ -52,21 +58,21 @@ function TeamTable({ name, players }: { name: string; players: PlayerLine[] }) {
 }
 
 /** End-of-game screen: final score and every player's line. */
-export function GameSummary({ result }: Props) {
+export function GameSummary({ result, teams }: Props) {
   if (!result || !result.finished) return null;
-  const [you, cpu] = result.score;
+  const [you, them] = result.score;
   const verdict = result.winner === 0 ? 'You win' : result.winner === 1 ? 'You lose' : 'Tie';
   return (
     <div class="summary">
       <h1>
-        {verdict}: {you} – {cpu}
+        {verdict}: {you} – {them}
         {result.overtime ? ' (OT)' : ''}
       </h1>
       <div class="summary-teams">
-        <TeamTable name="You" players={result.players.filter((p) => p.team === 0)} />
-        <TeamTable name="CPU" players={result.players.filter((p) => p.team === 1)} />
+        <TeamTable team={teams[0]} players={result.players.filter((p) => p.team === 0)} />
+        <TeamTable team={teams[1]} players={result.players.filter((p) => p.team === 1)} />
       </div>
-      <div class="summary-again">Press A (or Z) to play again</div>
+      <div class="summary-again">Press A (or Z) to continue</div>
     </div>
   );
 }

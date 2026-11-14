@@ -1,0 +1,13 @@
+{
+  "firstNames": [
+    "Aldo", "Bram", "Caspar", "Dov", "Emil", "Finn", "Gus", "Hale", "Ivo", "Joss",
+    "Kell", "Lars", "Marek", "Nils", "Otto", "Pavel", "Quinn", "Rafe", "Soren", "Tobin",
+    "Ulf", "Viggo", "Wes", "Xan", "Yuri", "Zane", "Anders", "Bo", "Cole", "Dario",
+    "Elio", "Flynn", "Gabe", "Hugo", "Isak", "Jonas", "Kai", "Leif", "Milo", "Nico"
+  ],
+  "surnameStarts": ["Vo", "Hal", "Bren", "Kor", "Dra", "Lund", "Mar", "Ten", "Ash", "Ro", "Quil", "Sten", "Fal", "Gry", "Ost", "Pell", "Tor", "Var", "Wyn", "Zel"],
+  "surnameMiddles": ["", "", "a", "e", "i", "o", "an", "er", "in", "ov"],
+  "surnameEnds": ["ss", "vek", "mark", "sen", "ric", "holt", "by", "ley", "dal", "ko", "ner", "wick", "ford", "stad", "vin", "gard"],
+  "teamPlaces": ["Northgate", "Eastmere", "Coldwater", "Pinehollow", "Greyport", "Larchfield", "Stonebridge", "Highmoor", "Saltmarsh", "Ironvale", "Birchwood", "Foxcombe", "Westhaven", "Redcliff", "Marlow Bay", "Ashdown"],
+  "teamNouns": ["Owls", "Lanterns", "Foxes", "Anvils", "Comets", "Otters", "Harriers", "Gulls", "Badgers", "Pikes", "Larks", "Stoats", "Miners", "Lamplighters", "Herons", "Tinkers"]
+}

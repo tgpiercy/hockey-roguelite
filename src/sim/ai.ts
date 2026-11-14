@@ -180,7 +180,10 @@ function planSupport(world: World, p: Player, t: Tuning): void {
     return;
   }
   const ref = carrier ? carrier.pos : world.puck.pos;
-  const helpers = availableSkaters(world, p.team).filter((s) => s.id !== carrier?.id);
+  // Forwards are first in line to go ahead; a defenceman takes the trailing spot.
+  const helpers = availableSkaters(world, p.team)
+    .filter((s) => s.id !== carrier?.id)
+    .sort((a, b) => Number(a.position === 'D') - Number(b.position === 'D') || a.id - b.id);
   const maxX = goalLineX(t) - P.slotDistance * 0.5;
   const clampX = (x: number): number => Math.max(-maxX, Math.min(maxX, x));
 

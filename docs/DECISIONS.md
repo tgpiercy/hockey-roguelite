@@ -37,7 +37,17 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-13 | Default opponent difficulty | 0.75 (was 0.5), because a scripted player that only skates to the slot and shoots beat level 0.5 easily. Balance targets are measured AI against AI at 0.5. | Phase 3 |
 | 2026-11-13 | Aim assist | The skater the human controls gets it; the AI does not. A shot pointed within 50 degrees of the net is steered to the corner further from the goalie; pointed anywhere else it is left alone. Strength, cone and corner inset are in `physics.json` under `aimAssist`. Added because aiming at the net from a keyboard's eight directions was too hard. | Phase 3 |
 | 2026-11-13 | Pass assist | For the skater the human controls only. Between teammates in the direction you point, one with a clear lane is preferred over one with an opponent in the way (a saucer pass ignores the lane). With the stick centred, the pass goes to the teammate with a clear lane and the most room. It never picks a teammate outside the aiming cone. Values are in `physics.json` under `passAssist`. | Phase 3 |
+| 2026-11-13 | What do F and D mean? | A tendency only. Any three skaters can form a line. Forwards are generated with better shooting, defencemen with better checking; when two teammates support the puck carrier, the forward goes ahead and the defenceman trails. | Phase 4 |
+| 2026-11-13 | Backup goalie? | None. One goalie per team; goalies tire but are never injured. | Phase 4 |
+| 2026-11-13 | Roster size | At most 7 skaters and 1 goalie. To sign when full, release first. A team needs 6 skaters and a goalie dressed to play. | Phase 4 |
+| 2026-11-13 | Cost of releasing a player | Nothing for now: he goes to the free-agent pool and his cap hit comes off at once. Revisit when contracts and cash matter (Phases 7 and 8). | Phase 4 |
+| 2026-11-13 | Grade bands | S 95+, A+ 92 to 94, A 88 to 91, B+ 83 to 87, B 78 to 82, C+ 72 to 77, C 65 to 71, D under 65. The GDD pairs (A+ / A and so on) are each split in two. | Phase 4 |
+| 2026-11-13 | Cap hit | Follows overall in a straight line through each grade's range from the GDD: S $11M to $13M, A+ $9.5M to $11M, A $8M to $9.5M, B+ $6M to $8M, B $4M to $6M, C+ $2.75M to $4M, C $1.5M to $2.75M, D $0.8M to $1.5M. Rounded to $50,000. | Phase 4 |
+| 2026-11-13 | Overall rating | A weighted average of the ratings. Forwards weigh shooting most, defencemen checking, goalies reflexes and positioning. Weights are in `src/data/overallWeights.json`. | Phase 4 |
+| 2026-11-13 | The league | Your team plus 12 AI teams whose average overall runs from about 66 to 80, and 24 free agents from D grade up to one A. Your team averages about 68. Everything is rebuilt exactly from the league seed. | Phase 4 |
+| 2026-11-13 | Who do you play? | Any AI team, chosen from a list, until the season run arrives in Phase 5. Wins, losses and overtime losses are kept. | Phase 4 |
+| 2026-11-13 | New signings and the lineup | A signing fills an empty lineup spot if there is one; otherwise he waits undressed and the game says so. | Phase 4 |
 
 ## Open
 
-The other 13 decisions in docs/IMPLEMENTATION_PLAN.md ("Decisions to settle") are still open. Settle the Phase 4 ones (F/D meaning, backup goalie) before Phase 4, and the rest before the phase that needs them.
+The Phase 5 to 9 decisions in docs/IMPLEMENTATION_PLAN.md ("Decisions to settle") are still open: season length, what a loss costs, powerups and artifacts, what a season resets, gear ownership, milestone targets, prestige, poaching, the mascot questions and the game name. Settle each before the phase that needs it.

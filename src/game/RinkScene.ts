@@ -7,7 +7,7 @@ import { goalLineX, nets } from '../sim/rink';
 import { chargeFraction } from '../sim/shot';
 import type { Tuning } from '../sim/tuning';
 import type { Player, World } from '../sim/types';
-import { createGame, step, STEP_SECONDS } from '../sim/world';
+import { createGame, step, STEP_SECONDS, type TeamSetup } from '../sim/world';
 import { InputReader, type Controls } from './input';
 
 const colour = (hex: string): number => Number.parseInt(hex.slice(1), 16);
@@ -17,14 +17,20 @@ const c = look.colours;
 const MAX_CATCH_UP_SECONDS = 0.25;
 
 export interface RinkSceneOptions {
-  /** A fresh seed for each game. A game replays exactly from its seed. */
-  nextSeed: () => string;
+  /** The seed for this game. A game replays exactly from its seed. */
+  seed: string;
+  /** The two dressed teams: the human's first. */
+  teams: [TeamSetup, TeamSetup];
+  /** What to call each team on the scoreboard. */
+  names: [string, string];
   /** The live tuning values; read every step, so the tuning panel takes effect at once. */
   tuning: () => Tuning;
   /** Called once per frame with the controls, for the menus. */
   onControls: (controls: Controls) => void;
-  /** Called with the result when a game ends, and with null when a new one starts. */
-  onResult: (result: GameResult | null) => void;
+  /** Called with the result when the game ends, to show the summary. */
+  onResult: (result: GameResult) => void;
+  /** Called when the player presses A on the summary: the game is over and can be torn down. */
+  onDone: (result: GameResult) => void;
 }
 
 const clockText = (seconds: number): string => {
@@ -47,6 +53,7 @@ export class RinkScene extends Phaser.Scene {
   private showDebug = false;
   private leftover = 0;
   private reported = false;
+  private done = false;
   private passWasDown = false;
 
   // World-to-screen transform, recalculated every frame so resizing just works.
@@ -70,17 +77,11 @@ export class RinkScene extends Phaser.Scene {
       .text(0, 0, '', { fontFamily: font, fontStyle: 'bold', color: c.redLine })
       .setOrigin(0.5, 0.5)
       .setVisible(false);
-    this.newGame();
+    this.world = createGame(this.options.tuning(), this.options.seed, { teams: this.options.teams });
+    this.events.once('destroy', () => this.reader.dispose());
     this.labels = this.world.players.map(() =>
       this.add.text(0, 0, '', { fontFamily: font, color: c.debugText }).setOrigin(0.5, 1).setVisible(false),
     );
-  }
-
-  private newGame(): void {
-    this.world = createGame(this.options.tuning(), this.options.nextSeed());
-    this.reported = false;
-    this.leftover = 0;
-    this.options.onResult(null);
   }
 
   override update(time: number, deltaMs: number): void {
@@ -95,8 +96,10 @@ export class RinkScene extends Phaser.Scene {
       if (!this.reported) {
         this.reported = true;
         this.options.onResult(gameResult(this.world));
-      } else if (passPressed) {
-        this.newGame();
+      } else if (passPressed && !this.done) {
+        this.done = true;
+        this.options.onDone(gameResult(this.world));
+        return;
       }
     } else {
       this.leftover += Math.min(deltaMs / 1000, MAX_CATCH_UP_SECONDS);
@@ -305,7 +308,8 @@ export class RinkScene extends Phaser.Scene {
     const period = world.overtime && world.period > t.period.count ? 'OT' : `P${Math.min(world.period, t.period.count)}`;
     this.scoreText.setFontSize(Math.max(12, height * 0.045));
     this.scoreText.setPosition(width / 2, this.sy(-hy) + look.marginPixels);
-    this.scoreText.setText(`You ${world.score[0]} – ${world.score[1]} CPU     ${period} ${clockText(world.clock)}`);
+    const [home, away] = this.options.names;
+    this.scoreText.setText(`${home} ${world.score[0]} – ${world.score[1]} ${away}     ${period} ${clockText(world.clock)}`);
 
     const message = this.message();
     this.bigText.setVisible(message !== '');

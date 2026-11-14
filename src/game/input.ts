@@ -30,15 +30,26 @@ export class InputReader {
   private navHeld = '';
   private navNextAt = 0;
 
+  private readonly onKeyDown = (e: KeyboardEvent): void => {
+    if (!allKeys.has(e.code)) return;
+    e.preventDefault();
+    this.keysDown.add(e.code);
+    this.hasKeyboard = true;
+  };
+  private readonly onKeyUp = (e: KeyboardEvent): void => void this.keysDown.delete(e.code);
+  private readonly onBlur = (): void => this.keysDown.clear();
+
   constructor() {
-    window.addEventListener('keydown', (e) => {
-      if (!allKeys.has(e.code)) return;
-      e.preventDefault();
-      this.keysDown.add(e.code);
-      this.hasKeyboard = true;
-    });
-    window.addEventListener('keyup', (e) => this.keysDown.delete(e.code));
-    window.addEventListener('blur', () => this.keysDown.clear());
+    window.addEventListener('keydown', this.onKeyDown);
+    window.addEventListener('keyup', this.onKeyUp);
+    window.addEventListener('blur', this.onBlur);
+  }
+
+  /** Stops listening to the keyboard. Call when the game that owns this reader ends. */
+  dispose(): void {
+    window.removeEventListener('keydown', this.onKeyDown);
+    window.removeEventListener('keyup', this.onKeyUp);
+    window.removeEventListener('blur', this.onBlur);
   }
 
   private key(codes: string[]): boolean {
