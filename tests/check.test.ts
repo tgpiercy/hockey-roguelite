@@ -19,11 +19,11 @@ const tuningWithChance = (chance: number) => {
 };
 const sure = tuningWithChance(1);
 
-/** Opponent carrier at centre facing +x; home checker `gap` metres behind him, moving at `speed` toward him. */
+/** Opponent carrier at centre, facing the home checker, who is `gap` metres away and moving at `speed` toward him. (A poke by your own skater works from in front or the side, not from behind.) */
 const setUp = (gap: number, speed: number, seed = 'check'): World => {
   const world = createWorld(sure, seed);
   clearIce(world, [ID.home1, ID.away1]);
-  place(world, ID.away1, 0, 0, 0);
+  place(world, ID.away1, 0, 0, Math.PI);
   giveTo(world, ID.away1);
   const checker = place(world, ID.home1, -gap, 0, 0);
   checker.vel = { x: speed, y: 0 };
@@ -408,12 +408,16 @@ describe('poke check', () => {
       place(world, ID.home1, world.puck.pos.x, -gap, Math.PI / 2);
       return world;
     };
-    // From a distance: the puck comes loose and the carrier is not staggered.
-    const far = at(sure.check.pokeRange - 0.3);
+    // From a distance, within sure reach: the puck comes loose and the carrier is not staggered.
+    const far = at(sure.checkAssist.pokeSureReach - 0.2);
     expect(checkKind(player(far, ID.home1), player(far, ID.away1), far, sure)).toBe('poke');
     expect(check(far)[0]).toMatchObject({ kind: 'poke', success: true });
     expect(far.puck.carrier).toBe(null);
     expect(player(far, ID.away1).stagger).toBe(0);
+    // At full stretch the stick gets there but does not take it: your own poke is settled by reach, not luck.
+    const stretched = at(sure.check.pokeRange - 0.2);
+    expect(check(stretched)[0]).toMatchObject({ kind: 'poke', success: false });
+    expect(stretched.puck.carrier).toBe(ID.away1);
     // Beyond the stick: nothing.
     const beyond = at(sure.check.pokeRange + 0.5);
     expect(checkKind(player(beyond, ID.home1), player(beyond, ID.away1), beyond, sure)).toBe(null);

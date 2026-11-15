@@ -313,6 +313,11 @@ export interface DifficultyInfo {
   /** Added to every opponent's AI level. */
   levelShift: number;
   description: string;
+  /** Added to the opponents' AI level in each region, and in the playoffs, on top of `levelShift`. Left out, nothing. */
+  regionShift?: number[];
+  playoffShift?: number;
+  /** Strikes added to the season's limit. Left out, none. */
+  extraStrikes?: number;
 }
 
 export const DIFFICULTIES = rules.difficulties as DifficultyInfo[];
@@ -467,7 +472,7 @@ function seasonSetupModifiers(f: Franchise): Modifier[] {
 
 /** How many strikes end the season: the usual number, less any a handicap takes. */
 export function maxStrikes(f: Franchise): number {
-  return Math.max(1, Math.round(stat(f, 'maxStrikes', rules.maxStrikes)));
+  return Math.max(1, Math.round(stat(f, 'maxStrikes', rules.maxStrikes + (difficultyInfo(f.difficulty).extraStrikes ?? 0))));
 }
 
 /** How many regions this season has. */
@@ -765,7 +770,7 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
     return {
       home,
       away,
-      level: clampLevel(rules.playoffLevel + sharper),
+      level: clampLevel(rules.playoffLevel + sharper + (difficultyInfo(f.difficulty).playoffShift ?? 0)),
       kind: 'playoff',
       title: `${round}, game ${season.playoffs.wins + season.playoffs.losses + 1}`,
       powerups: loaded,
@@ -774,7 +779,8 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
 
   const stop = currentStop(f);
   if (season.phase !== 'map' || !stop || season.stage !== 'arrived') return null;
-  const level = clampLevel((rules.regionLevels[stop.region] ?? rules.regionLevels[rules.regionLevels.length - 1]!) + sharper);
+  const eased = difficultyInfo(f.difficulty).regionShift ?? [];
+  const level = clampLevel((rules.regionLevels[stop.region] ?? rules.regionLevels[rules.regionLevels.length - 1]!) + sharper + (eased[stop.region] ?? eased[eased.length - 1] ?? 0));
   if (stop.kind === 'boss' && stop.bossId) {
     const boss = bossInfo(stop.bossId);
     return {

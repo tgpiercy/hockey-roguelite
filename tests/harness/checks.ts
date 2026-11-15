@@ -102,10 +102,9 @@ function measureCarry(world: World, t: Tuning, report: PlayReport, count: () => 
 }
 
 /**
- * How often a check succeeds from one fixed set-up: a carrier standing at centre, the checker a metre
- * behind him. `human` gives the checker the easier limits the player's own skater gets.
+ * How often a check succeeds from one fixed set-up: a carrier standing at centre, facing the checker. `human` gives the checker the easier limits the player's own skater gets.
  */
-export function checkRate(kind: 'poke' | 'body', human: boolean, trials: number, checking = 70, control = 70): number {
+export function checkRate(kind: 'poke' | 'body', human: boolean, trials: number, checking = 70, control = 70, gap = 2): number {
   const t = cloneTuning();
   let landed = 0;
   for (let i = 0; i < trials; i++) {
@@ -115,9 +114,10 @@ export function checkRate(kind: 'poke' | 'body', human: boolean, trials: number,
     away.skaters = away.skaters.map((s) => ({ ...s, puckControl: control }));
     const world = createWorld(t, `check-${kind}-${human}-${i}`, { human, teams: [home, away] });
     clearIce(world, [ID.home1, ID.away1]);
-    place(world, ID.away1, 0, 0, 0);
+    // The carrier faces the checker: a poke from in front, at `gap` metres between the two.
+    place(world, ID.away1, 0, 0, Math.PI);
     giveTo(world, ID.away1);
-    const checker = place(world, ID.home1, kind === 'body' ? -0.9 : -1.3, 0, 0);
+    const checker = place(world, ID.home1, kind === 'body' ? -0.9 : -gap, 0, 0);
     checker.vel = { x: kind === 'body' ? 4 : 0, y: 0 };
     const events: SimEvent[] = [];
     resolveCheck(world, player(world, ID.home1), kind === 'body', t, events, kind === 'body' ? 4 : 0);

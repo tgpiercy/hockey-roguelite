@@ -62,8 +62,22 @@ describe('the measurements', () => {
       const ai = checkRate(kind, false, 800);
       const you = checkRate(kind, true, 800);
       expect(you).toBeGreaterThan(ai);
-      expect(checkRate(kind, true, 800, 85, 55)).toBeGreaterThan(checkRate(kind, true, 800, 55, 85));
     }
+    expect(checkRate('body', true, 800, 85, 55)).toBeGreaterThan(checkRate('body', true, 800, 55, 85));
+  });
+
+  it('your own poke is settled by where you stand: the same spot always gives the same answer', () => {
+    // Close and in front: every time. At full stretch: never.
+    expect(checkRate('poke', true, 300, 70, 70, 2)).toBe(1);
+    expect(checkRate('poke', true, 300, 70, 70, 3.6)).toBe(0);
+    // At the edge of his reach a better checker gets there and a worse one does not.
+    const edge = cloneTuning().checkAssist.pokeSureReach + 0.9;
+    expect(checkRate('poke', true, 100, 90, 50, edge)).toBe(1);
+    expect(checkRate('poke', true, 100, 50, 90, edge)).toBe(0);
+    // The AI's poke is still a roll.
+    const ai = checkRate('poke', false, 800, 70, 70, 2);
+    expect(ai).toBeGreaterThan(0.15);
+    expect(ai).toBeLessThan(0.5);
   });
 
   it('a whole season is played by the scripted player and comes to an end', () => {

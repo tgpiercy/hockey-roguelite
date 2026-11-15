@@ -835,6 +835,12 @@ A poke by your skater is close to a coin toss from the same spot, which is where
 | Won the title | 12% | 8% | 5% | about 50% |
 | Games won of games played | 6.8 of 10.0 | 4.8 of 8.4 | 3.8 of 7.2 | |
 
+**After the owner's three decisions** (same measurements, re-run):
+
+- *Your poke is settled by position.* From within 2.2 m of the puck, anywhere but behind the carrier, it takes the puck every time; at full stretch or from behind, never. A better checker against a worse puck-handler reaches a little further. The AI's poke is still a roll (about 30%).
+- *A linemate goes to the net.* On the Balanced attack, your first helper heads for the net front once you are 6 m past centre. Tried from centre ice first: the scripted player's wins fell from 69 to 41 in 100 on the same games, because the helper left the lane where loose pucks fall. From 6 m: 70 wins, and a linemate is at the net 6% of the carry time, up from 2%.
+- *Rookie is easier late on.* Opponents' thinking drops a further 0.2 in region two and 0.3 in region three and the playoffs, and you have two more strikes. 40 Rookie seasons: first region cleared 92%, title 60% (before: 90% and 12%). Pro and All-Star are as they were.
+
 The first region is at the benchmark on Pro. The title is far below it: a first-season club strikes out in the second or third region nearly every time. The benchmark comes from a game where every run starts level; ours starts a weak club that is meant to grow over seasons, so the two are not the same thing. Not changed yet: the owner decides.
 
 ## Change log

@@ -322,6 +322,15 @@ function planSupport(world: World, p: Player, t: Tuning): void {
   const maxX = goalLineX(t) - P.slotDistance * 0.5;
   const clampX = (x: number): number => Math.max(-maxX, Math.min(maxX, x));
 
+  // When a person carries it up the ice, his first helper does not wait for the zone: he goes to the front of
+  // the net at once, hard, to be there for the rebound or the one-timer. (Crash sends both; the other tactics have their own ideas.)
+  const attack = world.teams[p.team].tactics?.attack ?? 'balanced';
+  if (carrier && attack === 'balanced' && humanOf(world, carrier.id) !== null && helpers[0]?.id === p.id && dir * ref.x > P.netRunFromX) {
+    const front = postSpot('netFront', p.team, ref, t);
+    goTo(p.ai, front.x, front.y, !inZone(p.team, p.pos.x));
+    return;
+  }
+
   // In the attacking zone the team spreads out: net-front, a wing and the point, not a crowd at the crease.
   if (inZone(p.team, ref.x)) {
     const post = postsFor(p.team, ref, helpers).get(p.id);

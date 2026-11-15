@@ -54,14 +54,35 @@ export interface CheckRules {
   bodyBonus: number;
   /** The wait after a check that reached nobody. */
   missCooldownSeconds: number;
+  /**
+   * For the player's own skater a poke is settled by where he stands, not by a roll: it works from within
+   * this reach of the puck, anywhere but behind the carrier (the arc, in degrees, round the way he is going).
+   * Zero for the AI, whose pokes are rolled.
+   */
+  pokeSureReach: number;
+  pokeFrontArcDegrees: number;
 }
 
 export function checkRules(world: World, p: Player, t: Tuning): CheckRules {
   const a = t.checkAssist;
   const helped = a.strength > 0 && humanOf(world, p.id) !== null;
   return helped
-    ? { pokeConeDegrees: a.pokeConeDegrees, bodyRange: a.bodyRange, minClosingSpeed: a.minClosingSpeed, bodyHoldSeconds: a.bodyHoldSeconds, pokeBonus: a.pokeChanceBonus, bodyBonus: a.bodyChanceBonus, missCooldownSeconds: a.missCooldownSeconds }
-    : { pokeConeDegrees: t.check.pokeConeDegrees, bodyRange: t.check.bodyRange, minClosingSpeed: t.check.minClosingSpeed, bodyHoldSeconds: t.check.bodyHoldSeconds, pokeBonus: 0, bodyBonus: 0, missCooldownSeconds: t.check.cooldownSeconds };
+    ? { pokeConeDegrees: a.pokeConeDegrees, bodyRange: a.bodyRange, minClosingSpeed: a.minClosingSpeed, bodyHoldSeconds: a.bodyHoldSeconds, pokeBonus: a.pokeChanceBonus, bodyBonus: a.bodyChanceBonus, missCooldownSeconds: a.missCooldownSeconds, pokeSureReach: a.pokeSureReach, pokeFrontArcDegrees: a.pokeFrontArcDegrees }
+    : { pokeConeDegrees: t.check.pokeConeDegrees, bodyRange: t.check.bodyRange, minClosingSpeed: t.check.minClosingSpeed, bodyHoldSeconds: t.check.bodyHoldSeconds, pokeBonus: 0, bodyBonus: 0, missCooldownSeconds: t.check.cooldownSeconds, pokeSureReach: 0, pokeFrontArcDegrees: 0 };
+}
+
+/**
+ * The player's own poke: it takes the puck if the stick is close enough and he is not reaching from behind
+ * the carrier. A better checker against a worse puck-handler reaches a little further, and the other way about.
+ * The same poke from the same spot always ends the same way.
+ */
+function surePoke(world: World, checker: Player, carrier: Player, rules: CheckRules, swing: number): boolean {
+  const reach = rules.pokeSureReach * (1 + swing);
+  if (dist(checker.pos, world.puck.pos) > reach) return false;
+  const moving = Math.hypot(carrier.vel.x, carrier.vel.y) > 0.5;
+  const heading = moving ? Math.atan2(carrier.vel.y, carrier.vel.x) : carrier.facing;
+  const toChecker = Math.atan2(checker.pos.y - carrier.pos.y, checker.pos.x - carrier.pos.x);
+  return Math.abs(wrapAngle(toChecker - heading)) <= (rules.pokeFrontArcDegrees * Math.PI) / 360;
 }
 
 /**
@@ -113,7 +134,9 @@ export function resolveCheck(world: World, p: Player, charged: boolean, t: Tunin
   const strength = p.fx.checkStrength * energyScale(p, t.energy.minCheckScale, t);
   const swing = (strength - carrier.fx.puckSecurity) * t.check.ratingSwing;
   const base = kind === 'body' ? t.check.bodyBaseChance + rules.bodyBonus : t.check.pokeBaseChance + rules.pokeBonus;
-  const rolled = world.rng.chance(base + swing);
+  // (The roll is always made, so the game's random stream is the same whoever is checking.)
+  const roll = world.rng.chance(base + swing);
+  const rolled = kind === 'poke' && rules.pokeSureReach > 0 ? surePoke(world, p, carrier, rules, swing) : roll;
   // Some gear makes a body check at high closing speed a big hit, which always frees the puck.
   const bigHit = kind === 'body' && p.fx.bigHitKnock > 0 && speed >= t.check.bigHitClosingSpeed;
   // A deke in progress slips the check. A spin move turns one that would have worked into one that does not.
