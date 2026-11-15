@@ -19,7 +19,7 @@ import { playerOf, rosterOf, skatersOn, teamOf, userTeam, type Team } from '../c
 import { autoLineup, dressedSkaters, lineupProblems } from '../core/lineup';
 import { costumeCost, dropInChance, mascotPower, mascotRating, nextTalentAt, talentInfo, upgradeCostume, userMascot, MASCOT_ID } from '../core/mascot';
 import { dress } from '../core/matchup';
-import { decideContract, finishSeason, resignCapHit } from '../core/offseason';
+import { decideContract, finishSeason, resignCapHit, beginSeason } from '../core/offseason';
 import { openPack, packName } from '../core/packs';
 import { canPrestige, jerseyColour, prestige, prestigeEffects, setJersey, unlockedJerseys } from '../core/prestige';
 import { canPlay, canSign, type MoveResult, deadCapFor } from '../core/roster';
@@ -494,7 +494,7 @@ export function App() {
                   }),
                 ]
               : []),
-            tile('start', 'Start the season', `Season ${league.season}: three regions, then the playoffs`, () => after(startSeason(f)), {
+            tile('start', 'Start the season', `Season ${league.season}: three regions, then the playoffs`, () => after(beginSeason(f)), {
               primary: pending === 0,
               wide: true,
               disabled: !ready.ok || pending > 0 || fireSale,
@@ -1323,7 +1323,7 @@ export function App() {
     const done = (result: MoveResult, note: string): void => {
       if (!result.ok) return after(result);
       const left = f.offseason.pending.length;
-      after({ ok: true, message: left > 0 ? note : `${note} The league has made its moves: see the news below.` }, { name: left > 0 ? 'contracts' : 'report' });
+      after({ ok: true, message: left > 0 ? note : `${note} You have first pick of the free agents: the other teams make their moves when you start the season.` }, { name: left > 0 ? 'contracts' : 'report' });
     };
     return (
       <Menu

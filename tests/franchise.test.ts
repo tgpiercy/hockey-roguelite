@@ -4,7 +4,7 @@ import { equip, rarityTable, RARITIES, wornBy, type GearItem } from '../src/core
 import { generateLeague } from '../src/core/generate';
 import { goaliesOn, playerOf, rosterOf, skatersOn, teamOf, userTeam } from '../src/core/league';
 import type { DressedTeam } from '../src/core/matchup';
-import { decideContract, finishSeason, leagueMoves, resignCapHit } from '../src/core/offseason';
+import { beginSeason, decideContract, finishSeason, leagueMoves, resignCapHit } from '../src/core/offseason';
 import { capHitOf, gradeOf, overallOf, type PlayerRecord } from '../src/core/player';
 import { canPrestige, jerseyColour, prestige, prestigeEffects, setJersey, unlockedJerseys } from '../src/core/prestige';
 import { autoOffseason, dressedStrength, leagueSnapshot, quickResult, quickSeason, winChance } from '../src/core/quickSeason';
@@ -343,7 +343,7 @@ describe('the end of a season', () => {
     expect(startSeason(f).ok).toBe(false);
   });
 
-  it('with no contracts to decide, the league moves straight away', () => {
+  it('with no contracts to decide, the league still waits for you: you have first pick of the free agents', () => {
     const f = seasonOver();
     for (const p of rosterOf(f.league, userTeam(f.league))) {
       p.age = 25;
@@ -351,6 +351,9 @@ describe('the end of a season', () => {
     }
     finishSeason(f);
     expect(f.offseason.pending).toEqual([]);
+    expect(f.offseason.leagueMoved).toBe(false);
+    expect(startSeason(f).ok).toBe(false);
+    expect(beginSeason(f).ok).toBe(true);
     expect(f.offseason.leagueMoved).toBe(true);
   });
 
@@ -397,7 +400,7 @@ describe('your expiring contracts', () => {
     expect(f.offseason.pending).toContain(a.id);
   });
 
-  it('letting him go sends him to the pool, and the league moves once the last decision is made', () => {
+  it('letting him go sends him to the pool, and the league moves only when you start the season', () => {
     const { f, a, b } = withExpiring();
     expect(decideContract(f, a.id, null)).toEqual({ ok: true });
     expect(userTeam(f.league).roster).not.toContain(a.id);
@@ -405,8 +408,10 @@ describe('your expiring contracts', () => {
     expect(f.offseason.leagueMoved).toBe(false);
     expect(decideContract(f, b.id, 2)).toEqual({ ok: true });
     expect(f.offseason.pending).toEqual([]);
-    expect(f.offseason.leagueMoved).toBe(true);
+    expect(f.offseason.leagueMoved).toBe(false);
     expect(decideContract(f, b.id, 2).ok).toBe(false);
+    leagueMoves(f);
+    expect(f.offseason.leagueMoved).toBe(true);
   });
 
   it('a good player you let go can be signed by an AI team, and the news says so', () => {
@@ -424,6 +429,7 @@ describe('your expiring contracts', () => {
     }
     decideContract(f, a.id, null);
     decideContract(f, b.id, 1);
+    leagueMoves(f);
     const owner = f.league.teams.find((team) => team.roster.includes(a.id));
     expect(owner).toBeDefined();
     expect(owner!.id).not.toBe(f.league.userTeamId);
@@ -438,6 +444,7 @@ describe('the league between seasons', () => {
       for (const p of Object.values(f.league.players)) p.contractYears = 1;
       finishSeason(f);
       for (const id of [...f.offseason.pending]) decideContract(f, id, null);
+      if (!f.offseason.leagueMoved) leagueMoves(f);
       expect(f.offseason.leagueMoved).toBe(true);
       for (const team of f.league.teams) {
         if (team.id === f.league.userTeamId) continue;
@@ -467,8 +474,12 @@ describe('the league between seasons', () => {
     const pool = f.league.freeAgents.map((id) => playerOf(f.league, id));
     expect(pool.filter((p) => p.position === 'G' && p.capHit <= offseasonRules.cheapCapHit).length).toBeGreaterThanOrEqual(offseasonRules.poolMinCheapGoalies);
     expect(pool.filter((p) => p.position !== 'G' && p.capHit <= offseasonRules.cheapCapHit).length).toBeGreaterThanOrEqual(offseasonRules.poolMinCheapSkaters);
-    expect(pool.length).toBeLessThanOrEqual(offseasonRules.poolTarget + offseasonRules.poolMinCheapSkaters + offseasonRules.poolMinCheapGoalies);
     for (const p of pool) expect(p.capHit).toBe(capHitOf(p.overall));
+    // Once the other teams have had their turn the pool is cut back to size, still with someone cheap in it.
+    leagueMoves(f);
+    const after = f.league.freeAgents.map((id) => playerOf(f.league, id));
+    expect(after.length).toBeLessThanOrEqual(offseasonRules.poolTarget + offseasonRules.poolMinCheapSkaters + offseasonRules.poolMinCheapGoalies);
+    expect(after.filter((p) => p.position !== 'G' && p.capHit <= offseasonRules.cheapCapHit).length).toBeGreaterThanOrEqual(offseasonRules.poolMinCheapSkaters);
   });
 
   it('every free agent is on offer with a contract term, even one whose contract had run out', () => {
@@ -481,6 +492,8 @@ describe('the league between seasons', () => {
     roster[0]!.contractYears = 1;
     finishSeason(f);
     decideContract(f, roster[0]!.id, null);
+    expect(f.offseason.poolOpened).toBe(true);
+    leagueMoves(f);
     expect(f.offseason.leagueMoved).toBe(true);
     for (const id of f.league.freeAgents) expect(playerOf(f.league, id).contractYears).toBeGreaterThanOrEqual(leagueRules.minContractYears);
   });
@@ -772,7 +785,7 @@ describe('saving the franchise loop', () => {
     const back = franchiseOf(loaded.save);
     expect(back).toEqual(f);
     expect(decideContract(back, back.offseason.pending[0]!, 2)).toEqual({ ok: true });
-    expect(back.offseason.leagueMoved).toBe(true);
+    expect(back.offseason.leagueMoved).toBe(false);
   });
 });
 

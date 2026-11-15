@@ -4,11 +4,11 @@ import { perkInfo, releasePlayer, type GearItem } from '../src/core/gear';
 import { generateLeague } from '../src/core/generate';
 import { playerOf, rosterOf, skatersOn, userTeam } from '../src/core/league';
 import { balancedLine, dress } from '../src/core/matchup';
-import { finishSeason, resignCapHit } from '../src/core/offseason';
+import { beginSeason, finishSeason, resignCapHit } from '../src/core/offseason';
 import { capHitOf, type PlayerRecord } from '../src/core/player';
 import { deadCapFor, payroll } from '../src/core/roster';
 import { hiddenFreeAgents, signPlayer } from '../src/core/scouting';
-import { newFranchise, type Franchise } from '../src/core/season';
+import { newFranchise, type Franchise, startSeason } from '../src/core/season';
 import { tradeValue } from '../src/core/trades';
 import { addXp, autoSpend, canGrow, spendPoint, xpForLevel } from '../src/core/xp';
 import economy from '../src/data/economy.json';
@@ -259,5 +259,61 @@ describe('the bigger roster', () => {
       expect(rosterOf(f.league, team).filter((p) => p.position !== 'G')).toHaveLength(leagueRules.rosterSkaters);
       expect(dress(f.league, team)).not.toBeNull();
     }
+  });
+});
+
+describe('first pick of the free agents', () => {
+  /** A finished first season with nothing of yours expiring. */
+  const offseason = (): Franchise => {
+    const f = fresh('first-pick');
+    for (const p of rosterOf(f.league, userTeam(f.league))) {
+      p.contractYears = 3;
+      p.age = 25;
+    }
+    for (const team of f.league.teams) if (team.id !== f.league.userTeamId) for (const id of team.roster.slice(0, 2)) playerOf(f.league, id).contractYears = 1;
+    f.season.phase = 'ended';
+    f.season.outcome = 'struckOut';
+    expect(finishSeason(f).ok).toBe(true);
+    return f;
+  };
+
+  it('after the season the pool is open, with rookies, and no other team has moved', () => {
+    const f = offseason();
+    expect(f.offseason.poolOpened).toBe(true);
+    expect(f.offseason.leagueMoved).toBe(false);
+    // The other teams still carry the players whose contracts ran out.
+    const expired = f.league.teams.filter((t) => t.id !== f.league.userTeamId).flatMap((t) => t.roster).filter((id) => playerOf(f.league, id).contractYears <= 0);
+    expect(expired.length).toBeGreaterThan(0);
+    expect(f.offseason.report!.news.join(' ')).toMatch(/first pick of the free agents/);
+    expect(f.offseason.report!.news.join(' ')).toMatch(/rookies/);
+  });
+
+  it('the best free agent is still there for you, and gone or signed once the league has moved', () => {
+    const f = offseason();
+    const hidden = hiddenFreeAgents(f);
+    const best = f.league.freeAgents.filter((id) => !hidden.has(id)).map((id) => playerOf(f.league, id)).sort((a, b) => b.overall - a.overall)[0]!;
+    expect(best.overall).toBeGreaterThan(70);
+    expect(f.league.freeAgents).toContain(best.id);
+    expect(beginSeason(f).ok).toBe(true);
+    expect(f.offseason.leagueMoved).toBe(true);
+    for (const team of f.league.teams) {
+      expect(rosterOf(f.league, team).every((p) => p.contractYears > 0)).toBe(true);
+      expect(dress(f.league, team)).not.toBeNull();
+    }
+  });
+
+  it('a season cannot start until the league has moved, and beginSeason sees to it', () => {
+    const f = offseason();
+    const refused = startSeason(f);
+    expect(refused.ok).toBe(false);
+    expect(beginSeason(f).ok).toBe(true);
+    expect(f.season.phase).toBe('map');
+  });
+
+  it('if your own side is not ready the league does not move yet', () => {
+    const f = offseason();
+    f.cash = -1;
+    expect(beginSeason(f).ok).toBe(false);
+    expect(f.offseason.leagueMoved).toBe(false);
   });
 });

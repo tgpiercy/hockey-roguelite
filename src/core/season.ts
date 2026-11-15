@@ -138,6 +138,8 @@ export interface OffseasonState {
   released: string[];
   /** False until the AI teams have made their moves and the rookies have arrived. */
   leagueMoved: boolean;
+  /** True once this off-season's rookies have arrived and the free-agent pool is open for you to pick from. */
+  poolOpened?: boolean;
   /** Players and staff who joined this off-season. Letting one of them go in a fire sale pays nothing. */
   signed: string[];
 }
@@ -398,14 +400,24 @@ export function availableStops(f: Franchise): Stop[] {
 
 // ---------- starting and ending ----------
 
-/** Locks in the dressed lineup and generates the season's map. */
-export function startSeason(f: Franchise): ActionResult {
+/** Whether your side of things is ready for a season: contracts decided, cash not below zero, a lineup that can play. */
+export function canStartSeason(f: Franchise): ActionResult {
   if (f.season.phase !== 'offseason') return refuse('A season is already under way.');
   if (f.offseason.pending.length > 0) return refuse('Decide your expiring contracts first.');
   if (f.cash < 0) return refuse('You are out of cash. Raise money before the season can start.');
+  const ready = canPlay(f.league, userTeam(f.league));
+  return ready.ok ? done() : refuse(ready.reason);
+}
+
+/**
+ * Locks in the dressed lineup and generates the season's map. The rest of the league must have made its
+ * off-season moves first: start a season through `beginSeason` in offseason.ts, which sees to that.
+ */
+export function startSeason(f: Franchise): ActionResult {
+  const mine = canStartSeason(f);
+  if (!mine.ok) return mine;
+  if (!f.offseason.leagueMoved) return refuse('The other teams have not made their off-season moves yet.');
   const team = userTeam(f.league);
-  const ready = canPlay(f.league, team);
-  if (!ready.ok) return refuse(ready.reason);
 
   const season = newSeasonState();
   season.phase = 'map';

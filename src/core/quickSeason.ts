@@ -11,7 +11,7 @@ import { totals } from './ledger';
 import { goaliesOn, playerOf, rosterOf, skatersOn, userTeam } from './league';
 import { autoLineup } from './lineup';
 import type { DressedTeam } from './matchup';
-import { decideContract, finishSeason, resignCapHit } from './offseason';
+import { decideContract, finishSeason, resignCapHit, beginSeason, leagueMoves } from './offseason';
 import { openPack } from './packs';
 import { capHitOf } from './player';
 import type { Rng } from './rng';
@@ -186,12 +186,14 @@ export function autoOffseason(f: Franchise, style: ManagerStyle = 'none'): Offse
   }
   team.lineup = autoLineup(league, team);
   for (const pack of [...f.packs]) openPack(f, pack.id);
+  // It has had its pick of the free agents: now the rest of the league moves.
+  if (f.season.phase === 'offseason' && !f.offseason.leagueMoved && f.offseason.pending.length === 0) leagueMoves(f);
   return money;
 }
 
 /** Plays one whole season quickly: random legal choices on the map, games settled from strength. */
 export function quickSeason(f: Franchise, rng: Rng): void {
-  if (!startSeason(f).ok) return;
+  if (!beginSeason(f).ok) return;
   for (let guard = 0; guard < 400 && f.season.phase !== 'ended'; guard++) {
     const game = matchup(f);
     if (f.season.stage === 'reward') {

@@ -14,7 +14,7 @@ import { createNameMaker, type NameMaker } from './names';
 import { capHitOf, type PlayerRecord, type Position } from './player';
 import { createRng, type Rng } from './rng';
 import { payroll, type MoveResult } from './roster';
-import { endSeason, type ActionResult, type Franchise, type OffseasonReport, type RatingChange } from './season';
+import { endSeason, type ActionResult, type Franchise, type OffseasonReport, type RatingChange, canStartSeason, startSeason } from './season';
 import { tickTenure } from './scouting';
 import { tickStaff } from './staff';
 import { addXp, withAgeBonus } from './xp';
@@ -124,7 +124,9 @@ export function finishSeason(f: Franchise): ActionResult {
   // Staff contracts tick, a new staff pool arrives, and your players are a season better known.
   report.news.push(...tickStaff(f));
   tickTenure(f);
-  if (pending.length === 0) leagueMoves(f);
+  // The pool opens with this year's rookies. The rest of the league waits: you have first pick, and the other teams move when you start the season.
+  openPool(f);
+  report.news.push('You have first pick of the free agents: the other teams make their moves when you start the season.');
   return { ok: true, message: 'The season is over. Here is what changed.' };
 }
 
@@ -174,7 +176,6 @@ export function decideContract(f: Franchise, playerId: string, years: number | n
     player.contractYears = years;
   }
   f.offseason.pending = f.offseason.pending.filter((id) => id !== playerId);
-  if (f.offseason.pending.length === 0 && !f.offseason.leagueMoved) leagueMoves(f);
   return { ok: true };
 }
 
@@ -234,23 +235,48 @@ function fillRoster(f: Franchise, team: Team, rng: Rng, names: NameMaker, nextId
 }
 
 /**
+ * Starts the next season. First, if they have not yet, the other teams make their off-season moves: you
+ * have had first pick of the free agents, and they take what is left.
+ */
+export function beginSeason(f: Franchise): ActionResult {
+  const mine = canStartSeason(f);
+  if (!mine.ok) return mine;
+  if (!f.offseason.leagueMoved) leagueMoves(f);
+  return startSeason(f);
+}
+
+/**
  * The rest of the league's off-season: AI teams re-sign or drop their expiring players, then sign free
  * agents (including anyone you let go) until every roster is full and legal; a rookie class arrives;
  * and the free-agent pool is refreshed and kept to a sensible size.
  */
 export function leagueMoves(f: Franchise): void {
+  moves(f, 'teams');
+}
+
+/**
+ * Opens the free-agent pool for the off-season, before any team has moved: the rookie class arrives, there
+ * is always a goalie and someone cheap to sign, and everyone is on offer at today's price. You pick from
+ * it first; the other teams take their turn in `leagueMoves`.
+ */
+export function openPool(f: Franchise): void {
+  moves(f, 'pool');
+}
+
+function moves(f: Franchise, part: 'pool' | 'teams'): void {
   const { league } = f;
-  const rng = createRng(`${league.seed}/league-moves/${league.season}`);
+  const rng = createRng(`${league.seed}/${part === 'pool' ? 'pool' : 'league-moves'}/${league.season}`);
   const names = createNameMaker(rng.fork('names'), Object.values(league.players).map((p) => p.name));
   let made = 0;
-  const nextId = (): string => `p-s${league.season}-${String(++made).padStart(3, '0')}`;
+  // The two parts make players of their own, so their ids must not clash.
+  const nextId = (): string => `p-${part === 'pool' ? 'r' : 's'}${league.season}-${String(++made).padStart(3, '0')}`;
   const news = f.offseason.report?.news ?? [];
   const released = new Set(f.offseason.released);
 
   // Free agents are re-priced for their current grade before anyone shops.
   for (const id of league.freeAgents) playerOf(league, id).capHit = capHitOf(playerOf(league, id).overall);
 
-  const aiTeams = league.teams.filter((t) => t.id !== league.userTeamId);
+  const aiTeams = part === 'teams' ? league.teams.filter((t) => t.id !== league.userTeamId) : [];
 
   // AI teams decide their own expiring contracts: keep the best they can afford, drop the old.
   for (const team of aiTeams) {
@@ -277,9 +303,10 @@ export function leagueMoves(f: Franchise): void {
     team.lineup = autoLineup(league, team);
   }
 
-  // The rookie class.
+  // The rookie class: once an off-season, when the pool opens (or here, if it never was opened).
   const r = rules.rookies;
-  for (let i = 0; i < r.count; i++) {
+  const rookiesDue = part === 'pool' || !f.offseason.poolOpened;
+  for (let i = 0; rookiesDue && i < r.count; i++) {
     const position: Position = rng.chance(r.goalieShare) ? 'G' : rng.chance(0.57) ? 'F' : 'D';
     const player = generatePlayer(rng, names, nextId(), position, rng.int(r.minOverall, r.maxOverall));
     player.age = rng.int(r.minAge, r.maxAge);
@@ -296,7 +323,7 @@ export function leagueMoves(f: Franchise): void {
     league.players[player.id] = player;
     league.freeAgents.push(player.id);
   }
-  news.push(`${r.count} rookies have entered the free-agent pool.`);
+  if (rookiesDue) news.push(`${r.count} rookies have entered the free-agent pool.`);
 
   // There must always be someone a team with almost no cap space can afford: skaters and goalies both.
   const cheap = (goalie: boolean): PlayerRecord[] =>
@@ -330,7 +357,8 @@ export function leagueMoves(f: Franchise): void {
   );
   // The oldest go first, so the pool keeps its young and cheap players for teams short of cap space.
   const expendable = pool.filter((p) => !keepGoalies.has(p.id)).sort((a, b) => b.age - a.age || a.overall - b.overall || a.id.localeCompare(b.id));
-  while (league.freeAgents.length > rules.poolTarget && expendable.length > 0) {
+  // The pool is only cut back once every team has had its turn.
+  while (part === 'teams' && league.freeAgents.length > rules.poolTarget && expendable.length > 0) {
     const gone = expendable.shift() as PlayerRecord;
     if (protectedCheap.has(gone.id)) continue;
     league.freeAgents = league.freeAgents.filter((id) => id !== gone.id);
@@ -344,5 +372,6 @@ export function leagueMoves(f: Franchise): void {
     if (player.contractYears <= 0) player.contractYears = terms.int(leagueRules.minContractYears, leagueRules.maxContractYears);
   }
 
-  f.offseason.leagueMoved = true;
+  if (part === 'pool') f.offseason.poolOpened = true;
+  else f.offseason.leagueMoved = true;
 }
