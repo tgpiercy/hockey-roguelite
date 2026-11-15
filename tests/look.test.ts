@@ -1,4 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { conditionWords, FAMILIES, familyInfo, familyOf, familyOfStat } from '../src/core/artifactFamily';
+import artifacts from '../src/data/artifacts.json';
+import look from '../src/data/artifactLook.json';
+import { ON, WHEN } from '../src/sim/conditions';
+import type { Modifier } from '../src/sim/modifiers';
+import { ICON_NAMES } from '../src/ui/Icon';
 import { generateLeague } from '../src/core/generate';
 import { userTeam } from '../src/core/league';
 import { jerseyColour, setJersey, unlockedJerseys } from '../src/core/prestige';
@@ -68,5 +74,45 @@ describe('the club\'s own colours', () => {
     const seen = new Set<string>();
     for (let i = 0; i < 30; i++) seen.add(jerseyColour(newFranchise(generateLeague(`club-${i}`))));
     expect(seen.size).toBeGreaterThan(5);
+  });
+});
+
+describe('artifact families', () => {
+  const list = artifacts as unknown as { id: string; modifiers: Modifier[]; bargain?: { handicap: Modifier[] } }[];
+
+  it('every artifact belongs to one, and every family has an icon that exists and a colour', () => {
+    for (const a of list) expect(familyOf(a.modifiers), a.id).not.toBeNull();
+    expect(FAMILIES.length).toBeGreaterThanOrEqual(7);
+    for (const id of FAMILIES) {
+      const family = familyInfo(id);
+      expect(ICON_NAMES as string[], id).toContain(family.icon);
+      expect(family.colour).toMatch(/^#[0-9a-f]{6}$/);
+      // Each family is used by something.
+      expect(list.some((a) => familyOf(a.modifiers) === id), id).toBe(true);
+    }
+  });
+
+  it('a stat belongs to at most one family', () => {
+    const seen = new Map<string, string>();
+    for (const id of FAMILIES) {
+      for (const stat of (look.families as Record<string, { stats: string[] }>)[id]!.stats) {
+        expect(seen.has(stat), `${stat} is in ${seen.get(stat)} and ${id}`).toBe(false);
+        seen.set(stat, id);
+        expect(familyOfStat(stat)).toBe(id);
+      }
+    }
+    expect(familyOfStat('nonsense')).toBeNull();
+  });
+
+  it('a condition is put in a few words, once each', () => {
+    expect(conditionWords([{ stat: 'shotPower', op: 'add', value: 1 }])).toEqual([]);
+    expect(conditionWords([
+      { stat: 'shotPower', op: 'add', value: 1, when: 'trailing' },
+      { stat: 'accuracy', op: 'add', value: 1, when: 'trailing' },
+      { stat: 'accuracy', op: 'add', value: 1, on: 'save', seconds: 5 },
+    ])).toEqual(['While trailing', 'After a save']);
+    // Every condition and trigger the game knows has its words.
+    for (const when of [...WHEN, 'home']) expect((look.when as Record<string, string>)[when], when).toBeDefined();
+    for (const on of ON) expect((look.on as Record<string, string>)[on], on).toBeDefined();
   });
 });

@@ -1,3 +1,5 @@
+import { defaultTuning } from '../sim/tuning';
+import { ArtifactCard, type ArtChip } from './screens/season';
 import { menuColours } from '../core/teamColours';
 import { STICKERS } from '../core/bounty';
 import { afterTournamentGame, newTournament, tournamentOpponent, type Tournament } from '../core/tournament';
@@ -65,7 +67,7 @@ import { HINT_IDS, retired } from '../game/hints';
 import { menuInput } from './menuInput';
 import { playMatch } from './matchView';
 import type { PlayerRecord } from '../core/player';
-import { CapLine, CountUp, Dots, Face, Grade, Meter, money, NO_TEAM, PlayerRow, Ratings, Wallet, WearingContext, type Wearing } from './parts';
+import { CapLine, CountUp, Dots, Face, Grade, Meter, money, NO_TEAM, PlayerRow, Ratings, Wallet, WearingContext, type Wearing, OptionCard, RinkOutline } from './parts';
 import { MapKey, SeasonMapView } from './SeasonMap';
 import { downloadText, loadStored, pickTextFile, store, WEEKLY_KEY } from './storage';
 
@@ -178,6 +180,17 @@ const GEAR_FILTERS: { label: string; test: (item: GearItem) => boolean }[] = [
   ...gearData.rarities.map((r) => ({ label: r.name.toLowerCase(), test: (item: GearItem) => item.rarity === r.id })),
 ];
 const RARITY_ORDER = gearData.rarities.map((r) => r.id as string);
+
+/** A rink's size, corners and nets, for its little outline: its own numbers where it changes them, the usual ones where it does not. */
+function rinkShape(id: string): { length: number; width: number; corner: number; nets: number } {
+  const own = rinkInfo(id).tuning;
+  return {
+    length: own.rink?.length ?? defaultTuning.rink.length,
+    width: own.rink?.width ?? defaultTuning.rink.width,
+    corner: own.rink?.cornerRadius ?? defaultTuning.rink.cornerRadius,
+    nets: own.net?.mouthWidth ?? defaultTuning.net.mouthWidth,
+  };
+}
 
 /** The colours the menus wear for a franchise on a screen: its own, or those of the boss or rival about to be played. */
 function menuTint(f: Franchise, screen: { name: string }): { team: string; deep: string; ink: string } {
@@ -702,7 +715,6 @@ export function App() {
           items={season.offer.map((id) => {
             const a = artifactInfo(id);
             const sticker = season.offerStickers?.[id];
-            const tag = sticker === 'loan' ? `On loan: ${STICKERS.loanGames} games, +${STICKERS.loanPucks} Pucks` : sticker === 'pricey' ? `Pricey: ${STICKERS.priceyFee} Pucks a game, and a second pick` : a.bargain ? `Bargain: ${a.bargain.games} games` : '';
             const half = recipeFor(id);
             const pairs = half && f.artifacts.includes(half.partner) ? ` With your ${artifactInfo(half.partner).name} it becomes ${artifactInfo(half.makes).name}: ${artifactInfo(half.makes).description}` : '';
             const terms =
@@ -711,8 +723,20 @@ export function App() {
                 : sticker === 'pricey'
                   ? ` Pricey: it costs ${STICKERS.priceyFee} Pucks after every game, and you then take a second artifact from this offer.`
                   : '';
-            return tile(id, a.name, tag, () => after(pickArtifact(f, id)), { icon: 'artifacts', primary: true, detail: `${a.description}${terms}${pairs}` });
+            const chips: ArtChip[] = [
+              ...(sticker === 'loan' ? [{ text: `On loan · ${STICKERS.loanGames} games · +${STICKERS.loanPucks}`, tone: 'loan' as const }] : []),
+              ...(sticker === 'pricey' ? [{ text: `Pricey · ${STICKERS.priceyFee} a game · 2nd pick`, tone: 'pricey' as const }] : []),
+              ...(a.bargain ? [{ text: `Bargain · ${a.bargain.games} games`, tone: 'bargain' as const }] : []),
+              ...(pairs !== '' && half ? [{ text: `Makes ${artifactInfo(half.makes).name}`, tone: 'recipe' as const }] : []),
+            ];
+            return {
+              key: id,
+              label: <ArtifactCard name={a.name} description={a.description} modifiers={a.bargain ? [...a.modifiers, ...a.bargain.handicap] : a.modifiers} chips={chips} tall />,
+              detail: `${a.description}${terms}${pairs}`,
+              onSelect: () => after(pickArtifact(f, id)),
+            };
           })}
+          columns={Math.max(1, Math.min(3, season.offer.length))}
         />
       );
     }
@@ -2670,7 +2694,7 @@ export function App() {
             const plan = readTactics(team.lineup.tactics);
             return {
               key: `tactic-${kind}`,
-              label: `${tacticKindName(kind)}: ${tacticInfo(kind, plan[kind]).name}`,
+              label: <OptionCard icon={kind === 'forecheck' ? 'forecheck' : kind === 'attack' ? 'game' : 'defence'} name={tacticKindName(kind)} value={tacticInfo(kind, plan[kind]).name} />,
               detail: `${tacticInfo(kind, plan[kind]).describe} Press to change. This tells your linemates how to play; the skater you control does what you tell him.`,
               onSelect: () => {
                 team.lineup.tactics = nextTactic(plan, kind);
@@ -2681,7 +2705,7 @@ export function App() {
           {
             key: 'shift',
             wide: true,
-            label: `Shifts: ${team.lineup.heavy === undefined ? 'Even' : `Line ${team.lineup.heavy + 1} plays more`}`,
+            label: <OptionCard icon="shifts" name="Shifts" value={team.lineup.heavy === undefined ? 'Even' : `Line ${team.lineup.heavy + 1} plays more`} chip="Change" />,
             detail: 'Press to change. The line that plays more stays on until it is more tired, and the other line comes off sooner. Put your best three on it.',
             onSelect: () => {
               if (team.lineup.heavy === undefined) team.lineup.heavy = 0;
@@ -2752,14 +2776,15 @@ export function App() {
           </div>
         }
         onBack={home}
+        columns={2}
         items={[
           tile('go', 'Start the season', setupLine(plan) || 'Standard, no handicaps', () => after(beginSeason(f, plan), { name: 'home' }), { primary: true, wide: true, detail: 'Your seventh skater is the spare: you can swap him in between games.' }),
-          { key: 'charter', label: `Charter: ${charter.name}`, detail: `${charter.describe} Press to change.`, onSelect: () => setPlan({ ...plan, charter: next.id }) },
+          { key: 'charter', wide: true, label: <OptionCard icon="charter" name="Charter" value={charter.name} chip="Press to change" />, detail: `${charter.describe} Press to change.`, onSelect: () => setPlan({ ...plan, charter: next.id }) },
           ...VOWS.map((vow): MenuItem => {
             const rank = cleanVows(plan.vows)[vow.id] ?? 0;
             return {
               key: vow.id,
-              label: `${vow.name}: ${rank === 0 ? 'off' : vow.ranks > 1 ? `rank ${rank} of ${vow.ranks}` : 'on'}`,
+              label: <OptionCard icon="handicap" name={vow.name} value={rank === 0 ? 'Off' : `${rank} ${rank === 1 ? 'point' : 'points'}`} pips={{ filled: rank, total: vow.ranks }} off={rank === 0} />,
               detail: `${vow.describe} Worth ${vow.ranks > 1 ? 'a point a rank' : 'a point'}. Press to change.`,
               onSelect: () => setPlan({ ...plan, vows: nextRank(plan.vows, vow.id) }),
             };
@@ -2821,7 +2846,7 @@ export function App() {
             : [
                 {
                   key: 'tourney',
-                  label: 'Start a tournament',
+                  label: <OptionCard icon="trophy" name="Tournament" value="A four-team knockout" chip="Start" />,
                   detail: 'A four-team knockout against the three teams nearest your strength: a semi-final, then the final, on the rink chosen below. One player, or two on the same team. It counts for nothing.',
                   onSelect: () => {
                     const made = newTournament(league, String(Date.now()));
@@ -2832,7 +2857,7 @@ export function App() {
               ]),
           {
             key: 'mode',
-            label: `Play: ${exShootout ? 'A shootout' : 'A game'}`,
+            label: <OptionCard icon={exShootout ? 'target' : 'game'} name="Play" value={exShootout ? 'A shootout' : 'A game'} chip="Change" />,
             detail: 'Press to change. A shootout: five turns each, one skater against the goalie from centre ice, nine seconds a turn; level after five, it goes on until one scores and the other does not. With two players, each takes turns.',
             onSelect: () => setExShootout(!exShootout),
           },
@@ -2841,7 +2866,11 @@ export function App() {
             : [
                 {
                   key: 'rink',
-                  label: `Rink: ${rinkInfo(exRink).name}`,
+                  label: (
+                    <OptionCard icon="rink" name="Rink" value={rinkInfo(exRink).name} chip="Change">
+                      <RinkOutline {...rinkShape(exRink)} />
+                    </OptionCard>
+                  ),
                   detail: `${rinkInfo(exRink).describe} Press to change.`,
                   onSelect: () => setExRink(nextRink(exRink).id),
                 },
@@ -2971,12 +3000,16 @@ export function App() {
           const loan = season.loans?.[id] ?? 0;
           const fee = (season.pricey ?? []).includes(id);
           const half = recipeFor(id);
-          const notes = [left > 0 ? `handicap: ${left} ${left === 1 ? 'game' : 'games'} to go` : '', loan > 0 ? `on loan: ${loan} ${loan === 1 ? 'game' : 'games'} left` : '', fee ? `${STICKERS.priceyFee} Pucks a game` : ''].filter((x) => x !== '');
+          const chips: ArtChip[] = [
+            ...(left > 0 ? [{ text: `Handicap · ${left} to go`, tone: 'bargain' as const }] : []),
+            ...(loan > 0 ? [{ text: `On loan · ${loan} left`, tone: 'loan' as const }] : []),
+            ...(fee ? [{ text: `${STICKERS.priceyFee} Pucks a game`, tone: 'pricey' as const }] : []),
+            ...(half ? [{ text: `+ ${artifactInfo(half.partner).name} = ${artifactInfo(half.makes).name}`, tone: 'recipe' as const }] : []),
+          ];
           return {
             key: id,
-            label: notes.length > 0 ? `${a.name} (${notes.join('; ')})` : a.name,
+            label: <ArtifactCard name={a.name} description={a.description} modifiers={left > 0 && a.bargain ? a.bargain.handicap : a.modifiers} chips={chips} />,
             detail: `${a.description}${half ? ` With ${artifactInfo(half.partner).name} it becomes ${artifactInfo(half.makes).name}.` : ''}`,
-            disabled: true,
           };
         })}
       />

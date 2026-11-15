@@ -203,6 +203,32 @@ const ICONS = {
       <path d="M5.6 5.6l3.9 3.9M14.5 14.5l3.9 3.9M18.4 5.6l-3.9 3.9M9.5 14.5l-3.9 3.9" />
     </>
   ),
+  forecheck: <path d="M4 7l5 5-5 5M11 7l5 5-5 5M20 5v14" />,
+  defence: <path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z" />,
+  shifts: <path d="M4 8h13l-3-3M20 16H7l3 3" />,
+  rink: (
+    <>
+      <rect x="3" y="6" width="18" height="12" rx="5" />
+      <path d="M12 6v12" />
+      <circle cx="12" cy="12" r="2" />
+    </>
+  ),
+  charter: <path d="M6 3v18M6 4h11l-2 4 2 4H6" />,
+  handicap: <path d="M8.500 8a3.500 3.500 0 017 0M5 20l2-12h10l2 12z" />,
+  trophy: <path d="M8 4h8v5a4 4 0 01-8 0zM8 6H5a3 3 0 003 4M16 6h3a3 3 0 01-3 4M12 13v4M8 20h8" />,
+  target: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
+  bounty: <path d="M12 4l2.400 5 5.600.600-4.200 3.800 1.200 5.600-5-2.800-5 2.800 1.200-5.600L4 9.600 9.600 9z" />,
 } satisfies Record<string, ComponentChildren>;
 
 export type IconName = keyof typeof ICONS;

@@ -421,6 +421,53 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .menu-item { transition: background-color 0.1s ease-out, border-color 0.1s ease-out, box-shadow 0.1s ease-out; }
 .meter-fill, .ratings .rfill { transform-origin: left center; animation: bar-fill 0.35s ease-out; transition: width 0.25s ease-out; }
 .menu-message { animation: screen-in 0.2s ease-out; }
+/* A choice as a card: icon, name, what it is set to, pips for ranks (parts.tsx OptionCard). */
+.opt-card { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; }
+.opt-card.off { opacity: 0.6; }
+.opt-icon {
+  flex: none; width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; color: var(--accent);
+  background: linear-gradient(150deg, var(--panel-hi), var(--panel)); border: 1px solid var(--line);
+}
+.opt-card.off .opt-icon { color: var(--dim); }
+.opt-text { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.2; }
+.opt-text b { font: 800 15px/1.15 var(--heading); letter-spacing: 0.04em; text-transform: uppercase; overflow-wrap: anywhere; }
+.opt-text small { font-size: var(--size-small); color: var(--ice); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.opt-pips { display: flex; gap: 4px; flex: none; }
+.opt-pips i { width: 18px; height: 7px; border-radius: 4px; background: var(--line); }
+.opt-pips i.on { background: var(--accent); }
+.opt-chip {
+  flex: none; font: 800 10px/1 var(--heading); font-style: normal; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 3px 7px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent);
+}
+.rink-outline { flex: none; color: var(--ice); }
+
+/* An artifact as a card: its family's icon and colour, and chips (screens/season.tsx ArtifactCard). */
+.art-card { --fam: var(--ice); display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; }
+.art-card.tall { flex-direction: column; align-items: flex-start; gap: 8px; padding: 4px 2px; }
+.art-icon {
+  flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: var(--fam);
+  background: color-mix(in srgb, var(--fam) 20%, var(--panel)); border: 1px solid color-mix(in srgb, var(--fam) 55%, transparent);
+}
+.art-card.tall .art-icon { width: 50px; height: 50px; border-radius: 13px; }
+.art-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.art-text b { font: 800 15px/1.15 var(--heading); letter-spacing: 0.05em; text-transform: uppercase; }
+.art-family { font: 800 10px/1 var(--heading); letter-spacing: 0.1em; text-transform: uppercase; color: var(--fam); }
+.art-what { font-size: var(--size-small); line-height: 1.35; color: var(--ice); white-space: normal; }
+.art-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.art-chip {
+  font: 800 10px/1 var(--heading); font-style: normal; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 3px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--ice); white-space: nowrap;
+}
+.art-chip.when { border-color: var(--accent); color: var(--accent); }
+.art-chip.loan { background: var(--rare); border-color: var(--rare); color: var(--bg-deep); }
+.art-chip.pricey { background: var(--bad); border-color: var(--bad); color: var(--bg-deep); }
+.art-chip.bargain { background: var(--epic); border-color: var(--epic); color: var(--bg-deep); }
+.art-chip.recipe { background: var(--good); border-color: var(--good); color: var(--bg-deep); }
+.art-cards { align-items: stretch; }
+.art-card-cell { width: 210px; padding: 10px; border-radius: var(--radius); background: linear-gradient(165deg, var(--panel-hi), var(--panel)); border: 1px solid var(--line); display: flex; }
+/* A row of cards to choose from: each stands as a card of its own, edged in its family's colour when focused. */
+.menu-list.grid .menu-item:has(.art-card.tall) { align-items: flex-start; padding: 10px; background: linear-gradient(165deg, var(--panel-hi), var(--panel)); border-color: var(--line); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

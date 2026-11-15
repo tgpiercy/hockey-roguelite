@@ -1,4 +1,9 @@
+import { conditionWords, familyOf } from '../core/artifactFamily';
 import { teamCrest } from '../core/crest';
+import artifactData from '../data/artifacts.json';
+import type { Modifier } from '../sim/modifiers';
+import { OptionCard, RinkOutline } from './parts';
+import { ArtifactCard } from './screens/season';
 import { generateLeague } from '../core/generate';
 import { portraitOf } from '../core/portrait';
 import crestRules from '../data/crests.json';
@@ -60,6 +65,24 @@ export function ArtSheet() {
             <small>{name}</small>
           </span>
         ))}
+      </div>
+      <h2>Artifact cards, one for each family and each kind of chip</h2>
+      <div class="art-row art-cards">
+        {(artifactData as unknown as { id: string; name: string; description: string; modifiers: Modifier[]; bargain?: { games: number; handicap: Modifier[] } }[])
+          .filter((a, i, all) => all.findIndex((b) => familyOf(b.modifiers) === familyOf(a.modifiers)) === i || conditionWords(a.modifiers).length > 0 || a.bargain)
+          .slice(0, 18)
+          .map((a) => (
+            <span key={a.id} class="art-card-cell">
+              <ArtifactCard name={a.name} description={a.description} modifiers={a.modifiers} chips={a.bargain ? [{ text: `Bargain · ${a.bargain.games} games`, tone: 'bargain' }] : []} tall />
+            </span>
+          ))}
+      </div>
+      <h2>Option cards</h2>
+      <div class="art-row art-cards">
+        <span class="art-card-cell"><OptionCard icon="charter" name="Charter" value="Iron line" chip="Change" /></span>
+        <span class="art-card-cell"><OptionCard icon="handicap" name="Stronger opponents" value="2 points" pips={{ filled: 2, total: 2 }} /></span>
+        <span class="art-card-cell"><OptionCard icon="handicap" name="Dear shops" value="Off" pips={{ filled: 0, total: 2 }} off /></span>
+        <span class="art-card-cell"><OptionCard icon="rink" name="Rink" value="The pond"><RinkOutline length={44} width={22} corner={6} nets={2.6} /></OptionCard></span>
       </div>
       <h2>Gear, by rarity</h2>
       {gearData.rarities.map((rarity) => (

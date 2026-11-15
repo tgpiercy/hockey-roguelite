@@ -1,3 +1,5 @@
+import { conditionWords, familyInfo, familyOf } from '../../core/artifactFamily';
+import type { Modifier } from '../../sim/modifiers';
 import type { ComponentChildren } from 'preact';
 import type { Crest } from '../../core/crest';
 import { MASCOT_ID } from '../../core/mascot';
@@ -229,6 +231,43 @@ export function ChangeRow({ player, name, from, to }: { player: PlayerRecord | u
       </span>
       <span class={`change-figures ${up ? 'up' : 'down'}`}>
         {from} → {to}
+      </span>
+    </span>
+  );
+}
+
+/** One chip on an artifact's card: a few words, and how it should look. */
+export interface ArtChip {
+  text: string;
+  tone?: 'when' | 'loan' | 'pricey' | 'bargain' | 'recipe';
+}
+
+/**
+ * An artifact as a card: the icon and colour of its family, its name, and chips for when it counts and
+ * what strings come with it. `tall` adds what it does in words, for the screen where one is chosen.
+ */
+export function ArtifactCard({ name, description, modifiers, chips = [], tall = false }: { name: string; description: string; modifiers: readonly Modifier[]; chips?: ArtChip[]; tall?: boolean }) {
+  const family = familyOf(modifiers);
+  const look = family ? familyInfo(family) : null;
+  const all: ArtChip[] = [...conditionWords(modifiers).map((text): ArtChip => ({ text, tone: 'when' })), ...chips];
+  return (
+    <span class={`art-card${tall ? ' tall' : ''}`} style={look ? { '--fam': look.colour } : undefined}>
+      <span class="art-icon">
+        <Icon name={(look ? look.icon : 'artifacts') as IconName} size={tall ? 30 : 22} />
+      </span>
+      <span class="art-text">
+        <b>{name}</b>
+        {look && <small class="art-family">{look.name}</small>}
+        {tall && <span class="art-what">{description}</span>}
+        {all.length > 0 && (
+          <span class="art-chips">
+            {all.map((chip) => (
+              <i key={chip.text} class={`art-chip${chip.tone ? ` ${chip.tone}` : ''}`}>
+                {chip.text}
+              </i>
+            ))}
+          </span>
+        )}
       </span>
     </span>
   );

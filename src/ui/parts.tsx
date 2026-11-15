@@ -10,7 +10,7 @@ import { capSpace, payroll } from '../core/roster';
 import type { Franchise } from '../core/season';
 import gearData from '../data/gear.json';
 import rules from '../data/league.json';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 import { PortraitFace } from './Portrait';
 
 const ratingNames = gearData.ratingNames as Record<string, string>;
@@ -207,5 +207,50 @@ export function Wallet({ f }: { f: Franchise }) {
         </span>
       )}
     </div>
+  );
+}
+
+/**
+ * One choice as a card: an icon, its name, what it is set to, and (for something with ranks) a pip
+ * for each rank. Every "press to change" row in the menus is one of these, so they all look alike.
+ */
+export function OptionCard({ icon, name, value, pips, chip, off = false, children }: { icon: IconName; name: string; value?: string; pips?: { filled: number; total: number }; chip?: string; off?: boolean; children?: ComponentChildren }) {
+  return (
+    <span class={`opt-card${off ? ' off' : ''}`}>
+      <span class="opt-icon">
+        <Icon name={icon} size={22} />
+      </span>
+      <span class="opt-text">
+        <b>{name}</b>
+        {value && <small>{value}</small>}
+      </span>
+      {children}
+      {pips && (
+        <span class="opt-pips" aria-label={`${pips.filled} of ${pips.total}`}>
+          {Array.from({ length: pips.total }, (_, i) => (
+            <i key={i} class={i < pips.filled ? 'on' : ''} />
+          ))}
+        </span>
+      )}
+      {chip && <i class="opt-chip">{chip}</i>}
+    </span>
+  );
+}
+
+/** A rink's outline from its own numbers, small: longer, shorter, rounder as the rink is. */
+export function RinkOutline({ length, width, corner, nets }: { length: number; width: number; corner: number; nets: number }) {
+  // Drawn in a box 60 by 30 that the standard rink fills.
+  const k = 60 / 52;
+  const w = length * k;
+  const h = width * k;
+  const x = (60 - w) / 2;
+  const y = (30 - h) / 2;
+  const mouth = nets * k * 1.6;
+  return (
+    <svg class="rink-outline" width="60" height="30" viewBox="0 0 60 30" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+      <rect x={x} y={y} width={w} height={h} rx={corner * k} />
+      <path d={`M30 ${y}v${h}`} />
+      <path d={`M${x + 4 * k} ${15 - mouth / 2}v${mouth}M${x + w - 4 * k} ${15 - mouth / 2}v${mouth}`} stroke-width="2.6" />
+    </svg>
   );
 }
