@@ -129,6 +129,7 @@ type Group = 'team' | 'office' | 'collection' | 'settings' | 'league';
 
 /** The icon each hub-style row carries, by the row's key. A row can also name its own. */
 const TILE_ICONS: Record<string, IconName> = {
+  weekly: 'clock',
   team: 'team',
   league: 'report',
   standings: 'report',

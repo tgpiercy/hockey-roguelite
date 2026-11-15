@@ -234,6 +234,11 @@ const ICONS = {
 export type IconName = keyof typeof ICONS;
 export const ICON_NAMES = Object.keys(ICONS) as IconName[];
 
+/** An icon's shapes alone, on its 24 by 24 grid: for drawing one inside another drawing. */
+export function iconShapes(name: IconName): ComponentChildren {
+  return ICONS[name];
+}
+
 /** One icon, sized in pixels, in the colour of the text around it. */
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   return (

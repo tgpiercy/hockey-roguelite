@@ -287,16 +287,25 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .map-region.done { background: rgba(255, 183, 3, 0.25); color: var(--text); border-color: transparent; }
 .map-region.now { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .season-map { width: 100%; height: auto; max-height: 150px; display: block; }
-.season-map .edge { stroke: rgba(207, 232, 247, 0.22); stroke-width: 2; fill: none; }
-.season-map .edge.walked { stroke: var(--accent); stroke-width: 3; }
+.season-map .edge { stroke: rgba(207, 232, 247, 0.3); stroke-width: 2; stroke-dasharray: 3 5; stroke-linecap: round; fill: none; }
+.season-map .edge.walked { stroke: var(--accent); stroke-width: 3.5; stroke-dasharray: none; }
 .season-map .edge.open { stroke: var(--ice); stroke-dasharray: 4 4; }
 .season-map .stop { fill: var(--panel); stroke: var(--dim); stroke-width: 2; }
 .season-map .stop.done { fill: var(--accent); stroke: var(--accent); }
 .season-map .stop.open { stroke: var(--ice); stroke-width: 3; }
 .season-map .stop.focus { fill: var(--panel-hi); stroke: var(--accent); stroke-width: 4; }
 .season-map .stop.here { fill: var(--good); stroke: var(--good); }
-.season-map .mark { fill: var(--text); font: 800 17px var(--heading); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
-.season-map .stop.done + .mark, .season-map .stop.here + .mark { fill: #04101f; }
+.season-map .mark { fill: none; stroke: var(--text); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.season-map .skyline { fill: rgba(207, 232, 247, 0.07); }
+.season-map .badge circle, .season-map .badge rect { stroke: var(--bg-deep); stroke-width: 1.5; }
+.season-map .badge.elite circle { fill: var(--accent); }
+.season-map .badge.elite path { fill: var(--bg-deep); }
+.season-map .badge.rink rect { fill: var(--ice); }
+.season-map .badge.rink path { stroke: var(--bg-deep); stroke-width: 1.5; }
+.key-badge { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 2px; }
+.key-badge.elite { background: var(--accent); }
+.key-badge.rink { background: var(--ice); border-radius: 4px; width: 15px; height: 10px; }
+.season-map .stop.done + .mark, .season-map .stop.here + .mark { stroke: var(--bg-deep); }
 .season-map .band { fill: rgba(207, 232, 247, 0.04); }
 .map-key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--dim); }
 .map-key b { color: var(--text); }

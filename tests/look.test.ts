@@ -5,6 +5,8 @@ import look from '../src/data/artifactLook.json';
 import { ON, WHEN } from '../src/sim/conditions';
 import type { Modifier } from '../src/sim/modifiers';
 import { ICON_NAMES } from '../src/ui/Icon';
+import { BACKDROPS, STOP_MARKS } from '../src/ui/SeasonMap';
+import seasonRules from '../src/data/season.json';
 import { generateLeague } from '../src/core/generate';
 import { userTeam } from '../src/core/league';
 import { jerseyColour, setJersey, unlockedJerseys } from '../src/core/prestige';
@@ -114,5 +116,29 @@ describe('artifact families', () => {
     // Every condition and trigger the game knows has its words.
     for (const when of [...WHEN, 'home']) expect((look.when as Record<string, string>)[when], when).toBeDefined();
     for (const on of ON) expect((look.on as Record<string, string>)[on], on).toBeDefined();
+  });
+});
+
+describe('the drawn map', () => {
+  it('every kind of stop has an icon that exists', () => {
+    for (const kind of ['game', 'training', 'event', 'shop', 'boss'] as const) {
+      expect(ICON_NAMES as string[], kind).toContain(STOP_MARKS[kind].icon);
+      expect(STOP_MARKS[kind].name.length).toBeGreaterThan(2);
+    }
+  });
+
+  it('there is a skyline for each region, drawn left to right inside its box', () => {
+    expect(BACKDROPS.length).toBeGreaterThanOrEqual(seasonRules.regions);
+    for (const backdrop of BACKDROPS) {
+      expect(backdrop.points.length).toBeGreaterThan(8);
+      let last = -1;
+      for (const [x, y] of backdrop.points) {
+        expect(x).toBeGreaterThanOrEqual(last);
+        expect(x).toBeLessThanOrEqual(1);
+        expect(y).toBeGreaterThan(0);
+        expect(y).toBeLessThanOrEqual(1);
+        last = x;
+      }
+    }
   });
 });
