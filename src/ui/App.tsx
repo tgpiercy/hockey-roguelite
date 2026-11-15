@@ -6,13 +6,13 @@ import { sortPlayers, wouldReplace, type PlayerSort, type PositionFilter } from 
 import { teamCrest } from '../core/crest';
 import { styleInfo } from '../core/playStyle';
 import { bailOut, canBailOut, inFireSale, isHomeGame, playerSalePrice, seasonEndBills, starCount, payrollLimit } from '../core/economy';
-import { build, buildCost, FACILITIES, facilityLevel, facilityUpkeep, MAX_FACILITY_LEVEL } from '../core/facilities';
+import { build, buildCost, FACILITIES, facilityLevel, facilityUpkeep, MAX_FACILITY_LEVEL, freeBuilds } from '../core/facilities';
 import { equip, levelCost, levelUp, rarityInfo, releasePlayer, scrap, unequip, wornBy, type GearItem } from '../core/gear';
 import { generateLeague } from '../core/generate';
 import { EXPENSE_LINES, INCOME_LINES, LINE_NAMES, totals, type Ledger } from '../core/ledger';
 import { playerOf, rosterOf, skatersOn, teamOf, userTeam, type Team } from '../core/league';
 import { autoLineup, dressedSkaters, lineupProblems } from '../core/lineup';
-import { costumeCost, dropInChance, mascotPower, mascotRating, nextTalentAt, talentInfo, upgradeCostume, userMascot } from '../core/mascot';
+import { costumeCost, dropInChance, mascotPower, mascotRating, nextTalentAt, talentInfo, upgradeCostume, userMascot, MASCOT_ID } from '../core/mascot';
 import { dress } from '../core/matchup';
 import { decideContract, finishSeason, resignCapHit } from '../core/offseason';
 import { openPack, packName } from '../core/packs';
@@ -21,7 +21,7 @@ import { canPlay, canSign, type MoveResult, deadCapFor } from '../core/roster';
 import { hiddenFreeAgents, potentialText, scoutingPoints, signPlayer } from '../core/scouting';
 import { gradePower, hire, kindName, letGo, roleOf, slotsFor, STAFF_KINDS, staffOfKind, staffSalePrice, type StaffMember } from '../core/staff';
 import { franchiseOf, fromSave, parseSave, toSave } from '../core/save';
-import { artifactInfo, artifactModifiers, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus } from '../core/season';
+import { artifactInfo, artifactModifiers, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, seatMascot } from '../core/season';
 import type { Stop } from '../core/seasonMap';
 import { seasonSummary } from '../core/seasonSummary';
 import { teamColour } from '../core/teamColours';
@@ -625,6 +625,22 @@ export function App() {
           help="A select · left/right and up/down move"
           items={[
             tile('play', 'Play', game.kind === 'game' ? 'Take the ice' : game.kind === 'boss' ? 'Bosses must be played' : 'Playoff games must be played', playSeasonGame, { primary: true, wide: true }),
+            ...(game.mascotOffered
+              ? [
+                  tile(
+                    'mascotSeat',
+                    game.mascots.home ? `Mascot plays for ${game.mascots.home.sits}` : 'Mascot sent home',
+                    'Press to change who sits',
+                    () => {
+                      // Each press moves on: the next dressed skater sits, and after the last, the mascot stays home.
+                      const sitting = game.mascots.home ? game.home.players.findIndex((p) => p.id === MASCOT_ID) : -1;
+                      const next = sitting === -1 ? 0 : sitting >= 5 ? null : sitting + 1;
+                      after(seatMascot(f, next));
+                    },
+                    { wide: true, icon: 'mascot', detail: `${f.mascot.name} has turned up for this game. He takes one skater's place: choose who sits, or send him home and play your own six.` },
+                  ),
+                ]
+              : []),
             ...(canSimulate(f)
               ? [
                   tile('simulate', 'Simulate', 'Settle it without playing', () => showOutcome(simulateGame(f)), {
@@ -1641,9 +1657,9 @@ export function App() {
           const cost = buildCost(level);
           return {
             key: facility.id,
-            label: <FacilityCard id={facility.id} name={facility.name} level={level} maxLevel={MAX_FACILITY_LEVEL} cost={cost} affordable={cost !== null && f.cash >= cost} />,
-            detail: facility.description,
-            disabled: cost === null || f.cash < cost,
+            label: <FacilityCard id={facility.id} name={facility.name} level={level} maxLevel={MAX_FACILITY_LEVEL} cost={cost} affordable={cost !== null && (freeBuilds(f) > 0 || f.cash >= cost)} />,
+            detail: freeBuilds(f) > 0 ? `${facility.description} You have ${freeBuilds(f)} free level${freeBuilds(f) === 1 ? '' : 's'} from prestige: the next one you build costs nothing.` : facility.description,
+            disabled: cost === null || (freeBuilds(f) === 0 && f.cash < cost),
             onSelect: () => {
               const result = build(f, facility.id);
               after(result.ok ? { ok: true, message: `${facility.name} is now level ${level + 1}.` } : result);

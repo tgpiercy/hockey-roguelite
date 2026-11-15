@@ -17,6 +17,6 @@
     { "id": "goaltending", "kind": "trainer", "title": "Goalie coach", "blurb": "Goalies earn 5% more XP for each grade step.", "weight": 1, "perPower": [{ "stat": "xpGain.G", "op": "mul", "value": 0.05 }] },
     { "id": "skating", "kind": "trainer", "title": "Skating coach", "blurb": "Every player earns 2% more XP for each grade step.", "weight": 2, "perPower": [{ "stat": "xpGain", "op": "mul", "value": 0.02 }] },
     { "id": "scout", "kind": "scout", "title": "Scout", "blurb": "1 scouting point for each grade step.", "weight": 4, "perPower": [{ "stat": "scouting", "op": "add", "value": 1 }] },
-    { "id": "promoter", "kind": "promoter", "title": "Promoter", "blurb": "For each grade step: 3% more ticket and sponsorship money, 4% more merchandise, and a little mascot power.", "weight": 4, "perPower": [{ "stat": "ticketRevenue", "op": "mul", "value": 0.03 }, { "stat": "merchRevenue", "op": "mul", "value": 0.04 }, { "stat": "sponsorRevenue", "op": "mul", "value": 0.03 }, { "stat": "mascotPower", "op": "add", "value": 0.4 }] }
+    { "id": "promoter", "kind": "promoter", "title": "Promoter", "blurb": "For each grade step: 1.5% more ticket and sponsorship money, 2% more merchandise, and a little mascot power.", "weight": 4, "perPower": [{ "stat": "ticketRevenue", "op": "mul", "value": 0.015 }, { "stat": "merchRevenue", "op": "mul", "value": 0.02 }, { "stat": "sponsorRevenue", "op": "mul", "value": 0.015 }, { "stat": "mascotPower", "op": "add", "value": 0.4 }] }
   ]
 }

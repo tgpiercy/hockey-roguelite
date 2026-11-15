@@ -492,5 +492,17 @@ Built, deployed and checked with a simulated controller.
 - [x] Stage 1: ratings matter more; player kinds; talents; quick games retuned
 - [x] Stage 2: skill points, payroll limit, contract lengths, dead cap, trade value, roster of 8, balanced lines, gear perks (not built: choosing which line takes longer shifts; AI teams weighing positional need in trades)
 - [x] Stage 3: season run (elite games and free paths, strikes, artifacts with costs that reset, training picks, events, scouting the boss)
-- [ ] Stage 4: club (report, home ice, promoter, prestige, mascot control)
-- [ ] Stage 5: balance, pictures, docs
+- [x] Stage 4: club (report, home ice, training centre on the ice, promoter halved, prestige rewards, mascot control)
+- [x] Stage 5: balance, pictures, docs
+- [ ] Play it (owner)
+
+## Review (choices matter)
+
+- Five commits, one per stage. Type check, 957 tests (65 new across four new files) and the build pass.
+- Measured: ten rating points are now worth 2 to 4% (were about 1%); a 90 team beats a 70 team 90.5% (was 78%); equal teams unchanged; the league runs 12 years under three manager styles with no bail-outs, and the styles now end in different places.
+- Seen in the browser at phone size, on a save made before the round: kind tags on every player row, the kind line above the ratings, "Pay room" in the top bar, the payroll limit on the Team screen, the balanced-line note on the lineup, shop stock and event titles on the map cards, the training choices.
+- Not seen in a picture: an elite game card (the test save's map was made before elite games existed; they are covered by tests), the skill-point screens (no player had points), the priced contract lengths, the scouting report in a shop, the mascot choice, the club lines in a report, a free facility level. These were type-checked and their rules tested, but not looked at.
+- Planned and not built: choosing which line takes longer shifts; AI teams weighing positional need in trades; pay rising with every opponent's strength (elite games pay more instead).
+- Changed from the plan: "the cap is tight from year one" became an owner's payroll limit, after measuring that the cap already binds the top teams and not you.
+- Risks left: the payroll limit holds a losing team below the league average, and nobody has measured whether a winning player keeps up; the automatic seasons do not show how far a real run now gets; human against AI is still too easy and the save percentage is still under target.
+- No save migration was needed: every new field is optional. A season in progress keeps its old map; elite games appear from the next season. Artifacts held now are cleared when the next season starts.

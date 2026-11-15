@@ -3,11 +3,11 @@
   "buildCostPerLevel": 3000000,
   "upkeepPerLevel": 300000,
   "facilities": [
-    { "id": "training", "name": "Training centre", "description": "Each level: 6% more XP for your players, and aging takes 8% less off their ratings.", "perLevel": [{ "stat": "xpGain", "op": "mul", "value": 0.06 }, { "stat": "agingDecline", "op": "mul", "value": -0.08 }] },
+    { "id": "training", "name": "Training centre", "description": "Each level: 6% more XP for your players, aging takes 8% less off their ratings, and on the ice they shoot and pass a little straighter.", "perLevel": [{ "stat": "xpGain", "op": "mul", "value": 0.06 }, { "stat": "agingDecline", "op": "mul", "value": -0.08 }, { "stat": "accuracy", "op": "add", "value": 0.008 }, { "stat": "passSpreadDegrees", "op": "mul", "value": -0.03 }] },
     { "id": "medical", "name": "Medical wing", "description": "Each level: your players tire 4% slower on the ice and recover 4% faster on the bench.", "perLevel": [{ "stat": "drainScale", "op": "mul", "value": -0.04 }, { "stat": "recoverScale", "op": "mul", "value": 0.04 }] },
     { "id": "office", "name": "Front office", "description": "Each level: re-signing your own players costs 3% less.", "perLevel": [{ "stat": "resignCost", "op": "mul", "value": -0.03 }] },
     { "id": "scouting", "name": "Scouting office", "description": "Each level: 1 scouting point. More free agents come into view and potential is known more exactly.", "perLevel": [{ "stat": "scouting", "op": "add", "value": 1 }] },
-    { "id": "arena", "name": "Arena", "description": "Each level: 8% more ticket money from every home game.", "perLevel": [{ "stat": "ticketRevenue", "op": "mul", "value": 0.08 }] },
+    { "id": "arena", "name": "Arena", "description": "Each level: 8% more ticket money from every home game, and home ice: at home your skaters are 0.6% faster and recover 4% faster on the bench.", "perLevel": [{ "stat": "ticketRevenue", "op": "mul", "value": 0.08 }], "homeIce": [{ "stat": "topSpeedScale", "op": "mul", "value": 0.006 }, { "stat": "recoverScale", "op": "mul", "value": 0.04 }] },
     { "id": "den", "name": "Mascot den", "description": "Each level: 1 mascot power. He drops in more often, plays better and learns talents.", "perLevel": [{ "stat": "mascotPower", "op": "add", "value": 1 }] }
   ]
 }

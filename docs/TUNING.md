@@ -578,6 +578,38 @@ Third stage of the "choices matter" round. All in `season.json` unless said.
 
 Not measured: how far a real player's run gets now. The automatic seasons use random legal choices and games settled from strength; the league check over 8 seeds and 8 years runs clean with no illegal rosters.
 
+## The club on the ice, and the round's final measurements (2026-11-14)
+
+Fourth and fifth stages of the "choices matter" round.
+
+| Rule | Before | Now |
+| --- | --- | --- |
+| Arena (`facilities.json` `homeIce`) | ticket money only | also, in home games, +0.6% top speed and +4% bench recovery a level |
+| Training centre | XP and aging | also +0.008 accuracy and 3% tighter passes a level, in every game |
+| Promoter, per grade step | tickets and sponsorship 3%, merchandise 4% | 1.5% and 2% |
+| Prestige (`prestige.json`) | harder opponents, better packs | also sponsors pay 1% more of the club's value a level, and one facility level is free each climb |
+| Mascot | takes a random skater's place | you see it before the game and choose who sits, or send him home |
+| Off-season report | players and news | also what the club did: extra XP, aging saved, extra money, the medical wing, home ice |
+
+End of the round, AI against AI at level 0.5, 200 games:
+
+| Series | Result |
+| --- | --- |
+| 70 against 70 | 3.88 and 3.90 goals, save percentage .788 |
+| 90 against 70 | the 90 team wins 90.5%, 5.76 to 2.16 goals |
+
+Targets: equal teams 3 to 5 goals each (met). Save percentage .850 to .920 (missed, as before the round: .788). A 90 team beating a 70 team was 75% in the original targets; it is now 90.5% by design, since ratings were made to matter.
+
+League health, 10 seeds and 12 years, automatic managers at the start of year 12:
+
+| Style | Cash | Value | Payroll | Your team | League | Fire sales (year 12) | Bail-outs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Cautious | $11.2M | $108.9M | $21.6M | 69.6 | 74.6 | 0 | 0 |
+| Balanced | $6.9M | $107.5M | $20.0M | 68.6 | 74.4 | 0 | 0 |
+| Spender | $1.0M | $109.6M | $18.5M | 67.0 | 74.3 | 5 of 10 | 0 |
+
+The styles now end in different places: the cautious manager, who keeps cash, is allowed the biggest payroll and has the best team; the spender builds the most and can afford the fewest players. All three sit below the league average, because the automatic manager does not win and so its club's value, and with it the payroll limit, barely grows. Whether a player who wins keeps pace with the league has not been measured.
+
 ## Change log
 
 | Date | Value | From | To | Why |

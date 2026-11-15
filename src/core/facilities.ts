@@ -41,6 +41,17 @@ export function facilityUpkeep(f: Franchise): number {
   return totalFacilityLevels(f) * data.upkeepPerLevel;
 }
 
+/** What the arena gives your team on the ice in a home game: its home-ice modifiers, scaled by its level. */
+export function homeIceModifiers(f: Franchise): Modifier[] {
+  const arena = FACILITIES.find((x) => x.id === 'arena') as { homeIce?: Modifier[] } | undefined;
+  return scaleModifiers(arena?.homeIce ?? [], facilityLevel(f, 'arena'));
+}
+
+/** Facility levels you may build without paying, earned by prestige. */
+export function freeBuilds(f: Franchise): number {
+  return f.prestige.freeBuilds ?? 0;
+}
+
 /** The modifiers every built facility gives. */
 export function facilityModifiers(f: Franchise): Modifier[] {
   return FACILITIES.flatMap((facility) => scaleModifiers(facility.perLevel, facilityLevel(f, facility.id)));
@@ -52,8 +63,13 @@ export function build(f: Franchise, id: string): MoveResult {
   if (!facility) return { ok: false, reason: 'There is no such facility.' };
   const cost = buildCost(facilityLevel(f, id));
   if (cost === null) return { ok: false, reason: `The ${facility.name.toLowerCase()} is already at the top level.` };
-  if (f.cash < cost) return { ok: false, reason: `That costs ${money(cost)} and you have ${money(f.cash)}.` };
-  book(f, 'construction', cost);
+  if (freeBuilds(f) > 0) {
+    // A level earned by prestige costs nothing.
+    f.prestige.freeBuilds = freeBuilds(f) - 1;
+  } else {
+    if (f.cash < cost) return { ok: false, reason: `That costs ${money(cost)} and you have ${money(f.cash)}.` };
+    book(f, 'construction', cost);
+  }
   f.facilities[id] = facilityLevel(f, id) + 1;
   f.value += economy.value.perFacilityLevel;
   return { ok: true };

@@ -4,6 +4,8 @@
   "opponentLevelPerLevel": 0.04,
   "rarityBoostPerLevel": 1.15,
   "minCommonChance": 0.2,
+  "sponsorSharePerLevel": 0.01,
+  "freeBuildsPerLevel": 1,
   "jerseys": [
     { "name": "Navy", "colour": "#1d3557" },
     { "name": "Forest", "colour": "#2d6a4f" },

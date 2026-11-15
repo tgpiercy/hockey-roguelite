@@ -40,6 +40,8 @@ export function prestige(f: Franchise): MoveResult {
   if (!allowed.ok) return allowed;
   f.prestige.level += 1;
   f.prestige.championAt = false;
+  // The club gets something back: a facility level to build for nothing (and a bigger share of sponsorship, see economy).
+  f.prestige.freeBuilds = (f.prestige.freeBuilds ?? 0) + rules.freeBuildsPerLevel;
   f.artifacts = [];
   f.season.powerups = [];
   f.season.loadout = f.season.loadout.map(() => null);
@@ -52,6 +54,8 @@ export function prestigeEffects(level: number): string[] {
   return [
     `Opponents play ${level * rules.opponentRatingPerLevel} rating points better and react sooner.`,
     `Rare, Epic and Legendary gear is ${odds}% more likely in packs.`,
+    `Sponsors pay ${Math.round(level * rules.sponsorSharePerLevel * 100)}% more of the club's value each season.`,
+    `One facility level to build for free, each time you climb.`,
     `${Math.min(rules.jerseys.length, level + 1)} jersey colours unlocked.`,
   ];
 }

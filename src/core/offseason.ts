@@ -48,16 +48,18 @@ export function finishSeason(f: Franchise): ActionResult {
   const before = new Map(mine.roster.map((id) => [id, playerOf(league, id).overall]));
 
   // 0. The books: sponsorship in, the season's bills out, for the team that played it.
-  bookSeasonEnd(f);
+  const closed = bookSeasonEnd(f);
   // Pay owed to players released a year ago has run its course.
   for (const team of league.teams) delete team.deadCap;
 
   // 1. Bank XP: your players level up from what they earned this season.
+  let extraXp = 0;
   for (const id of mine.roster) {
     const player = playerOf(league, id);
     // Trainers and the training centre raise what a season's XP is worth.
     const boost = clubStat(f, 'xpGain', 1) * clubStat(f, `xpGain.${player.position}`, 1);
     // Your players' points are kept for you to spend.
+    extraXp += withAgeBonus(player, f.season.xp[id] ?? 0) * (boost - 1);
     addXp(player, withAgeBonus(player, f.season.xp[id] ?? 0) * boost, true);
   }
   const waiting = mine.roster.reduce((sum, id) => sum + (playerOf(league, id).points ?? 0), 0);
@@ -70,6 +72,21 @@ export function finishSeason(f: Franchise): ActionResult {
   // 2. Everyone ages a year.
   const gentler = clubStat(f, 'agingDecline', 1);
   for (const player of everyone) ageOneYear(player, rng, mineSet.has(player.id) ? gentler : 1);
+
+  // What the club's buildings and staff did this season, in the report.
+  const extraOf = (line: number, stat: string): number => {
+    const scale = clubStat(f, stat, 1);
+    return scale > 1 ? line * (1 - 1 / scale) : 0;
+  };
+  const extraMoney = extraOf(closed.ledger.tickets, 'ticketRevenue') + extraOf(closed.ledger.merchandise, 'merchRevenue') + extraOf(closed.ledger.sponsorship, 'sponsorRevenue');
+  const percent = (x: number): number => Math.round(Math.abs(x) * 100);
+  if (extraXp >= 1) report.news.push(`Your club: trainers and the training centre gave your players ${Math.round(extraXp)} more XP.`);
+  if (gentler < 1) report.news.push(`Your club: the training centre took ${percent(1 - gentler)}% off what age cost your players.`);
+  if (extraMoney >= 1) report.news.push(`Your club: the arena and your promoter brought in $${(extraMoney / 1_000_000).toFixed(2)}M more than the bare club would have.`);
+  const drain = clubStat(f, 'drainScale', 1);
+  if (drain < 1) report.news.push(`Your club: the medical wing had your players tiring ${percent(1 - drain)}% more slowly in every game.`);
+  const arena = f.facilities.arena ?? 0;
+  if (arena > 0) report.news.push(`Your club: a level ${arena} arena gave you home ice in every home game.`);
 
   const change = (id: string): RatingChange | null => {
     const player = league.players[id];

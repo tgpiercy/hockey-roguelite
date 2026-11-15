@@ -8,8 +8,8 @@ import type { GameResult } from '../sim/match';
 import { modified, type Modifier, type PowerupSpec } from '../sim/modifiers';
 import { aiTeamsByStrength, bossInfo, buildBoss } from './bosses';
 import { clubModifiers } from './club';
-import { bookGame, bookMilestones, STARTING_CASH, STARTING_VALUE } from './economy';
-import { newFacilities } from './facilities';
+import { bookGame, bookMilestones, STARTING_CASH, STARTING_VALUE, isHomeGame } from './economy';
+import { newFacilities, homeIceModifiers } from './facilities';
 import { newLedger, type Ledger, type SeasonBooks } from './ledger';
 import { aiMascot, bossMascot, newMascot, rollDropIn, userMascot, withMascot, type MascotSpec, type MascotState } from './mascot';
 import { generateStaffPool, type StaffMember } from './staff';
@@ -59,6 +59,8 @@ export interface SeasonState {
   /** Every stop finished this season, in order: the route walked, for the map. */
   visited: string[];
   strikes: number;
+  /** Your say over the mascot's drop-in for one game (by its number): the dressed skater who sits, or null to send him home. */
+  mascotSeat?: { game: number; slot: number | null };
   /** True once the next boss has been scouted: he plays below himself when you meet. Cleared when he is beaten. */
   scouted?: boolean;
   /** What training has given each player this season beyond the all-round bump: a rating boost or a trait, as modifiers. */
@@ -129,6 +131,8 @@ export interface PrestigeState {
   level: number;
   /** True once you have won the championship at this prestige level. */
   championAt: boolean;
+  /** Facility levels still to be built for nothing, earned by climbing. */
+  freeBuilds?: number;
   /** Which unlocked jersey colour the team wears. */
   jersey: number;
 }
@@ -332,7 +336,9 @@ export function artifactModifiers(f: Franchise): Modifier[] {
 
 /** Every lasting modifier on the player's team for the next game: artifacts, temporary effects, and what facilities and staff give. */
 export function teamModifiers(f: Franchise): Modifier[] {
-  return [...artifactModifiers(f), ...f.season.temps.flatMap((t) => t.modifiers), ...clubModifiers(f)];
+  // At home the arena adds its home-ice edge.
+  const home = isHomeGame(f.season.gamesPlayed + 1) ? homeIceModifiers(f) : [];
+  return [...artifactModifiers(f), ...f.season.temps.flatMap((t) => t.modifiers), ...clubModifiers(f), ...home];
 }
 
 /** A season-level number (such as currency gain) after the artifacts owned. */
@@ -459,6 +465,8 @@ export interface Matchup {
   powerups: (PowerupSpec | null)[];
   /** A mascot that has dropped in for this game, for either side: who he is and which skater sits. */
   mascots: { home: DropIn | null; away: DropIn | null };
+  /** True if your mascot turned up for this game, whether or not you let him play: you may choose who sits, or send him home. */
+  mascotOffered: boolean;
 }
 
 export interface DropIn {
@@ -487,8 +495,17 @@ export function matchup(f: Franchise): Matchup | null {
   if (!game) return null;
   const { season, league } = f;
   const label = (side: string): string => `${season.seed}/mascot/${side}/${season.gamesPlayed}`;
+  let mascotOffered = false;
   const dropIn = (team: DressedTeam, spec: MascotSpec, side: string): { team: DressedTeam; info: DropIn | null } => {
-    const slot = rollDropIn(label(side), spec.power);
+    const rolled = rollDropIn(label(side), spec.power);
+    if (rolled === null) return { team, info: null };
+    let slot: number | null = rolled;
+    if (side === 'home') {
+      mascotOffered = true;
+      // You may have chosen who sits for him, or sent him home.
+      const say = season.mascotSeat && season.mascotSeat.game === season.gamesPlayed ? season.mascotSeat : null;
+      if (say) slot = say.slot;
+    }
     if (slot === null) return { team, info: null };
     return { team: withMascot(team, spec, slot), info: { mascot: spec, sits: team.players[slot]?.name ?? '' } };
   };
@@ -499,10 +516,23 @@ export function matchup(f: Franchise): Matchup | null {
       : aiMascot(league, game.kind === 'playoff' ? (season.playoffs?.opponentId ?? '') : (stop?.opponentId ?? ''));
   const home = dropIn(game.home, userMascot(f), 'home');
   const away = dropIn(game.away, theirs, 'away');
-  return { ...game, home: home.team, away: away.team, mascots: { home: home.info, away: away.info } };
+  return { ...game, home: home.team, away: away.team, mascots: { home: home.info, away: away.info }, mascotOffered };
 }
 
-function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
+/**
+ * Your say over the mascot when he turns up for the game waiting: `slot` is the dressed skater (0 to 5)
+ * who sits for him, or null to send him home.
+ */
+export function seatMascot(f: Franchise, slot: number | null): ActionResult {
+  const game = matchup(f);
+  if (!game || !game.mascotOffered) return refuse('Your mascot is not dropping in for this game.');
+  if (slot !== null && (!Number.isInteger(slot) || slot < 0 || slot > 5)) return refuse('Nobody plays there.');
+  f.season.mascotSeat = { game: f.season.gamesPlayed, slot };
+  const after = matchup(f);
+  return done(slot === null ? 'The mascot watches this one from the stands.' : `${after?.mascots.home?.sits ?? 'He'} sits out for the mascot.`);
+}
+
+function plainMatchup(f: Franchise): Omit<Matchup, 'mascots' | 'mascotOffered'> | null {
   const { season, league } = f;
   const home = dressUser(f);
   if (!home) return null;

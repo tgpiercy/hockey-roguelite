@@ -1,3 +1,4 @@
+import prestigeRules from '../data/prestige.json';
 import data from '../data/economy.json';
 import { clubStat } from './club';
 import { facilityUpkeep } from './facilities';
@@ -68,7 +69,9 @@ export function merchMoney(f: Franchise): number {
 
 /** Sponsorship for the season: a share of what the franchise is worth. */
 export function sponsorshipMoney(f: Franchise): number {
-  return Math.round(clubStat(f, 'sponsorRevenue', data.sponsorShareOfValue * f.value));
+  // Each prestige level raises the share sponsors pay.
+  const share = data.sponsorShareOfValue + f.prestige.level * prestigeRules.sponsorSharePerLevel;
+  return Math.round(clubStat(f, 'sponsorRevenue', share * f.value));
 }
 
 /**
