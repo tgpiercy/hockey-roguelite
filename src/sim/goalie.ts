@@ -1,5 +1,6 @@
 import { hitBoards } from './rink';
 import { goalieReaction } from './lines';
+import { screened } from './tips';
 import { attackDir, availableSkaters, dist, givePuck, loosePuck, otherTeam, ownNet, skatersOf } from './team';
 import type { Tuning } from './tuning';
 import type { Player, SimEvent, Vec, World } from './types';
@@ -8,7 +9,8 @@ import { STEPS_PER_SECOND } from './clock';
 /** What the goalie currently believes about the puck: where it was one reaction time ago. */
 function perceived(g: Player, world: World, t: Tuning): { pos: Vec; vel: Vec; loose: boolean } {
   const state = g.goalie!;
-  const delaySteps = Math.round(goalieReaction(g, t) * STEPS_PER_SECOND);
+  // An attacker standing in his sightline makes him slower to see where the puck has gone.
+  const delaySteps = Math.round(goalieReaction(g, t) * (screened(g, world, t) ? t.tips.screenScale : 1) * STEPS_PER_SECOND);
   const index = Math.max(0, state.seen.length - 1 - delaySteps);
   return state.seen[index] ?? { pos: world.puck.pos, vel: world.puck.vel, loose: world.puck.carrier === null };
 }
@@ -18,7 +20,7 @@ export function recordPuck(g: Player, world: World, t: Tuning): void {
   const state = g.goalie!;
   const puck = world.puck;
   state.seen.push({ pos: { x: puck.pos.x, y: puck.pos.y }, vel: { x: puck.vel.x, y: puck.vel.y }, loose: puck.carrier === null });
-  const keep = Math.round(goalieReaction(g, t) * STEPS_PER_SECOND) + 2;
+  const keep = Math.round(goalieReaction(g, t) * Math.max(1, t.tips.screenScale) * STEPS_PER_SECOND) + 2;
   while (state.seen.length > keep) state.seen.shift();
 }
 

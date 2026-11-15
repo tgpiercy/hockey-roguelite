@@ -34,7 +34,10 @@
     "standsEdge": "#123460",
     "goalLight": "#ff2d2d",
     "light": "#ffffff",
-    "iceShade": "#3a6a94"
+    "iceShade": "#3a6a94",
+    "fire": "#ff7a1a",
+    "shield": "#7fd4ff",
+    "danger": "#ff2436"
   },
   "font": "'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', system-ui, sans-serif",
   "marginPixels": 8,
@@ -94,7 +97,13 @@
     "netBulge": 0.4,
     "netBulgeSeconds": 0.5,
     "stickSweep": 0.2,
-    "bigHitShakeScale": 1.8
+    "bigHitShakeScale": 1.8,
+    "hitFreezeSeconds": 0.07,
+    "goalFreezeSeconds": 0.12,
+    "goalSlowSeconds": 0.7,
+    "goalSlowScale": 0.4,
+    "fireBannerSeconds": 1.2,
+    "lastSecondsPulse": 10
   },
   "arena": {
     "maxRows": 14,
@@ -263,7 +272,9 @@
       "goalieJersey": "#dde6ef",
       "helmetLighten": 0.08
     },
-    "knockdownTilt": 1.45
+    "knockdownTilt": 1.45,
+    "cheerHandY": 4.25,
+    "cheerSpread": 0.55
   },
   "reticle": {
     "colour": "#ff2436",

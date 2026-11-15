@@ -2,9 +2,9 @@ import controls from '../data/controls.json';
 import type { InputFrame } from '../sim/types';
 
 /** The on-screen buttons, named after the game action each one does. */
-export type TouchButton = 'shoot' | 'pass' | 'check' | 'switchPlayer' | 'sprint' | 'lineChange' | 'powerupA' | 'powerupB';
+export type TouchButton = 'shoot' | 'pass' | 'check' | 'switchPlayer' | 'sprint' | 'lineChange' | 'powerupA' | 'powerupB' | 'pullGoalie';
 
-export const TOUCH_BUTTONS: TouchButton[] = ['shoot', 'pass', 'check', 'switchPlayer', 'sprint', 'lineChange', 'powerupA', 'powerupB'];
+export const TOUCH_BUTTONS: TouchButton[] = ['shoot', 'pass', 'check', 'switchPlayer', 'sprint', 'lineChange', 'powerupA', 'powerupB', 'pullGoalie'];
 
 /** What the on-screen controls are doing right now. The overlay writes it; the input reader reads it. */
 export interface TouchState {
@@ -22,7 +22,7 @@ export function newTouchState(): TouchState {
     used: false,
     moveX: 0,
     moveY: 0,
-    down: { shoot: false, pass: false, check: false, switchPlayer: false, sprint: false, lineChange: false, powerupA: false, powerupB: false },
+    down: { shoot: false, pass: false, check: false, switchPlayer: false, sprint: false, lineChange: false, powerupA: false, powerupB: false, pullGoalie: false },
   };
 }
 
@@ -64,6 +64,7 @@ export function touchFrame(state: TouchState): InputFrame {
     lineChange: state.down.lineChange,
     powerupA: state.down.powerupA,
     powerupB: state.down.powerupB,
+    pullGoalie: state.down.pullGoalie,
   };
 }
 
@@ -81,5 +82,6 @@ export function mergeFrames(a: InputFrame, b: InputFrame): InputFrame {
     lineChange: a.lineChange || b.lineChange,
     powerupA: a.powerupA || b.powerupA,
     powerupB: a.powerupB || b.powerupB,
+    pullGoalie: Boolean(a.pullGoalie) || Boolean(b.pullGoalie),
   };
 }

@@ -404,6 +404,44 @@ Team styles are not equal in strength. Over 120 games with the three styles meet
 
 Lessons: 60-game samples swing by about 9 wins either way, so the script was measured at 150 games; and a goal-rate change of 0.3 cannot be read from fewer than about 120 games.
 
+## Momentum, tips, give and go, the goalie pull and boss tricks (2026-11-14)
+
+New numbers, all in `physics.json` unless noted:
+
+| Group | Values |
+| --- | --- |
+| momentum | goal 0.45, big hit 0.2, one-timer 0.12, save 0.06 of a full meter; drains 0.004 a second; an opposing goal halves it; on fire for 8 s: shot power +0.12, speed x1.06 |
+| tips | screen: an attacker within 3 m of the goalie and 0.8 m of the puck's line makes him react 1.5 times slower; tip: within 1.3 m of a teammate who is within 7 m of the net, a shot of 12 m/s or more is redirected at the open side, give or take 4 degrees, keeping 92% of its speed |
+| giveGo | a second press of pass within 0.5 s; lasts up to 3 s |
+| pull | allowed in the last 25 s of regulation when behind by 1 or 2 |
+| boss | the Gale's burst is 1.25 times speed for 2 s |
+| `ai.json` emptyNetRange | the AI shoots at an empty net from up to 16 m |
+
+How often each happens, AI against AI at level 0.5, 120 games:
+
+| | Per game |
+| --- | --- |
+| On-fire spells | 1.2 a team |
+| Tips / tip goals | 0.73 / 0.30 a team |
+| Goalie pulls | 1.11 a game |
+| Goals into an empty net | 0.63 a game |
+| Goals by the team with the extra skater | 0.14 a game |
+
+So pulling the goalie costs the trailing AI team far more often than it pays, by about four to one. It makes for a tense finish, but it is not a good bet at these numbers.
+
+Balance, 200 games on each of two seeds:
+
+| Target | Before this round | After | Met? |
+| --- | --- | --- | --- |
+| Equal teams score 3 to 5 each | 3.3 to 3.65 | 3.88 and 3.73; 3.83 and 4.25 | yes |
+| 90 beats 70 about 75% of the time | 84.0% and 77.3% | 76.5% and 80.0% | a little high |
+| Save percentage .850 to .920 | .811 and .801 | .792 and .783 | **no** |
+| Scripted slot-and-shoot player wins about half at 0.75 | 80 of 150 | 79 of 150 | yes |
+
+The save percentage fell again because every empty-net goal is a goal with no save, and tips beat goalies who have already moved. The scripted player on easier settings, 150 games: level 0.5, 104 wins; level 0.3, 136 wins.
+
+A bug found by measuring: the momentum meter filled and then the per-step drain took it just under full before the check, so no team was ever on fire in 100 games. The check now comes first.
+
 ## Change log
 
 | Date | Value | From | To | Why |
@@ -420,5 +458,6 @@ Lessons: 60-game samples swing by about 9 wins either way, so the script was mea
 | 2026-11-14 | pass.speed, pass.saucerSpeed | 20, 17 | 26, 22 | Passes felt slow to the owner |
 | 2026-11-14 | ai.json: zone posts, longShotRange, longShotChance, longShotCharge, plantTilt | none | see "Spread-out attack" above | Attackers crowded the net |
 | 2026-11-14 | one-timer, deke, knock-down, rebound, goalie challenge, cover radius, AI styles | see "Deeper gameplay" above | | New moves and AI after the research report |
+| 2026-11-14 | momentum, tips, giveGo, pull, boss groups | none | see "Momentum, tips..." above | New mechanics |
 | 2026-11-14 | check.pokeRange | 1.9 | 2.8 | The owner wanted a poke check that works from a stick length away |
 | 2026-11-14 | economy.json sponsorShareOfValue | 0.04 | 0.18 | Every manager style was bankrupt by season 3: income was per game but seasons can be 4 games long |

@@ -157,6 +157,13 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Team styles | Every team but yours plays rush, cycle or dump and chase, fixed by its name and shown on the game screen. Your own linemates have no leaning. | Deeper gameplay |
 | 2026-11-14 | Goalies on the game screen | Both goalies are shown with face and overall on the matchup poster. | Deeper gameplay |
 | 2026-11-14 | Balance targets after this round | Scoring and the slot-and-shoot target are met. Save percentage (.80 to .81) is under the .850 target and the stronger team wins a little too often (about 81% against 75%). Left as they are until the owner has played. | Deeper gameplay |
+| 2026-11-14 | Momentum | Each team has a meter that fills from goals, big hits, one-timers and saves, drains slowly and is halved when the other team scores. Full: on fire for eight seconds (harder shots, faster skating), then empty. Earned by good plays; no extra help for the team behind. | More gameplay |
+| 2026-11-14 | Tips and screens | An attacker in the goalie's sightline slows his reaction. A shot passing a teammate near the net is redirected at the open side, and the goal is the tipper's. | More gameplay |
+| 2026-11-14 | Give and go | Press Pass again just after passing: you stay on the passer and your linemate returns the puck when the lane is clear. Otherwise control goes with the pass as before. | More gameplay |
+| 2026-11-14 | Goalie pull | In the last 25 seconds of regulation, a team behind by one or two may take its goalie off for a fourth skater. The AI does it by itself; you use the View button (G on the keyboard, a Goalie button on touch). The goalie returns at the next faceoff, or when the game is level. The AI debug overlay is now keyboard only. | More gameplay |
+| 2026-11-14 | Boss tricks | Each boss keeps its stat trait and gains one trick with a tell: the Wall's goalie stops the first three shots on goal each period (three pips); the Gale's skaters get a burst on winning the puck in their own end (streaks); every Hammers hit is a knock-down; the Marathon forechecks with all three in your end; the Marksmen's best shooter cannot be saved on a full wind-up (a mark and a closing ring). | More gameplay |
+| 2026-11-14 | Big moments | A split-second freeze on a big hit and on a goal, slow motion just after a goal, and the scorer raises his arms. Off on low rink detail. | More gameplay |
+| 2026-11-14 | Late drama | The clock turns red and pulses in the last ten seconds, and the crowd is louder in a one-goal last period. | More gameplay |
 
 ## Open
 

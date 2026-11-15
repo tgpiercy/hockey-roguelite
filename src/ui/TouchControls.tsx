@@ -95,6 +95,7 @@ export function TouchControls({ hidden, mode = 'auto' }: { hidden: boolean; mode
         <TouchKey button="powerupA" label="Power 1" size="small" />
         <TouchKey button="powerupB" label="Power 2" size="small" />
         <TouchKey button="lineChange" label="Lines" size="small" />
+        <TouchKey button="pullGoalie" label="Goalie" size="small" />
       </div>
       <div class="touch-buttons">
         <TouchKey button="shoot" label="Shoot" size="big" style={{ right: '0', bottom: '46px' }} />

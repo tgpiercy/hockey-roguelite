@@ -43,7 +43,14 @@ export function cuesFor(events: readonly SimEvent[], myTeam: 0 | 1, t: Tuning): 
         else if (e.success) cues.push({ name: 'poke', gain: 1 });
         break;
       case 'deke':
+      case 'tip':
         cues.push({ name: 'tap', gain: 1 });
+        break;
+      case 'fire':
+        cues.push({ name: 'reveal', gain: 1 });
+        break;
+      case 'pull':
+        cues.push({ name: 'whistle', gain: 0.6 });
         break;
       case 'pickup':
         cues.push({ name: 'tap', gain: 1 });

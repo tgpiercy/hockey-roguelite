@@ -88,7 +88,8 @@
     "farPostY": 1.3,
     "getOpenShift": 2.5,
     "dumpFromX": 2,
-    "dumpCornerInset": 2.5
+    "dumpCornerInset": 2.5,
+    "emptyNetRange": 16
   },
   "styles": {
     "rush": {

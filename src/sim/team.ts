@@ -78,7 +78,10 @@ export function givePuck(world: World, player: Player): void {
   if (puck.lastTeam !== player.team) puck.touches = [player.id];
   else if (last !== player.id) puck.touches = [...puck.touches, player.id].slice(-3);
   puck.lastTeam = player.team;
-  if (world.human && world.human.team === player.team && player.role === 'skater') {
+  // Control follows the puck, except in a give and go, where the human stays on the passer while the receiver has it.
+  const go = world.human?.giveGo;
+  const holding = go !== null && go !== undefined && player.id === go.receiver;
+  if (world.human && world.human.team === player.team && player.role === 'skater' && !holding) {
     world.human.controlled = player.id;
   }
 }
@@ -89,4 +92,6 @@ export function loosePuck(world: World): void {
   world.puck.passTarget = null;
   world.puck.air = 0;
   world.puck.threaded = false;
+  world.puck.tipped = false;
+  world.puck.unstoppable = false;
 }

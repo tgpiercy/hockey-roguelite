@@ -93,6 +93,7 @@ export class GameAudio {
   private enabled = true;
   private volume = 1;
   private hushed = false;
+  private tense = false;
   /** How many times each sound has been asked for: lets a test or a check count them without listening. */
   readonly played: Partial<Record<SoundName, number>> = {};
 
@@ -102,6 +103,11 @@ export class GameAudio {
     this.volume = Math.max(0, Math.min(1, volume));
     if (this.master && this.ctx) this.master.gain.setTargetAtTime(enabled ? data.masterGain * this.volume : 0, this.ctx.currentTime, 0.02);
     if (!enabled) this.stopBeds();
+  }
+
+  /** A one-goal game late on: the crowd is louder throughout. */
+  tension(on: boolean): void {
+    this.tense = on;
   }
 
   /** While the game is paused the crowd drops to a murmur. */
@@ -147,7 +153,7 @@ export class GameAudio {
     if (!this.enabled || !this.ctx || !this.master || !this.noise || this.ctx.state !== 'running') return;
     if (this.beds.length === 0) this.startBeds();
     const now = this.ctx.currentTime;
-    const crowd = (data.crowd.restGain + (data.crowd.maxGain - data.crowd.restGain) * this.crowd) * (this.hushed ? data.crowd.pausedScale : 1);
+    const crowd = (data.crowd.restGain + (data.crowd.maxGain - data.crowd.restGain) * this.crowd) * (this.hushed ? data.crowd.pausedScale : 1) * (this.tense ? data.crowd.tenseScale : 1);
     this.crowdGain?.gain.setTargetAtTime(crowd, now, 0.15);
   }
 
@@ -186,6 +192,7 @@ export class GameAudio {
     this.crowdGain = null;
     this.crowd = 0;
     this.hushed = false;
+    this.tense = false;
   }
 }
 

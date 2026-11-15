@@ -371,7 +371,7 @@ Built, deployed and checked with a simulated controller.
 - [x] Team styles: rush, cycle, dump and chase
 - [x] Goalies and the opponent's style on the game screen; new moves in the pause menu's controls list
 - [x] Tests; balance on two seeds
-- [ ] Commit, push, deploy green
+- [x] Commit, push, deploy green
 - [ ] Even out the three styles (dump and chase is weak, rush is strong)
 - [ ] Save percentage and the 90-against-70 win rate are off target: revisit after play
 - [ ] Play it: one-timers, the deke, the hits, the tougher slot (owner)
@@ -385,3 +385,26 @@ Built, deployed and checked with a simulated controller.
 - Wrong turns, caught by measuring: the AI deked 15 to 20 times a game at first; a slot guard alone did nothing to the script's record; a goalie stepping out further did nothing until he also held that depth on the shot.
 - Not as planned: the touch Swap button reads "Swap Deke" always, not "Deke" only while carrying (the overlay does not know who has the puck). The knocked-down picture was staged by setting the state by hand; no real big hit happened in the minutes I stepped through.
 - Not checked: how any of it feels; whether styles can be told apart by eye; touch dekes; a real big hit on screen. The styles are unequal in strength (rush 4.13 goals a game, cycle 2.86, dump and chase 2.06).
+
+# More gameplay: momentum, tips, give and go, big moments, late drama, boss tricks
+
+- [x] Momentum meter and the on-fire spell
+- [x] Screens and tips
+- [x] Give and go
+- [x] Goalie pull (AI by itself; View, G or the touch button for you)
+- [x] A trick and a tell for each of the five bosses
+- [x] Freeze frames, slow motion, the scorer's cheer, red pulsing clock, louder crowd
+- [x] Tests; balance on two seeds
+- [ ] Commit, push, deploy green
+- [ ] Play it (owner)
+
+## Review (more gameplay)
+
+- Type check, 830 tests (28 new) and the build pass.
+- Balance on two seeds of 200 games: scoring in range (3.7 to 4.25 a team); the scripted slot-and-shoot player still wins about half at the default level (79 of 150). Save percentage is now .78 to .79 (target .850 or more) and the stronger team wins about 78% (target about 75%).
+- In the browser at phone size, from a live game: the on-fire spell (banner, the strip under the team name, the glow under the skaters); a give and go by keyboard (control went to the receiver, then back to the passer on the second press); the goalie pulled by the G key (empty net, four skaters, the reminder, the red clock); freeze and slow motion after a goal (30 frames advanced the game by 9 steps).
+- Staged by setting the state by hand, not seen arising in play: the on-fire spell (meter set to full), the late-game situation, the goal for the celebration, and three boss tells (shield pips, the marksman's mark and ring, the burst streaks).
+- Found by looking and measuring: the meter never fired (ordering bug); the goalie button was dropped where controller and touch input are merged; the return pass of a give and go could go to the wrong teammate.
+- Not built from the plan: a flash on the Hammers' skaters before a hit, and a "full press" banner for the Marathon. Both tricks work and are described on the game screen, but have no on-ice tell. The brighter trail behind hard shots was not changed.
+- Known rough edges: the GOAL banner covers the scorer's cheer when he is level with it; pulling the goalie is a poor bet for the AI (0.63 empty-net goals a game against 0.14 for the extra skater).
+- Not checked: any of it by feel; boss games played through; the touch Goalie button; the View button on a real controller; sound.

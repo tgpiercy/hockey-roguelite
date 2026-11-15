@@ -43,6 +43,14 @@ export interface SkaterEffects {
   bigHitKnock: number;
   /** Top-speed scale while carrying the puck with no opposing skater between him and the net. 1 unless a modifier changes it. */
   breakawaySpeedScale: number;
+  /** Seconds of extra speed he gets on winning the puck in his own end. 0 unless a modifier changes it. */
+  gainBurst: number;
+  /** Above 0, every body check of his that lands knocks the carrier down. 0 unless a modifier changes it. */
+  alwaysKnockdown: number;
+  /** Above 0, his AI goes after the puck carrier in the carrier's own end instead of dropping back. 0 unless a modifier changes it. */
+  fullPress: number;
+  /** Above 0, a fully wound-up shot of his cannot be stopped by the goalie. 0 unless a modifier changes it. */
+  unstoppableCharged: number;
 }
 
 /** What a goalie's ratings do on the ice. */
@@ -92,6 +100,10 @@ export function skaterEffects(r: SkaterRatings): SkaterEffects {
     oneTimerScale: 1,
     bigHitKnock: 0,
     breakawaySpeedScale: 1,
+    gainBurst: 0,
+    alwaysKnockdown: 0,
+    fullPress: 0,
+    unstoppableCharged: 0,
   };
 }
 

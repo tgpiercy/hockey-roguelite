@@ -154,7 +154,11 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       onControls,
       paused: () => paused,
       onEvents: (events, world, t) => gameAudio.onEvents(events, world, t),
-      onFrame: (_world, _t, seconds) => gameAudio.onFrame(seconds),
+      onFrame: (world, t, seconds) => {
+        // A one-goal game in the last period: the crowd is on its feet.
+        gameAudio.tension(world.phase !== 'final' && world.period >= t.period.count && Math.abs(world.score[0] - world.score[1]) <= 1);
+        gameAudio.onFrame(seconds);
+      },
       onResult: (result) =>
         render(
           <GameSummary result={result} teams={[home, away]} crests={[teamCrest(home.name, homeColour ?? look.colours.teamHome), teamCrest(away.name, awayColour ?? look.colours.teamAway)]} />,

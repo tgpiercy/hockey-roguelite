@@ -9,7 +9,7 @@ export interface Controls {
   frame: InputFrame;
   /** True on the frame the menu button (or key) goes down. */
   menuPressed: boolean;
-  /** True on the frame the view button (or key) goes down: toggles the AI debug overlay. */
+  /** True on the frame the debug key goes down: toggles the AI debug overlay. Keyboard only. */
   debugPressed: boolean;
   /** D-pad presses for the tuning panel, with hold-to-repeat: -1, 0 or 1 on each axis. */
   navX: -1 | 0 | 1;
@@ -80,7 +80,7 @@ export class InputReader {
     const menuPressed = menuDown && !this.menuWasDown;
     this.menuWasDown = menuDown;
 
-    const debugDown = down(b.view) || this.key(controls.keys.debug);
+    const debugDown = this.key(controls.keys.debug);
     const debugPressed = debugDown && !this.debugWasDown;
     this.debugWasDown = debugDown;
 
@@ -99,6 +99,7 @@ export class InputReader {
         lineChange: down(b.lineChange) || this.key(controls.keys.lineChange),
         powerupA: value(b.powerupA) >= controls.triggerThreshold || down(b.powerupA) || this.key(controls.keys.powerupA),
         powerupB: down(b.powerupB) || this.key(controls.keys.powerupB),
+        pullGoalie: down(b.view) || this.key(controls.keys.pullGoalie),
       },
       touchFrame(touchState),
     );

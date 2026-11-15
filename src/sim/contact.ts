@@ -1,5 +1,5 @@
 import { hitBoards } from './rink';
-import { dist, givePuck } from './team';
+import { attackDir, dist, givePuck } from './team';
 import type { Tuning } from './tuning';
 import type { Player, SimEvent, World } from './types';
 
@@ -83,6 +83,8 @@ export function resolveLoosePuck(world: World, t: Tuning, events: SimEvent[]): v
         p.oneTimerArmed = p.shootHeld;
       }
       givePuck(world, p);
+      // A boss trick: winning the puck in his own end gives him a burst of speed.
+      if (p.fx.gainBurst > 0 && attackDir(p.team) * p.pos.x < 0) p.burst = p.fx.gainBurst;
       events.push({ type: 'pickup', player: p.id });
       return;
     }

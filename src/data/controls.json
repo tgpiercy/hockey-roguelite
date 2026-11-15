@@ -72,6 +72,9 @@
     "menu": [
       "Tab",
       "Escape"
+    ],
+    "pullGoalie": [
+      "KeyG"
     ]
   },
   "menuKeys": {

@@ -29,6 +29,8 @@ export interface PoseInput {
   down: boolean;
   /** Tipped over, in radians: a skater knocked off balance. */
   tilt: number;
+  /** Arms in the air: he has just scored. */
+  cheer?: boolean;
   pattern: JerseyPattern;
 }
 
@@ -109,6 +111,12 @@ function skater(p: PoseInput): Raw {
   // Hands on the stick: the top hand near the chest, the lower hand out in front. A wind-up draws both back and up.
   const topHand = { x: lean + F.topHandX - wind * F.windBack, y: F.topHandY - wind * F.windUp + swing * F.armSwing * speed };
   const lowHand = { x: lean + F.lowHandX - wind * F.windBack * 0.6, y: F.lowHandY - wind * F.windUp - swing * F.armSwing * speed };
+  if (p.cheer) {
+    topHand.x = lean - F.cheerSpread;
+    topHand.y = -F.cheerHandY;
+    lowHand.x = lean + F.cheerSpread;
+    lowHand.y = -F.cheerHandY - 0.1;
+  }
   // The far arm, behind the body.
   shapes.push(limb('jersey', lean - F.shoulderSpread, shY + F.armDrop, topHand.x, topHand.y, F.armWidth));
   shapes.push(circle('glove', topHand.x, topHand.y, F.gloveRadius));

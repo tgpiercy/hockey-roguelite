@@ -4,34 +4,115 @@
     "name": "Greyport Wall",
     "trait": "The Wall",
     "description": "Their goalie covers more net and reacts sooner.",
-    "modifiers": [{ "stat": "coverRadius", "op": "mul", "value": 1.2 }, { "stat": "reactionSeconds", "op": "mul", "value": 0.85 }]
+    "modifiers": [
+      {
+        "stat": "coverRadius",
+        "op": "mul",
+        "value": 1.2
+      },
+      {
+        "stat": "reactionSeconds",
+        "op": "mul",
+        "value": 0.85
+      },
+      {
+        "stat": "periodAutoSaves",
+        "op": "add",
+        "value": 3
+      }
+    ],
+    "trick": "Shields: their goalie stops the first three shots on goal of every period, whatever they are. Burn them with quick shots.",
+    "star": []
   },
   {
     "id": "speed-demons",
     "name": "Coldwater Gale",
     "trait": "Speed demons",
     "description": "Every skater is 8% faster.",
-    "modifiers": [{ "stat": "topSpeedScale", "op": "mul", "value": 1.08 }, { "stat": "accelerationScale", "op": "mul", "value": 1.08 }]
+    "modifiers": [
+      {
+        "stat": "topSpeedScale",
+        "op": "mul",
+        "value": 1.08
+      },
+      {
+        "stat": "accelerationScale",
+        "op": "mul",
+        "value": 1.08
+      },
+      {
+        "stat": "gainBurst",
+        "op": "add",
+        "value": 2
+      }
+    ],
+    "trick": "Fast break: whoever of theirs wins the puck in their own end gets a burst of speed. Keep it out of their end.",
+    "star": []
   },
   {
     "id": "bruisers",
     "name": "Ironvale Hammers",
     "trait": "Bruisers",
     "description": "Their checks land far more often.",
-    "modifiers": [{ "stat": "checkStrength", "op": "add", "value": 0.3 }]
+    "modifiers": [
+      {
+        "stat": "checkStrength",
+        "op": "add",
+        "value": 0.3
+      },
+      {
+        "stat": "alwaysKnockdown",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    "trick": "Flatteners: every body check of theirs that lands puts you on the ice. Deke, or move the puck early.",
+    "star": []
   },
   {
     "id": "iron-lungs",
     "name": "Highmoor Marathon",
     "trait": "Iron lungs",
     "description": "They barely tire.",
-    "modifiers": [{ "stat": "drainScale", "op": "mul", "value": 0.4 }]
+    "modifiers": [
+      {
+        "stat": "drainScale",
+        "op": "mul",
+        "value": 0.4
+      },
+      {
+        "stat": "fullPress",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    "trick": "Full press: all three come after you in your own end. Pass through them.",
+    "star": []
   },
   {
     "id": "snipers",
     "name": "Redcliff Marksmen",
     "trait": "Snipers",
     "description": "Harder, more accurate shots.",
-    "modifiers": [{ "stat": "shotPower", "op": "add", "value": 0.15 }, { "stat": "accuracy", "op": "add", "value": 0.15 }]
+    "modifiers": [
+      {
+        "stat": "shotPower",
+        "op": "add",
+        "value": 0.15
+      },
+      {
+        "stat": "accuracy",
+        "op": "add",
+        "value": 0.15
+      }
+    ],
+    "trick": "The marksman: their best shooter's fully wound-up shot cannot be saved. Check him before he lets go.",
+    "star": [
+      {
+        "stat": "unstoppableCharged",
+        "op": "add",
+        "value": 1
+      }
+    ]
   }
 ]

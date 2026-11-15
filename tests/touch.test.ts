@@ -73,6 +73,10 @@ describe('on-screen controls as game input', () => {
 
 describe('touch alongside a controller or keyboard', () => {
   it('a button counts if either holds it', () => {
+    // The goalie button counts from either source too.
+    expect(mergeFrames({ ...NO_INPUT, pullGoalie: true }, NO_INPUT).pullGoalie).toBe(true);
+    expect(mergeFrames(NO_INPUT, { ...NO_INPUT, pullGoalie: true }).pullGoalie).toBe(true);
+    expect(mergeFrames(NO_INPUT, NO_INPUT).pullGoalie).toBe(false);
     const merged = mergeFrames({ ...NO_INPUT, shoot: true }, { ...NO_INPUT, pass: true });
     expect(merged.shoot).toBe(true);
     expect(merged.pass).toBe(true);

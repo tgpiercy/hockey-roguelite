@@ -1,3 +1,7 @@
+import { chargeFraction } from './shot';
+import { stepMomentum } from './momentum';
+import { stepPulls } from './lines';
+import { stepTips } from './tips';
 import { createRng } from '../core/rng';
 import { aiInput, aiLevel, createAiMemory } from './ai';
 import { assistedAim } from './aim';
@@ -105,6 +109,7 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index:
     dekeCooldown: 0,
     dekeHeld: false,
     knockedDown: false,
+    burst: 0,
     talents: role === 'skater' ? [...(setup?.skaterTalents?.[index] ?? [])] : [],
     talentCooldown: {},
     rallyPeriod: 0,
@@ -150,6 +155,10 @@ function newTeamState(powerups: (PowerupSpec | null)[], style: string | null): W
     powerupHeld: [false, false],
     boosts: [],
     style,
+    heat: 0,
+    pulled: false,
+    extra: null,
+    pullHeld: false,
   };
 }
 
@@ -186,7 +195,7 @@ export function createWorld(t: Tuning, seed: number | string, options: WorldOpti
     phase: 'play',
     phaseTime: 0,
     rng: createRng(seed),
-    human: options.human === false ? null : { team: 0, controlled: 0, switchHeld: false },
+    human: options.human === false ? null : { team: 0, controlled: 0, switchHeld: false, passHeld: false, giveGoOffer: null, giveGo: null },
     levels: options.levels ?? [null, null],
     lineup: options.lineup ?? 'full',
     rules: 'scrimmage',
@@ -211,7 +220,7 @@ export function createGame(t: Tuning, seed: number | string, options: WorldOptio
 
 /** If the beaten goalie has an automatic save left this period, he makes it: the shot is frozen, not a goal. */
 function autoSave(world: World, beaten: Player | null, t: Tuning, events: SimEvent[]): boolean {
-  if (!beaten || !beaten.goalie || world.puck.shotBy === null) return false;
+  if (!beaten || !beaten.goalie || world.puck.shotBy === null || world.puck.unstoppable) return false;
   const state = beaten.goalie;
   if (state.autoSavePeriod !== world.period) {
     state.autoSavePeriod = world.period;
@@ -256,7 +265,9 @@ function stepSkaterBody(p: Player, input: InputFrame, t: Tuning, dt: number, has
   p.oneTimer = Math.max(0, p.oneTimer - dt);
   p.deke = Math.max(0, p.deke - dt);
   p.dekeCooldown = Math.max(0, p.dekeCooldown - dt);
+  p.burst = Math.max(0, p.burst - dt);
   let fx = currentFx(p, t);
+  if (p.burst > 0) fx = { ...fx, topSpeedScale: fx.topSpeedScale * t.boss.burstSpeedScale, accelerationScale: fx.accelerationScale * t.boss.burstSpeedScale };
   // Some gear makes a skater faster with the puck on his stick, or faster still on a breakaway.
   if (hasPuck && fx.carrySpeedScale !== 1) fx = { ...fx, topSpeedScale: fx.topSpeedScale * fx.carrySpeedScale };
   if (hasPuck && breakaway && fx.breakawaySpeedScale !== 1) fx = { ...fx, topSpeedScale: fx.topSpeedScale * fx.breakawaySpeedScale };
@@ -338,7 +349,10 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
 
   // Powerups, line changes, who is in control, and what everyone wants to do.
   stepPowerups(world, humanInput, events);
-  if (game) stepLineChanges(world, humanInput, t, events);
+  if (game) {
+    stepLineChanges(world, humanInput, t, events);
+    stepPulls(world, humanInput, t, events);
+  }
   updateControl(world, humanInput);
   const active = onIce(world);
   const inputs = active.map((p) => {
@@ -375,11 +389,14 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
     const fx = currentFx(p, t);
     // A shot let go just after receiving a pass is a one-timer: fully wound up, and harder still with the right gear.
     const oneTimer = p.oneTimer > 0;
+    const woundUp = chargeFraction(p.charge, t) >= 1;
     const params = oneTimer ? { ...fx, oneTimer: fx.oneTimerScale * t.shot.oneTimerPower } : fx;
     const speed = stepShooting(p, hadPuck, puck, input, params, t, world.rng, dt, assist);
     if (speed !== null) {
       loosePuck(world);
       puck.shotBy = p.id;
+      // A boss trick: the marksman's full wind-up cannot be saved.
+      puck.unstoppable = woundUp && fx.unstoppableCharged > 0;
       p.pickupLock = t.puck.pickupCooldown;
       p.stats.shots += 1;
       p.oneTimer = 0;
@@ -409,8 +426,9 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
       goal(world, scored, t, events);
     }
   } else {
-    const goalies = active.filter((g) => g.role === 'goalie' && g.goalie!.ignorePuck <= 0);
+    const goalies = puck.unstoppable ? [] : active.filter((g) => g.role === 'goalie' && g.goalie!.ignorePuck <= 0);
     const blockers: Blocker[] = goalies.map((g) => ({ pos: g.pos, radius: g.goalie!.fx.coverRadius }));
+    stepTips(world, t, events);
     const moved = stepLoosePuck(puck, t, dt, blockers);
     if (moved.hitPost) events.push({ type: 'post' });
     if (moved.blocker >= 0) makeSave(goalies[moved.blocker] as Player, world, t, events);
@@ -422,5 +440,6 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
   stepEnergy(world, t);
   if (game && world.phase === 'play') tickClock(world, t, events);
   stepTalents(world, t, events, dt);
+  stepMomentum(world, t, events, dt);
   return events;
 }

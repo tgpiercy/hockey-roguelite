@@ -66,6 +66,12 @@ function Layout() {
         <span>
           <b>Poke:</b> from a stick length away, Check knocks the puck loose without the hit.
         </span>
+        <span>
+          <b>Give and go:</b> press Pass again just after passing; you stay on the passer and get it straight back.
+        </span>
+        <span>
+          <b>Pull the goalie:</b> View (or G), in the last seconds when you are a goal or two behind.
+        </span>
       </div>
     </div>
   );

@@ -62,6 +62,7 @@ export function createAiMemory(): AiMemory {
     wantCheck: false,
     carryTime: 0,
     wantDeke: false,
+    passTo: null,
     plant: false,
   };
 }
@@ -205,8 +206,16 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   const inFront = dir * (net.x - puck.x) > 1;
   const style = styleOf(world, p.team);
   m.plant = false;
+  m.passTo = null;
   // A defender on him and able to check: sometimes he dekes.
   m.wantDeke = pressured && p.dekeCooldown <= 0 && p.stamina >= t.deke.staminaCost && nearestOpp.checkCooldown <= 0 && world.rng.chance(lv.dekeChance);
+
+  // An empty net: shoot from anywhere up the ice with a clear line to it.
+  if (inFront && dir * puck.x > 0 && range <= P.emptyNetRange && goalieOf(world, otherTeam(p.team)) === null && laneClear(world, p.team, puck, net)) {
+    aimAt(m, puck, net, lv.aimErrorDegrees, world);
+    m.shootSteps = 2;
+    return;
+  }
 
   // Shoot: in range, in front of the net, with a clear look (or after holding it too long).
   if (inFront && range <= lv.shootRange) {
@@ -216,7 +225,8 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
     if (laneClear(world, p.team, puck, corner) || m.carryTime > P.maxCarrySeconds) {
       aimAt(m, puck, corner, lv.aimErrorDegrees, world);
       // A pass just received is fired first-touch: it counts as fully wound up anyway.
-      const windUp = p.oneTimer > 0 ? 0 : lv.shotCharge * world.rng.next() * t.shot.chargeTime;
+      // The marksman always winds up fully: that is the shot that cannot be saved.
+      const windUp = p.oneTimer > 0 ? 0 : p.fx.unstoppableCharged > 0 ? t.shot.chargeTime + 0.05 : lv.shotCharge * world.rng.next() * t.shot.chargeTime;
       m.shootSteps = 2 + Math.round(windUp * STEPS_PER_SECOND);
       return;
     }
@@ -237,6 +247,21 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
 
   // Pass: to an open teammate, if he is in a better spot or the carrier is under pressure.
   // Among open teammates, the one nearest the net is preferred.
+  // Give and go: the human passed to him and asked for it back, so he returns it as soon as the lane is clear.
+  const go = world.human && world.human.team === p.team ? world.human.giveGo : null;
+  if (go && go.receiver === p.id) {
+    const passer = world.players[go.passer];
+    if (passer && passer.onIce) {
+      const lead = leadPoint(puck, passer, t.pass.speed);
+      if (laneClear(world, p.team, puck, lead)) {
+        aimAt(m, puck, lead, 0, world);
+        m.passSteps = 2;
+        m.passTo = passer.id;
+        return;
+      }
+    }
+  }
+
   // Dump and chase: under pressure short of the zone, he fires it into the far corner and his team goes after it.
   if (style.dump > 0 && pressured && !inZone(p.team, puck.x) && dir * puck.x > P.dumpFromX && world.rng.chance(style.dump)) {
     const side = nearestOpp.pos.y > p.pos.y ? -1 : 1;
@@ -387,6 +412,14 @@ export function think(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   m.state = chooseState(world, p, t);
   m.wantCheck = false;
   m.sprint = false;
+  // A boss trick, the full press: with the other team carrying in its own end, he goes straight for the carrier.
+  const pressed = carrierOf(world);
+  if (p.fx.fullPress > 0 && pressed && pressed.team !== p.team && pressed.role === 'skater' && attackDir(p.team) * pressed.pos.x > 0 && (m.state === 'defend' || m.state === 'backcheck')) {
+    m.follow = 'carrier';
+    m.sprint = true;
+    m.wantCheck = world.rng.chance(lv.checkEagerness);
+    return;
+  }
   switch (m.state) {
     case 'attack':
       planAttack(world, p, t, lv);

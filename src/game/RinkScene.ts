@@ -2,7 +2,8 @@ import * as Phaser from 'phaser';
 import { teamCrest, type Crest } from '../core/crest';
 import { lighten } from '../core/teamColours';
 import look from '../data/rinkLook.json';
-import { benchDoor, lineEnergy } from '../sim/lines';
+import { benchDoor, lineEnergy, mayPull } from '../sim/lines';
+import { onFire } from '../sim/momentum';
 import { forfeitResult, gameResult, type GameResult } from '../sim/match';
 import type { PowerupSpec } from '../sim/modifiers';
 import { carrySpot } from '../sim/puck';
@@ -104,6 +105,14 @@ export class RinkScene extends Phaser.Scene {
   /** Every pose painted so far, and the size they were painted at; repainted when the rink is resized. */
   private readonly figureKeys = new Set<string>();
   private figurePixels = 0;
+  /** Seconds left with everything frozen (a big hit, a goal), and seconds left of slow motion after a goal. */
+  private freeze = 0;
+  private slow = 0;
+  /** Who scored last, while the goal is being celebrated. */
+  private scorer: number | null = null;
+  /** The real-time clock reading until which the on-fire banner shows, and for which team. */
+  private fireBanner = { until: 0, team: 0 as 0 | 1 };
+  private pullText!: Phaser.GameObjects.Text;
   /** Which way each player faced on screen last frame: left or right. */
   private readonly sides = new Map<number, 1 | -1>();
   /** After a pause: the action buttons are ignored until all are let go, so the press that resumed does not also pass. */
@@ -163,6 +172,7 @@ export class RinkScene extends Phaser.Scene {
       .setOrigin(0.5, 0.5)
       .setVisible(false);
     this.powerText = this.add.text(0, 0, '', { ...heading, color: c.text }).setOrigin(1, 0.5);
+    this.pullText = this.add.text(0, 0, '', { ...heading, color: c.accent }).setOrigin(0.5, 1).setDepth(DEPTH.hud).setVisible(false);
     for (const item of [this.hud, ...this.nameTexts, ...this.scoreTexts, this.clockTextObject, ...this.barLabels, this.bigText, this.powerText]) item.setDepth(DEPTH.hud);
     this.events.once('destroy', () => this.reader.dispose());
   }
@@ -206,13 +216,33 @@ export class RinkScene extends Phaser.Scene {
         return;
       }
     } else {
-      this.leftover += real;
-      while (this.leftover >= STEP_SECONDS) {
-        happened.push(...step(this.world, controls.frame, t));
-        this.leftover -= STEP_SECONDS;
-        played += STEP_SECONDS;
+      if (this.freeze > 0) {
+        // A beat with nothing moving, so the hit or the goal lands.
+        this.freeze -= real;
+      } else {
+        this.leftover += real * (this.slow > 0 ? fx.goalSlowScale : 1);
+        this.slow = Math.max(0, this.slow - real);
+        while (this.leftover >= STEP_SECONDS) {
+          happened.push(...step(this.world, controls.frame, t));
+          this.leftover -= STEP_SECONDS;
+          played += STEP_SECONDS;
+        }
       }
     }
+    for (const e of happened) {
+      if (e.type === 'goal') {
+        this.scorer = e.scorer;
+        if (this.full) {
+          this.freeze = fx.goalFreezeSeconds;
+          this.slow = fx.goalSlowSeconds;
+        }
+      } else if (e.type === 'check' && e.big && this.full) {
+        this.freeze = Math.max(this.freeze, fx.hitFreezeSeconds);
+      } else if (e.type === 'fire') {
+        this.fireBanner = { until: this.clock + fx.fireBannerSeconds, team: e.team };
+      }
+    }
+    if (this.world.phase !== 'goal') this.scorer = null;
 
     // Effects and sound only watch: they are told what happened and never touch the simulation.
     this.effects.update(this.world, happened, t, played);
@@ -258,6 +288,7 @@ export class RinkScene extends Phaser.Scene {
   private message(): string {
     const world = this.world;
     if (world.phase === 'goal') return 'GOAL!';
+    if (world.phase === 'play' && this.clock < this.fireBanner.until) return `${this.options.names[this.fireBanner.team].toUpperCase()} ON FIRE!`;
     if (world.phase === 'faceoff') return world.faceoff?.dropped ? 'DROP!' : 'READY';
     if (world.phase === 'break') return world.overtime ? 'OVERTIME' : `END OF PERIOD ${world.period}`;
     return '';
@@ -491,6 +522,8 @@ export class RinkScene extends Phaser.Scene {
       const strideStep = goalie ? 0 : Math.round((((stride % TAU) + TAU) % TAU) / TAU * FIG.poseSteps) % FIG.poseSteps;
       const speedStep = goalie ? 0 : Math.round(speed * FIG.speedSteps);
       const wound = !goalie && p.charge > 0 && chargeFraction(p.charge, t) > FIG.windUpAt ? 1 : 0;
+      // The scorer throws his arms up while the goal is celebrated.
+      const cheer = !goalie && world.phase === 'goal' && this.scorer === p.id;
       const pose: PoseInput = {
         side: 1,
         stride: (strideStep / FIG.poseSteps) * TAU,
@@ -500,9 +533,10 @@ export class RinkScene extends Phaser.Scene {
         down,
         tilt: 0,
         pattern: crest.pattern,
+        cheer,
       };
       const skin = skinTone(p.id);
-      const key = `figure-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${strideStep}-${speedStep}-${wound}`;
+      const key = `figure-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}`;
       if (!this.textures.exists(key)) {
         const canvas = document.createElement('canvas');
         paintFigure(canvas, figure(pose).shapes, figureColours(crest, goalie, skin, this.options.whiteTeam === p.team ? 'away' : 'home'), pixels);
@@ -514,6 +548,33 @@ export class RinkScene extends Phaser.Scene {
       // His shadow on the ice marks where he really is, and how big.
       g.fillStyle(colour(c.shadow), 0.22 * alpha);
       g.fillEllipse(x, y, unit * FIG.shadowWidth * 2, unit * FIG.shadowHeight * 2);
+
+      // A team on fire: a glow under each of its players.
+      if (onFire(world, p.team)) {
+        g.fillStyle(colour(c.fire), 0.3 + 0.2 * Math.sin(this.clock * 12 + p.id));
+        g.fillEllipse(x, y, unit * FIG.shadowWidth * 2.9, unit * FIG.shadowHeight * 2.9);
+      }
+      // The Gale's burst: streaks behind him.
+      if (p.burst > 0) {
+        g.lineStyle(Math.max(1.5, unit * 0.14), colour(c.shield), 0.8);
+        for (const off of [-0.5, 0, 0.5]) g.lineBetween(x - side * unit * 1.2, y - unit * (1.6 + off), x - side * unit * 2.6, y - unit * (1.6 + off));
+      }
+      // The marksman: a ring under him that closes in as he winds up; full means it cannot be saved.
+      if (p.fx.unstoppableCharged > 0) {
+        const charge = p.charge > 0 ? chargeFraction(p.charge, t) : 0;
+        g.lineStyle(Math.max(2, unit * 0.2), colour(c.danger), 0.55 + 0.45 * charge);
+        g.strokeEllipse(x, y, unit * (4.4 - 2.2 * charge), unit * (4.4 - 2.2 * charge) * FIG.ringSquash);
+        this.top.fillStyle(colour(c.danger));
+        this.top.fillCircle(x, y + fig.top * unit - unit * 0.5, Math.max(2.5, unit * 0.3));
+      }
+      // The Wall: a pip over the goalie for each automatic save he has left this period.
+      if (goalie && p.goalie && p.goalie.fx.periodAutoSaves > 0) {
+        const left = p.goalie.autoSavePeriod === world.period ? p.goalie.autoSavesLeft : Math.round(p.goalie.fx.periodAutoSaves);
+        for (let k = 0; k < left; k++) {
+          this.top.fillStyle(colour(c.shield));
+          this.top.fillCircle(x + (k - (left - 1) / 2) * unit * 0.9, y + fig.top * unit - unit * 0.5, Math.max(2.5, unit * 0.32));
+        }
+      }
 
       if (p === controlled) {
         // The ring lies flat on the ice under him, with a tick pointing the way he truly faces.
@@ -543,6 +604,8 @@ export class RinkScene extends Phaser.Scene {
 
       // The stick: a skater's blade sits exactly where the puck is carried; a goalie's rests on the ice in front of him.
       let end = fig.stickEnd;
+      // Celebrating, he holds the stick aloft.
+      if (cheer) end = { x: fig.hand.x + side * 0.4, y: fig.hand.y - 1.3 };
       if (!end) {
         const blade = carrySpot(p, t);
         // Without the puck his stick sweeps a little with his stride.
@@ -681,7 +744,29 @@ export class RinkScene extends Phaser.Scene {
       }
     }
     const period = world.overtime && world.period > t.period.count ? 'OT' : `P${Math.min(world.period, t.period.count)}`;
-    this.clockTextObject.setFontSize(Math.max(11, boardH * 0.58));
+    // The last seconds of regulation: the clock turns red and pulses.
+    const lastSeconds = !world.overtime && world.period >= t.period.count && world.clock <= fx.lastSecondsPulse && world.phase !== 'final';
+    this.clockTextObject.setColor(lastSeconds ? c.danger : c.accent);
+    this.clockTextObject.setFontSize(Math.max(11, boardH * 0.58) * (lastSeconds ? 1 + 0.12 * Math.sin(this.clock * 10) : 1));
+
+    // Momentum: a strip along the bottom of each team's name, bright and full while it is on fire.
+    for (const team of [0, 1] as const) {
+      const burning = onFire(world, team);
+      const share = burning ? 1 : world.teams[team].heat;
+      const barX = team === 0 ? left : left + boardW - nameW;
+      g.fillStyle(colour(burning ? c.fire : c.accent), burning ? 0.7 + 0.3 * Math.sin(this.clock * 12) : 0.9);
+      g.fillRect(team === 0 ? barX : barX + nameW * (1 - share), y0 + boardH - 3, nameW * share, 3);
+    }
+
+    // Pulling the goalie: a prompt when it is allowed, and a reminder while the net is empty.
+    const humanTeam = world.human ? world.human.team : null;
+    const prompt = humanTeam === null ? '' : world.teams[humanTeam].pulled ? 'EMPTY NET  ·  VIEW: GOALIE BACK' : mayPull(world, humanTeam, t) ? 'VIEW: PULL THE GOALIE' : '';
+    this.pullText.setVisible(prompt !== '');
+    if (prompt !== '') {
+      this.pullText.setText(prompt);
+      this.pullText.setFontSize(Math.max(10, height * 0.034));
+      this.pullText.setPosition(width / 2, height - look.marginPixels - 44);
+    }
     this.clockTextObject.setText(`${period}  ${clockText(world.clock)}`);
     this.clockTextObject.setPosition(left + nameW + scoreW + midW / 2, midY);
 

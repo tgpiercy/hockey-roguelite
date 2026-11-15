@@ -23,6 +23,8 @@ export interface InputFrame {
   /** The two powerup buttons (LT and RB). */
   powerupA: boolean;
   powerupB: boolean;
+  /** Pull the goalie for an extra skater, or send him back: only late in a game the team is losing. */
+  pullGoalie?: boolean;
 }
 
 export const NO_INPUT: InputFrame = {
@@ -36,6 +38,7 @@ export const NO_INPUT: InputFrame = {
   lineChange: false,
   powerupA: false,
   powerupB: false,
+  pullGoalie: false,
 };
 
 /** Per-skater shooting abilities, 0 to 1. */
@@ -93,6 +96,8 @@ export interface AiMemory {
   carryTime: number;
   /** True when it has decided to deke on its next step. */
   wantDeke: boolean;
+  /** The teammate its next pass must go to, whoever else is in that direction; null to choose as usual. */
+  passTo: number | null;
   /** True while winding up a shot from distance: he plants his feet instead of skating in as he charges. */
   plant: boolean;
 }
@@ -170,6 +175,8 @@ export interface Player extends Skater {
   dekeHeld: boolean;
   /** True while flat on the ice after a big hit (his stagger is then the time until he is up). */
   knockedDown: boolean;
+  /** Seconds of burst speed left (a boss trick). */
+  burst: number;
   /** Talent ids he carries (mascots do); see talents.ts. Empty for ordinary players. */
   talents: string[];
   /** Seconds until each talent can trigger again, by talent id. */
@@ -196,6 +203,10 @@ export interface Puck {
   shotBy: number | null;
   /** True for a flat pass that cannot be picked off in the lane. */
   threaded: boolean;
+  /** True once a shot has been tipped by a teammate: it is only tipped once. */
+  tipped: boolean;
+  /** True for a shot no goalie can stop (a boss trick). */
+  unstoppable: boolean;
 }
 
 export type SimEvent =
@@ -208,6 +219,9 @@ export type SimEvent =
   | { type: 'talent'; player: number; id: string }
   | { type: 'shot'; speed: number; player: number; oneTimer?: boolean }
   | { type: 'deke'; player: number }
+  | { type: 'tip'; player: number }
+  | { type: 'fire'; team: 0 | 1 }
+  | { type: 'pull'; team: 0 | 1; on: boolean }
   | { type: 'pass'; player: number; target: number | null; saucer: boolean }
   | { type: 'post' }
   | { type: 'pickup'; player: number }
@@ -228,7 +242,17 @@ export interface World {
   phaseTime: number;
   rng: Rng;
   /** The human's team and the skater being controlled, or null for an all-AI game. */
-  human: { team: 0 | 1; controlled: number; switchHeld: boolean } | null;
+  human: {
+    team: 0 | 1;
+    controlled: number;
+    switchHeld: boolean;
+    /** Whether pass was down on the previous step, to see a fresh press. */
+    passHeld: boolean;
+    /** Just after a pass: who passed and to whom, and how long a second press of pass still asks for it back. */
+    giveGoOffer: { passer: number; receiver: number; left: number } | null;
+    /** A give and go in progress: control stays with the passer while the receiver looks to return the puck. */
+    giveGo: { passer: number; receiver: number; left: number } | null;
+  } | null;
   /** AI level per team, 0 (easy) to 1 (hard). Null means "take it from the tuning". */
   levels: [number | null, number | null];
   lineup: 'full' | 'solo';
@@ -262,6 +286,13 @@ export interface TeamState {
   boosts: Boost[];
   /** How this team's AI skaters like to attack: a style id from ai.json, or null. */
   style: string | null;
+  /** Momentum, 0 to 1: full sets the team on fire. */
+  heat: number;
+  /** True while the goalie is off for an extra skater, and who that skater is. */
+  pulled: boolean;
+  extra: number | null;
+  /** Whether the pull-goalie button was held on the previous step. */
+  pullHeld: boolean;
 }
 
 export interface FaceoffState {

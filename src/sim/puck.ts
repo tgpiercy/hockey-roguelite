@@ -3,7 +3,7 @@ import type { Tuning } from './tuning';
 import type { Puck, Skater, Vec } from './types';
 
 export function createPuck(x: number, y: number): Puck {
-  return { pos: { x, y }, vel: { x: 0, y: 0 }, carrier: null, air: 0, passTarget: null, lastTeam: null, touches: [], shotBy: null, threaded: false };
+  return { pos: { x, y }, vel: { x: 0, y: 0 }, carrier: null, air: 0, passTarget: null, lastTeam: null, touches: [], shotBy: null, threaded: false, tipped: false, unstoppable: false };
 }
 
 /** Something round that stops the puck, such as a goalie. */

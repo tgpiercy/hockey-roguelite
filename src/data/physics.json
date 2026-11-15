@@ -158,5 +158,40 @@
     "cooldownSeconds": 2.5,
     "impulse": 5,
     "staminaCost": 0.2
+  },
+  "momentum": {
+    "goal": 0.45,
+    "bigHit": 0.2,
+    "oneTimer": 0.12,
+    "save": 0.06,
+    "drainPerSecond": 0.004,
+    "concedeLoss": 0.5,
+    "fireSeconds": 8,
+    "fireShotPower": 0.12,
+    "fireSpeedScale": 1.06
+  },
+  "tips": {
+    "screenRange": 3,
+    "screenClear": 1,
+    "screenWidth": 0.8,
+    "screenScale": 1.5,
+    "tipReach": 1.3,
+    "tipRange": 7,
+    "tipMinSpeed": 12,
+    "tipDegrees": 4,
+    "tipKeep": 0.92,
+    "tipperLockSeconds": 0.3,
+    "cornerInset": 0.3
+  },
+  "giveGo": {
+    "windowSeconds": 0.5,
+    "seconds": 3
+  },
+  "pull": {
+    "seconds": 25,
+    "maxDeficit": 2
+  },
+  "boss": {
+    "burstSpeedScale": 1.25
   }
 }

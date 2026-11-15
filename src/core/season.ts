@@ -526,7 +526,7 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
       level: clampLevel(level + rules.bossLevelBonus),
       kind: 'boss',
       title: `Boss: ${boss.name}`,
-      trait: `${boss.trait}: ${boss.description}`,
+      trait: `${boss.trait}: ${boss.description} ${boss.trick}`,
       powerups: loaded,
     };
   }

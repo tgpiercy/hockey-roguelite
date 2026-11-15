@@ -3,7 +3,7 @@ import type { SkaterEffects } from './ratings';
 import { createSkater } from './skater';
 import { attackDir, carrierOf, dist, skatersOf } from './team';
 import type { Tuning } from './tuning';
-import type { Player, SimEvent, Vec, World } from './types';
+import type { InputFrame, Player, SimEvent, Vec, World } from './types';
 
 /** Where a team's bench door is: on the top boards, on its own side of centre. */
 export function benchDoor(team: 0 | 1, t: Tuning): Vec {
@@ -69,7 +69,8 @@ export function changing(world: World, team: 0 | 1): boolean {
 
 /** Sends the line on the ice to the bench. Each skater is replaced as he reaches the door. */
 export function callChange(world: World, team: 0 | 1, t: Tuning): boolean {
-  if (changing(world, team)) return false;
+  // No line changes while the goalie is pulled: everyone who is on stays on.
+  if (changing(world, team) || world.teams[team].pulled) return false;
   const state = world.teams[team];
   state.line = state.line === 0 ? 1 : 0;
   state.changeCooldown = t.bench.changeCooldownSeconds;
@@ -99,6 +100,16 @@ export function stepChanges(world: World, t: Tuning, events: SimEvent[]): void {
     if (!p.onIce || !p.leaving || world.puck.carrier === p.id || p.stagger > 0) continue;
     const door = benchDoor(p.team, t);
     if (dist(p.pos, door) > t.bench.doorRadius) continue;
+    // The extra skater going off when the goalie returns is not replaced by anyone.
+    if (world.teams[p.team].extra === p.id) {
+      p.onIce = false;
+      p.leaving = false;
+      p.sprinting = false;
+      p.vel = { x: 0, y: 0 };
+      world.teams[p.team].extra = null;
+      if (world.puck.passTarget === p.id) world.puck.passTarget = null;
+      continue;
+    }
     const next = world.players.find(
       (o) => o.team === p.team && o.role === 'skater' && o.line === world.teams[p.team].line && o.slot === p.slot,
     );
@@ -133,6 +144,10 @@ export function autoChange(world: World, team: 0 | 1, t: Tuning): boolean {
 /** At a stoppage: the bench line goes on if it is clearly fresher, with no skating to the bench. Returns the three on the ice. */
 export function freshLineOn(world: World, team: 0 | 1, t: Tuning): Player[] {
   const state = world.teams[team];
+  // Any stoppage puts a pulled goalie back in his net.
+  state.pulled = false;
+  state.extra = null;
+  for (const p of world.players) if (p.team === team && p.role === 'goalie') p.onIce = true;
   const other = state.line === 0 ? 1 : 0;
   if (lineEnergy(world, team, other) > lineEnergy(world, team, state.line) + t.energy.changeMargin) state.line = other;
   const door = benchDoor(team, t);
@@ -148,4 +163,80 @@ export function freshLineOn(world: World, team: 0 | 1, t: Tuning): Player[] {
     }
   }
   return line.sort((a, b) => a.slot - b.slot);
+}
+
+/** True if this team may have its goalie off right now: late in regulation and behind by a goal or two. */
+export function mayPull(world: World, team: 0 | 1, t: Tuning): boolean {
+  if (world.rules !== 'game' || world.overtime || world.phase !== 'play' || world.period < t.period.count) return false;
+  if (world.clock > t.pull.seconds) return false;
+  const behind = (world.score[team === 0 ? 1 : 0] as number) - (world.score[team] as number);
+  return behind >= 1 && behind <= t.pull.maxDeficit;
+}
+
+/** Takes the goalie off and sends a rested skater on from the bench as a fourth attacker. */
+export function pullGoalie(world: World, team: 0 | 1, t: Tuning, events: SimEvent[]): boolean {
+  const state = world.teams[team];
+  if (state.pulled) return false;
+  const goalie = world.players.find((p) => p.team === team && p.role === 'goalie');
+  const extra = world.players.find((p) => p.team === team && p.role === 'skater' && !p.onIce && p.slot === 0) ?? world.players.find((p) => p.team === team && p.role === 'skater' && !p.onIce);
+  if (!goalie || !extra) return false;
+  // Skaters already on their way off stay on after all.
+  for (const p of skatersOf(world, team)) p.leaving = false;
+  goalie.onIce = false;
+  if (world.puck.carrier === goalie.id) world.puck.carrier = null;
+  const door = benchDoor(team, t);
+  putOnIce(extra, door.x, door.y, Math.PI / 2);
+  state.pulled = true;
+  state.extra = extra.id;
+  events.push({ type: 'pull', team, on: true });
+  return true;
+}
+
+/** Puts the goalie back in his net during play; the extra skater heads for the bench. */
+export function returnGoalie(world: World, team: 0 | 1, t: Tuning, events: SimEvent[]): boolean {
+  const state = world.teams[team];
+  if (!state.pulled) return false;
+  const goalie = world.players.find((p) => p.team === team && p.role === 'goalie');
+  if (goalie) {
+    goalie.onIce = true;
+    goalie.pos = { x: -attackDir(team) * (t.rink.length / 2 - t.rink.goalLineFromEnd) + attackDir(team) * goalie.goalie!.fx.depth, y: 0 };
+    goalie.vel = { x: 0, y: 0 };
+    goalie.goalie!.seen = [];
+    goalie.goalie!.hold = 0;
+  }
+  const extra = state.extra === null ? undefined : world.players[state.extra];
+  if (extra && extra.onIce) extra.leaving = true;
+  else state.extra = null;
+  state.pulled = false;
+  events.push({ type: 'pull', team, on: false });
+  return true;
+}
+
+/**
+ * The goalie pull, once a step. An AI team pulls when it may and it has the puck or the puck is up the ice,
+ * and puts him back when it no longer may. The human's team does it on the button.
+ */
+export function stepPulls(world: World, humanInput: InputFrame, t: Tuning, events: SimEvent[]): void {
+  for (const team of [0, 1] as const) {
+    const state = world.teams[team];
+    const may = mayPull(world, team, t);
+    if (state.pulled && !may && world.phase === 'play') {
+      returnGoalie(world, team, t, events);
+      continue;
+    }
+    if (world.human && world.human.team === team) {
+      const pressed = Boolean(humanInput.pullGoalie) && !state.pullHeld;
+      state.pullHeld = Boolean(humanInput.pullGoalie);
+      if (pressed && may) {
+        if (state.pulled) returnGoalie(world, team, t, events);
+        else pullGoalie(world, team, t, events);
+      }
+      continue;
+    }
+    if (may && !state.pulled) {
+      const carrier = carrierOf(world);
+      const safe = carrier ? carrier.team === team : attackDir(team) * world.puck.pos.x > 0;
+      if (safe) pullGoalie(world, team, t, events);
+    }
+  }
 }

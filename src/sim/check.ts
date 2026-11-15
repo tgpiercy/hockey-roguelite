@@ -49,7 +49,7 @@ export function stepChecking(world: World, p: Player, input: InputFrame, t: Tuni
   // A deke in progress slips the check. A spin move turns one that would have worked into one that does not.
   const success = (rolled || bigHit) && carrier.deke <= 0 && !spinEscape(carrier, events);
   // Thrown while closing fast, a body check that lands puts him on the ice.
-  const big = kind === 'body' && success && closingSpeed(p, carrier) >= t.check.bigHitClosingSpeed;
+  const big = kind === 'body' && success && (p.fx.alwaysKnockdown > 0 || closingSpeed(p, carrier) >= t.check.bigHitClosingSpeed);
 
   if (kind === 'body') {
     p.vel.x *= t.check.checkerSpeedKeep;

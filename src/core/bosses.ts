@@ -16,7 +16,11 @@ export interface BossInfo {
   name: string;
   trait: string;
   description: string;
+  /** Its trick, in words for the player: what it does and how to beat it. */
+  trick: string;
   modifiers: Modifier[];
+  /** Modifiers for its best shooter alone. */
+  star: Modifier[];
 }
 
 export function bossInfo(id: string): BossInfo {
@@ -58,6 +62,9 @@ export function buildBoss(league: League, bossId: string, region: number, seed: 
     generatePlayer(rng, names, `boss-${bossId}-${i}`, positions[i % positions.length] as Position, strength + offset),
   );
   const goalie = generatePlayer(rng, names, `boss-${bossId}-g`, 'G', strength + 2);
+  const shooting = (p: PlayerRecord): number => (p.ratings as SkaterRatings).shooting;
+  const firstLine = skaters.slice(0, 3);
+  const star = skaters.indexOf(firstLine.reduce((best, p) => (shooting(p) > shooting(best) ? p : best), firstLine[0] as PlayerRecord));
 
   return {
     name: boss.name,
@@ -67,6 +74,8 @@ export function buildBoss(league: League, bossId: string, region: number, seed: 
       goalie: goalie.ratings as GoalieRatings,
       positions: skaters.map((p) => (p.position === 'D' ? 'D' : 'F')),
       modifiers: boss.modifiers,
+      // The star's own trick goes to the best shooter on the first line.
+      ...(boss.star.length > 0 ? { skaterModifiers: skaters.map((_, i) => (i === star ? boss.star : [])) } : {}),
       style: playStyle(boss.name),
     },
   };
