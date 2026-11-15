@@ -77,7 +77,8 @@ function TeamTable({ team, crest, players, mascot }: { team: DressedTeam; crest:
       </table>
       {goalies.map((p) => (
         <div class="summary-goalie" key={p.id}>
-          {named(p)?.name ?? 'Goalie'} (G): {p.saves} saves, {p.goalsAgainst} against
+          {/* Both goalies on the same terms: rating, shots faced and the share stopped. */}
+          {named(p)?.name ?? 'Goalie'} (G{named(p) ? `, rated ${named(p)!.overall}` : ''}): {p.saves} of {p.saves + p.goalsAgainst} stopped{p.saves + p.goalsAgainst > 0 ? `, ${(p.saves / (p.saves + p.goalsAgainst)).toFixed(3).replace(/^0/, '')}` : ''}
         </div>
       ))}
     </div>

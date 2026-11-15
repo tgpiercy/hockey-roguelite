@@ -212,6 +212,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       },
       hints: () => (hintsOn ? hintCounts : null),
       replays: () => loadPrefs().replays,
+      holdSwitch: loadPrefs().holdSwitch,
       // The summary steps aside while the goal of the game is shown again.
       onReplay: (on) => {
         summary.style.visibility = on ? 'hidden' : '';

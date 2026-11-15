@@ -802,6 +802,41 @@ At 0.07 it added about a quarter of a goal a team, so it was cut. At 0.03 scorin
 
 **Replay.** A copy of the game takes 0.16 ms on the development PC and is 32 KB; one is taken a second. Not measured on the phone. A re-run from a copy matches the live game exactly, step for step, in an all-AI game and in one with scripted inputs (`tests/replay.test.ts`).
 
+## The five complaints, measured (2026-11-15)
+
+Players of the nearest comparable game still hold five faults against it. These are our numbers, from `tests/harness/checks.ts`: 100 games a row with the scripted player (who skates to the slot and shoots, and never passes, checks or presses switch) against equal teams rated 70.
+
+| | Rookie | Pro | All-Star |
+| --- | --- | --- | --- |
+| Scripted player wins | 80% | 67% | 54% |
+| Your goalie's save rate | .784 | .744 | .748 |
+| Their goalie's save rate | .773 | .761 | .794 |
+| A linemate has room (2.5 m clear) while you carry in their end | 94% | 90% | 97% |
+| A linemate is within 6 m of the net while you carry in their end | 2% | 2% | 3% |
+| A linemate is standing still then | 1% | 1% | 1% |
+
+- **Switching.** On automatic, control moved to a team-mate who had the puck 47 times a game without a press: that is the rule (control follows the puck), not a fault, but it is what players of the other game call being handed the wrong skater. On the new hold setting it was 0.15 times a game. About 11 more moves a game are line changes and about 14 are faceoffs, where you take the draw.
+- **Team-mates.** They keep moving and stay open. They are almost never at the net when this player carries the puck in: he rushes and shoots from ten metres before anyone arrives. With a player who holds the puck longer this may read differently; it is the one thing here worth watching in real play.
+- **Goalies.** Equal ratings, and on Rookie and Pro the two save rates are within two points. On All-Star theirs stops .794 and yours .748: nothing about either goalie changes, but sharper opponents take better shots at yours. A player would see his goalie let in more, which is the complaint.
+- **Checks**, from one fixed position, 3,000 tries each:
+
+| | AI skater | Your skater | Yours, checking 80 against control 60 | Yours, 60 against 80 |
+| --- | --- | --- | --- | --- |
+| Poke | 30% | 49% | 55% | 43% |
+| Body check | 62% | 74% | 81% | 68% |
+
+A poke by your skater is close to a coin toss from the same spot, which is where "inconsistent" would come from. A body check lands three times in four.
+
+**Whole seasons**, 40 on each difficulty, the scripted player in every game with a new franchise (your team averages 67 against a league at 70.6), plain choices between games:
+
+| | Rookie | Pro | All-Star | The survey's benchmark |
+| --- | --- | --- | --- | --- |
+| Beat the first region's boss | 90% | 70% | 68% | about 75% |
+| Won the title | 12% | 8% | 5% | about 50% |
+| Games won of games played | 6.8 of 10.0 | 4.8 of 8.4 | 3.8 of 7.2 | |
+
+The first region is at the benchmark on Pro. The title is far below it: a first-season club strikes out in the second or third region nearly every time. The benchmark comes from a game where every run starts level; ours starts a weak club that is meant to grow over seasons, so the two are not the same thing. Not changed yet: the owner decides.
+
 ## Change log
 
 | Date | Value | From | To | Why |

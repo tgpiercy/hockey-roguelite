@@ -53,6 +53,8 @@ export interface RinkSceneOptions {
   names: [string, string];
   /** Rules a rink or a mode changes for this game. Left out, the usual game. */
   rules?: MatchRules;
+  /** Player one keeps his skater until he presses switch. */
+  holdSwitch?: boolean;
   /** A second player with a controller of his own: on team 0 (co-op) or team 1 (versus). Left out, one player. */
   second?: 0 | 1;
   /** Each team's dressed players' names, in order: six skaters, then the goalie. For the commentary. */
@@ -222,6 +224,7 @@ export class RinkScene extends Phaser.Scene {
       powerups: this.options.powerups,
       ...(this.options.second !== undefined ? { second: this.options.second } : {}),
       ...(this.options.rules ? { rules: this.options.rules } : {}),
+      ...(this.options.holdSwitch ? { holdSwitch: true } : {}),
     });
     if (this.options.second !== undefined) this.reader2 = new InputReader(1);
     for (const team of [0, 1] as const) {

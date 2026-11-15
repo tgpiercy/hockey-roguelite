@@ -2313,6 +2313,9 @@ export function App() {
             icon: 'sound',
             detail: 'Short lines for the big plays during a game. Text shows them on the rink; Text and voice also reads them aloud with this device\'s own voice, which differs from phone to phone.',
           }),
+          tile('switching', 'Player switching', prefs.holdSwitch ? 'Hold' : 'Automatic', () => changePrefs({ ...prefs, holdSwitch: !prefs.holdSwitch }), {
+            detail: 'Automatic: you always control whoever of yours has the puck. Hold: you keep your skater until you press switch, and a team-mate who gets the puck plays it himself.',
+          }),
           tile('replays', 'Goal replays', prefs.replays ? 'On' : 'Off', () => changePrefs({ ...prefs, replays: !prefs.replays }), {
             detail: 'After each goal the last few seconds are shown again at half speed. Any button skips it.',
           }),

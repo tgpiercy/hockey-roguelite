@@ -87,7 +87,8 @@ export function givePuck(world: World, player: Player): void {
   const only = on.length === 1 ? on[0] : undefined;
   const go = only?.giveGo;
   const holding = go !== null && go !== undefined && player.id === go.receiver;
-  if (only && player.role === 'skater' && !holding) {
+  // Nor does a human who has asked to keep his skater until he presses switch.
+  if (only && player.role === 'skater' && !holding && !only.hold) {
     only.controlled = player.id;
   }
 }

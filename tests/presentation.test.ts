@@ -155,12 +155,12 @@ describe('the sound recipes', () => {
 describe('device preferences', () => {
   it('start with sound on at a moderate volume and full detail', () => {
     expect(parsePrefs(null)).toEqual(DEFAULT_PREFS);
-    expect(DEFAULT_PREFS).toEqual({ sound: true, volume: 0.7, detail: 'full', touch: 'auto', hints: true, replays: true, commentary: 'text', music: true, musicVolume: 0.5 });
+    expect(DEFAULT_PREFS).toEqual({ sound: true, volume: 0.7, detail: 'full', touch: 'auto', hints: true, replays: true, holdSwitch: false, commentary: 'text', music: true, musicVolume: 0.5 });
     expect(VOLUME_STEPS).toContain(DEFAULT_PREFS.volume);
   });
 
   it('are read back as they were saved', () => {
-    const saved = { sound: false, volume: 0.4, detail: 'low' as const, touch: 'never' as const, hints: false, replays: false, commentary: 'voice' as const, music: false, musicVolume: 0.2 };
+    const saved = { sound: false, volume: 0.4, detail: 'low' as const, touch: 'never' as const, hints: false, replays: false, holdSwitch: true, commentary: 'voice' as const, music: false, musicVolume: 0.2 };
     expect(parsePrefs(JSON.stringify(saved))).toEqual(saved);
   });
 
@@ -175,7 +175,7 @@ describe('device preferences', () => {
   });
 
   it('keep preferences stored before the on-screen controls setting existed', () => {
-    expect(parsePrefs('{"sound":false,"volume":0.4,"detail":"low"}')).toEqual({ sound: false, volume: 0.4, detail: 'low', touch: 'auto', hints: true, replays: true, commentary: 'text', music: true, musicVolume: 0.5 });
+    expect(parsePrefs('{"sound":false,"volume":0.4,"detail":"low"}')).toEqual({ sound: false, volume: 0.4, detail: 'low', touch: 'auto', hints: true, replays: true, holdSwitch: false, commentary: 'text', music: true, musicVolume: 0.5 });
     expect(parsePrefs('{"touch":"sometimes"}').touch).toBe('auto');
   });
 

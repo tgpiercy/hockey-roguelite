@@ -267,6 +267,8 @@ export interface Human {
     giveGoOffer: { passer: number; receiver: number; left: number } | null;
     /** A give and go in progress: control stays with the passer while the receiver looks to return the puck. */
     giveGo: { passer: number; receiver: number; left: number } | null;
+    /** True if control stays on his skater until he presses switch: it does not follow the puck to a team-mate. */
+    hold?: boolean;
 }
 
 export interface World {

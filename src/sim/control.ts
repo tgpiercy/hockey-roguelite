@@ -55,7 +55,7 @@ export function updateControl(world: World, input: InputFrame, human: Human | nu
     }
   }
 
-  if (carrier && carrier.team === human.team && carrier.role === 'skater' && partner === null) {
+  if (carrier && carrier.team === human.team && carrier.role === 'skater' && partner === null && !human.hold) {
     // Playing alone, control always follows the puck. With a partner each keeps his own skater.
     human.controlled = carrier.id;
   } else if (!current || !current.onIce || (current.leaving && byDistance.some((p) => !p.leaving))) {

@@ -68,6 +68,8 @@ export interface WorldOptions {
   human?: boolean;
   /** A second human, driven by step()'s second input: on team 0 for co-op, on team 1 for versus. Left out, there is none. */
   second?: 0 | 1;
+  /** Player one keeps his skater until he presses switch, in place of control following the puck. Left out, it follows. */
+  holdSwitch?: boolean;
   /** "full" (the default) is 3 skaters and a goalie a side. "solo" is one skater alone, for skating tests. */
   lineup?: 'full' | 'solo';
   /** AI level per team, 0 to 1. Left out, team 1 uses the tuning's opponent difficulty and team 0 the teammate level. */
@@ -225,7 +227,7 @@ export function createWorld(t: Tuning, seed: number | string, options: WorldOpti
     phase: 'play',
     phaseTime: 0,
     rng: createRng(seed),
-    human: options.human === false ? null : { team: 0, controlled: 0, switchHeld: false, passHeld: false, giveGoOffer: null, giveGo: null },
+    human: options.human === false ? null : { team: 0, controlled: 0, switchHeld: false, passHeld: false, giveGoOffer: null, giveGo: null, ...(options.holdSwitch ? { hold: true } : {}) },
     human2: options.human === false || options.second === undefined ? null : { team: options.second, controlled: options.second === 0 ? 1 : PLAYERS_PER_TEAM, switchHeld: false, passHeld: false, giveGoOffer: null, giveGo: null },
     levels: options.levels ?? [null, null],
     lineup: options.lineup ?? 'full',

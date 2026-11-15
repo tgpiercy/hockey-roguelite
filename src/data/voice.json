@@ -1,0 +1,104 @@
+{
+  "tagline": "A season with the players below the stars.",
+  "papers": ["Courier", "Gazette", "Herald", "Ledger", "Standard", "Dispatch", "Record", "Advance", "Sentinel", "Observer"],
+  "announcers": {
+    "first": ["Walt", "Merle", "Dot", "Hank", "Ruthie", "Gus", "Arlene", "Stan", "Bea", "Lorne", "Ida", "Cliff"],
+    "last": ["Pruitt", "Hargrove", "Lindqvist", "Marchand", "Okafor", "Brannigan", "Tessier", "Whitlock", "Dufresne", "Sorensen", "Kowalczyk", "Ames"]
+  },
+  "habits": ["Folks,", "I'll say this:", "Well now,", "Mark it down:", "For what it's worth,"],
+  "thresholds": { "winStreak": 3, "loseStreak": 2, "veteranAge": 33, "rookieAge": 20, "hotGoals": 5, "lowCash": 1500000, "rivalMeetings": 2 },
+  "contexts": {
+    "opener": [
+      "A new season at the old barn. Same boards, same hopes.",
+      "First game of the year. Nobody has lost one yet.",
+      "The ice is in and the {team} are back. That is enough for tonight.",
+      "Opening night. Half the town is here and the other half has the radio on.",
+      "Another season. The club is still open, which was not a sure thing."
+    ],
+    "winStreak": [
+      "{n} wins in a row for the {team}. Nobody is saying it out loud yet.",
+      "That is {n} straight. The {town} barn has not been this loud in a while.",
+      "{n} in a row. The room is quiet about it, which is the right way to be.",
+      "The {team} have won {n} straight and still dress the same six.",
+      "{n} wins running. Somebody check the standings twice."
+    ],
+    "loseStreak": [
+      "{n} losses in a row. The {team} will dress tonight all the same.",
+      "That is {n} straight the wrong way. Nobody quits on a {town} winter.",
+      "{n} in a row dropped. The club has seen worse and stayed open.",
+      "A hard stretch: {n} straight losses. The answer is the next shift.",
+      "{n} losses running. The coffee at the rink is still hot."
+    ],
+    "lastStrike": [
+      "One more loss and the season is over. The {team} know it.",
+      "No room left: the next loss ends it. Skate accordingly.",
+      "The {team} are down to their last strike. Everybody in {town} can count.",
+      "Lose tonight and the lights go off until autumn.",
+      "Last strike. It has to be tonight and every night after."
+    ],
+    "rival": [
+      "The {rival} again. These two do not need an introduction.",
+      "{rival} tonight. Nobody in {town} needs the schedule to know that.",
+      "Another night with the {rival}. Bring a second stick.",
+      "The {team} and the {rival}. It was never going to be a quiet one.",
+      "It is the {rival}. Some games mean more and this is one."
+    ],
+    "boss": [
+      "{boss} tonight. {person}, their {role}, has seen clubs like this come and go.",
+      "The {team} against {boss}. {person} will have them ready.",
+      "{boss}, and {person} with them. A long night's work ahead.",
+      "Nobody gave the {team} this game. That has not stopped them before.",
+      "{boss} are the measure. {person} is the reason."
+    ],
+    "broke": [
+      "Money is tight at the {team}. The club plays tonight; next month is another matter.",
+      "The treasurer is not sleeping. The {team} skate anyway.",
+      "There is talk about the books. A full barn would help.",
+      "The club is short and everybody knows it. Buy a program.",
+      "Lean times for the {team}. They have kept the doors open before."
+    ],
+    "playoffs": [
+      "Playoff hockey in {town}. The beards are coming in.",
+      "This is what the long winter was for.",
+      "The {team} are in. From here every night could be the last one.",
+      "Playoffs. The whole season comes down to a few shifts.",
+      "Nobody expected the {team} here in October. Here they are."
+    ],
+    "champions": [
+      "The banner went up over the summer. Now everyone wants to take it down.",
+      "Champions a year ago. That buys nothing tonight.",
+      "The {team} raised a banner. The league has not forgotten.",
+      "Defending the title. It is harder to keep than to win.",
+      "Last year's champions dress tonight. Same room, new target on it."
+    ],
+    "veteran": [
+      "{player}, {age} years old, dresses again tonight.",
+      "{player} is {age} and still first on the ice for warm-up.",
+      "Another night for {player}. At {age} he counts them.",
+      "{player}, {age}, in the lineup. He has forgotten more than most learn.",
+      "At {age}, {player} is still here. So is the club."
+    ],
+    "rookie": [
+      "{player} is {age} and playing like he has somewhere to be.",
+      "Keep an eye on {player}. {age} years old and already on the sheet.",
+      "The kid, {player}, has {goals} this season. Nobody wanted him either.",
+      "{player}, {age}, is finding his feet. The room has taken to him.",
+      "A {age}-year-old named {player} is turning into something."
+    ],
+    "hot": [
+      "{player} has {goals} this season and wants more.",
+      "{goals} goals for {player}. He was on waivers a year ago.",
+      "{player} leads the {team} with {goals}. He would tell you it is the linemates.",
+      "Watch {player}: {goals} goals and counting.",
+      "{player}, {goals} on the year. The third line is paying its way."
+    ],
+    "plain": [
+      "Another night at the rink. The {team} dress six and a goalie, same as always.",
+      "A regular night in {town}. Those count too.",
+      "The {team} are at it again. Nothing fancy.",
+      "Two points on the table and a cold night outside.",
+      "Hockey tonight. The club is open and the ice is good.",
+      "The {team} skate tonight. That is the whole story so far."
+    ]
+  }
+}
