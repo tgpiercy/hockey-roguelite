@@ -623,4 +623,31 @@ Built, deployed and checked with a simulated controller.
 - [x] 7. Floating words and a pass-target mark
 - [x] 8. Passing chain
 - [x] 9. Goal replay
-- [ ] 10. Graphics review, then choose
+- [x] 10. Graphics review, then choose
+
+## Review (features round)
+
+- Stage one (bounties, ringer, stickers, recipes, unseen-first, tournament) and stage two (floating words, pass mark, passing chain, replay) each went in as one commit, gated on the tests.
+- Measured: the league health check before and after stage one; the standard series for the passing chain (cut from 0.07 to 0.03 a step); the replay's exactness (a re-run matches the live game step for step) and the cost of a copy (0.16 ms on the PC).
+- Seen in the test browser: a bounty on the game screen, the tournament rows, a floating word, the pass mark, a goal replay starting and handing back, the summary's goal of the game and watching it again.
+- Not seen: the ringer offer, a stickered artifact on offer, a recipe forming, the bounty line in the rewards. Tests only.
+- Found and fixed: a give and go was not ended by a goal; the health check counted a short-but-playable roster of yours as illegal.
+
+# The graphics round
+
+- [x] 1. Team colours on the menus (and a club colour for every franchise)
+- [x] 2. Option cards
+- [x] 3. Artifact cards
+- [x] 4. A drawn map
+- [x] 5. The rink's surroundings
+- [x] 6. The name Third Line and the title screen
+- [x] 7. Motion (mostly there already)
+- [ ] Look at it on the phone (owner)
+
+## Review (graphics round)
+
+- Five commits, each gated on the type check and tests (1251 pass) and looked at in the test browser at phone size; before and after pictures were sent after each part.
+- Frame time on the rink is the same with and without part 5, within the noise of the test pane (5 to 8 ms a frame both ways).
+- Not seen: the artifact pick and artifact list with real artifacts (seen on the art sheet only), a boss or rival screen in his colours, the weekly run's colours, the season set-up screen with its new cards, confetti clear of the goal banner, and any of the motion (the test browser gives stills).
+- The review said screens swapped instantly. They did not: a slide-in and counting numbers were already there. I could not see motion in still pictures and said so only in the plan's risks.
+- The home-screen icon picture is unchanged: it is an image file, and the rule is no new image files.

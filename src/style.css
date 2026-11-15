@@ -427,6 +427,14 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 @keyframes screen-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: translateX(0); } }
 @keyframes bar-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .menu-body { animation: screen-in 0.16s ease-out; }
+/* The focused row settles into place; a card on offer lifts a little; the title band slides in. */
+@keyframes focus-pop { from { transform: scale(0.985); } to { transform: scale(1); } }
+@keyframes band-in { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: translateX(0); } }
+.menu-item.focused { animation: focus-pop 0.14s ease-out; }
+.menu-list.grid .menu-item:has(.art-card.tall) { transition: transform 0.12s ease-out, border-color 0.1s ease-out; }
+.menu-list.grid .menu-item.focused:has(.art-card.tall) { transform: translateY(-3px); }
+.title-band { animation: band-in 0.35s ease-out; }
+.menu-top { transition: background 0.3s ease-out; }
 .menu-item { transition: background-color 0.1s ease-out, border-color 0.1s ease-out, box-shadow 0.1s ease-out; }
 .meter-fill, .ratings .rfill { transform-origin: left center; animation: bar-fill 0.35s ease-out; transition: width 0.25s ease-out; }
 .menu-message { animation: screen-in 0.2s ease-out; }
@@ -522,12 +530,23 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .team-card { display: flex; align-items: center; gap: 12px; }
 .team-card-text { display: flex; flex-direction: column; min-width: 0; font-size: 13px; color: var(--ice); }
 .team-card-text b { font: 800 20px/1.1 var(--heading); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text); }
-.title-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; flex: 1; padding: 6px 0; }
-.title-mark {
-  font: 800 54px/1 var(--heading); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text);
-  text-shadow: 0 3px 0 var(--accent), 0 0 28px rgba(255, 183, 3, 0.35);
+.title-screen { display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 12px; flex: 1; padding: 4px 0; }
+/* The name on a band of the team's colour, cut on the slant, with the emblem. */
+.title-band {
+  display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-radius: 12px; color: var(--team-ink);
+  background: linear-gradient(112deg, var(--team) 0%, var(--team) 52%, var(--team-deep) 52%, var(--team-deep) 58%, var(--panel-hi) 58%, var(--panel) 100%);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4); border: 1px solid var(--line);
 }
-.title-tag { color: var(--dim); font-size: 14px; letter-spacing: 0.04em; }
+.title-emblem { flex: none; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.4)); }
+.title-emblem circle { fill: var(--bg-deep); stroke: var(--accent); stroke-width: 3; }
+.title-emblem path { fill: none; stroke: var(--ice); stroke-width: 5; stroke-linecap: round; }
+.title-emblem ellipse { fill: var(--accent); }
+.title-words { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.title-mark {
+  font: 800 clamp(30px, 7vw, 54px)/0.95 var(--heading); letter-spacing: 0.08em; text-transform: uppercase;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+}
+.title-tag { font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.9; }
 .title-team { display: flex; align-items: center; gap: 14px; margin-top: 12px; text-align: left; background: var(--bg-deep); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 16px; }
 .title-team div { display: flex; flex-direction: column; font-size: 13px; color: var(--ice); }
 .title-team b { font: 800 22px/1.1 var(--heading); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text); }

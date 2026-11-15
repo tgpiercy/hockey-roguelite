@@ -1,6 +1,6 @@
-# Hockey Roguelite
+# Third Line (repository: hockey-roguelite)
 
-A mobile arcade 3-on-3 hockey roguelite, built once as a TypeScript web game. It is played on a phone with a Bluetooth Xbox controller and installs to the home screen. No App Store release.
+The game is called **Third Line** (`src/data/game.json`, `index.html`, the manifest). The repository, the web address and the storage keys on the device keep the old name. It is a mobile arcade 3-on-3 hockey roguelite, built once as a TypeScript web game. It is played on a phone with a Bluetooth Xbox controller and installs to the home screen. No App Store release.
 
 - Design: `docs/GDD.md` is the source of truth.
 - Decisions the design doc does not cover: `docs/DECISIONS.md`.
@@ -159,6 +159,10 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 ## How the look fits together
 
 - Every colour and size the menus use is a CSS variable at the top of `src/style.css`. Do not hard-code colours in components.
+- **Team colours on the menus**: `--team`, `--team-deep` and `--team-ink` are set on the root element by `App.tsx` (`menuTint`) from `menuColours(colour)` in `src/core/teamColours.ts`: the team's colour, a deeper shade, and white or dark ink, whichever reads (a colour neither reads on is deepened for the menus only; `tests/look.test.ts` checks every colour a team can have). They are yours, or the boss's or rival's on his game screen. The top bar, the focused row, the page's corner and the title band use them; the crest in the top bar comes through the `MenuCrest` context. Your first jersey is `teamColour(your team's name)`; prestige unlocks the rest.
+- **Cards**: `OptionCard` and `RinkOutline` in `parts.tsx` for any "press to change" row; `ArtifactCard` in `screens/season.tsx` for an artifact, with its family's icon and colour from `src/core/artifactFamily.ts` and `src/data/artifactLook.json` (a family is worked out from the first stat an artifact changes; a new stat must be added to a family there, and a test says so). Chips say when it counts (`conditionWords`) and what comes with it. Both are on the art sheet.
+- **The map** (`SeasonMap.tsx`): an icon in each stop (`iconShapes` from `Icon.tsx` draws an icon inside another drawing), badges for elite games and variant rinks, a dashed road ahead, and a skyline per region from `src/data/mapLook.json`.
+- **The rink's surroundings**: the share of fans in team colours and the home side's share are `teamFanChance` and `homeFanShare` under `arena` in `rinkLook.json`; the boards take the two teams' colours; goal confetti is in `effects.ts` (full detail only); the scoreboard's period pips and name ink are in `drawHud`.
 - `src/ui/Menu.tsx` is still every screen: the list on the left, and a side panel with the screen's facts (`header`) above the focused item's `detail`. `stack` puts the facts across the top instead, for screens that are mostly to read (rewards, pack reveal). `onFocus` tells the screen which item is focused (the season map lights it up). The help line draws "A ..." and "B ..." as button glyphs.
 - The top bar's strip of cap space, cash, tape and Pucks is `Wallet` in `parts.tsx`, handed to every `Menu` through the `MenuChrome` context in `App.tsx`.
 - Shared pieces in `parts.tsx`: `PlayerRow`, `Ratings` and `RatingBar` (bars from 40 to 99), `Meter`, `CapLine`, `Dots`. In `App.tsx`, `tile(...)` makes a hub-style row (bold name, what it is, optional badge or lock).

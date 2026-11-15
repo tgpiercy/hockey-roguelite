@@ -565,8 +565,18 @@ export function App() {
         title={team.name}
         header={
           <div class="title-screen">
-            <div class="title-mark">{gameInfo.title}</div>
-            <div class="title-tag">{gameInfo.tagline}</div>
+            <div class="title-band">
+              {/* The emblem: three lines across the ice, and a puck. */}
+              <svg class="title-emblem" width="74" height="74" viewBox="0 0 64 64" aria-hidden="true">
+                <circle cx="32" cy="32" r="30" />
+                <path d="M14 40l14-22M24 46l14-28M34 50l14-26" />
+                <ellipse cx="46" cy="46" rx="6" ry="3" />
+              </svg>
+              <div class="title-words">
+                <div class="title-mark">{gameInfo.title}</div>
+                <div class="title-tag">{gameInfo.tagline}</div>
+              </div>
+            </div>
             <div class="title-team">
               <CrestBadge crest={myCrest} size={64} />
               <div>
