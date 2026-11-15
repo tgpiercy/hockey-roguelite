@@ -1,3 +1,4 @@
+import { dekeAngle, dekeThreat, wrongFoot } from '../src/sim/deke';
 import { describe, expect, it } from 'vitest';
 import { checkKind, resolveCheck, stepChecking } from '../src/sim/check';
 import { skaterEffects, type SkaterRatings } from '../src/sim/ratings';
@@ -119,6 +120,78 @@ describe('big hit', () => {
   });
 });
 
+describe('where a deke goes', () => {
+  const d = sure.deke;
+  /** The carrier at the middle of the rink facing right, with a defender straight ahead. */
+  const facing = (gap: number): World => {
+    const world = createWorld(sure, 'deke-way');
+    clearIce(world, [ID.home1, ID.away1]);
+    place(world, ID.home1, 0, 0, 0);
+    giveTo(world, ID.home1);
+    place(world, ID.away1, gap, 0, Math.PI);
+    return world;
+  };
+  const degrees = (a: number): number => (a * 180) / Math.PI;
+
+  it('round a defender who is close: across him and a little forward, never straight at him', () => {
+    const world = facing(d.threatRange - 1);
+    const angle = dekeAngle(world, player(world, ID.home1), { moveX: 1, moveY: 0 }, sure);
+    expect(Math.abs(degrees(angle))).toBeCloseTo(d.sideDegrees);
+    expect(Math.cos(angle)).toBeGreaterThan(0);
+  });
+
+  it('to the side the stick is pushed', () => {
+    const world = facing(2);
+    const p = player(world, ID.home1);
+    expect(degrees(dekeAngle(world, p, { moveX: 0.5, moveY: 0.9 }, sure))).toBeCloseTo(d.sideDegrees);
+    expect(degrees(dekeAngle(world, p, { moveX: 0.5, moveY: -0.9 }, sure))).toBeCloseTo(-d.sideDegrees);
+  });
+
+  it('with the stick straight or centred, to the side with more room', () => {
+    // Near the bottom boards: go up the screen, into open ice.
+    const low = facing(2);
+    place(low, ID.home1, 0, sure.rink.width / 2 - 1.5, 0);
+    place(low, ID.away1, 2, sure.rink.width / 2 - 1.5, Math.PI);
+    expect(Math.sin(dekeAngle(low, player(low, ID.home1), { moveX: 0, moveY: 0 }, sure))).toBeLessThan(0);
+    // A second defender on one side: go the other way.
+    const crowded = facing(2);
+    place(crowded, ID.away2, 1.5, 2.2, Math.PI);
+    expect(Math.sin(dekeAngle(crowded, player(crowded, ID.home1), { moveX: 1, moveY: 0 }, sure))).toBeLessThan(0);
+  });
+
+  it('with nobody close it goes where the stick points, as before', () => {
+    const world = facing(d.threatRange + 4);
+    const p = player(world, ID.home1);
+    expect(dekeAngle(world, p, { moveX: 0, moveY: 1 }, sure)).toBeCloseTo(Math.PI / 2);
+    expect(dekeAngle(world, p, { moveX: 0, moveY: 0 }, sure)).toBeCloseTo(p.facing);
+    expect(dekeThreat(world, p, sure)).toBeNull();
+  });
+
+  it('leaves the defender wrong-footed: slowed, and (an AI one) unable to check for a moment', () => {
+    const world = facing(2);
+    const ai = player(world, ID.away1);
+    ai.vel = { x: -4, y: 0 };
+    world.human!.controlled = ID.home1;
+    const events = step(world, { ...NO_INPUT, switchPlayer: true }, sure);
+    expect(events.some((e) => e.type === 'deke')).toBe(true);
+    expect(ai.checkCooldown).toBeGreaterThan(d.beatSeconds - 0.1);
+    expect(Math.hypot(ai.vel.x, ai.vel.y)).toBeLessThan(4);
+    // The carrier has moved off the line between them.
+    expect(Math.abs(player(world, ID.home1).vel.y)).toBeGreaterThan(d.impulse * 0.5);
+  });
+
+  it('the human\'s own skater is slowed by an opponent\'s deke but keeps his check', () => {
+    const world = facing(2);
+    world.human!.controlled = ID.away1;
+    world.human!.team = 1;
+    const me = player(world, ID.away1);
+    me.vel = { x: -4, y: 0 };
+    wrongFoot(world, player(world, ID.home1), sure);
+    expect(me.checkCooldown).toBe(0);
+    expect(Math.hypot(me.vel.x, me.vel.y)).toBeCloseTo(4 * d.beatSlow);
+  });
+});
+
 describe('deke', () => {
   const deke: InputFrame = { ...NO_INPUT, switchPlayer: true };
   /** The opponent carrier is the human here, so his switch button is a deke. */
@@ -166,8 +239,10 @@ describe('deke', () => {
     expect(count(step(world, deke, sure))).toBe(0);
     for (let i = 0; i < 60 * (sure.deke.cooldownSeconds + 0.1); i++) step(world, NO_INPUT, sure);
     step(world, NO_INPUT, sure);
+    // A tired skater can still deke: it takes what stamina he has left.
     player(world, ID.home1).stamina = sure.deke.staminaCost / 2;
-    expect(count(step(world, deke, sure))).toBe(0);
+    expect(count(step(world, deke, sure))).toBe(1);
+    expect(player(world, ID.home1).stamina).toBeLessThan(sure.deke.staminaCost / 2);
     // Without the puck the button switches player and nobody dekes.
     const other = createWorld(sure, 'no-puck');
     clearIce(other, [ID.home1]);

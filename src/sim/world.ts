@@ -6,6 +6,7 @@ import { createRng } from '../core/rng';
 import { aiInput, aiLevel, createAiMemory } from './ai';
 import { assistedAim } from './aim';
 import { braced, stepChecking } from './check';
+import { dekeAngle, wrongFoot } from './deke';
 import { stepFake } from './fake';
 import { STEP_SECONDS } from './clock';
 import { resolveLoosePuck, separateBodies } from './contact';
@@ -291,15 +292,18 @@ function stepSkaterBody(p: Player, input: InputFrame, t: Tuning, dt: number, has
 }
 
 /**
- * The deke: with the puck, the switch button is a quick sidestep the way the stick points (or the way he
- * faces). For a moment a check thrown at him misses. It costs stamina and has a cooldown.
+ * The deke: with the puck, the switch button is a quick sidestep round the nearest defender (see
+ * `dekeAngle`), who is left wrong-footed. For a moment a check thrown at him misses. It costs stamina
+ * and has a cooldown.
  */
-function stepDeke(p: Player, hasPuck: boolean, input: InputFrame, t: Tuning, events: SimEvent[]): void {
+function stepDeke(world: World, p: Player, hasPuck: boolean, input: InputFrame, t: Tuning, events: SimEvent[]): void {
   const pressed = input.switchPlayer && !p.dekeHeld;
   p.dekeHeld = input.switchPlayer;
-  if (!pressed || !hasPuck || p.dekeCooldown > 0 || p.stamina < t.deke.staminaCost) return;
-  const tilt = Math.hypot(input.moveX, input.moveY);
-  const angle = tilt > 0 ? Math.atan2(input.moveY, input.moveX) : p.facing;
+  // It still costs stamina, but a tired skater can always deke: a button that sometimes does nothing reads as broken.
+  if (!pressed || !hasPuck || p.dekeCooldown > 0) return;
+  // Round the nearest defender, to the side asked for or the open one.
+  const angle = dekeAngle(world, p, input, t);
+  wrongFoot(world, p, t);
   p.vel.x += Math.cos(angle) * t.deke.impulse;
   p.vel.y += Math.sin(angle) * t.deke.impulse;
   p.deke = t.deke.windowSeconds;
@@ -390,7 +394,7 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
     if (p.role !== 'skater') return;
     let input = p.stagger > 0 ? NO_INPUT : (inputs[i] as InputFrame);
     const hadPuck = puck.carrier === p.id;
-    stepDeke(p, hadPuck, input, t, events);
+    stepDeke(world, p, hadPuck, input, t, events);
     input = stepFake(world, p, hadPuck, input, t, events, dt);
     // A pass that arrived with shoot already held goes first-touch: treated as the button being let go now.
     const firstTouch = hadPuck && p.oneTimerArmed && input.shoot;

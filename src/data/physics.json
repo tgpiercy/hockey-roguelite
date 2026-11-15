@@ -156,10 +156,17 @@
     "roomDegreesPerMetre": 5
   },
   "deke": {
-    "windowSeconds": 0.3,
-    "cooldownSeconds": 2.5,
-    "impulse": 5,
-    "staminaCost": 0.2
+    "windowSeconds": 0.45,
+    "cooldownSeconds": 1.8,
+    "impulse": 6.5,
+    "staminaCost": 0.2,
+    "threatRange": 5,
+    "sideDegrees": 60,
+    "stickSide": 0.35,
+    "lookAhead": 2.5,
+    "beatRange": 3.5,
+    "beatSeconds": 0.6,
+    "beatSlow": 0.5
   },
   "momentum": {
     "goal": 0.45,

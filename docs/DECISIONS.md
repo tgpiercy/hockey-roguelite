@@ -187,6 +187,7 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Training and scouting | A training stop gives one player a little of everything, a lot of one rating, or a trait. A scouting report (a shop, or an event) makes the next boss easier. | Choices-matter round |
 | 2026-11-14 | The club on the ice | The arena gives home ice (speed and recovery in home games), the training centre makes your team shoot and pass straighter, the promoter earns half what he did, and each prestige level gives a bigger sponsorship share and one free facility level. The off-season report lists what the club did for you. | Choices-matter round |
 | 2026-11-14 | Mascot control | When your mascot turns up you see it before the game, choose who sits for him, or send him home. This answers the design doc's open question on declining the drop-in. | Choices-matter round |
+| 2026-11-15 | The deke picks its direction | With a defender within 5 m the deke goes round him, to the side you push the stick or else the open side, and leaves him wrong-footed. It is bigger, lasts longer, comes back sooner, and no longer refuses when stamina is low. Chosen by the owner. | Deke report |
 
 ## Open
 

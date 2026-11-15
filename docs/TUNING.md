@@ -610,6 +610,33 @@ League health, 10 seeds and 12 years, automatic managers at the start of year 12
 
 The styles now end in different places: the cautious manager, who keeps cash, is allowed the biggest payroll and has the best team; the spender builds the most and can afford the fewest players. All three sit below the league average, because the automatic manager does not win and so its club's value, and with it the payroll limit, barely grows. Whether a player who wins keeps pace with the league has not been measured.
 
+## The deke goes round the defender (2026-11-15)
+
+The owner found the deke "does not beat anyone" and chose a deke that picks its own direction.
+
+| Value (`deke` in `physics.json`) | From | To |
+| --- | --- | --- |
+| Direction | where the stick points | round the nearest defender within `threatRange` (5 m): `sideDegrees` (60) off the line to him, to the side the stick is pushed (`stickSide` 0.35), else the side with more room |
+| impulse | 5 | 6.5 |
+| windowSeconds (checks at him miss) | 0.3 | 0.45 |
+| cooldownSeconds | 2.5 | 1.8 |
+| Stamina | refused below 0.2 stamina | always allowed; it takes what is left |
+| Defenders within `beatRange` (3.5 m) | untouched | lose half their speed; an AI defender cannot check for `beatSeconds` (0.6) |
+
+Measured headless, a sprinting carrier against one AI defender, 300 tries each, counting how often he got past with the puck:
+
+| Deke pressed at | No deke | Old | New |
+| --- | --- | --- | --- |
+| 1.6 m (late) | | 298 | 291 |
+| 2.4 m | | 296 | 300 |
+| 3.2 m | 164 | 292 | 300 |
+| 4.5 m (early) | | 290 | 295 |
+| 3.2 m, a second defender behind | | 288 | 300 |
+
+So against the AI the old deke already worked when it fired: the new one is a little better, and clearly better with a second defender. The likelier cause of the complaint is that the old deke silently did nothing with stamina under 0.2 (a player who sprints a lot is often there) or inside its 2.5 second wait. Both are changed. This is a guess from the code, not something seen on the owner's phone.
+
+AI against AI after the change (the AI dekes by the same rules), 200 games: 3.90 and 4.19 goals, save percentage .782.
+
 ## Change log
 
 | Date | Value | From | To | Why |
@@ -627,6 +654,7 @@ The styles now end in different places: the cautious manager, who keeps cash, is
 | 2026-11-14 | ai.json: zone posts, longShotRange, longShotChance, longShotCharge, plantTilt | none | see "Spread-out attack" above | Attackers crowded the net |
 | 2026-11-14 | one-timer, deke, knock-down, rebound, goalie challenge, cover radius, AI styles | see "Deeper gameplay" above | | New moves and AI after the research report |
 | 2026-11-14 | momentum, tips, giveGo, pull, boss groups | none | see "Momentum, tips..." above | New mechanics |
+| 2026-11-15 | deke: direction, impulse, window, cooldown, stamina rule | see above | see above | The owner found the deke did not beat anyone |
 | 2026-11-14 | ratings.json ranges; quick.ratingPointsFor75Percent | see above; 20 | steeper through the same value at 70; 12 | Ratings barely changed play |
 | 2026-11-14 | fake, block (new groups), momentum.block | none | see above | New moves asked for by the owner |
 | 2026-11-14 | checkAssist (new group) | none | see above | The owner found checking ineffective; help the player only |
