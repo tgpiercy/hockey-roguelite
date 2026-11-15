@@ -8,19 +8,39 @@ const layout = controls.touch;
 /** One on-screen button: held while a finger is on it. */
 function TouchKey({ button, label, size, style }: { button: TouchButton; label: string; size: 'big' | 'small'; style?: Record<string, string> }) {
   const [down, setDown] = useState(false);
-  const set = (value: boolean) => (event: PointerEvent) => {
-    event.preventDefault();
-    touchState.down[button] = value;
-    setDown(value);
+  /** The finger that is holding this button, so that finger lifting anywhere lets it go. */
+  const finger = useRef<number | null>(null);
+  const release = (): void => {
+    finger.current = null;
+    touchState.down[button] = false;
+    setDown(false);
   };
+  useEffect(() => {
+    // The lift can land elsewhere (the finger slid off, or the button was hidden under it): listen for it everywhere.
+    const onUp = (event: PointerEvent): void => {
+      if (finger.current === event.pointerId) release();
+    };
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    return () => {
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      release();
+    };
+  }, []);
   return (
     <div
       class={`touch-btn ${size}${down ? ' down' : ''}`}
       style={style}
-      onPointerDown={set(true)}
-      onPointerUp={set(false)}
-      onPointerCancel={set(false)}
-      onPointerLeave={set(false)}
+      onPointerDown={(event) => {
+        event.preventDefault();
+        finger.current = event.pointerId;
+        touchState.down[button] = true;
+        setDown(true);
+      }}
+      onPointerUp={release}
+      onPointerCancel={release}
+      onPointerLeave={release}
     >
       {label}
     </div>
@@ -51,6 +71,12 @@ export function TouchControls({ hidden, mode = 'auto' }: { hidden: boolean; mode
     };
   }, []);
 
+  // Hidden (a controller or keyboard is in use, or they are switched off): nothing on screen can be held.
+  const visible = touchVisible(mode, shown, hidden);
+  useEffect(() => {
+    if (!visible) releaseTouch(touchState);
+  }, [visible]);
+
   const move = (event: PointerEvent): void => {
     const box = stick.current?.getBoundingClientRect();
     if (!box) return;
@@ -73,7 +99,7 @@ export function TouchControls({ hidden, mode = 'auto' }: { hidden: boolean; mode
   };
 
   return (
-    <div id="touch" class={touchVisible(mode, shown, hidden) ? 'shown' : ''}>
+    <div id="touch" class={visible ? 'shown' : ''}>
       <div
         class="touch-stick"
         ref={stick}

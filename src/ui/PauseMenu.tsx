@@ -3,6 +3,7 @@ import controls from '../data/controls.json';
 import xbox from '../data/xboxMapping.json';
 import { gameAudio } from '../game/audio';
 import { Menu } from './Menu';
+import { PadReadout } from './PadReadout';
 import { loadPrefs, savePrefs, TOUCH_MODES, VOLUME_STEPS, type Prefs } from './prefs';
 
 type Action = keyof typeof controls.buttons & keyof typeof controls.keys;
@@ -105,7 +106,12 @@ export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs }: Props
       <Menu
         key="controls"
         title="Controls"
-        header={<Layout />}
+        header={
+          <>
+            <PadReadout />
+            <Layout />
+          </>
+        }
         onBack={() => setPage('main')}
         items={[
           {

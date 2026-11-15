@@ -181,6 +181,7 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - In local development `window.__game` is the Phaser game. When the browser tab is hidden, animation frames stop; drive them by hand with `__game.loop.step(timeMs)`.
 - The desktop app's "start preview" tool hung on this PC right after Node.js was installed. If it still does, start the server from a shell with `npm run dev` and open http://localhost:5173/hockey-roguelite/.
 
+- `src/ui/PadReadout.tsx` shows live what the game reads from the controller and the on-screen buttons (pause menu, Controls; Settings, Controller test). Use it first when a button "does nothing" on a real device.
 - Controller input is read with the browser's Gamepad API in `src/game/gamepad.ts`, not Phaser's gamepad plugin. A controller only appears after its first button press.
 - Button and axis names for the standard Xbox layout, with the GDD action for each, are in `src/data/xboxMapping.json`.
 - iPhones ignore the manifest's landscape lock, so the page shows a "turn your phone sideways" notice in portrait.

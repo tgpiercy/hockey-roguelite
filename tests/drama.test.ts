@@ -178,6 +178,23 @@ describe('give and go', () => {
     expect(world.human!.controlled).toBe(ID.home1);
   });
 
+  it('shoot, check or switch calls it off at once, so the player is never left without the puck carrier', () => {
+    for (const button of ['shoot', 'check', 'switchPlayer'] as const) {
+      const world = passed();
+      step(world, pass, t);
+      expect(world.human!.giveGo).not.toBeNull();
+      // Let the receiver take the pass, with a defender in the lane so it does not come straight back.
+      place(world, ID.away1, 3.5, 1.5);
+      player(world, ID.away1).stagger = 10;
+      for (let i = 0; i < 40 && world.puck.carrier !== ID.home2; i++) step(world, NO_INPUT, t);
+      expect(world.puck.carrier).toBe(ID.home2);
+      expect(world.human!.controlled).toBe(ID.home1);
+      step(world, { ...NO_INPUT, [button]: true }, t);
+      expect(world.human!.giveGo).toBeNull();
+      expect(world.human!.controlled).toBe(ID.home2);
+    }
+  });
+
   it('it ends when the time runs out, and control goes back to the carrier', () => {
     const world = passed();
     step(world, pass, t);

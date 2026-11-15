@@ -43,7 +43,9 @@ export function updateControl(world: World, input: InputFrame): void {
     const lost = carrier !== null && carrier.team !== human.team;
     const done = carrier !== null && carrier.id === go.passer;
     const wandered = carrier !== null && carrier.team === human.team && carrier.id !== go.receiver && carrier.id !== go.passer;
-    if (lost || done || wandered || go.left <= 0 || !passer || !passer.onIce || passer.leaving) human.giveGo = null;
+    // Any other action button calls it off at once: control goes straight back to whoever has the puck.
+    const calledOff = input.shoot || input.check || input.switchPlayer;
+    if (lost || done || wandered || calledOff || go.left <= 0 || !passer || !passer.onIce || passer.leaving) human.giveGo = null;
     else {
       human.controlled = go.passer;
       human.switchHeld = input.switchPlayer;

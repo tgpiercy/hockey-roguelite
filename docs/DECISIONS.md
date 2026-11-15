@@ -164,6 +164,8 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Boss tricks | Each boss keeps its stat trait and gains one trick with a tell: the Wall's goalie stops the first three shots on goal each period (three pips); the Gale's skaters get a burst on winning the puck in their own end (streaks); every Hammers hit is a knock-down; the Marathon forechecks with all three in your end; the Marksmen's best shooter cannot be saved on a full wind-up (a mark and a closing ring). | More gameplay |
 | 2026-11-14 | Big moments | A split-second freeze on a big hit and on a goal, slow motion just after a goal, and the scorer raises his arms. Off on low rink detail. | More gameplay |
 | 2026-11-14 | Late drama | The clock turns red and pulses in the last ten seconds, and the crowd is louder in a one-goal last period. | More gameplay |
+| 2026-11-14 | Input that cannot get stuck | After the owner reported no shooting, checking or pause on the controller (not reproduced here with a simulated standard controller): an on-screen button is let go when the finger lifts anywhere or the overlay hides; after a pause only pass, shoot and check are held back, and for at most 0.4 seconds, so a button that reads as stuck cannot lock the others out; a give and go is called off by shoot, check or switch, lasts 2 seconds at most, and shows a label while it runs. | Controller report |
+| 2026-11-14 | Controller read-out | The pause menu's Controls page and Settings, Controller test show live which controller buttons and on-screen buttons the game sees, with the action each maps to. It replaces the Phase 0 test page for finding a wrong mapping. | Controller report |
 
 ## Open
 

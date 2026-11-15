@@ -408,3 +408,17 @@ Built, deployed and checked with a simulated controller.
 - Not built from the plan: a flash on the Hammers' skaters before a hit, and a "full press" banner for the Marathon. Both tricks work and are described on the game screen, but have no on-ice tell. The brighter trail behind hard shots was not changed.
 - Known rough edges: the GOAL banner covers the scorer's cheer when he is level with it; pulling the goalie is a poor bet for the AI (0.63 empty-net goals a game against 0.14 for the extra skater).
 - Not checked: any of it by feel; boss games played through; the touch Goalie button; the View button on a real controller; sound.
+
+# Controller report: no shooting, checking or pause
+
+- [x] Tried to reproduce with a simulated standard controller and with the on-screen buttons: both worked
+- [x] Removed three ways input could get trapped (stuck on-screen button, the resume guard, the give and go)
+- [x] Live controller read-out in the pause menu and in Settings
+- [ ] Hear back from the owner: what the read-out shows on the phone
+
+## Review (controller report)
+
+- Not reproduced. With a simulated standard controller in the browser, X shot, Menu paused and the pause menu opened; every on-screen button was present, on screen and on top.
+- What was found and fixed, each of which could explain part of it: with any action button reading as held after a pause (shown with the left trigger held), pass, shoot and check were locked out for good; an on-screen button stayed held if the overlay hid under the finger; pressing pass twice quickly started a give and go that left the player on a skater without the puck for up to 3 seconds, where shoot and check do nothing.
+- Not explained: why pause would not open. It may be a different cause on the real device (a controller the browser does not report in the standard layout would show exactly this pattern: some buttons right, others wrong). The read-out is there to tell.
+- 832 tests pass (2 new).

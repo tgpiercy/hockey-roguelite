@@ -103,7 +103,8 @@
     "goalSlowSeconds": 0.7,
     "goalSlowScale": 0.4,
     "fireBannerSeconds": 1.2,
-    "lastSecondsPulse": 10
+    "lastSecondsPulse": 10,
+    "resumeHoldSeconds": 0.4
   },
   "arena": {
     "maxRows": 14,

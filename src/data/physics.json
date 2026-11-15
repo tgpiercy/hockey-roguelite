@@ -184,8 +184,8 @@
     "cornerInset": 0.3
   },
   "giveGo": {
-    "windowSeconds": 0.5,
-    "seconds": 3
+    "windowSeconds": 0.35,
+    "seconds": 2
   },
   "pull": {
     "seconds": 25,

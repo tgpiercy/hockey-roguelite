@@ -74,6 +74,7 @@ import { BarRow, LineChart, sharesOf } from './Charts';
 import { Compare, FacilityCard, MascotPanel, OpenDesk, PrestigeLadder, StaffCard, TalentBadge, TradeOffer } from './screens/club';
 import { ChangeRow, EventHeader, MatchupPoster, powerupIcon, SeasonSummaryCard, ShopCard, StopCard, StrikeLights, TrainingGain } from './screens/season';
 import { Menu, MenuChrome, type MenuItem } from './Menu';
+import { PadReadout } from './PadReadout';
 import { PackOpening } from './PackOpening';
 import { loadPrefs, savePrefs, VOLUME_STEPS, type Prefs } from './prefs';
 import { menuInput } from './menuInput';
@@ -124,6 +125,7 @@ type Screen =
   | { name: 'rewards'; shown: number }
   | { name: 'jersey' }
   | { name: 'saves' }
+  | { name: 'padTest' }
   | { name: 'confirmAbandon' }
   | { name: 'confirmNew' };
 
@@ -1750,6 +1752,10 @@ export function App() {
           tile('detail', 'Rink detail', prefs.detail === 'full' ? 'Full' : 'Low', () => changePrefs({ ...prefs, detail: prefs.detail === 'full' ? 'low' : 'full' }), {
             detail: 'Low drops the skate marks, snow, screen shake and crowd movement. Try it if the game does not run smoothly on your phone.',
           }),
+          tile('padTest', 'Controller test', 'See what the game reads', () => go({ name: 'padTest' }), {
+            icon: 'detail',
+            detail: 'Shows which controller buttons and on-screen buttons the game sees as you press them.',
+          }),
           tile('saves', 'Save and load', 'Export, import, or start again', () => go({ name: 'saves' }), {
             detail: 'The game saves by itself after every move, every stop and every game.',
           }),
@@ -2281,6 +2287,19 @@ export function App() {
           ...(locked ? [{ key: 'abandon', label: 'Abandon this season', detail: 'Ends the season now and goes to the off-season. You keep your franchise.', onSelect: () => go({ name: 'confirmAbandon' }) }] : []),
           { key: 'new', label: 'Start a new franchise', onSelect: () => go({ name: 'confirmNew' }) },
         ]}
+      />
+    );
+  }
+
+  if (screen.name === 'padTest') {
+    return (
+      <Menu
+        key={screenKey}
+        title="Controller test"
+        header={<PadReadout />}
+        onBack={home}
+        help="B back"
+        items={[{ key: 'back', label: 'Back', detail: 'Press each button and check it shows above with the action you expect: A pass, B check, X shoot, Y switch, Menu pause.', onSelect: home }]}
       />
     );
   }

@@ -117,6 +117,7 @@ export class RinkScene extends Phaser.Scene {
   private readonly sides = new Map<number, 1 | -1>();
   /** After a pause: the action buttons are ignored until all are let go, so the press that resumed does not also pass. */
   private holdButtons = false;
+  private holdLeft = 0;
   /** Seconds of real time since the game started, for anything that only animates. */
   private clock = 0;
   /** Seconds the current banner has been showing, so it can slide in. */
@@ -187,6 +188,7 @@ export class RinkScene extends Phaser.Scene {
 
     if (this.options.paused?.()) {
       this.holdButtons = true;
+      this.holdLeft = fx.resumeHoldSeconds;
       this.passWasDown = controls.frame.pass;
       this.options.onFrame?.(this.world, t, real);
       this.draw(t, 0);
@@ -194,8 +196,11 @@ export class RinkScene extends Phaser.Scene {
     }
     const f = controls.frame;
     if (this.holdButtons) {
-      if (f.pass || f.shoot || f.check || f.switchPlayer || f.lineChange || f.powerupA || f.powerupB) {
-        controls.frame = { ...f, pass: false, shoot: false, check: false, switchPlayer: false, lineChange: false, powerupA: false, powerupB: false };
+      // Only the buttons that could have closed the pause menu are held back, and only for a moment: a button
+      // that reads as stuck down must never lock the others out.
+      this.holdLeft -= real;
+      if ((f.pass || f.shoot || f.check) && this.holdLeft > 0) {
+        controls.frame = { ...f, pass: false, shoot: false, check: false };
       } else {
         this.holdButtons = false;
       }
@@ -760,7 +765,16 @@ export class RinkScene extends Phaser.Scene {
 
     // Pulling the goalie: a prompt when it is allowed, and a reminder while the net is empty.
     const humanTeam = world.human ? world.human.team : null;
-    const prompt = humanTeam === null ? '' : world.teams[humanTeam].pulled ? 'EMPTY NET  ·  VIEW: GOALIE BACK' : mayPull(world, humanTeam, t) ? 'VIEW: PULL THE GOALIE' : '';
+    const prompt =
+      humanTeam === null
+        ? ''
+        : world.human?.giveGo
+          ? 'GIVE AND GO  ·  SHOOT OR CHECK TO CANCEL'
+          : world.teams[humanTeam].pulled
+            ? 'EMPTY NET  ·  VIEW: GOALIE BACK'
+            : mayPull(world, humanTeam, t)
+              ? 'VIEW: PULL THE GOALIE'
+              : '';
     this.pullText.setVisible(prompt !== '');
     if (prompt !== '') {
       this.pullText.setText(prompt);
