@@ -184,7 +184,7 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 
 - `src/ui/PadReadout.tsx` shows live what the game reads from the controller and the on-screen buttons (pause menu, Controls; Settings, Controller test). Use it first when a button "does nothing" on a real device.
 - Which button does what is `padMap()` in `src/game/padMap.ts`: the standard layout from `controls.json`, or the player's own from Settings, Set up controller (`src/ui/PadSetup.tsx`), stored on the device under `hockey-padmap`. `InputReader` and `menuInput` both read through it with `bindingDown`; never read `controls.buttons` directly for an action. A binding is a button or an axis pushed one way.
-- Controller input is read with the browser's Gamepad API in `src/game/gamepad.ts`, not Phaser's gamepad plugin. A controller only appears after its first button press.
+- Controller input is read with the browser's Gamepad API in `src/game/gamepad.ts`, not Phaser's gamepad plugin. A controller only appears after its first button press. `readGamepad` does not take the first device listed: `pickPad` stays with the controller in use and moves to another only when that one is being pressed and the current one is not (phones list fingerprint readers and remotes as controllers). `seenPads` lists them all; the read-out names the ones not in use.
 - Button and axis names for the standard Xbox layout, with the GDD action for each, are in `src/data/xboxMapping.json`.
 - iPhones ignore the manifest's landscape lock, so the page shows a "turn your phone sideways" notice in portrait.
 - The controller mapping was confirmed on the owner's controller on 2026-11-14, and the Phase 0 test page at `?controller` was removed.

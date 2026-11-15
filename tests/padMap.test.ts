@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import controls from '../src/data/controls.json';
-import type { GamepadSnapshot } from '../src/game/gamepad';
+import { inUse, pickPad, type GamepadSnapshot } from '../src/game/gamepad';
 import { bindingDown, defaultPadMap, describeBinding, detectPress, PAD_ACTIONS, parsePadMap, sameBinding, type Binding } from '../src/game/padMap';
 
 /** A controller with nothing pressed: 17 buttons and 6 axes, the last two resting at -1 like triggers sent as axes. */
@@ -70,6 +70,42 @@ describe('finding out which button was pressed', () => {
     expect(sameBinding({ kind: 'button', index: 2 }, { kind: 'button', index: 3 })).toBe(false);
     expect(sameBinding({ kind: 'axis', index: 5, sign: 1 }, { kind: 'axis', index: 5, sign: -1 })).toBe(false);
     expect(sameBinding({ kind: 'axis', index: 5, sign: 1 }, { kind: 'button', index: 5 })).toBe(false);
+  });
+});
+
+describe('which controller the game listens to', () => {
+  /** Something a phone lists as a controller that is not one: no standard layout, nothing ever pressed. */
+  const ghost = (): GamepadSnapshot => ({ ...pad(), id: 'fingerprint reader', mapping: '' });
+
+  it('a button down or the stick pushed over counts as in use; a resting trigger axis does not', () => {
+    expect(inUse(pad())).toBe(false);
+    expect(inUse(pad([4]))).toBe(true);
+    expect(inUse(pad([], [0.9, 0, 0, 0, -1, -1]))).toBe(true);
+  });
+
+  it('with nothing connected there is no controller', () => {
+    expect(pickPad([], null)).toBeNull();
+    expect(pickPad([], 2)).toBeNull();
+  });
+
+  it('prefers the standard layout over something listed ahead of it', () => {
+    expect(pickPad([{ index: 0, pad: ghost() }, { index: 1, pad: pad() }], null)?.index).toBe(1);
+  });
+
+  it('moves to the controller that is being used, and then stays with it', () => {
+    const idle = [{ index: 0, pad: ghost() }, { index: 1, pad: { ...pad(), mapping: '' } }];
+    expect(pickPad(idle, null)?.index).toBe(0);
+    const pressed = [{ index: 0, pad: ghost() }, { index: 1, pad: { ...pad([0]), mapping: '' } }];
+    expect(pickPad(pressed, 0)?.index).toBe(1);
+    expect(pickPad(idle, 1)?.index).toBe(1);
+  });
+
+  it('does not leave a controller in use for another that is also in use', () => {
+    expect(pickPad([{ index: 0, pad: pad([1]) }, { index: 1, pad: pad([2]) }], 1)?.index).toBe(1);
+  });
+
+  it('falls back when the one it had is unplugged', () => {
+    expect(pickPad([{ index: 0, pad: pad() }], 3)?.index).toBe(0);
   });
 });
 

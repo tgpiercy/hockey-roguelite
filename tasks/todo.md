@@ -458,3 +458,14 @@ Built, deployed and checked with a simulated controller.
 - Measured in a live game: taps from behind and the side now reach the carrier (they reached nobody before); about half free the puck. Held checks from behind freed the puck 12 times in 12.
 - One staged case reached nobody (holding while drifting away from a carrier who skated off). Looked at step by step: the puck was 3.2 m away at release, beyond the poke's 2.8 m. Not a fault.
 - Not checked: the feel on a controller; whether the player now wins the puck too easily; the effect on win rate (the scripted player never checks).
+
+# Controller not registering at all
+
+- [x] Listen to the controller being used, not the first device listed
+- [x] Read-out names other devices it can see
+- [ ] Owner confirms on the phone; if not, what the read-out says
+
+## Review (controller not registering)
+
+- Not reproduced: I have no real controller. The one fault found by reading the code is that the game took the first device in the browser's list; if anything else sits ahead of the controller there, nothing registers anywhere, the test page included. That is now fixed and tested (6 new tests, 861 in all), and checked in the browser with a silent device listed ahead of a simulated controller: its A button moved the title screen on.
+- If the read-out still says "No controller seen yet", the browser itself is not being given the controller, which the game cannot fix: re-pair it, close other tabs or apps using it, and press a button with the game in front.

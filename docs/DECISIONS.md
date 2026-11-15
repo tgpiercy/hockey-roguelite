@@ -170,6 +170,7 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Tap to poke, hold to hit | A tap of Check is always a poke. A body check needs the button held for a quarter of a second and let go with the carrier in arm's reach; out of reach it is a poke. The bar over your player fills while you hold. Asked for by the owner. | Checking and shooting |
 | 2026-11-14 | More shoot assist | Your shots are helped from a wider angle, aimed closer to the post and scatter half as much. Asked for by the owner. It makes simply driving the net and shooting win about two games in three at the default level again. | Checking and shooting |
 | 2026-11-14 | Check assist for the player | Your checks are helped and the AI's are not: your poke reaches most of the way round you, works more often, a body check needs a shorter hold and less of a run-up, and a check that reaches nobody costs a third of a second, not most of one. Chosen by the owner after finding checking ineffective. | Checking report |
+| 2026-11-14 | Which controller the game listens to | Not the first device the browser lists, but the one being used: the game moves to whichever connected device has a button down or its stick pushed, and stays with it. With nothing pressed yet it prefers one with the standard layout. The read-out names any other devices it can see. Made after the owner reported that nothing registered, even on the test page. | Controller report |
 
 ## Open
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import controls from '../data/controls.json';
-import { readGamepad, type GamepadSnapshot } from '../game/gamepad';
+import { readGamepad, seenPads, type GamepadSnapshot } from '../game/gamepad';
 import { hasCustomPadMap, PAD_ACTIONS, padMap } from '../game/padMap';
 import { TOUCH_BUTTONS, touchState } from '../game/touch';
 
@@ -16,11 +16,14 @@ function actionOf(index: number): string {
  */
 export function PadReadout() {
   const [pad, setPad] = useState<GamepadSnapshot | null>(null);
+  const [others, setOthers] = useState<string[]>([]);
   const [, redraw] = useState(0);
   useEffect(() => {
     // A timer, not animation frames: it must keep reading while the game underneath is paused.
     const timer = setInterval(() => {
-      setPad(readGamepad());
+      const using = readGamepad();
+      setPad(using);
+      setOthers(seenPads().map((seen) => seen.pad.id).filter((id) => id !== using?.id));
       redraw((n) => n + 1);
     }, 100);
     return () => clearInterval(timer);
@@ -37,6 +40,11 @@ export function PadReadout() {
           <span>
             Controller: <b>{pad.id.slice(0, 40) || 'unnamed'}</b>
           </span>
+          {others.length > 0 && (
+            <span>
+              Also connected, not in use: <b>{others.map((id) => id.slice(0, 24) || 'unnamed').join(' · ')}</b>. Press a button on the one you want.
+            </span>
+          )}
           <span>
             Layout: <b>{pad.mapping === 'standard' ? 'standard' : `not standard (${pad.mapping || 'none'}): buttons may be mixed up`}</b> · {pad.buttons.length} buttons
           </span>
