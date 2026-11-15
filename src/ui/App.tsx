@@ -78,7 +78,8 @@ import { hasCustomPadMap } from '../game/padMap';
 import { PadReadout } from './PadReadout';
 import { PadSetup } from './PadSetup';
 import { PackOpening } from './PackOpening';
-import { loadPrefs, savePrefs, VOLUME_STEPS, type Prefs } from './prefs';
+import { loadHintCounts, loadPrefs, saveHintCounts, savePrefs, VOLUME_STEPS, type Prefs } from './prefs';
+import { HINT_IDS, retired } from '../game/hints';
 import { menuInput } from './menuInput';
 import { playMatch } from './matchView';
 import type { PlayerRecord } from '../core/player';
@@ -1754,6 +1755,17 @@ export function App() {
           }, { detail: 'Press to step through the levels.', disabled: !prefs.sound }),
           tile('detail', 'Rink detail', prefs.detail === 'full' ? 'Full' : 'Low', () => changePrefs({ ...prefs, detail: prefs.detail === 'full' ? 'low' : 'full' }), {
             detail: 'Low drops the skate marks, snow, screen shake and crowd movement. Try it if the game does not run smoothly on your phone.',
+          }),
+          tile('hints', 'Hints', prefs.hints ? 'On' : 'Off', () => changePrefs({ ...prefs, hints: !prefs.hints }), {
+            icon: 'detail',
+            detail: 'Reminders of the moves during a game: one-timer, fake, deke, saucer pass, give and go, poke, body check, block. Each stops once you have done it three times.',
+          }),
+          tile('hintsAgain', 'Show hints again', `${HINT_IDS.filter((id) => retired(id, loadHintCounts())).length} of ${HINT_IDS.length} learned`, () => {
+            saveHintCounts({});
+            changePrefs({ ...prefs });
+          }, {
+            icon: 'detail',
+            detail: 'Forget which moves you have done, so every hint appears again.',
           }),
           tile('padSetup', 'Set up controller', hasCustomPadMap() ? 'Set up by you' : 'Standard layout', () => go({ name: 'padSetup' }), {
             icon: 'detail',

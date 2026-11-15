@@ -31,6 +31,8 @@ export interface PoseInput {
   tilt: number;
   /** Arms in the air: he has just scored. */
   cheer?: boolean;
+  /** Down on one knee to block a shot: the whole body sits lower. */
+  kneel?: boolean;
   pattern: JerseyPattern;
 }
 
@@ -92,8 +94,9 @@ function skater(p: PoseInput): Raw {
   const reach = F.strideReach * (F.stanceShare + (1 - F.stanceShare) * speed);
   const swing = Math.sin(p.stride);
   const lean = speed * F.lean;
-  const hipY = -F.hipHeight;
-  const shY = -F.shoulderHeight;
+  const drop = p.kneel ? F.hipHeight * F.kneelDrop : 0;
+  const hipY = -F.hipHeight + drop;
+  const shY = -F.shoulderHeight + drop;
   const shapes: Shape[] = [];
 
   // Legs: the far one first. Whichever foot is behind is lifted a little off the ice.
@@ -109,8 +112,8 @@ function skater(p: PoseInput): Raw {
   }
 
   // Hands on the stick: the top hand near the chest, the lower hand out in front. A wind-up draws both back and up.
-  const topHand = { x: lean + F.topHandX - wind * F.windBack, y: F.topHandY - wind * F.windUp + swing * F.armSwing * speed };
-  const lowHand = { x: lean + F.lowHandX - wind * F.windBack * 0.6, y: F.lowHandY - wind * F.windUp - swing * F.armSwing * speed };
+  const topHand = { x: lean + F.topHandX - wind * F.windBack, y: drop + F.topHandY - wind * F.windUp + swing * F.armSwing * speed };
+  const lowHand = { x: lean + F.lowHandX - wind * F.windBack * 0.6, y: drop + F.lowHandY - wind * F.windUp - swing * F.armSwing * speed };
   if (p.cheer) {
     topHand.x = lean - F.cheerSpread;
     topHand.y = -F.cheerHandY;
@@ -127,7 +130,7 @@ function skater(p: PoseInput): Raw {
   const chestY = shY + F.chestDrop;
   shapes.push(limb('jersey', waistX, waistY, lean, chestY, F.torsoWidth));
   shapes.push(...accent(p.pattern, waistX, waistY, lean, chestY, F.torsoWidth));
-  shapes.push(...head(lean * F.headLean + F.headForward, -F.headHeight, false));
+  shapes.push(...head(lean * F.headLean + F.headForward, -F.headHeight + drop, false));
 
   // The near arm, in front.
   shapes.push(limb('jersey', lean + F.shoulderSpread, shY + F.armDrop, lowHand.x, lowHand.y, F.armWidth));

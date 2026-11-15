@@ -5,7 +5,8 @@ import { stepTips } from './tips';
 import { createRng } from '../core/rng';
 import { aiInput, aiLevel, createAiMemory } from './ai';
 import { assistedAim } from './aim';
-import { stepChecking } from './check';
+import { braced, stepChecking } from './check';
+import { stepFake } from './fake';
 import { STEP_SECONDS } from './clock';
 import { resolveLoosePuck, separateBodies } from './contact';
 import { updateControl } from './control';
@@ -90,7 +91,7 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index:
     position: role === 'goalie' ? 'G' : (options.teams?.[team].positions?.[index] ?? 'F'),
     fx,
     baseFx: fx,
-    goalie: role === 'goalie' ? { fx: goalieFx, baseFx: goalieFx, seen: [], hold: 0, ignorePuck: 0, autoSavesLeft: 0, autoSavePeriod: 0 } : null,
+    goalie: role === 'goalie' ? { fx: goalieFx, baseFx: goalieFx, seen: [], hold: 0, ignorePuck: 0, autoSavesLeft: 0, autoSavePeriod: 0, bitten: 0 } : null,
     ai: createAiMemory(),
     passCharge: 0,
     passHeld: false,
@@ -112,6 +113,9 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index:
     dekeHeld: false,
     knockedDown: false,
     burst: 0,
+    fake: 0,
+    fakeCooldown: 0,
+    fakePass: false,
     talents: role === 'skater' ? [...(setup?.skaterTalents?.[index] ?? [])] : [],
     talentCooldown: {},
     rallyPeriod: 0,
@@ -368,6 +372,14 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
     if (p.role === 'skater') {
       const carrying = puck.carrier === p.id;
       stepSkaterBody(p, inputs[i] as InputFrame, t, dt, carrying, carrying && p.fx.breakawaySpeedScale !== 1 && clearAhead(world, p));
+      // Down on one knee to block a shot, he can only shuffle.
+      if (braced(world, p, t)) {
+        const speed = Math.hypot(p.vel.x, p.vel.y);
+        if (speed > t.block.maxSpeed) {
+          p.vel.x *= t.block.maxSpeed / speed;
+          p.vel.y *= t.block.maxSpeed / speed;
+        }
+      }
     }
     else stepGoalie(p, world, t, dt);
   });
@@ -379,6 +391,7 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
     let input = p.stagger > 0 ? NO_INPUT : (inputs[i] as InputFrame);
     const hadPuck = puck.carrier === p.id;
     stepDeke(p, hadPuck, input, t, events);
+    input = stepFake(world, p, hadPuck, input, t, events, dt);
     // A pass that arrived with shoot already held goes first-touch: treated as the button being let go now.
     const firstTouch = hadPuck && p.oneTimerArmed && input.shoot;
     p.oneTimerArmed = false;

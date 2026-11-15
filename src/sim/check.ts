@@ -30,6 +30,16 @@ export function checkKind(checker: Player, carrier: Player, world: World, t: Tun
   return dist(checker.pos, puck) <= t.check.pokeRange && inCone ? 'poke' : null;
 }
 
+/**
+ * True while a skater is down on one knee to block a shot: he has held the check button a while without
+ * the puck, and the other team's carrier (if there is one) is too far away for the hold to be a hit.
+ */
+export function braced(world: World, p: Player, t: Tuning): boolean {
+  if (p.role !== 'skater' || p.stagger > 0 || world.puck.carrier === p.id || p.checkCharge < t.block.braceAfterSeconds) return false;
+  const carrier = carrierOf(world);
+  return !carrier || carrier.team === p.team || dist(p.pos, carrier.pos) >= t.block.minCarrierDistance;
+}
+
 /** The limits a check is judged by. The skater the human controls gets easier ones: check assist, like aim assist. */
 export interface CheckRules {
   /** How far round his front a poke reaches, in degrees. */

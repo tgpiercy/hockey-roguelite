@@ -67,6 +67,13 @@ export function goalieTarget(g: Player, world: World, t: Tuning): Vec {
 export function stepGoalie(g: Player, world: World, t: Tuning, dt: number): void {
   const state = g.goalie!;
   state.ignorePuck = Math.max(0, state.ignorePuck - dt);
+  // He has bitten on a shot fake: stuck where he is until it wears off.
+  if (state.bitten > 0) {
+    state.bitten = Math.max(0, state.bitten - dt);
+    g.vel.x = 0;
+    g.vel.y = 0;
+    return;
+  }
   const target = goalieTarget(g, world, t);
   const dx = target.x - g.pos.x;
   const dy = target.y - g.pos.y;

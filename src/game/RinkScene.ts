@@ -2,7 +2,8 @@ import * as Phaser from 'phaser';
 import { teamCrest, type Crest } from '../core/crest';
 import { lighten } from '../core/teamColours';
 import look from '../data/rinkLook.json';
-import { checkRules } from '../sim/check';
+import { braced, checkRules } from '../sim/check';
+import { HINT_TIMING, hintDone, hintFor, hintText, type HintCounts, type HintId } from './hints';
 import { benchDoor, lineEnergy, mayPull } from '../sim/lines';
 import { onFire } from '../sim/momentum';
 import { forfeitResult, gameResult, type GameResult } from '../sim/match';
@@ -60,6 +61,10 @@ export interface RinkSceneOptions {
   /** Called with what happened in the simulation this frame, and once per frame with the world: for sound. */
   onEvents?: (events: SimEvent[], world: World, t: Tuning) => void;
   onFrame?: (world: World, t: Tuning, seconds: number) => void;
+  /** How often the player has done each move, for the on-screen hints; null (or left out) switches hints off. */
+  hints?: () => HintCounts | null;
+  /** Called each time the player does a move a hint is about. */
+  onHintDone?: (id: string) => void;
   /** Called with the result when the game ends, to show the summary. */
   onResult: (result: GameResult) => void;
   /** Called when the player presses A on the summary: the game is over and can be torn down. */
@@ -99,6 +104,11 @@ export class RinkScene extends Phaser.Scene {
   private reported = false;
   private done = false;
   private passWasDown = false;
+  /** The hint on screen, how long it has been up, and the wait before the next one. */
+  private hint: HintId | null = null;
+  private hintShown = 0;
+  private hintGap = 0;
+  private wasGiveGo = false;
   /** Drawn above the players: the puck, sparks and the wind-up bar. */
   private top!: Phaser.GameObjects.Graphics;
   /** One picture per player, showing the texture of the pose he is in. */
@@ -174,7 +184,7 @@ export class RinkScene extends Phaser.Scene {
       .setOrigin(0.5, 0.5)
       .setVisible(false);
     this.powerText = this.add.text(0, 0, '', { ...heading, color: c.text }).setOrigin(1, 0.5);
-    this.pullText = this.add.text(0, 0, '', { ...heading, color: c.accent }).setOrigin(0.5, 1).setDepth(DEPTH.hud).setVisible(false);
+    this.pullText = this.add.text(0, 0, '', { ...heading, color: c.accent }).setOrigin(0.5, 1).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
     for (const item of [this.hud, ...this.nameTexts, ...this.scoreTexts, this.clockTextObject, ...this.barLabels, this.bigText, this.powerText]) item.setDepth(DEPTH.hud);
     this.events.once('destroy', () => this.reader.dispose());
   }
@@ -229,7 +239,13 @@ export class RinkScene extends Phaser.Scene {
         this.leftover += real * (this.slow > 0 ? fx.goalSlowScale : 1);
         this.slow = Math.max(0, this.slow - real);
         while (this.leftover >= STEP_SECONDS) {
-          happened.push(...step(this.world, controls.frame, t));
+          const controlled = this.world.human ? this.world.human.controlled : -1;
+          const stepped = step(this.world, controls.frame, t);
+          happened.push(...stepped);
+          for (const e of stepped) {
+            const id = hintDone(e, controlled);
+            if (id) this.countHint(id);
+          }
           this.leftover -= STEP_SECONDS;
           played += STEP_SECONDS;
         }
@@ -249,6 +265,10 @@ export class RinkScene extends Phaser.Scene {
       }
     }
     if (this.world.phase !== 'goal') this.scorer = null;
+    const giveGo = Boolean(this.world.human?.giveGo);
+    if (giveGo && !this.wasGiveGo) this.countHint('giveGo');
+    this.wasGiveGo = giveGo;
+    this.updateHint(real, t);
 
     // Effects and sound only watch: they are told what happened and never touch the simulation.
     this.effects.update(this.world, happened, t, played);
@@ -527,7 +547,9 @@ export class RinkScene extends Phaser.Scene {
       // The pose is rounded to one of a few steps, so the same few pictures are reused instead of painting him every frame.
       const strideStep = goalie ? 0 : Math.round((((stride % TAU) + TAU) % TAU) / TAU * FIG.poseSteps) % FIG.poseSteps;
       const speedStep = goalie ? 0 : Math.round(speed * FIG.speedSteps);
-      const wound = !goalie && p.charge > 0 && chargeFraction(p.charge, t) > FIG.windUpAt ? 1 : 0;
+      // The stick stays up for the moment of a fake.
+      const wound = !goalie && (p.fake > 0 || (p.charge > 0 && chargeFraction(p.charge, t) > FIG.windUpAt)) ? 1 : 0;
+      const kneel = !goalie && braced(world, p, t);
       // The scorer throws his arms up while the goal is celebrated.
       const cheer = !goalie && world.phase === 'goal' && this.scorer === p.id;
       const pose: PoseInput = {
@@ -540,9 +562,10 @@ export class RinkScene extends Phaser.Scene {
         tilt: 0,
         pattern: crest.pattern,
         cheer,
+        kneel,
       };
       const skin = skinTone(p.id);
-      const key = `figure-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}`;
+      const key = `figure-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}${kneel ? '-kneel' : ''}`;
       if (!this.textures.exists(key)) {
         const canvas = document.createElement('canvas');
         paintFigure(canvas, figure(pose).shapes, figureColours(crest, goalie, skin, this.options.whiteTeam === p.team ? 'away' : 'home'), pixels);
@@ -704,6 +727,40 @@ export class RinkScene extends Phaser.Scene {
   }
 
   /** The scoreboard, the bars at the bottom, the powerups, and any banner across the ice. */
+  /** The player has just done a move: count it, and take its hint down. */
+  private countHint(id: HintId): void {
+    if (!this.options.hints?.()) return;
+    this.options.onHintDone?.(id);
+    if (this.hint === id) {
+      this.hint = null;
+      this.hintGap = HINT_TIMING.gapSeconds;
+    }
+  }
+
+  /** One hint at a time: up for at least a moment, down when its move is no longer on, then a pause. */
+  private updateHint(real: number, t: Tuning): void {
+    const counts = this.options.hints?.() ?? null;
+    if (!counts || this.world.phase === 'final') {
+      this.hint = null;
+      return;
+    }
+    if (this.hint) {
+      this.hintShown += real;
+      if (this.hintShown >= HINT_TIMING.minSeconds && hintFor(this.world, t, counts) !== this.hint) {
+        this.hint = null;
+        this.hintGap = HINT_TIMING.gapSeconds;
+      }
+      return;
+    }
+    this.hintGap -= real;
+    if (this.hintGap > 0) return;
+    const id = hintFor(this.world, t, counts);
+    if (id) {
+      this.hint = id;
+      this.hintShown = 0;
+    }
+  }
+
   private drawHud(t: Tuning, width: number, height: number, real: number): void {
     const g = this.hud;
     const world = this.world;
@@ -781,7 +838,9 @@ export class RinkScene extends Phaser.Scene {
             ? 'EMPTY NET  ·  VIEW: GOALIE BACK'
             : mayPull(world, humanTeam, t)
               ? 'VIEW: PULL THE GOALIE'
-              : '';
+              : this.hint
+                ? hintText(this.hint)
+                : '';
     this.pullText.setVisible(prompt !== '');
     if (prompt !== '') {
       this.pullText.setText(prompt);

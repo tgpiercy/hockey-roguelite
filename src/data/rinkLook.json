@@ -188,6 +188,7 @@
     "windBack": 0.55,
     "windUp": 0.6,
     "hipHeight": 1.75,
+    "kneelDrop": 0.5,
     "hipSpread": 0.36,
     "pantsDrop": 0.0,
     "pantsRise": 0.3,

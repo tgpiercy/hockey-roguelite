@@ -488,6 +488,18 @@ By keyboard in a live game, 15 tries each against a carrier placed beside the pl
 
 AI against AI is unchanged (3.92 and 3.79 goals). The scripted player never checks, so its figures do not move either; how much the assist helps a real player win is not measured.
 
+## Shot fake, shot block and hints (2026-11-14)
+
+Asked for by the owner: new moves for the player, and on-screen reminders of the moves.
+
+**Shot fake** (`fake` in `physics.json`). Pass pressed during a wind-up of at least `minCharge` (0.15 s) cancels the shot and passes nothing. A goalie within `range` (14 m) whom the shooter is facing is stuck where he is for `biteSeconds` (0.4 s) at a reaction time of `fullBiteReaction` (0.16 s), less for a quicker goalie, at most 1.5 times as long for a slower one. Opponents within `defenderRange` (4 m) cannot check for `defenderFreezeSeconds` (0.5 s). `cooldownSeconds` is 1.2.
+
+**Shot block** (`block`). A skater without the puck who has held Check for `braceAfterSeconds` (0.35 s), with the other team's carrier at least `minCarrierDistance` (3 m) away, is braced: he moves at no more than `maxSpeed` (2 m/s), and an opponent's shot within `reach` (1.3 m, against a body's 0.71 m) stops with `keepSpeed` (8%) of its speed. It adds `momentum.block` (0.08) to the meter.
+
+**Hints** (`src/data/hints.json`): each retires after 3 uses; a hint stays up at least 2.5 s and the next waits 3 s.
+
+Measured: AI against AI is unchanged to the digit (200 games: 3.92 and 3.79 goals, save percentage .791), because the AI neither fakes nor braces. In a live game by keyboard: a fake left the puck with the shooter and the goalie bitten for 0.33 s; five shots at a braced player were all blocked. How many more goals a fake is worth to a real player is not measured: the scripted player does not use it.
+
 ## Change log
 
 | Date | Value | From | To | Why |
@@ -505,6 +517,7 @@ AI against AI is unchanged (3.92 and 3.79 goals). The scripted player never chec
 | 2026-11-14 | ai.json: zone posts, longShotRange, longShotChance, longShotCharge, plantTilt | none | see "Spread-out attack" above | Attackers crowded the net |
 | 2026-11-14 | one-timer, deke, knock-down, rebound, goalie challenge, cover radius, AI styles | see "Deeper gameplay" above | | New moves and AI after the research report |
 | 2026-11-14 | momentum, tips, giveGo, pull, boss groups | none | see "Momentum, tips..." above | New mechanics |
+| 2026-11-14 | fake, block (new groups), momentum.block | none | see above | New moves asked for by the owner |
 | 2026-11-14 | checkAssist (new group) | none | see above | The owner found checking ineffective; help the player only |
 | 2026-11-14 | aimAssist cone, inset, spreadScale | 100, 0.35, none | 150, 0.25, 0.5 | The owner asked for more shoot assist |
 | 2026-11-14 | check.bodyHoldSeconds (new) | none | 0.25 | A body check needs the button held; a tap is a poke |

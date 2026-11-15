@@ -469,3 +469,20 @@ Built, deployed and checked with a simulated controller.
 
 - Not reproduced: I have no real controller. The one fault found by reading the code is that the game took the first device in the browser's list; if anything else sits ahead of the controller there, nothing registers anywhere, the test page included. That is now fixed and tested (6 new tests, 861 in all), and checked in the browser with a silent device listed ahead of a simulated controller: its A button moved the title screen on.
 - If the read-out still says "No controller seen yet", the browser itself is not being given the controller, which the game cannot fix: re-pair it, close other tabs or apps using it, and press a button with the game in front.
+
+# Shot fake, shot block, hints
+
+- [x] Fake: Pass during a wind-up; goalie bites; defenders hesitate
+- [x] Block: hold Check to brace
+- [x] Hints for eight moves, retiring after three uses; Settings and pause-menu rows
+- [x] Tests; balance; browser checks
+- [ ] Commit, push, deploy green
+- [ ] Play it (owner)
+
+## Review (fake, block, hints)
+
+- Type check, 892 tests (28 new) and the build pass. AI against AI unchanged to the digit.
+- In a live game at phone size by keyboard: the fake hint showed during a wind-up, the fake kept the puck, the goalie was bitten 0.33 s, a shot followed; a braced player (drawn lower, on one knee) blocked 5 shots of 5; the poke hint showed beside their carrier; counts were stored; Settings shows "Hints: On" and "Show hints again: 1 of 8 learned".
+- The hint text was hard to read on the ice in the first picture; it now has a dark edge.
+- Not checked: the feel of either move on a controller; whether 0.4 s of bite is too generous; whether the hints nag; the one-timer, deke, saucer, give-and-go and body-check hints on screen (their conditions are tested, only fake and poke were looked at in a picture); the pause menu's Hints row (built the same way as Sound, not opened).
+- Both moves help the player and the player already wins too often against the default AI. The balance tune-up is still open.

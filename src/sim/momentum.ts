@@ -37,6 +37,9 @@ export function stepMomentum(world: World, t: Tuning, events: SimEvent[], dt: nu
     } else if (e.type === 'shot' && e.oneTimer) {
       const p = world.players[e.player];
       if (p) add(world, p.team, m.oneTimer);
+    } else if (e.type === 'block') {
+      const p = world.players[e.player];
+      if (p) add(world, p.team, m.block);
     } else if (e.type === 'save') {
       const g = world.players[e.goalie];
       if (g) add(world, g.team, m.save);

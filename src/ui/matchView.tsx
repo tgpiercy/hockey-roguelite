@@ -12,7 +12,7 @@ import type { PowerupSpec } from '../sim/modifiers';
 import { GameSummary } from './GameSummary';
 import { menuInput } from './menuInput';
 import { PauseMenu } from './PauseMenu';
-import { loadPrefs } from './prefs';
+import { loadHintCounts, loadPrefs, saveHintCounts } from './prefs';
 import { TouchControls } from './TouchControls';
 import { TuningPanel } from './TuningPanel';
 import { tuningStore } from './tuningStore';
@@ -78,6 +78,9 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
   // The on-screen controls show once the screen is touched, and step aside for a controller or keyboard.
   let touchHidden = false;
   let touchMode = loadPrefs().touch;
+  // Hints: on or off, and how often each move has been done on this device.
+  let hintsOn = loadPrefs().hints;
+  const hintCounts = loadHintCounts();
   const showTouch = (): void => render(<TouchControls hidden={touchHidden} mode={touchMode} />, touch);
   showTouch();
 
@@ -103,6 +106,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
           onEnd={() => scene.forfeit()}
           onPrefs={(prefs) => {
             touchMode = prefs.touch;
+            hintsOn = prefs.hints;
             showTouch();
           }}
         />,
@@ -150,6 +154,11 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       ...(awayColour ? { awayColour } : {}),
       whiteTeam: userAtHome ? 1 : 0,
       detail: loadPrefs().detail,
+      hints: () => (hintsOn ? hintCounts : null),
+      onHintDone: (id) => {
+        hintCounts[id] = (hintCounts[id] ?? 0) + 1;
+        saveHintCounts(hintCounts);
+      },
       tuning: () => tuningStore.tuning,
       onControls,
       paused: () => paused,

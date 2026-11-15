@@ -119,6 +119,8 @@ export interface GoalieState {
   /** Automatic saves he has left this period, and the period that count belongs to. */
   autoSavesLeft: number;
   autoSavePeriod: number;
+  /** Seconds left stuck where he is after biting on a shot fake. */
+  bitten: number;
 }
 
 /** What a player did in the game. Later phases award XP and milestones from these. */
@@ -185,6 +187,11 @@ export interface Player extends Skater {
   knockedDown: boolean;
   /** Seconds of burst speed left (a boss trick). */
   burst: number;
+  /** Seconds left of the pump after a shot fake, and seconds until he can fake again. */
+  fake: number;
+  fakeCooldown: number;
+  /** True while the pass button is still down from the fake: it must not also pass. */
+  fakePass: boolean;
   /** Talent ids he carries (mascots do); see talents.ts. Empty for ordinary players. */
   talents: string[];
   /** Seconds until each talent can trigger again, by talent id. */
@@ -227,6 +234,8 @@ export type SimEvent =
   | { type: 'talent'; player: number; id: string }
   | { type: 'shot'; speed: number; player: number; oneTimer?: boolean }
   | { type: 'deke'; player: number }
+  | { type: 'fake'; player: number }
+  | { type: 'block'; player: number }
   | { type: 'tip'; player: number }
   | { type: 'fire'; team: 0 | 1 }
   | { type: 'pull'; team: 0 | 1; on: boolean }

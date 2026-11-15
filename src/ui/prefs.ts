@@ -10,9 +10,11 @@ export interface Prefs {
   detail: 'full' | 'low';
   /** The on-screen controls: shown when the screen is touched ("auto"), always, or never. */
   touch: 'auto' | 'always' | 'never';
+  /** On-screen reminders of the moves, shown during a game until each has been done a few times. */
+  hints: boolean;
 }
 
-export const DEFAULT_PREFS: Prefs = { sound: true, volume: 0.7, detail: 'full', touch: 'auto' };
+export const DEFAULT_PREFS: Prefs = { sound: true, volume: 0.7, detail: 'full', touch: 'auto', hints: true };
 export const VOLUME_STEPS = [0.2, 0.4, 0.7, 1];
 export const TOUCH_MODES: Prefs['touch'][] = ['auto', 'always', 'never'];
 
@@ -40,6 +42,7 @@ export function parsePrefs(raw: string | null): Prefs {
       volume: typeof v.volume === 'number' && Number.isFinite(v.volume) ? Math.max(0, Math.min(1, v.volume)) : DEFAULT_PREFS.volume,
       detail: v.detail === 'low' || v.detail === 'full' ? v.detail : DEFAULT_PREFS.detail,
       touch: v.touch === 'auto' || v.touch === 'always' || v.touch === 'never' ? v.touch : DEFAULT_PREFS.touch,
+      hints: typeof v.hints === 'boolean' ? v.hints : DEFAULT_PREFS.hints,
     };
   } catch {
     return { ...DEFAULT_PREFS };
@@ -59,5 +62,40 @@ export function savePrefs(prefs: Prefs): void {
     localStorage.setItem(KEY, JSON.stringify(prefs));
   } catch {
     // Storage is unavailable: the preference lasts until the page is closed.
+  }
+}
+
+const HINTS_KEY = 'hockey-hints';
+
+/** Reads how often each move has been done. Anything that is not a whole number of times is dropped. */
+export function parseHintCounts(raw: string | null): Record<string, number> {
+  if (raw === null) return {};
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) return {};
+    const out: Record<string, number> = {};
+    for (const [key, n] of Object.entries(value as Record<string, unknown>)) {
+      if (typeof n === 'number' && Number.isInteger(n) && n > 0) out[key] = n;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+/** Kept apart from the other preferences, so changing a setting in a menu can never wipe what was learned mid-game. */
+export function loadHintCounts(): Record<string, number> {
+  try {
+    return parseHintCounts(localStorage.getItem(HINTS_KEY));
+  } catch {
+    return {};
+  }
+}
+
+export function saveHintCounts(counts: Record<string, number>): void {
+  try {
+    localStorage.setItem(HINTS_KEY, JSON.stringify(counts));
+  } catch {
+    // Storage is unavailable: the counts last until the page is closed.
   }
 }

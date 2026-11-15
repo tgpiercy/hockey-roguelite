@@ -1,3 +1,4 @@
+import { braced } from './check';
 import { hitBoards } from './rink';
 import { attackDir, dist, givePuck } from './team';
 import type { Tuning } from './tuning';
@@ -70,6 +71,24 @@ export function resolveLoosePuck(world: World, t: Tuning, events: SimEvent[]): v
     const isTarget = puck.passTarget === p.id;
     const target = puck.passTarget === null ? null : world.players[puck.passTarget];
     const interception = target !== null && target !== undefined && target.team !== p.team && d <= t.pass.interceptRadius;
+
+    // A skater braced on one knee stops an opponent's shot dead, from further out than his body reaches.
+    const shotFrom = puck.shotBy === null ? undefined : world.players[puck.shotBy];
+    if (shotFrom && shotFrom.team !== p.team && d > 0 && d <= t.block.reach && relSpeed > t.body.handleSpeed * p.fx.handleSpeedScale && braced(world, p, t)) {
+      const nx = (puck.pos.x - p.pos.x) / d;
+      const ny = (puck.pos.y - p.pos.y) / d;
+      const left = Math.hypot(puck.vel.x, puck.vel.y) * t.block.keepSpeed;
+      const reach = t.skater.radius + t.puck.radius;
+      puck.vel.x = nx * left;
+      puck.vel.y = ny * left;
+      puck.pos.x = p.pos.x + nx * Math.max(reach, d);
+      puck.pos.y = p.pos.y + ny * Math.max(reach, d);
+      puck.passTarget = null;
+      puck.shotBy = null;
+      p.stats.blocks += 1;
+      events.push({ type: 'block', player: p.id });
+      return;
+    }
 
     const caught =
       (isTarget && d <= t.pass.receiveRadius) ||

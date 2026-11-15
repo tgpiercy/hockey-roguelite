@@ -42,7 +42,11 @@ export function cuesFor(events: readonly SimEvent[], myTeam: 0 | 1, t: Tuning): 
         if (e.kind === 'body') cues.push({ name: 'hit', gain: e.big ? data.bigHitGain : e.success ? 1 : 0.45 });
         else if (e.success) cues.push({ name: 'poke', gain: 1 });
         break;
+      case 'block':
+        cues.push({ name: 'hit', gain: 0.6 });
+        break;
       case 'deke':
+      case 'fake':
       case 'tip':
         cues.push({ name: 'tap', gain: 1 });
         break;

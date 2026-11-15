@@ -1,0 +1,21 @@
+{
+  "retireAfter": 3,
+  "minSeconds": 2.5,
+  "gapSeconds": 3,
+  "dekeRange": 4,
+  "laneWidth": 1.2,
+  "giveGoRange": 12,
+  "blockLane": 2,
+  "pokeNear": 1.3,
+  "hitNear": 5,
+  "hints": {
+    "oneTimer": "HOLD SHOOT AS THE PASS ARRIVES: ONE-TIMER",
+    "fake": "TAP PASS WHILE WINDING UP: FAKE",
+    "block": "HOLD CHECK IN THE SHOOTING LANE: BLOCK",
+    "deke": "SWITCH WHILE CARRYING: DEKE",
+    "saucer": "HOLD PASS: SAUCER PASS OVER STICKS",
+    "giveGo": "PASS, THEN PASS AGAIN AT ONCE: GIVE AND GO",
+    "poke": "TAP CHECK: POKE THE PUCK AWAY",
+    "bodyCheck": "HOLD CHECK, LET GO AS YOU ARRIVE: BODY CHECK"
+  }
+}

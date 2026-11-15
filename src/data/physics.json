@@ -170,7 +170,8 @@
     "concedeLoss": 0.5,
     "fireSeconds": 8,
     "fireShotPower": 0.12,
-    "fireSpeedScale": 1.06
+    "fireSpeedScale": 1.06,
+    "block": 0.08
   },
   "tips": {
     "screenRange": 3,
@@ -205,5 +206,24 @@
     "bodyHoldSeconds": 0.15,
     "bodyRange": 1.9,
     "minClosingSpeed": 1.2
+  },
+  "fake": {
+    "minCharge": 0.15,
+    "cooldownSeconds": 1.2,
+    "poseSeconds": 0.2,
+    "range": 14,
+    "facingDegrees": 120,
+    "biteSeconds": 0.4,
+    "fullBiteReaction": 0.16,
+    "maxBiteScale": 1.5,
+    "defenderRange": 4,
+    "defenderFreezeSeconds": 0.5
+  },
+  "block": {
+    "braceAfterSeconds": 0.35,
+    "maxSpeed": 2,
+    "reach": 1.3,
+    "keepSpeed": 0.08,
+    "minCarrierDistance": 3
   }
 }
