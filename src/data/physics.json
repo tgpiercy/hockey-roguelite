@@ -88,6 +88,7 @@
     "pickupLockSeconds": 0.5,
     "checkerSpeedKeep": 0.5,
     "knockdownSeconds": 1.5,
+    "sureFootedStagger": 0.5,
     "bodyHoldSeconds": 0.25
   },
   "body": {

@@ -45,7 +45,9 @@
         "bigHitKnock",
         "alwaysKnockdown",
         "blockReachScale",
-        "handleSpeedScale"
+        "handleSpeedScale",
+        "sureFooted",
+        "alwaysBraced"
       ]
     },
     "goalie": {

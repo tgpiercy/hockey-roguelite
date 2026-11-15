@@ -669,3 +669,27 @@ Built, deployed and checked with a simulated controller.
 - Measured: the five-complaints tables, Rookie and Pro season win rates, and the health check with the sponsor's target (no bail-outs). Not measured: temperament in season games, how often a person meets the target.
 - Changed from the plan, and recorded in DECISIONS: the temperaments are six that use conditions the game already had; "hundredth game" became long service; the sponsor's target is one rule (wins, or the playoffs again); temperament is on the details screen, not every list row.
 - Three older tests assumed a win's pay and the sponsorship exactly; they now set the cup aside or apply the sponsor's factor.
+
+# The balance and content round
+
+- [x] 1. Pro: a title about one time in four for the scripted player (re-set after the new bosses)
+- [x] 2. AI styles within about half a goal of each other
+- [x] 3. Save-percentage target retired
+- [x] 4. Screens seen for the first time, and what they showed fixed
+- [x] 5. Replay cost measured
+- [x] 6. Pucks in a season counted (prices not changed: the owner's call)
+- [x] 7. Paper and radio lines: 183, nine more things noticed
+- [x] 8. Seventeen artifacts, eleven events
+- [x] 9. Four boss clubs with new tricks
+- [x] 10. Three rinks, two charters
+- [ ] Play it (owner): above all, whether Pro feels right once the Wall and the Marathon can be answered
+
+## Review (balance and content round)
+
+- Four commits, each gated on the type check and tests (1334 pass at the end).
+- Found by looking: artifact cards spilling into each other, a promotion dated a season late, four veterans all nicknamed "Lifer", a nickname squeezed out of the roster row, lists that scrolled sideways.
+- Found by measuring: the season measure with the script rises when bosses are added, because it meets its two unbeatable bosses less often. Pro was set twice because of it.
+- Changed from the plan: two of the four boss tricks; no temperament artifact; no ten sample lines sent ahead (the lines went in with the commit; say if the voice is wrong).
+- Not seen on screen: the four new bosses' tells, the new rinks, the new charters on the set-up screen, the new events. Tests and all-AI series only.
+- Known and left: the season-over screen counts a top scorer's playoff goals and the trophy room does not, so the two can disagree; shops rarely cost more than a season earns.
+

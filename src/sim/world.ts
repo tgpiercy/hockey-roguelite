@@ -437,7 +437,7 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
       const carrying = puck.carrier === p.id;
       stepSkaterBody(p, inputs[i] as InputFrame, t, dt, carrying, carrying && p.fx.breakawaySpeedScale !== 1 && clearAhead(world, p));
       // Down on one knee to block a shot, he can only shuffle.
-      if (braced(world, p, t)) {
+      if (p.checkCharge >= t.block.braceAfterSeconds && braced(world, p, t)) {
         const speed = Math.hypot(p.vel.x, p.vel.y);
         if (speed > t.block.maxSpeed) {
           p.vel.x *= t.block.maxSpeed / speed;

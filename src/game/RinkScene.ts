@@ -885,7 +885,21 @@ export class RinkScene extends Phaser.Scene {
           if (mate.onIce && mate.team === p.team && mate.role === 'skater' && mate.id !== p.id) this.top.lineBetween(x, y, this.sx(mate.pos.x), this.sy(mate.pos.y));
         }
       }
-      // A boss trick's tell: a skater whose every hit is a knock-down flashes while he is winding one up.
+      // Boss tricks' tells. A skater who cannot be knocked down stands on a heavy ring; one who blocks standing up
+      // shows a bar on the side the puck is on, while he is able to block.
+      if (!goalie && p.fx.sureFooted > 0) {
+        this.g.lineStyle(Math.max(2, unit * 0.3), colour(c.ice), 0.85);
+        this.g.strokeEllipse(x, y, unit * 3.2, unit * 1.5);
+      }
+      if (!goalie && p.fx.alwaysBraced > 0 && braced(world, p, t)) {
+        const toward = Math.atan2(world.puck.pos.y - p.pos.y, world.puck.pos.x - p.pos.x);
+        const bx = x + Math.cos(toward) * unit * 1.5;
+        const by = y + Math.sin(toward) * unit * 1.5;
+        const across = toward + Math.PI / 2;
+        this.top.lineStyle(Math.max(2, unit * 0.32), colour(c.ice), 0.9);
+        this.top.lineBetween(bx - Math.cos(across) * unit, by - Math.sin(across) * unit, bx + Math.cos(across) * unit, by + Math.sin(across) * unit);
+      }
+      // A skater whose every hit is a knock-down flashes while he is winding one up.
       if (!goalie && p.fx.alwaysKnockdown > 0 && p.checkCharge > 0) {
         const pulse = 0.55 + 0.45 * Math.sin(this.clock * 30);
         this.top.lineStyle(Math.max(2, unit * 0.22), colour(c.fire), pulse);

@@ -96,7 +96,7 @@ describe('rules a rink changes', () => {
     expect(world.teams[1].line).toBe(0);
   });
 
-  it('every rink gives a whole game that ends', () => {
+  it('every rink gives a whole game that ends', { timeout: 60_000 }, () => {
     for (const rink of RINKS) {
       const tuned = rinkTuning(cloneTuning(), rink);
       const world = createGame(tuned, `whole/${rink.id}`, { human: false, teams: teams(), levels: [0.5, 0.5], overtimeLimit: 120, rules: rink.rules });

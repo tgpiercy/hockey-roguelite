@@ -35,7 +35,8 @@ export function checkKind(checker: Player, carrier: Player, world: World, t: Tun
  * the puck, and the other team's carrier (if there is one) is too far away for the hold to be a hit.
  */
 export function braced(world: World, p: Player, t: Tuning): boolean {
-  if (p.role !== 'skater' || p.stagger > 0 || world.puck.carrier === p.id || p.checkCharge < t.block.braceAfterSeconds) return false;
+  // Braced by holding the button, or, for a club whose trick it is, simply by standing there.
+  if (p.role !== 'skater' || p.stagger > 0 || world.puck.carrier === p.id || (p.checkCharge < t.block.braceAfterSeconds && p.fx.alwaysBraced <= 0)) return false;
   const carrier = carrierOf(world);
   return !carrier || carrier.team === p.team || dist(p.pos, carrier.pos) >= t.block.minCarrierDistance;
 }
@@ -145,7 +146,8 @@ export function resolveCheck(world: World, p: Player, charged: boolean, t: Tunin
   const evaded = carrier.deke > 0;
   const success = (rolled || bigHit || windUp) && !evaded && !spinEscape(carrier, events);
   // Thrown while closing fast, a body check that lands puts him on the ice.
-  const big = kind === 'body' && success && (p.fx.alwaysKnockdown > 0 || speed >= t.check.bigHitClosingSpeed);
+  // (A sure-footed carrier is never put down, whoever hits him.)
+  const big = kind === 'body' && success && carrier.fx.sureFooted <= 0 && (p.fx.alwaysKnockdown > 0 || speed >= t.check.bigHitClosingSpeed);
 
   if (kind === 'body') {
     p.vel.x *= t.check.checkerSpeedKeep;
@@ -161,7 +163,7 @@ export function resolveCheck(world: World, p: Player, charged: boolean, t: Tunin
     carrier.charge = 0;
     carrier.passCharge = 0;
     if (kind === 'body') {
-      carrier.stagger = big ? t.check.knockdownSeconds : t.check.staggerSeconds;
+      carrier.stagger = (big ? t.check.knockdownSeconds : t.check.staggerSeconds) * (carrier.fx.sureFooted > 0 ? t.check.sureFootedStagger : 1);
       carrier.knockedDown = big;
       p.stats.hits += 1;
     }

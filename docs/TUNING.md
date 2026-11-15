@@ -913,6 +913,52 @@ A powerup costs 40 to 55 and a strike repair 70, so emptying a shop is about 200
 
 **Replay cost.** One whole exhibition game stepped by hand in the test pane at 844 x 390, full rink detail, replays on (22,888 live frames and 1,584 replay frames): a live frame took 5.3 ms on average and a replay frame 3.8 ms. Showing a replay costs no more than playing. The recorder's copy of the world once a second is inside the live figure, which is the same 5 to 8 ms measured before replays existed. The longest single frames (up to about a second) came at the start of each batch of stepping and are the test pane, not the game. A desktop pane is not a phone: this says replays are not the expensive part, not that the phone holds 60 frames a second.
 
+## The content round (2026-11-15)
+
+**New rinks**, 100 all-AI games each at level 0.5, equal teams:
+
+| Rink | Goals a team | Shots a team | Save percentage | Overtime |
+| --- | --- | --- | --- | --- |
+| Standard (same seeds' series) | 4.24 and 3.86 | 34 | .777 | 15% |
+| The long sheet (length 58) | 3.40 and 3.59 | 29 | .781 | 15% |
+| Thin air (drain 0.03) | 3.31 and 3.41 | 32 | .813 | 17% |
+| Small nets (mouth 2.25) | 2.08 and 2.51 | 35 | .879 | 17% |
+
+All three finish every game and the AI plays them without getting stuck.
+
+**Boss tricks against a plain equal team**, AI on both sides, 100 games each (the trick's modifiers on a 70 team, against a 70 team):
+
+| Boss | Wins | Goals |
+| --- | --- | --- |
+| The Wall | 100% | 4.48 to 0.36 |
+| Marathon | 77% | 5.90 to 3.34 |
+| Trappers | 63% | 4.41 to 3.43 |
+| Hammers | 54% | 3.97 to 3.42 |
+| Pickets (new; block reach then 0.8) | 67% | 4.76 to 3.48 |
+| Night Shift (new; then 1.07 and 0.1) | 61% | 4.82 to 3.99 |
+| Granite (new) | 51%, then 58% with puck security 0.12 | 4.47 to 3.81 |
+
+**The scripted player against each boss**, 40 games each, its 67 team against a 73 team with the trick (the Carnival's mascot is not in this measure):
+
+| Wall | Marathon | Hammers | Gale | Marksmen | Furnace | Trappers | Shadows | Granite | Pickets | Night Shift | Carnival |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0% | 10% | 35% | 45% | 50% | 53% | 57% | 60% | 43% | 50% | 57% | 63% |
+
+The new four sit inside the old range. After this the Pickets' block reach went to 1 and the Night Shift's late boost to 1.1 speed and 0.14 shot power.
+
+**What the bigger boss pool did to the season measure, and Pro's number.** The script never beats the Wall and almost never the Marathon: it cannot play the answers (quick shots; passing through a press). With eight bosses a season met one of those two in 64% of seasons; with twelve, in 45%. So the script's results rose with no change to difficulty:
+
+| Pro's shift (regions 2, 3, playoffs) | Bosses | First region cleared | Title | Seasons |
+| --- | --- | --- | --- | --- |
+| -0.33, -0.43, -0.43 | 8 | 70% | 27% | 100 |
+| -0.33, -0.43, -0.43 | 12 | 88% | 39% | 100 |
+| -0.30, -0.40, -0.40 (two new bosses stiffened) | 12 | 88% | 39% | 100 |
+| **-0.20, -0.30, -0.30 (shipped)** | 12 | 88% | **29%** | 100 |
+
+Rookie with twelve bosses, 40 seasons: first region 93%, title 60% (unchanged). The lesson: the season measure is mostly a count of how often the script meets a boss it cannot answer. Of the seasons that avoid both, the script now wins about half on Pro. A person who learns the two answers will do better than 29%; how much better only play will show. The first region at 88% is above the 75% benchmark for the same reason and was left: the first region has no shift to turn.
+
+League health after the round (10 seeds, 12 years): no bail-outs under any manager style.
+
 | Date | Value | From | To | Why |
 | --- | --- | --- | --- | --- |
 | 2026-11-13 | goalie positioning cover radius (ratings.json) | 0.5 to 0.9 | 0.3 to 0.6 | All-AI games averaged under 1 goal per 5 minutes; now about 3 |

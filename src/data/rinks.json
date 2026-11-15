@@ -89,6 +89,40 @@
         }
       },
       "rules": {}
+    },
+    {
+      "id": "longIce",
+      "name": "The long sheet",
+      "describe": "A longer rink: more room to carry the puck, and a longer way back.",
+      "tuning": {
+        "rink": {
+          "length": 58
+        }
+      },
+      "rules": {}
+    },
+    {
+      "id": "thinAir",
+      "name": "Thin air",
+      "describe": "A rink in the hills. Everyone tires half as fast again: change lines often.",
+      "tuning": {
+        "energy": {
+          "drainPerSecond": 0.03,
+          "sprintDrainPerSecond": 0.03
+        }
+      },
+      "rules": {}
+    },
+    {
+      "id": "smallNets",
+      "name": "Small nets",
+      "describe": "Narrow nets: goals are scarce, and the first one matters.",
+      "tuning": {
+        "net": {
+          "mouthWidth": 2.25
+        }
+      },
+      "rules": {}
     }
   ]
 }

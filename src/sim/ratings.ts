@@ -57,6 +57,10 @@ export interface SkaterEffects {
   blockReachScale: number;
   /** Above 0, his team's momentum meter starts every period at this level (1 is full). 0 unless a modifier changes it. */
   periodStartHeat: number;
+  /** Above 0, a body check never knocks him down and he shakes one off sooner. 0 unless a modifier changes it. */
+  sureFooted: number;
+  /** Above 0, he blocks shots standing up, without holding the check button. 0 unless a modifier changes it. */
+  alwaysBraced: number;
 }
 
 /** What a goalie's ratings do on the ice. */
@@ -115,6 +119,8 @@ export function skaterEffects(r: SkaterRatings): SkaterEffects {
     fakeBiteScale: 1,
     blockReachScale: 1,
     periodStartHeat: 0,
+    sureFooted: 0,
+    alwaysBraced: 0,
   };
 }
 

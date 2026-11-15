@@ -779,7 +779,9 @@ export function matchup(f: Franchise): Matchup | null {
     odds: { mascot: spec, chance: dropInChance(misses), sits: team.players[sitsFor(team)]?.name ?? '' },
   });
   const home = bring(game.home, userMascot(f), f.mascot.misses ?? 0);
-  const away = bring(game.away, theirs, season.mascotMisses?.[key] ?? 0);
+  // A boss club may bring its mascot every time: that is its trick.
+  const bossMisses = game.kind === 'boss' && stop?.bossId ? bossInfo(stop.bossId).mascotMisses : undefined;
+  const away = bring(game.away, theirs, bossMisses ?? season.mascotMisses?.[key] ?? 0);
   // The charter may give every opponent something, and change a rule of every game.
   const extra = opponentModifiers(setupOf(f));
   const awayTeam = extra.length > 0 ? { ...away.team, setup: { ...away.team.setup, modifiers: [...(away.team.setup.modifiers ?? []), ...extra] } } : away.team;

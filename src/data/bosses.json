@@ -225,5 +225,137 @@
       "role": "captain",
       "name": "Jack Calloway"
     }
+  },
+  {
+    "id": "granite",
+    "name": "Quarry Hill Granite",
+    "trait": "Granite",
+    "description": "They cannot be knocked off their feet.",
+    "modifiers": [
+      {
+        "stat": "sureFooted",
+        "op": "add",
+        "value": 1
+      },
+      {
+        "stat": "puckSecurity",
+        "op": "add",
+        "value": 0.12
+      }
+    ],
+    "trick": "Granite: a body check never puts one of them down, and they shake it off in half the time. Poke the puck away and leave the hitting alone.",
+    "star": [],
+    "rink": "longIce",
+    "club": "The quarry's company team. Every man on it lifts stone for a living and skates like it.",
+    "person": {
+      "role": "captain",
+      "name": "Gus Brandt"
+    }
+  },
+  {
+    "id": "night-shift",
+    "name": "Lantern Bay Night Shift",
+    "trait": "Night shift",
+    "description": "They get stronger as the game gets late.",
+    "modifiers": [
+      {
+        "stat": "topSpeedScale",
+        "op": "mul",
+        "value": 1.1,
+        "when": "lastPeriod",
+        "label": "Night shift"
+      },
+      {
+        "stat": "shotPower",
+        "op": "add",
+        "value": 0.14,
+        "when": "lastPeriod",
+        "label": "Night shift"
+      },
+      {
+        "stat": "drainScale",
+        "op": "mul",
+        "value": 0.6,
+        "when": "lastPeriod",
+        "label": "Night shift"
+      },
+      {
+        "stat": "topSpeedScale",
+        "op": "mul",
+        "value": 1.1,
+        "when": "overtime",
+        "label": "Night shift"
+      },
+      {
+        "stat": "shotPower",
+        "op": "add",
+        "value": 0.14,
+        "when": "overtime",
+        "label": "Night shift"
+      },
+      {
+        "stat": "drainScale",
+        "op": "mul",
+        "value": 0.6,
+        "when": "overtime",
+        "label": "Night shift"
+      }
+    ],
+    "trick": "Night shift: in the last period and in overtime they skate faster, shoot harder and barely tire. Be ahead before it starts, and spend your powerups early.",
+    "star": [],
+    "rink": "thinAir",
+    "club": "A cannery town where half the roster comes straight from work. They are never awake for the first period and never beaten in the third.",
+    "person": {
+      "role": "coach",
+      "name": "Mavis Okoro"
+    }
+  },
+  {
+    "id": "carnival",
+    "name": "Maple Grove Carnival",
+    "trait": "Carnival",
+    "description": "Their mascot always plays the first period.",
+    "modifiers": [
+      {
+        "stat": "shotPower",
+        "op": "add",
+        "value": 0.03
+      }
+    ],
+    "mascotMisses": 18,
+    "trick": "Carnival: their mascot always takes the ice for the first period, and he can play. Keep it close until the horn, when he goes back to the stands.",
+    "star": [],
+    "rink": "bigNets",
+    "club": "A fairground town whose club is half hockey team, half travelling show. The crowd comes for the mascot and stays for the hockey.",
+    "person": {
+      "role": "coach",
+      "name": "Barnaby Quill"
+    }
+  },
+  {
+    "id": "pickets",
+    "name": "Harrow Ridge Pickets",
+    "trait": "Pickets",
+    "description": "Their skaters block shots without going down.",
+    "modifiers": [
+      {
+        "stat": "alwaysBraced",
+        "op": "add",
+        "value": 1
+      },
+      {
+        "stat": "blockReachScale",
+        "op": "mul",
+        "value": 1
+      }
+    ],
+    "trick": "Pickets: any of them standing off the puck stops a shot that passes close to him. Fake the shot to move them, or pass across and shoot first-touch from the side.",
+    "star": [],
+    "rink": "heavyPuck",
+    "club": "A farm-country club that has never had a scorer and has never needed one. They stand in front of everything.",
+    "person": {
+      "role": "captain",
+      "name": "Ned Harrow"
+    }
   }
 ]

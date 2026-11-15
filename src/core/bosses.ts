@@ -23,6 +23,8 @@ export interface BossInfo {
   star: Modifier[];
   /** Talent ids every one of its skaters carries. */
   talents?: string[];
+  /** Its mascot's run of missed rolls before every game: enough of them and he always comes at the opening. Left out, the usual rule. */
+  mascotMisses?: number;
   /** What kind of club it is, in a sentence. */
   club: string;
   /** The one of its players everybody knows: the paper and the announcer talk about him, and he may be hired once beaten. */

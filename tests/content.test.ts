@@ -32,8 +32,8 @@ const won = (margin = 1): GameResult => ({ score: [margin, 0], winner: 0, finish
 describe('new bosses', () => {
   const against = (bossId: string): World => createWorld(t, 'boss', { teams: [dress(league, userTeam(league))!.setup, buildBoss(league, bossId, 0, 'content').setup] });
 
-  it('there are eight, each with a trick in words', () => {
-    expect(bosses).toHaveLength(8);
+  it('there are twelve, each with a trick in words', () => {
+    expect(bosses).toHaveLength(12);
     for (const boss of bosses) expect(bossInfo(boss.id).trick.length).toBeGreaterThan(30);
   });
 
