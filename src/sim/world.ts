@@ -29,7 +29,7 @@ import {
 } from './ratings';
 import { stepShooting } from './shot';
 import { createSkater, stepSkater } from './skater';
-import { attackDir, carrierOf, clearAhead, dist, givePuck, goalieOf, loosePuck, onIce, otherTeam, ownNet, skatersOf } from './team';
+import { attackDir, carrierOf, clearAhead, dist, givePuck, goalieOf, loosePuck, onIce, otherTeam, ownNet, skatersOf, humanOf, placeHumans, teamInput } from './team';
 import type { Tuning } from './tuning';
 import { NO_INPUT, type InputFrame, type Player, type SimEvent, type World } from './types';
 
@@ -58,6 +58,8 @@ export interface TeamSetup {
 export interface WorldOptions {
   /** True (the default): team 0's controlled skater is driven by the input given to step(). False: all AI. */
   human?: boolean;
+  /** A second human, driven by step()'s second input: on team 0 for co-op, on team 1 for versus. Left out, there is none. */
+  second?: 0 | 1;
   /** "full" (the default) is 3 skaters and a goalie a side. "solo" is one skater alone, for skating tests. */
   lineup?: 'full' | 'solo';
   /** AI level per team, 0 to 1. Left out, team 1 uses the tuning's opponent difficulty and team 0 the teammate level. */
@@ -190,10 +192,7 @@ function lineUp(world: World, t: Tuning): void {
   world.puck = createPuck(0, 0);
   world.phase = 'play';
   world.phaseTime = 0;
-  if (world.human) {
-    const centre = skatersOf(world, world.human.team).find((p) => p.slot === 0);
-    if (centre) world.human.controlled = centre.id;
-  }
+  placeHumans(world);
 }
 
 /** A scrimmage: endless play with no clock, faceoffs or line changes. Used for practice and most tests. */
@@ -207,6 +206,7 @@ export function createWorld(t: Tuning, seed: number | string, options: WorldOpti
     phaseTime: 0,
     rng: createRng(seed),
     human: options.human === false ? null : { team: 0, controlled: 0, switchHeld: false, passHeld: false, giveGoOffer: null, giveGo: null },
+    human2: options.human === false || options.second === undefined ? null : { team: options.second, controlled: options.second === 0 ? 1 : PLAYERS_PER_TEAM, switchHeld: false, passHeld: false, giveGoOffer: null, giveGo: null },
     levels: options.levels ?? [null, null],
     lineup: options.lineup ?? 'full',
     rules: 'scrimmage',
@@ -317,13 +317,14 @@ function stepDeke(world: World, p: Player, hasPuck: boolean, input: InputFrame, 
 }
 
 /** Game rules: the line-change button, automatic changes, and skaters swapping at the bench door. */
-function stepLineChanges(world: World, humanInput: InputFrame, t: Tuning, events: SimEvent[]): void {
+function stepLineChanges(world: World, humanInput: InputFrame, t: Tuning, events: SimEvent[], input2: InputFrame): void {
   for (const team of [0, 1] as const) {
     const state = world.teams[team];
     state.changeCooldown = Math.max(0, state.changeCooldown - STEP_SECONDS);
-    if (world.human && world.human.team === team) {
-      if (humanInput.lineChange && !state.changeHeld) callChange(world, team, t);
-      state.changeHeld = humanInput.lineChange;
+    const asked = teamInput(world, team, humanInput, input2);
+    if (asked) {
+      if (asked.lineChange && !state.changeHeld) callChange(world, team, t);
+      state.changeHeld = asked.lineChange;
     }
     autoChange(world, team, t);
   }
@@ -331,7 +332,7 @@ function stepLineChanges(world: World, humanInput: InputFrame, t: Tuning, events
 }
 
 /** Advances the whole world by one fixed step and reports what happened. */
-export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[] {
+export function step(world: World, humanInput: InputFrame, t: Tuning, input2: InputFrame = NO_INPUT): SimEvent[] {
   const dt = STEP_SECONDS;
   const events: SimEvent[] = [];
   const puck = world.puck;
@@ -340,7 +341,7 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
   world.tick += 1;
 
   if (world.phase === 'faceoff') {
-    stepFaceoff(world, humanInput, t, events);
+    stepFaceoff(world, humanInput, t, events, input2);
     return events;
   }
   if (world.phase === 'break') {
@@ -364,14 +365,16 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
   // Powerups, line changes, who is in control, and what everyone wants to do.
   stepPowerups(world, humanInput, events);
   if (game) {
-    stepLineChanges(world, humanInput, t, events);
-    stepPulls(world, humanInput, t, events);
+    stepLineChanges(world, humanInput, t, events, input2);
+    stepPulls(world, humanInput, t, events, input2);
   }
   updateControl(world, humanInput);
+  if (world.human2) updateControl(world, input2, world.human2);
   const active = onIce(world);
   const inputs = active.map((p) => {
     if (p.role === 'goalie') return NO_INPUT;
-    if (world.human && world.human.controlled === p.id) return humanInput;
+    const human = humanOf(world, p.id);
+    if (human) return human === world.human2 ? input2 : humanInput;
     return aiInput(world, p, t, aiLevel(levelFor(world, p.team, t)));
   });
 
@@ -408,7 +411,7 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
       input = { ...input, shoot: false };
     }
     // The skater the human controls gets aim assist; the AI aims for itself.
-    const assist = world.human && world.human.controlled === p.id ? (aim: number) => assistedAim(world, p, aim, t) : undefined;
+    const assist = humanOf(world, p.id) ? (aim: number) => assistedAim(world, p, aim, t) : undefined;
     const fx = currentFx(p, t);
     // A shot let go just after receiving a pass is a one-timer: fully wound up, and harder still with the right gear.
     const oneTimer = p.oneTimer > 0;

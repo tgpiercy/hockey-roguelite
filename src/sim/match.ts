@@ -3,9 +3,10 @@ import { aiLevel } from './ai';
 import { STEP_SECONDS } from './clock';
 import { freshLineOn, putOnIce } from './lines';
 import { createPuck } from './puck';
-import { attackDir, goalieOf, ownNet, skatersOf } from './team';
+import { attackDir, goalieOf, ownNet, skatersOf, humansOn, placeHumans, teamInput } from './team';
 import type { Tuning } from './tuning';
 import type { InputFrame, Player, PlayerStats, SimEvent, World } from './types';
+import { NO_INPUT } from './types';
 
 /** The AI level a team plays at: set on the world, or taken from the tuning. */
 export function levelFor(world: World, team: 0 | 1, t: Tuning): number {
@@ -40,10 +41,7 @@ export function startFaceoff(world: World, t: Tuning): void {
     }
     world.teams[team].changeCooldown = 0;
   }
-  if (world.human) {
-    const centre = skatersOf(world, world.human.team).find((p) => p.slot === 0);
-    if (centre) world.human.controlled = centre.id;
-  }
+  placeHumans(world);
 
   const jitter = (): number => world.rng.range(0, data.faceoffJitterSeconds);
   world.phase = 'faceoff';
@@ -65,15 +63,15 @@ export function startFaceoff(world: World, t: Tuning): void {
  * and the puck goes back to one of his wingers. Pressing before the drop locks that centre out for a moment.
  * If nobody goes for it in time, the puck lies loose.
  */
-export function stepFaceoff(world: World, humanInput: InputFrame, t: Tuning, events: SimEvent[]): void {
+export function stepFaceoff(world: World, humanInput: InputFrame, t: Tuning, events: SimEvent[], input2: InputFrame = NO_INPUT): void {
   const f = world.faceoff;
   if (!f) return;
   const dt = STEP_SECONDS;
 
   // Is each centre pressing right now? A human presses the pass button; the AI goes at its reaction time.
   const pressing = ([0, 1] as const).map((team) => {
-    const isHuman = world.human !== null && world.human.team === team;
-    return isHuman ? humanInput.pass : f.dropped && f.sinceDrop >= f.aiDelay[team];
+    const asked = teamInput(world, team, humanInput, input2);
+    return asked ? asked.pass : f.dropped && f.sinceDrop >= f.aiDelay[team];
   });
   const fresh = ([0, 1] as const).map((team) => (pressing[team] as boolean) && !f.held[team]);
   f.held = [pressing[0] as boolean, pressing[1] as boolean];
@@ -103,7 +101,8 @@ export function stepFaceoff(world: World, humanInput: InputFrame, t: Tuning, eve
     puck.lastTeam = winner;
     puck.touches = centre ? [centre.id] : [];
     // Control goes with the draw, as with any pass.
-    if (target && world.human && world.human.team === winner) world.human.controlled = target.id;
+    const drawn = humansOn(world, winner);
+    if (target && drawn.length === 1) (drawn[0] as { controlled: number }).controlled = target.id;
     world.phase = 'play';
     world.faceoff = null;
     events.push({ type: 'faceoff', winner });

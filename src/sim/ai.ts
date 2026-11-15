@@ -4,7 +4,7 @@ import { STEP_SECONDS, STEPS_PER_SECOND } from './clock';
 import { leadPoint } from './pass';
 import { goalLineX } from './rink';
 import { benchDoor } from './lines';
-import { attackDir, availableSkaters, carrierOf, dist, distToSegment, goalieOf, otherTeam, ownNet, skatersOf, targetNet } from './team';
+import { attackDir, availableSkaters, carrierOf, dist, distToSegment, goalieOf, otherTeam, ownNet, skatersOf, targetNet, humansOn } from './team';
 import type { Tuning } from './tuning';
 import { NO_INPUT, type AiMemory, type AiState, type InputFrame, type Player, type Vec, type World } from './types';
 
@@ -249,7 +249,7 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   // Pass: to an open teammate, if he is in a better spot or the carrier is under pressure.
   // Among open teammates, the one nearest the net is preferred.
   // Give and go: the human passed to him and asked for it back, so he returns it as soon as the lane is clear.
-  const go = world.human && world.human.team === p.team ? world.human.giveGo : null;
+  const go = humansOn(world, p.team).map((h) => h.giveGo).find((g) => g !== null && g.receiver === p.id) ?? null;
   if (go && go.receiver === p.id) {
     const passer = world.players[go.passer];
     if (passer && passer.onIce) {

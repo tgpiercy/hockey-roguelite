@@ -245,6 +245,19 @@ export type SimEvent =
   | { type: 'save'; goalie: number; frozen: boolean }
   | { type: 'check'; player: number; target: number; kind: 'body' | 'poke'; success: boolean; big?: boolean };
 
+/** A person playing: his team, the skater he controls, and what his buttons were doing. */
+export interface Human {
+    team: 0 | 1;
+    controlled: number;
+    switchHeld: boolean;
+    /** Whether pass was down on the previous step, to see a fresh press. */
+    passHeld: boolean;
+    /** Just after a pass: who passed and to whom, and how long a second press of pass still asks for it back. */
+    giveGoOffer: { passer: number; receiver: number; left: number } | null;
+    /** A give and go in progress: control stays with the passer while the receiver looks to return the puck. */
+    giveGo: { passer: number; receiver: number; left: number } | null;
+}
+
 export interface World {
   tick: number;
   players: Player[];
@@ -258,18 +271,10 @@ export interface World {
   phase: 'play' | 'goal' | 'faceoff' | 'break' | 'final';
   phaseTime: number;
   rng: Rng;
-  /** The human's team and the skater being controlled, or null for an all-AI game. */
-  human: {
-    team: 0 | 1;
-    controlled: number;
-    switchHeld: boolean;
-    /** Whether pass was down on the previous step, to see a fresh press. */
-    passHeld: boolean;
-    /** Just after a pass: who passed and to whom, and how long a second press of pass still asks for it back. */
-    giveGoOffer: { passer: number; receiver: number; left: number } | null;
-    /** A give and go in progress: control stays with the passer while the receiver looks to return the puck. */
-    giveGo: { passer: number; receiver: number; left: number } | null;
-  } | null;
+  /** The first human: his team and the skater he controls, or null for an all-AI game. */
+  human: Human | null;
+  /** A second human, on the same team (co-op) or the other one (versus), or null. */
+  human2: Human | null;
   /** AI level per team, 0 (easy) to 1 (hard). Null means "take it from the tuning". */
   levels: [number | null, number | null];
   lineup: 'full' | 'solo';

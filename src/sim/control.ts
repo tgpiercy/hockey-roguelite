@@ -1,7 +1,7 @@
 import data from '../data/physics.json';
 import { STEP_SECONDS } from './clock';
-import { availableSkaters, carrierOf, dist } from './team';
-import type { InputFrame, World } from './types';
+import { availableSkaters, carrierOf, dist, partnerOf } from './team';
+import type { Human, InputFrame, World } from './types';
 
 /**
  * Decides which skater the human controls this step.
@@ -11,13 +11,15 @@ import type { InputFrame, World } from './types';
  */
 const giveGoSeconds = data.giveGo.seconds;
 
-export function updateControl(world: World, input: InputFrame): void {
-  const human = world.human;
+export function updateControl(world: World, input: InputFrame, human: Human | null = world.human): void {
   if (!human) return;
   const carrier = carrierOf(world);
-  const byDistance = availableSkaters(world, human.team).sort(
-    (a, b) => dist(a.pos, world.puck.pos) - dist(b.pos, world.puck.pos) || a.id - b.id,
-  );
+  // A co-op partner's skater is his: you can never take it.
+  const partner = partnerOf(world, human);
+  const taken = partner ? partner.controlled : -1;
+  const byDistance = availableSkaters(world, human.team)
+    .filter((p) => p.id !== taken)
+    .sort((a, b) => dist(a.pos, world.puck.pos) - dist(b.pos, world.puck.pos) || a.id - b.id);
   const current = world.players[human.controlled];
 
   // Give and go. A fresh press of pass just after passing keeps the human on the passer; it lasts until the
@@ -53,7 +55,8 @@ export function updateControl(world: World, input: InputFrame): void {
     }
   }
 
-  if (carrier && carrier.team === human.team && carrier.role === 'skater') {
+  if (carrier && carrier.team === human.team && carrier.role === 'skater' && partner === null) {
+    // Playing alone, control always follows the puck. With a partner each keeps his own skater.
     human.controlled = carrier.id;
   } else if (!current || !current.onIce || (current.leaving && byDistance.some((p) => !p.leaving))) {
     // The controlled skater has gone off, or is going off and a fresh one is on: take the nearest who is staying.

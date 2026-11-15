@@ -1,7 +1,7 @@
 import { wrapAngle } from './skater';
-import { availableSkaters, dist, distToSegment, loosePuck, otherTeam, skatersOf } from './team';
+import { availableSkaters, dist, distToSegment, loosePuck, otherTeam, skatersOf, humanOf, humansOn } from './team';
 import type { Tuning } from './tuning';
-import type { InputFrame, Player, SimEvent, Vec, World } from './types';
+import type { InputFrame, Player, SimEvent, Vec, World, Human } from './types';
 
 /** Where a pass at this speed should be aimed so it meets a moving teammate. */
 export function leadPoint(from: Vec, mate: Player, speed: number): Vec {
@@ -102,7 +102,7 @@ export function stepPassing(world: World, p: Player, input: InputFrame, t: Tunin
   const puck = world.puck;
 
   // The skater the human controls gets pass assist; the AI picks its own targets.
-  const assisted = t.passAssist.strength > 0 && world.human !== null && world.human.controlled === p.id;
+  const assisted = t.passAssist.strength > 0 && humanOf(world, p.id) !== null;
   // An AI skater returning a give and go passes to the man who asked, whoever else stands that way.
   const named = !assisted && p.ai.passTo !== null ? world.players[p.ai.passTo] : undefined;
   p.ai.passTo = null;
@@ -132,10 +132,19 @@ export function stepPassing(world: World, p: Player, input: InputFrame, t: Tunin
   p.pickupLock = t.puck.pickupCooldown;
 
   // Control goes with the pass, so the receiver can be steered onto it.
-  if (target && world.human && world.human.team === p.team) {
+  const mates = humansOn(world, p.team);
+  if (target && mates.length === 1) {
+    const only = mates[0] as Human;
     // If it was the human's own pass, a second press of pass in the next moment asks for it straight back.
-    if (world.human.controlled === p.id) world.human.giveGoOffer = { passer: p.id, receiver: target.id, left: t.giveGo.windowSeconds };
-    world.human.controlled = target.id;
+    if (only.controlled === p.id) only.giveGoOffer = { passer: p.id, receiver: target.id, left: t.giveGo.windowSeconds };
+    only.controlled = target.id;
+  } else if (target && mates.length === 2) {
+    // Co-op: a pass to your partner's skater stays with him; a pass of yours to the free skater takes you with it.
+    const passer = humanOf(world, p.id);
+    if (passer && humanOf(world, target.id) === null) {
+      passer.giveGoOffer = { passer: p.id, receiver: target.id, left: t.giveGo.windowSeconds };
+      passer.controlled = target.id;
+    }
   }
   events.push({ type: 'pass', player: p.id, target: target ? target.id : null, saucer });
 }

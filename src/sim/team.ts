@@ -1,6 +1,6 @@
 import { goalLineX } from './rink';
 import type { Tuning } from './tuning';
-import type { Player, Vec, World } from './types';
+import type { Player, Vec, World, Human, InputFrame } from './types';
 
 /** 1 if the team attacks toward +x (team 0), -1 if toward -x (team 1). */
 export function attackDir(team: 0 | 1): 1 | -1 {
@@ -79,10 +79,55 @@ export function givePuck(world: World, player: Player): void {
   else if (last !== player.id) puck.touches = [...puck.touches, player.id].slice(-3);
   puck.lastTeam = player.team;
   // Control follows the puck, except in a give and go, where the human stays on the passer while the receiver has it.
-  const go = world.human?.giveGo;
+  // With two humans on a team nobody jumps: each keeps his skater, and the free one keeps the puck until someone switches to him.
+  const on = humansOn(world, player.team);
+  const only = on.length === 1 ? on[0] : undefined;
+  const go = only?.giveGo;
   const holding = go !== null && go !== undefined && player.id === go.receiver;
-  if (world.human && world.human.team === player.team && player.role === 'skater' && !holding) {
-    world.human.controlled = player.id;
+  if (only && player.role === 'skater' && !holding) {
+    only.controlled = player.id;
+  }
+}
+
+/** The people playing: one, two or none. */
+export function humans(world: World): Human[] {
+  return [world.human, world.human2].filter((h): h is Human => h !== null && h !== undefined);
+}
+
+/** The human controlling this skater, or null if the AI is. */
+export function humanOf(world: World, playerId: number): Human | null {
+  return humans(world).find((h) => h.controlled === playerId) ?? null;
+}
+
+/** The humans playing for a team. */
+export function humansOn(world: World, team: 0 | 1): Human[] {
+  return humans(world).filter((h) => h.team === team);
+}
+
+/** The other human on the same team (a co-op partner), or null. */
+export function partnerOf(world: World, human: Human): Human | null {
+  return humans(world).find((h) => h !== human && h.team === human.team) ?? null;
+}
+
+/**
+ * What a team's humans are asking of the bench this step: either may call a line change or pull the goalie.
+ * Null if nobody human plays for the team.
+ */
+export function teamInput(world: World, team: 0 | 1, input1: InputFrame, input2: InputFrame): InputFrame | null {
+  const frames = humansOn(world, team).map((h) => (h === world.human ? input1 : input2));
+  if (frames.length === 0) return null;
+  if (frames.length === 1) return frames[0] as InputFrame;
+  const [a, b] = frames as [InputFrame, InputFrame];
+  return { ...a, pass: a.pass || b.pass, lineChange: a.lineChange || b.lineChange, pullGoalie: Boolean(a.pullGoalie) || Boolean(b.pullGoalie) };
+}
+
+/** Puts each human on a skater for a faceoff: the first on his team's centre; a co-op partner on a wing. */
+export function placeHumans(world: World): void {
+  for (const human of humans(world)) {
+    const line = skatersOf(world, human.team);
+    const partner = partnerOf(world, human);
+    const wanted = human === world.human2 && partner ? line.find((p) => p.slot !== 0 && p.id !== partner.controlled) : line.find((p) => p.slot === 0);
+    if (wanted) human.controlled = wanted.id;
   }
 }
 

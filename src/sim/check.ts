@@ -2,7 +2,7 @@ import { STEP_SECONDS } from './clock';
 import { energyScale } from './lines';
 import { spinEscape } from './talents';
 import { wrapAngle } from './skater';
-import { carrierOf, dist, loosePuck } from './team';
+import { carrierOf, dist, loosePuck, humanOf } from './team';
 import type { Tuning } from './tuning';
 import type { InputFrame, Player, SimEvent, World } from './types';
 
@@ -58,7 +58,7 @@ export interface CheckRules {
 
 export function checkRules(world: World, p: Player, t: Tuning): CheckRules {
   const a = t.checkAssist;
-  const helped = a.strength > 0 && world.human !== null && world.human.controlled === p.id;
+  const helped = a.strength > 0 && humanOf(world, p.id) !== null;
   return helped
     ? { pokeConeDegrees: a.pokeConeDegrees, bodyRange: a.bodyRange, minClosingSpeed: a.minClosingSpeed, bodyHoldSeconds: a.bodyHoldSeconds, pokeBonus: a.pokeChanceBonus, bodyBonus: a.bodyChanceBonus, missCooldownSeconds: a.missCooldownSeconds }
     : { pokeConeDegrees: t.check.pokeConeDegrees, bodyRange: t.check.bodyRange, minClosingSpeed: t.check.minClosingSpeed, bodyHoldSeconds: t.check.bodyHoldSeconds, pokeBonus: 0, bodyBonus: 0, missCooldownSeconds: t.check.cooldownSeconds };

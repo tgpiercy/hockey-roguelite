@@ -1,9 +1,10 @@
 import { STEP_SECONDS } from './clock';
 import type { SkaterEffects } from './ratings';
 import { createSkater } from './skater';
-import { attackDir, carrierOf, dist, skatersOf } from './team';
+import { attackDir, carrierOf, dist, skatersOf, humans, teamInput } from './team';
 import type { Tuning } from './tuning';
 import type { InputFrame, Player, SimEvent, Vec, World } from './types';
+import { NO_INPUT } from './types';
 
 /** Where a team's bench door is: on the top boards, on its own side of centre. */
 export function benchDoor(team: 0 | 1, t: Tuning): Vec {
@@ -122,7 +123,7 @@ export function stepChanges(world: World, t: Tuning, events: SimEvent[]): void {
     p.vel = { x: 0, y: 0 };
     putOnIce(next, door.x, door.y, Math.PI / 2);
     if (world.puck.passTarget === p.id) world.puck.passTarget = null;
-    if (world.human && world.human.controlled === p.id) world.human.controlled = next.id;
+    for (const human of humans(world)) if (human.controlled === p.id) human.controlled = next.id;
     events.push({ type: 'change', team: p.team, off: p.id, on: next.id });
   }
 }
@@ -220,7 +221,7 @@ export function returnGoalie(world: World, team: 0 | 1, t: Tuning, events: SimEv
  * The goalie pull, once a step. An AI team pulls when it may and it has the puck or the puck is up the ice,
  * and puts him back when it no longer may. The human's team does it on the button.
  */
-export function stepPulls(world: World, humanInput: InputFrame, t: Tuning, events: SimEvent[]): void {
+export function stepPulls(world: World, humanInput: InputFrame, t: Tuning, events: SimEvent[], input2: InputFrame = NO_INPUT): void {
   for (const team of [0, 1] as const) {
     const state = world.teams[team];
     const may = mayPull(world, team, t);
@@ -228,9 +229,10 @@ export function stepPulls(world: World, humanInput: InputFrame, t: Tuning, event
       returnGoalie(world, team, t, events);
       continue;
     }
-    if (world.human && world.human.team === team) {
-      const pressed = Boolean(humanInput.pullGoalie) && !state.pullHeld;
-      state.pullHeld = Boolean(humanInput.pullGoalie);
+    const asked = teamInput(world, team, humanInput, input2);
+    if (asked) {
+      const pressed = Boolean(asked.pullGoalie) && !state.pullHeld;
+      state.pullHeld = Boolean(asked.pullGoalie);
       if (pressed && may) {
         if (state.pulled) returnGoalie(world, team, t, events);
         else pullGoalie(world, team, t, events);

@@ -1,4 +1,4 @@
-import { dist, otherTeam, skatersOf } from './team';
+import { dist, otherTeam, skatersOf, humanOf } from './team';
 import type { Tuning } from './tuning';
 import type { InputFrame, Player, World } from './types';
 
@@ -56,7 +56,7 @@ export function wrongFoot(world: World, p: Player, t: Tuning): void {
     if (!o.onIce || dist(o.pos, p.pos) > t.deke.beatRange) continue;
     o.vel.x *= t.deke.beatSlow;
     o.vel.y *= t.deke.beatSlow;
-    if (world.human && world.human.controlled === o.id) continue;
+    if (humanOf(world, o.id) !== null) continue;
     o.checkCooldown = Math.max(o.checkCooldown, t.deke.beatSeconds);
     o.ai.checkSteps = 0;
   }
