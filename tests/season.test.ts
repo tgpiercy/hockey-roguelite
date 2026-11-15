@@ -653,29 +653,42 @@ describe('temporary effects', () => {
 });
 
 describe('playoffs and the end of the season', () => {
-  it('beating the last boss starts the playoffs against the second-strongest team', () => {
+  it('beating the last boss starts the playoffs against a team from the top of the table', () => {
     const f = started();
     winTheMap(f);
     expect(f.season.phase).toBe('playoffs');
     expect(f.artifacts).toHaveLength(rules.regions);
-    const order = aiTeamsByStrength(f.league);
-    expect(f.season.playoffs).toEqual({ round: 0, wins: 0, losses: 0, opponentId: order[order.length - 2] });
+    const seeds = f.season.bracket!.seeds;
+    // You won every game, so you are the top seed and meet the last of the four.
+    expect(seeds[0]).toBe(f.league.userTeamId);
+    expect(f.season.playoffs).toEqual({ round: 0, wins: 0, losses: 0, opponentId: seeds[3] });
     const game = matchup(f)!;
     expect(game.kind).toBe('playoff');
     expect(game.level).toBe(rules.playoffLevel);
     expect(f.season.gamesPlayed).toBe(9);
   });
 
-  it('a series is best of three: two wins move on, and the final is against the strongest team', () => {
+  it('a series is best of three: two wins move on, and the final is against the winner of the other semi-final', () => {
     const f = started();
     winTheMap(f);
     recordGame(f, result(true));
     recordGame(f, result(false));
     expect(f.season.playoffs).toMatchObject({ round: 0, wins: 1, losses: 1 });
     recordGame(f, result(true));
-    const order = aiTeamsByStrength(f.league);
-    expect(f.season.playoffs).toEqual({ round: 1, wins: 0, losses: 0, opponentId: order[order.length - 1] });
+    const bracket = f.season.bracket!;
+    expect(bracket.other).toContain(bracket.otherWinner);
+    expect(f.season.playoffs).toEqual({ round: 1, wins: 0, losses: 0, opponentId: bracket.otherWinner });
     expect(f.season.strikes).toBe(0);
+
+    // A season begun before the league kept a table finishes by the old rule: the two strongest teams.
+    const old = started();
+    delete old.season.standings;
+    winTheMap(old);
+    const order = aiTeamsByStrength(old.league);
+    expect(old.season.playoffs).toEqual({ round: 0, wins: 0, losses: 0, opponentId: order[order.length - 2] });
+    recordGame(old, result(true));
+    recordGame(old, result(true));
+    expect(old.season.playoffs).toEqual({ round: 1, wins: 0, losses: 0, opponentId: order[order.length - 1] });
   });
 
   it('losing a series ends the season', () => {

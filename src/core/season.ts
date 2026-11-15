@@ -1,3 +1,4 @@
+import { creditGoals, newStandings, playoffField, playRound, recordResult, settleSeries, type LeagueResult, type Scoring, type Standings } from './standings';
 import gearRules from '../data/gear.json';
 import artifacts from '../data/artifacts.json';
 import events from '../data/events.json';
@@ -8,10 +9,10 @@ import type { GameResult } from '../sim/match';
 import { modified, type Modifier, type PowerupSpec } from '../sim/modifiers';
 import { aiTeamsByStrength, bossInfo, buildBoss } from './bosses';
 import { clubModifiers } from './club';
-import { bookGame, bookMilestones, STARTING_CASH, STARTING_VALUE, isHomeGame } from './economy';
+import { bookGame, bookMilestones, STARTING_CASH, STARTING_VALUE, isHomeGame, homeGame } from './economy';
 import { newFacilities, homeIceModifiers } from './facilities';
 import { newLedger, type Ledger, type SeasonBooks } from './ledger';
-import { aiMascot, bossMascot, newMascot, rollDropIn, userMascot, withMascot, type MascotSpec, type MascotState } from './mascot';
+import { aiMascot, bossMascot, newMascot, rollDropIn, userMascot, withMascot, type MascotSpec, type MascotState, MASCOT_ID } from './mascot';
 import { generateStaffPool, type StaffMember } from './staff';
 import { playerGearModifiers, type GearItem } from './gear';
 import { playerOf, teamOf, userTeam, type League } from './league';
@@ -75,6 +76,16 @@ export interface SeasonState {
   bumps: Record<string, number>;
   temps: TempEffect[];
   playoffs: { round: number; wins: number; losses: number; opponentId: string } | null;
+  /** The league table for this season, every team's line. Left out in a season begun before the league kept one. */
+  standings?: Standings;
+  /** Goals and assists for every player in the league this season. */
+  scoring?: Scoring;
+  /** The other teams' results in the latest round, for the news. */
+  lastRound?: LeagueResult[];
+  /** The playoff field in seeding order, the other semi-final, and who won it once it is settled. */
+  bracket?: { seeds: string[]; other: string[]; otherWinner: string | null };
+  /** Games (by number) whose home or road is fixed: the higher seed's home games in a playoff series. */
+  homeOverride?: Record<number, boolean>;
   /** The six skaters and the goalie locked in for the run. */
   dressed: string[];
   outcome: null | 'champion' | 'eliminated' | 'struckOut' | 'abandoned';
@@ -339,7 +350,7 @@ export function artifactModifiers(f: Franchise): Modifier[] {
 /** Every lasting modifier on the player's team for the next game: artifacts, temporary effects, and what facilities and staff give. */
 export function teamModifiers(f: Franchise): Modifier[] {
   // At home the arena adds its home-ice edge.
-  const home = isHomeGame(f.season.gamesPlayed + 1) ? homeIceModifiers(f) : [];
+  const home = homeGame(f, f.season.gamesPlayed + 1) ? homeIceModifiers(f) : [];
   return [...artifactModifiers(f), ...f.season.temps.flatMap((t) => t.modifiers), ...clubModifiers(f), ...home];
 }
 
@@ -389,6 +400,8 @@ export function startSeason(f: Franchise): ActionResult {
   season.seed = `${f.league.seed}/season-${f.league.season}`;
   season.map = generateMap(season.seed, aiTeamsByStrength(f.league));
   season.dressed = [...dressedSkaters(team.lineup), team.lineup.goalie as string];
+  season.standings = newStandings(f.league);
+  season.scoring = {};
   f.season = season;
   // Each season is its own build: last season's artifacts are gone.
   f.artifacts = [];
@@ -439,8 +452,60 @@ function finishStop(f: Franchise): void {
   // Beating the last region's boss leads to the playoffs.
   if (stop && stop.kind === 'boss' && stop.region === rules.regions - 1) {
     season.phase = 'playoffs';
-    season.playoffs = { round: 0, wins: 0, losses: 0, opponentId: playoffOpponent(f, 0) };
+    if (season.standings) {
+      // A real bracket: you and the best AI teams in the table, first against last and second against third.
+      const seeds = playoffField(season.standings, f.league.userTeamId);
+      const mine = seeds.indexOf(f.league.userTeamId);
+      const opponent = seeds[seeds.length - 1 - mine] as string;
+      season.bracket = { seeds, other: seeds.filter((id) => id !== f.league.userTeamId && id !== opponent), otherWinner: null };
+      season.playoffs = { round: 0, wins: 0, losses: 0, opponentId: opponent };
+      seriesHome(f, opponent);
+    } else {
+      season.playoffs = { round: 0, wins: 0, losses: 0, opponentId: playoffOpponent(f, 0) };
+    }
   }
+}
+
+/** In a playoff series the higher seed is at home for games one and three. */
+function seriesHome(f: Franchise, opponentId: string): void {
+  const { season } = f;
+  if (!season.bracket) return;
+  const higher = season.bracket.seeds.indexOf(f.league.userTeamId) < season.bracket.seeds.indexOf(opponentId);
+  const next = season.gamesPlayed + 1;
+  season.homeOverride = { ...(season.homeOverride ?? {}), [next]: higher, [next + 1]: !higher, [next + 2]: higher };
+}
+
+/** Your place among the playoff seeds (1 is the top seed), or null outside a seeded playoff. */
+export function playoffSeed(f: Franchise, teamId: string = f.league.userTeamId): number | null {
+  const at = f.season.bracket?.seeds.indexOf(teamId) ?? -1;
+  return at === -1 ? null : at + 1;
+}
+
+/**
+ * After a game of yours on the map, the rest of the league plays a round and the table is brought up to
+ * date: your result, your opponent's, and everyone else's. Playoff games do not touch the table.
+ */
+function leagueRound(f: Franchise, game: Matchup, result: GameResult): void {
+  const { season, league } = f;
+  if (!season.standings || game.kind === 'playoff') return;
+  const scoring = (season.scoring ??= {});
+  const mine = league.userTeamId;
+  const stop = currentStop(f);
+  const theirs = game.kind === 'game' && stop?.opponentId ? stop.opponentId : null;
+  const round = createRng(`${season.seed}/league-mine/${season.gamesPlayed}`);
+  // Your own game goes into the table whoever it was against: a boss is not in the league, but the result still counts for you.
+  recordResult(season.standings, { home: mine, away: theirs ?? '', homeGoals: result.score[0], awayGoals: result.score[1], overtime: result.overtime });
+  if (theirs) creditGoals(league, theirs, result.score[1], round, scoring);
+  // Your players' goals and assists come from the game itself.
+  for (const line of result.players) {
+    if (line.team !== 0 || line.role === 'goalie') continue;
+    const player = game.home.players[line.line * 3 + line.slot];
+    if (!player || player.id === MASCOT_ID || (line.goals === 0 && line.assists === 0)) continue;
+    const tally = (scoring[player.id] ??= { goals: 0, assists: 0 });
+    tally.goals += line.goals;
+    tally.assists += line.assists;
+  }
+  season.lastRound = playRound(league, season.standings, scoring, season.seed, season.gamesPlayed, theirs ? [mine, theirs] : [mine]);
 }
 
 /** The two strongest AI teams are the playoff opponents: the second best first, then the best. */
@@ -713,6 +778,7 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
   season.temps = season.temps.map((t) => ({ ...t, games: t.games - 1 })).filter((t) => t.games > 0);
   season.gamesPlayed += 1;
   f.record = applyResult(f.record, result);
+  leagueRound(f, game, result);
 
   const won = result.winner === 0;
   if (won) season.gamesWon += 1;
@@ -730,6 +796,15 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
       const amount = pay(rules.playoffWinCurrency);
       if (series.wins < rules.seriesWins) return done(`You win the game and ${amount} Pucks. The series stands ${series.wins}-${series.losses}.`);
       if (series.round < rules.playoffRounds - 1) {
+        if (season.bracket && season.bracket.other.length === 2) {
+          // The other semi-final was played while you played yours: its winner meets you in the final.
+          const [a, b] = season.bracket.other as [string, string];
+          const winner = settleSeries(f.league, a, b, rules.seriesWins, createRng(`${season.seed}/semi-final`));
+          season.bracket.otherWinner = winner;
+          season.playoffs = { round: series.round + 1, wins: 0, losses: 0, opponentId: winner };
+          seriesHome(f, winner);
+          return done(`You win the series and move on to the final, against ${teamOf(f.league, winner).name}.`);
+        }
         season.playoffs = { round: series.round + 1, wins: 0, losses: 0, opponentId: playoffOpponent(f, series.round + 1) };
         return done('You win the series and move on to the final.');
       }

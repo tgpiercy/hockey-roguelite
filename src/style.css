@@ -196,6 +196,12 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .grade-Cplus, .grade-C { background: #9fd3f5; }
 .grade-D { background: #8d99ae; }
 
+/* The league table. */
+.table-row { display: grid; grid-template-columns: 1.6em minmax(7em, 1fr) repeat(7, 2.3em) 2.6em; gap: 4px; align-items: center; width: 100%; font-variant-numeric: tabular-nums; font-size: 13px; text-align: right; }
+.table-row > :nth-child(2) { text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.table-row.table-head { color: var(--dim); font: 800 11px/1 var(--heading); padding: 0 12px; }
+.table-row.mine > :nth-child(2) { color: var(--accent); }
+
 /* Ratings as bars. */
 .ratings { display: grid; grid-template-columns: max-content 1fr max-content; gap: 3px 8px; align-items: center; font-variant-numeric: tabular-nums; }
 .ratings .kind-line { grid-column: 1 / -1; font-size: 12px; color: var(--dim); }

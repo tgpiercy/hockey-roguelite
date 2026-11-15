@@ -1,0 +1,13 @@
+{
+  "winPoints": 2,
+  "overtimeLossPoints": 1,
+  "overtimeChance": 0.2,
+  "playoffTeams": 4,
+  "rivalCurrency": 15,
+  "rivalLossesToMake": 2,
+  "maxRivals": 2,
+  "awardCash": 750000,
+  "awardPoints": 1,
+  "rookieMaxAge": 21,
+  "improvedMinGames": 3
+}

@@ -1,3 +1,4 @@
+import { gamesPlayed, placeOf, points, ranked, type Row } from '../core/standings';
 import leagueRules from '../data/league.json';
 import type { ComponentChildren } from 'preact';
 import { useEffect, useReducer, useRef, useState } from 'preact/hooks';
@@ -5,7 +6,7 @@ import { bossInfo, teamStrength } from '../core/bosses';
 import { sortPlayers, wouldReplace, type PlayerSort, type PositionFilter } from '../core/compare';
 import { teamCrest } from '../core/crest';
 import { styleInfo } from '../core/playStyle';
-import { bailOut, canBailOut, inFireSale, isHomeGame, playerSalePrice, seasonEndBills, starCount, payrollLimit } from '../core/economy';
+import { bailOut, canBailOut, homeGame, inFireSale, playerSalePrice, seasonEndBills, starCount, payrollLimit } from '../core/economy';
 import { build, buildCost, FACILITIES, facilityLevel, facilityUpkeep, MAX_FACILITY_LEVEL, freeBuilds } from '../core/facilities';
 import { equip, levelCost, levelUp, rarityInfo, releasePlayer, scrap, unequip, wornBy, type GearItem } from '../core/gear';
 import { generateLeague } from '../core/generate';
@@ -21,7 +22,7 @@ import { canPlay, canSign, type MoveResult, deadCapFor } from '../core/roster';
 import { hiddenFreeAgents, potentialText, scoutingPoints, signPlayer } from '../core/scouting';
 import { gradePower, hire, kindName, letGo, roleOf, slotsFor, STAFF_KINDS, staffOfKind, staffSalePrice, type StaffMember } from '../core/staff';
 import { franchiseOf, fromSave, parseSave, toSave } from '../core/save';
-import { artifactInfo, artifactModifiers, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, seatMascot } from '../core/season';
+import { artifactInfo, artifactModifiers, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, seatMascot, playoffSeed } from '../core/season';
 import type { Stop } from '../core/seasonMap';
 import { seasonSummary } from '../core/seasonSummary';
 import { teamColour } from '../core/teamColours';
@@ -75,6 +76,8 @@ type Screen =
   | { name: 'powerups' }
   | { name: 'load'; slot: number }
   | { name: 'artifacts' }
+  | { name: 'league' }
+  | { name: 'standings' }
   | { name: 'report' }
   | { name: 'contracts' }
   | { name: 'contract'; playerId: string }
@@ -105,11 +108,13 @@ type Screen =
   | { name: 'confirmNew' };
 
 type Sort = PlayerSort;
-type Group = 'team' | 'office' | 'collection' | 'settings';
+type Group = 'team' | 'office' | 'collection' | 'settings' | 'league';
 
 /** The icon each hub-style row carries, by the row's key. A row can also name its own. */
 const TILE_ICONS: Record<string, IconName> = {
   team: 'team',
+  league: 'report',
+  standings: 'report',
   office: 'office',
   collection: 'collection',
   settings: 'settings',
@@ -141,6 +146,9 @@ const TILE_ICONS: Record<string, IconName> = {
   bailout: 'bailout',
 };
 const BUTTONS = ['LT', 'RB'];
+
+/** 1st, 2nd, 3rd, 4th ... */
+const ordinal = (n: number): string => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : n % 10 === 1 ? 'st' : n % 10 === 2 ? 'nd' : n % 10 === 3 ? 'rd' : 'th'}`;
 
 /** The gear screen's filters, cycled with left and right. */
 const GEAR_FILTERS: { label: string; test: (item: GearItem) => boolean }[] = [
@@ -326,7 +334,7 @@ export function App() {
     if (!game) return;
     setPlaying(true);
     const homeColour = jerseyColour(f);
-    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: isHomeGame(season.gamesPlayed + 1), forfeitNote: 'Giving the game up counts as a loss, whatever the score.' }, (result) => {
+    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: homeGame(f, season.gamesPlayed + 1), forfeitNote: 'Giving the game up counts as a loss, whatever the score.' }, (result) => {
       showOutcome(recordGame(f, result));
       // The pause menu may have changed the sound or the controls.
       setPrefs(loadPrefs());
@@ -539,10 +547,19 @@ export function App() {
     }
 
     /** The four groups as dashboard tiles, for the foot of every in-season screen. */
+    /** Where you stand, in a few words, for the League card. */
+    const leagueStatus = (): string => {
+      const table = season.standings;
+      if (!table) return 'Standings and results';
+      const seed = playoffSeed(f);
+      if (seed !== null) return `Playoffs: seed ${seed} of ${season.bracket?.seeds.length ?? 4}`;
+      return `${ordinal(placeOf(table, league.userTeamId))} of ${league.teams.length} · ${points(table[league.userTeamId] as Row)} points`;
+    };
     const groupCards = (): MenuItem[] => [
       card('team', 'Team', 'Lineup, players, mascot', () => openGroup('team')),
       card('office', 'Front office', `Cash ${money(f.cash)}`, () => openGroup('office')),
       card('collection', 'Collection', f.packs.length > 0 ? `${f.packs.length} to open` : `${f.gear.length} pieces`, () => openGroup('collection'), { badge: f.packs.length }),
+      card('league', 'League', leagueStatus(), () => openGroup('league')),
       card('settings', 'Settings', 'Sound, detail, save', () => openGroup('settings')),
       card('exhibition', 'Exhibition', 'A game that does not count', () => go({ name: 'exhibition' })),
     ];
@@ -576,6 +593,14 @@ export function App() {
               {theirStyle && (
                 <div class="note">
                   {game.away.name} play {theirStyle.name.toLowerCase()}. {theirStyle.describe}
+                </div>
+              )}
+              {game.kind === 'playoff' && season.bracket && (
+                <div class="note">
+                  Seeds: {season.bracket.seeds.map((id, i) => `${i + 1} ${teamOf(league, id).name}`).join(' · ')}.{' '}
+                  {season.bracket.otherWinner
+                    ? `${teamOf(league, season.bracket.otherWinner).name} won the other semi-final.`
+                    : `The other semi-final: ${season.bracket.other.map((id) => teamOf(league, id).name).join(' against ')}.`}
                 </div>
               )}
               {game.trait && (
@@ -613,7 +638,7 @@ export function App() {
                     Best of {rules.seriesWins * 2 - 1}: you <Dots filled={series.wins} total={rules.seriesWins} /> them <Dots filled={series.losses} total={rules.seriesWins} />
                   </span>
                 )}
-                <span>{isHomeGame(season.gamesPlayed + 1) ? 'Home' : 'Road'}</span>
+                <span>{homeGame(f, season.gamesPlayed + 1) ? 'Home' : 'Road'}</span>
               </div>
               <div class="poster-loadout">
                 <Icon name="powerups" size={16} />
@@ -1704,6 +1729,84 @@ export function App() {
   }
 
   // ---------------------------------------------------------------- hub groups
+
+  if (screen.name === 'league') {
+    const table = season.standings;
+    return (
+      <Menu
+        key={screenKey}
+        remember="group-league"
+        title="League"
+        message={message}
+        header={
+          table
+            ? `${team.name}: ${ordinal(placeOf(table, league.userTeamId))} of ${league.teams.length}. The top three of the other teams join you in the playoffs if you clear the map.`
+            : 'The league keeps a table from the start of each season.'
+        }
+        onBack={top}
+        items={[tile('standings', 'Standings', table ? 'The table, and who is in the playoff places' : 'Starts with the season', () => go({ name: 'standings' }), { lock: table ? undefined : 'The table starts when the season does.' })]}
+      />
+    );
+  }
+
+  if (screen.name === 'standings') {
+    const table = season.standings ?? {};
+    const order = ranked(table);
+    const inPlaces = new Set(order.filter((id) => id !== league.userTeamId).slice(0, 3));
+    return (
+      <Menu
+        key={screenKey}
+        remember="standings"
+        title="Standings"
+        message={message}
+        header={
+          <>
+            <div class="table-row table-head">
+              <span>#</span>
+              <span>Team</span>
+              <span>GP</span>
+              <span>W</span>
+              <span>L</span>
+              <span>OTL</span>
+              <span>GF</span>
+              <span>GA</span>
+              <span>PTS</span>
+              <span>Run</span>
+            </div>
+            <div class="note">A win is 2 points, an overtime loss 1. Teams marked P hold the three playoff places beside yours.</div>
+          </>
+        }
+        stack
+        onBack={() => go({ name: 'league' })}
+        items={order.map((id, i) => {
+          const row = table[id] as Row;
+          const mine = id === league.userTeamId;
+          return {
+            key: id,
+            label: (
+              <span class={`table-row${mine ? ' mine' : ''}`}>
+                <span>{i + 1}</span>
+                <span class="table-team">
+                  {teamOf(league, id).name}
+                  {inPlaces.has(id) ? ' · P' : ''}
+                </span>
+                <span>{gamesPlayed(row)}</span>
+                <span>{row.wins}</span>
+                <span>{row.losses}</span>
+                <span>{row.overtimeLosses}</span>
+                <span>{row.goalsFor}</span>
+                <span>{row.goalsAgainst}</span>
+                <b>{points(row)}</b>
+                <span class={row.streak > 0 ? 'up' : row.streak < 0 ? 'warn' : ''}>{row.streak > 0 ? `W${row.streak}` : row.streak < 0 ? `L${-row.streak}` : '-'}</span>
+              </span>
+            ),
+            detail: mine ? 'Your team.' : `${teamOf(league, id).name}: strength ${Math.round(teamStrength(league, id))}.`,
+            onSelect: () => undefined,
+          };
+        })}
+      />
+    );
+  }
 
   if (screen.name === 'skills') {
     const withPoints = rosterOf(league, team).filter((p) => (p.points ?? 0) > 0);

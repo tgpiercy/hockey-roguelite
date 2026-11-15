@@ -49,6 +49,15 @@ export function isHomeGame(gameNumber: number): boolean {
   return gameNumber % 2 === 1;
 }
 
+/**
+ * Whether a game of the season under way is at home. Games alternate, except where the season says
+ * otherwise: in a playoff series the higher seed is at home for the first and third games.
+ */
+export function homeGame(f: Franchise, gameNumber: number): boolean {
+  const set = f.season.homeOverride?.[gameNumber];
+  return set === undefined ? isHomeGame(gameNumber) : set;
+}
+
 /** Players good enough to sell shirts. */
 export function starCount(f: Franchise): number {
   return rosterOf(f.league, userTeam(f.league)).filter((p) => p.overall >= data.starMinOverall).length;
@@ -81,7 +90,7 @@ export function sponsorshipMoney(f: Franchise): number {
  */
 export function bookGame(f: Franchise, playoff: boolean): number {
   const before = f.cash;
-  const home = isHomeGame(f.season.gamesPlayed);
+  const home = homeGame(f, f.season.gamesPlayed);
   if (home) {
     book(f, 'tickets', ticketMoney(f));
     if (playoff) book(f, 'playoffGate', data.playoffGate);
