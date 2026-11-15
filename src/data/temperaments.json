@@ -1,0 +1,120 @@
+{
+  "weights": {
+    "steady": 3,
+    "clutch": 2,
+    "frontRunner": 2,
+    "battler": 2,
+    "streaky": 2,
+    "coolHead": 2
+  },
+  "temperaments": [
+    {
+      "id": "steady",
+      "name": "Steady",
+      "describe": "The same player whatever the score or the clock.",
+      "modifiers": []
+    },
+    {
+      "id": "clutch",
+      "name": "Clutch",
+      "describe": "Shoots truer in the last period and in overtime.",
+      "modifiers": [
+        {
+          "stat": "accuracy",
+          "op": "mul",
+          "value": 1.08,
+          "when": "lastPeriod"
+        },
+        {
+          "stat": "accuracy",
+          "op": "mul",
+          "value": 1.08,
+          "when": "overtime"
+        }
+      ]
+    },
+    {
+      "id": "frontRunner",
+      "name": "Front-runner",
+      "describe": "A little quicker while his team is ahead.",
+      "modifiers": [
+        {
+          "stat": "topSpeedScale",
+          "op": "mul",
+          "value": 1.03,
+          "when": "leading"
+        }
+      ]
+    },
+    {
+      "id": "battler",
+      "name": "Battler",
+      "describe": "Checks harder while his team is behind.",
+      "modifiers": [
+        {
+          "stat": "checkStrength",
+          "op": "mul",
+          "value": 1.12,
+          "when": "trailing"
+        }
+      ]
+    },
+    {
+      "id": "streaky",
+      "name": "Streaky",
+      "describe": "For ten seconds after his team scores, he shoots truer.",
+      "modifiers": [
+        {
+          "stat": "accuracy",
+          "op": "mul",
+          "value": 1.12,
+          "on": "goalFor",
+          "seconds": 10
+        }
+      ]
+    },
+    {
+      "id": "coolHead",
+      "name": "Cool head",
+      "describe": "Passes truer while the score is level.",
+      "modifiers": [
+        {
+          "stat": "passSpreadDegrees",
+          "op": "mul",
+          "value": 0.85,
+          "when": "tied"
+        }
+      ]
+    }
+  ],
+  "nicknames": {
+    "hatTrick": [
+      "Hat Trick",
+      "Trigger",
+      "Three-Piece",
+      "The Finisher",
+      "Goals"
+    ],
+    "veteran": [
+      "Old Reliable",
+      "Iron",
+      "The Mayor",
+      "Pops",
+      "Lifer"
+    ],
+    "rival": [
+      "Spoiler",
+      "The Thorn",
+      "Derby Day",
+      "Big Game"
+    ]
+  },
+  "nicknameRules": {
+    "hatTrickGoals": 3,
+    "veteranSeasons": 4,
+    "rivalGoals": 2
+  },
+  "legacy": {
+    "minSeasons": 3
+  }
+}

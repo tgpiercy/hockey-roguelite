@@ -33,6 +33,7 @@ interface Saved {
   rallyPeriod: number;
   position: Player['position'];
   stats: PlayerStats;
+  conditional: Player['conditional'];
 }
 
 /** A team's mascot during a game. */
@@ -81,7 +82,11 @@ export function ownStats(world: World, p: Player): PlayerStats {
 }
 
 function arrive(world: World, team: 0 | 1, visit: MascotVisit, p: Player): void {
-  visit.saved = { fx: p.fx, baseFx: p.baseFx, talents: p.talents, talentCooldown: p.talentCooldown, rallyPeriod: p.rallyPeriod, position: p.position, stats: p.stats };
+  visit.saved = { fx: p.fx, baseFx: p.baseFx, talents: p.talents, talentCooldown: p.talentCooldown, rallyPeriod: p.rallyPeriod, position: p.position, stats: p.stats, conditional: p.conditional };
+  // The mascot has no temperament: the skater's waits with the rest of him.
+  p.conditional = [];
+  p.active = [];
+  p.timed = [];
   p.baseFx = applyModifiers(skaterEffects(visit.setup.ratings), [...visit.teamModifiers, ...visit.setup.modifiers]);
   p.talents = [...visit.setup.talents];
   p.talentCooldown = {};
@@ -103,6 +108,7 @@ function leave(world: World, team: 0 | 1, visit: MascotVisit, p: Player): void {
   p.rallyPeriod = saved.rallyPeriod;
   p.position = saved.position;
   p.stats = saved.stats;
+  p.conditional = saved.conditional;
   visit.saved = null;
   refreshBoosts(world, team);
 }

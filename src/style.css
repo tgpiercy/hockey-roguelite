@@ -438,6 +438,12 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .menu-item { transition: background-color 0.1s ease-out, border-color 0.1s ease-out, box-shadow 0.1s ease-out; }
 .meter-fill, .ratings .rfill { transform-origin: left center; animation: bar-fill 0.35s ease-out; transition: width 0.25s ease-out; }
 .menu-message { animation: screen-in 0.2s ease-out; }
+/* A nickname beside a name, and a temperament as a word. */
+.nick { font-style: italic; font-weight: 400; color: var(--accent); margin-left: 6px; }
+.temper { font: 800 11px/1 var(--heading); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ice); border: 1px solid var(--line); border-radius: 999px; padding: 3px 8px; }
+.found-row { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; }
+.found-row.unfound { opacity: 0.45; }
+.found-mark { flex: none; font: 800 10px/1 var(--heading); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bg-deep); background: var(--good); border-radius: 999px; padding: 3px 7px; }
 /* The paper: a masthead and its own lines above the league's news. The radio: the announcer's line before a game. */
 .masthead {
   font: 800 22px/1.1 Georgia, 'Times New Roman', serif; letter-spacing: 0.02em; text-align: center; color: var(--text);

@@ -196,6 +196,10 @@ export interface Player extends Skater {
   fakeCooldown: number;
   /** True while the pass button is still down from the fake: it must not also pass. */
   fakePass: boolean;
+  /** His own modifiers that only count some of the time (a temperament), the ones in force now, and his own timed boosts. See conditions.ts. */
+  conditional: Modifier[];
+  active: Modifier[];
+  timed: { on: string; modifiers: Modifier[]; secondsLeft: number }[];
   /** Talent ids he carries (mascots do); see talents.ts. Empty for ordinary players. */
   talents: string[];
   /** Seconds until each talent can trigger again, by talent id. */

@@ -1,3 +1,5 @@
+import staffRules from '../data/staff.json';
+import { LEGACY } from './temperament';
 import type { SeasonSetup } from './charter';
 import { closeChronicle, rememberRetired } from './chronicle';
 import { overLimit } from './economy';
@@ -105,11 +107,14 @@ export function finishSeason(f: Franchise): ActionResult {
   report.news.push(...closeChronicle(f, beforeAll));
 
   // 3. Retirements.
+  const legacies: PlayerRecord[] = [];
   for (const player of everyone) {
     if (!retires(player, rng)) continue;
     report.leagueRetired += 1;
     if (mineSet.has(player.id)) {
       report.retired.push(`${player.name} (${player.age})`);
+      // A man of long service leaves something behind: see below, once the staff pool for next season is set.
+      if ((f.career?.[player.id]?.seasons ?? 0) >= LEGACY.minSeasons) legacies.push({ ...player });
       rememberRetired(f, player.id);
     }
     removePlayer(f, player.id);
@@ -124,6 +129,7 @@ export function finishSeason(f: Franchise): ActionResult {
   f.offseason = { report, pending, released: [], leagueMoved: false, signed: [] };
   // Staff contracts tick, a new staff pool arrives, and your players are a season better known.
   report.news.push(...tickStaff(f));
+  report.news.push(...leaveLegacies(f, legacies));
   tickTenure(f);
   // The pool opens with this year's rookies. The rest of the league waits: you have first pick, and the other teams move when you start the season.
   openPool(f);
@@ -244,6 +250,33 @@ export function beginSeason(f: Franchise, setup: SeasonSetup = {}): ActionResult
   if (!mine.ok) return mine;
   if (!f.offseason.leagueMoved) leagueMoves(f);
   return startSeason(f, setup);
+}
+
+/**
+ * What a retiring veteran of yours leaves: his talent, passed to the youngest skater of yours who has
+ * none; or, if he had no talent (or nobody can take it), himself, on offer as a trainer under his own name.
+ */
+function leaveLegacies(f: Franchise, veterans: PlayerRecord[]): string[] {
+  const news: string[] = [];
+  const { league } = f;
+  for (const old of veterans) {
+    const heir = old.talent
+      ? rosterOf(league, userTeam(league))
+          .filter((p) => p.position !== 'G' && !p.talent)
+          .sort((a, b) => a.age - b.age || a.id.localeCompare(b.id))[0]
+      : undefined;
+    if (heir && old.talent) {
+      heir.talent = old.talent;
+      news.push(`Your club: ${old.name} retires, and ${heir.name} has learned his trick from him.`);
+      continue;
+    }
+    const role = old.position === 'G' ? 'goaltending' : old.position === 'D' ? 'defence' : 'shooting';
+    const grade = old.overall >= 85 ? 'A' : old.overall >= 78 ? 'B' : old.overall >= 70 ? 'C' : 'D';
+    const salary = (staffRules.grades.find((g) => g.grade === grade) ?? staffRules.grades[0]!).salary;
+    f.staffPool.push({ id: `legacy/${old.id}`, name: old.name, role, grade, salary, contractYears: staffRules.minContractYears });
+    news.push(`Your club: ${old.name} retires and would stay on as a ${role} coach, if you will have him.`);
+  }
+  return news;
 }
 
 /**

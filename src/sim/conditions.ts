@@ -1,3 +1,4 @@
+import { STEP_SECONDS } from './clock';
 import type { Modifier } from './modifiers';
 import { refreshBoosts, startBoost } from './powerups';
 import type { SimEvent, World } from './types';
@@ -70,6 +71,7 @@ function triggered(world: World, e: SimEvent): { on: string; team: 0 | 1 }[] {
  * change, and starts a timed boost for each "on" one whose moment has just come.
  */
 export function stepConditions(world: World, events: readonly SimEvent[], periods: number): void {
+  stepOwnConditions(world, events, periods);
   for (const team of [0, 1] as const) {
     const state = world.teams[team];
     if (state.conditional.length === 0) continue;
@@ -91,6 +93,39 @@ export function stepConditions(world: World, events: readonly SimEvent[], period
       }
     }
   }
+}
+
+/**
+ * The same for each player's own conditional modifiers (a temperament): the "when" ones follow his team's
+ * situation, and an "on" one starts a timed boost for him alone when its moment comes for his team.
+ */
+function stepOwnConditions(world: World, events: readonly SimEvent[], periods: number): void {
+  const dirty = new Set<0 | 1>();
+  const hits = events.flatMap((e) => triggered(world, e));
+  for (const p of world.players) {
+    if (p.conditional.length === 0 && p.timed.length === 0) continue;
+    const active = p.conditional.filter((m) => m.when !== undefined && holds(world, p.team, m.when, periods));
+    if (active.length !== p.active.length || active.some((m, i) => m !== p.active[i])) {
+      p.active = active;
+      dirty.add(p.team);
+    }
+    if (p.timed.length > 0) {
+      for (const boost of p.timed) boost.secondsLeft -= STEP_SECONDS;
+      if (p.timed.some((b) => b.secondsLeft <= 0)) {
+        p.timed = p.timed.filter((b) => b.secondsLeft > 0);
+        dirty.add(p.team);
+      }
+    }
+    for (const hit of hits) {
+      if (hit.team !== p.team) continue;
+      const modifiers = p.conditional.filter((m) => m.on === hit.on);
+      const seconds = Math.max(0, ...modifiers.map((m) => m.seconds ?? 0));
+      if (seconds <= 0) continue;
+      p.timed = [...p.timed.filter((b) => b.on !== hit.on), { on: hit.on, modifiers, secondsLeft: seconds }];
+      dirty.add(p.team);
+    }
+  }
+  for (const team of dirty) refreshBoosts(world, team);
 }
 
 /** The names of the conditional items in force for a team right now, for the screen. */

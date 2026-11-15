@@ -1,3 +1,4 @@
+import { cleanName, nicknameFor, NICKNAME_RULES } from './temperament';
 import { bountyFor, bountyMet, STICKERS, UNSEEN_WEIGHT, type BountyInfo } from './bounty';
 import { isGuest, ringerOffer, withRinger, type Ringer } from './ringer';
 import { rinkInfo } from './rinks';
@@ -206,6 +207,8 @@ export interface Franchise {
   packsSinceLegendary: number;
   /** The week whose weekly-run prize has been collected. */
   weeklyClaimed?: string;
+  /** The most handicap points a title has been won with while holding each artifact, by artifact id. */
+  wonWith?: Record<string, number>;
   /** Artifacts you have ever held and events you have ever met: ones you have not come up more often. */
   seen?: { artifacts: string[]; events: string[] };
   /** How many packs have ever been awarded; also numbers the pieces. */
@@ -891,6 +894,7 @@ export function recordGame(f: Franchise, result: GameResult, played = true): Gam
   const pucksBefore = f.season.currency;
   const cashBefore = f.cash;
   const mascotKey = game ? theirMascotKey(f, game.kind) : '';
+  const currentStopBefore = currentStop(f);
   const outcome = settleGame(f, result);
   if (!outcome.ok || !game || f.season.gamesPlayed === before) return outcome;
   const met = bounty !== null && bountyMet(bounty, result, game.home);
@@ -898,6 +902,7 @@ export function recordGame(f: Franchise, result: GameResult, played = true): Gam
   rememberMascots(f, result, mascotKey);
 
   tally(f, result, game.home);
+  const named = earnNicknames(f, result, game.home, game.kind === 'game' && isRival(f, currentStopBefore?.opponentId));
   // Goals by your defencemen, for a charter that counts them. (A mascot's are his own, and are not here.)
   const byDefence = result.players.filter((p) => p.team === 0 && p.role === 'skater' && game.home.players[p.line * 3 + p.slot]?.position === 'D').reduce((sum, p) => sum + p.goals, 0);
   if (byDefence > 0) f.season.defenceGoals = (f.season.defenceGoals ?? 0) + byDefence;
@@ -913,6 +918,7 @@ export function recordGame(f: Franchise, result: GameResult, played = true): Gam
   }
   const millions = (Math.abs(net) / 1_000_000).toFixed(2);
   let message = `${result.forfeit ? 'You forfeit the game. ' : ''}${outcome.message} Cash ${net >= 0 ? '+' : '-'}$${millions}M.`;
+  for (const line of named) message += ` ${line}`;
   if (bounty) message += met ? ` Bounty met (${bounty.text.toLowerCase()}): ${bounty.pucks} more Pucks.` : ` Bounty missed (${bounty.text.toLowerCase()}).`;
   const pack = packForWin(result, game.kind === 'boss');
   if (pack) {
@@ -1136,6 +1142,36 @@ export function pickRinger(f: Franchise, index: number | null): ActionResult {
   finishStop(f);
   const words = chosen ? `${chosen.player.name} joins you for the rest of the season${chosen.fee > 0 ? `, for ${chosen.fee} Pucks a game` : ''}.` : 'You hire nobody.';
   return done(`${words}${milestoneWords(awardMilestones(f))}`);
+}
+
+/**
+ * Nicknames are earned, not rolled: a hat-trick, or a big night against a rival, gives a player of yours
+ * one if he has none. Returns a line for each, to tell the player.
+ */
+function earnNicknames(f: Franchise, result: GameResult, home: DressedTeam, againstRival: boolean): string[] {
+  const out: string[] = [];
+  for (const line of result.players) {
+    if (line.team !== 0 || line.role !== 'skater') continue;
+    const dressed = home.players[line.line * 3 + line.slot];
+    const player = dressed && !isGuest(dressed.id) ? f.league.players[dressed.id] : undefined;
+    if (!player || player.nickname) continue;
+    const kind = line.goals >= NICKNAME_RULES.hatTrickGoals ? 'hatTrick' : againstRival && line.goals >= NICKNAME_RULES.rivalGoals ? 'rival' : null;
+    if (!kind) continue;
+    player.nickname = nicknameFor(player.id, kind);
+    out.push(`${player.name} has earned a name: "${player.nickname}".`);
+  }
+  return out;
+}
+
+/** Renames one of your players. The name must look like a name. */
+export function renamePlayer(f: Franchise, playerId: string, raw: string): ActionResult {
+  if (!userTeam(f.league).roster.includes(playerId)) return refuse('He is not one of yours.');
+  const name = cleanName(raw);
+  if (!name) return refuse('A name is 2 to 24 letters, with spaces, hyphens, apostrophes or full stops.');
+  const player = playerOf(f.league, playerId);
+  const before = player.name;
+  player.name = name;
+  return done(`${before} is now ${name}.`);
 }
 
 /** The bounty on the game waiting: one optional goal that pays extra Pucks if you play the game and meet it. */

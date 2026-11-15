@@ -75,7 +75,10 @@ export function PlayerRow({ player, note, bump = 0 }: { player: PlayerRecord; no
       <Face player={player} />
       <Grade player={player} />
       <span class="ovr">{player.overall}</span>
-      <span class="pname">{player.name}</span>
+      <span class="pname">
+        {player.name}
+        {player.nickname && <i class="nick">“{player.nickname}”</i>}
+      </span>
       <span class="pos">{player.position}</span>
       <span class={`kind${player.talent ? ' gifted' : ''}`}>{kindOf(player.position, player.ratings).tag}</span>
       <span class="age">{player.age}y</span>

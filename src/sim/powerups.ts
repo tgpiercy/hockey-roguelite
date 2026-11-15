@@ -9,8 +9,10 @@ export function refreshBoosts(world: World, team: 0 | 1): void {
   const running: Modifier[] = [...world.teams[team].boosts.flatMap((b) => b.modifiers), ...world.teams[team].active];
   for (const p of world.players) {
     if (p.team !== team) continue;
-    p.fx = applyModifiers(p.baseFx, running);
-    if (p.goalie) p.goalie.fx = applyModifiers(p.goalie.baseFx, running);
+    // And what is his alone: his own conditional modifiers in force, and his own timed boosts.
+    const own = p.active.length > 0 || p.timed.length > 0 ? [...running, ...p.active, ...p.timed.flatMap((b) => b.modifiers)] : running;
+    p.fx = applyModifiers(p.baseFx, own);
+    if (p.goalie) p.goalie.fx = applyModifiers(p.goalie.baseFx, own);
   }
 }
 

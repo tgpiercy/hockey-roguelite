@@ -1,3 +1,6 @@
+import artifactData from '../data/artifacts.json';
+import eventData from '../data/events.json';
+import { temperamentOf } from '../core/temperament';
 import { announcerName, paperLines, paperName, pregameLine } from '../core/voice';
 import { defaultTuning } from '../sim/tuning';
 import { ArtifactCard, type ArtChip } from './screens/season';
@@ -37,7 +40,7 @@ import { canPlay, canSign, type MoveResult, deadCapFor } from '../core/roster';
 import { hiddenFreeAgents, potentialText, scoutingPoints, signPlayer } from '../core/scouting';
 import { gradePower, hire, kindName, letGo, roleOf, slotsFor, STAFF_KINDS, staffOfKind, staffSalePrice, type StaffMember } from '../core/staff';
 import { franchiseOf, fromSave, parseSave, toSave } from '../core/save';
-import { artifactInfo, artifactModifiers, bargainGames, gameBounty, maxStrikes, pickRinger, recipeFor, seasonRegions, setupOf, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
+import { artifactInfo, artifactModifiers, bargainGames, renamePlayer, type ArtifactInfo, gameBounty, maxStrikes, pickRinger, recipeFor, seasonRegions, setupOf, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
 import type { Stop } from '../core/seasonMap';
 import { seasonSummary } from '../core/seasonSummary';
 import { teamColour } from '../core/teamColours';
@@ -112,6 +115,7 @@ type Screen =
   | { name: 'facilities' }
   | { name: 'mascot' }
   | { name: 'setup' }
+  | { name: 'found' }
   | { name: 'team' }
   | { name: 'office' }
   | { name: 'collection' }
@@ -182,6 +186,10 @@ const GEAR_FILTERS: { label: string; test: (item: GearItem) => boolean }[] = [
   ...gearData.rarities.map((r) => ({ label: r.name.toLowerCase(), test: (item: GearItem) => item.rarity === r.id })),
 ];
 const RARITY_ORDER = gearData.rarities.map((r) => r.id as string);
+
+/** Every artifact there is, and every event, for the page of what has been found. */
+const everyArtifact = artifactData as unknown as ArtifactInfo[];
+const allEvents = eventData as unknown as { id: string }[];
 
 /** A rink's size, corners and nets, for its little outline: its own numbers where it changes them, the usual ones where it does not. */
 function rinkShape(id: string): { length: number; width: number; corner: number; nets: number } {
@@ -1321,6 +1329,8 @@ export function App() {
 
   if (screen.name === 'player') {
     const p = playerOf(league, screen.playerId);
+    const temper = temperamentOf(p);
+    const mine = team.roster.includes(p.id);
     const worn = wornBy(f, p.id);
     const slots = p.position === 'G' ? gearData.slots.goalie : gearData.slots.skater;
     const progress = setProgress(worn);
@@ -1365,6 +1375,19 @@ export function App() {
         onBack={() => go({ name: 'roster' })}
         help="A change a piece · B back"
         items={[
+          ...(mine
+            ? [
+                {
+                  key: 'rename',
+                  label: <OptionCard icon="roster" name="Rename" value={p.nickname ? `${p.name}, "${p.nickname}"` : p.name} chip={temper.name} />,
+                  detail: `${temper.name}: ${temper.describe} Press to give him a new name.`,
+                  onSelect: () => {
+                    const typed = window.prompt('His new name', p.name);
+                    if (typed !== null) after(renamePlayer(f, p.id, typed));
+                  },
+                },
+              ]
+            : []),
           ...slots.map((slot) => {
             const item = worn.find((g) => g.slot === slot);
             return {
@@ -2259,6 +2282,39 @@ export function App() {
     );
   }
 
+  if (screen.name === 'found') {
+    const seen = new Set(f.seen?.artifacts ?? []);
+    const events = (f.seen?.events ?? []).length;
+    return (
+      <Menu
+        key={screenKey}
+        title="Found so far"
+        header={
+          <div class="note">
+            {seen.size} of {everyArtifact.length} artifacts held at least once, and {events} of {allEvents.length} events met. Ones you have not had come up three times as often. A mark shows the most handicap points you have won a title with
+            while holding an artifact.
+          </div>
+        }
+        onBack={() => go({ name: 'collection' })}
+        help="B back"
+        items={everyArtifact.map((a): MenuItem => {
+          const has = seen.has(a.id);
+          const won = f.wonWith?.[a.id];
+          return {
+            key: a.id,
+            label: (
+              <span class={`found-row${has ? '' : ' unfound'}`}>
+                {has ? <ArtifactCard name={a.name} description={a.description} modifiers={a.modifiers} /> : <ArtifactCard name="Not found yet" description="" modifiers={a.modifiers} />}
+                {won !== undefined && <i class="found-mark">Title{won > 0 ? ` · ${won}` : ''}</i>}
+              </span>
+            ),
+            detail: has ? `${a.description}${a.recipe ? ' Made by holding two others together.' : ''}${won !== undefined ? ` You have won a title holding it${won > 0 ? `, with ${won} handicap ${won === 1 ? 'point' : 'points'}` : ''}.` : ''}` : 'You have not held this one yet. Its family is shown; the rest is for you to find.',
+          };
+        })}
+      />
+    );
+  }
+
   if (screen.name === 'collection') {
     return (
       <Menu
@@ -2281,7 +2337,11 @@ export function App() {
                 }),
               ]
             : []),
-          tile('artifacts', 'Artifacts', `${f.artifacts.length} owned`, () => go({ name: 'artifacts' }), { detail: 'Always on, and kept from season to season until you prestige.' }),
+          tile('artifacts', 'Artifacts', `${f.artifacts.length} held this season`, () => go({ name: 'artifacts' }), { detail: 'The artifacts you hold this season.' }),
+          tile('found', 'Found so far', `${(f.seen?.artifacts ?? []).length} of ${everyArtifact.length} artifacts`, () => go({ name: 'found' }), {
+            icon: 'artifacts',
+            detail: 'Every artifact there is, found or not, and the hardest title you have won while holding each.',
+          }),
           tile('jersey', 'Jersey', unlockedJerseys(f)[f.prestige.jersey]?.name ?? '', () => go({ name: 'jersey' }), { detail: 'The colour your team wears on the ice.' }),
         ]}
       />

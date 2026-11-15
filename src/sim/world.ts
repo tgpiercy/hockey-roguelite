@@ -99,6 +99,7 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index:
   const own = role === 'skater' ? (setup?.skaterModifiers?.[index] ?? []) : (setup?.goalieModifiers ?? []);
   // Only what is always on goes into his abilities; the rest comes and goes during the game (conditions.ts).
   const modifiers = plainOf([...(setup?.modifiers ?? []), ...own]);
+  // His own conditional modifiers (a temperament) stay his: the team's are kept on the team.
   const fx = applyModifiers(skaterEffects(role === 'skater' ? skater : defaultSkaterRatings), modifiers);
   const goalieFx = applyModifiers(goalieEffects(goalie), modifiers);
   return {
@@ -134,6 +135,9 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index:
     fake: 0,
     fakeCooldown: 0,
     fakePass: false,
+    conditional: own.filter((m) => !isPlain(m)),
+    active: [],
+    timed: [],
     talents: role === 'skater' ? [...(setup?.skaterTalents?.[index] ?? [])] : [],
     talentCooldown: {},
     rallyPeriod: 0,

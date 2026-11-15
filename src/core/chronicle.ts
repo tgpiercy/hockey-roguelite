@@ -1,3 +1,4 @@
+import { nicknameFor, NICKNAME_RULES } from './temperament';
 import { vowPoints } from './charter';
 import data from '../data/standings.json';
 import { book } from './ledger';
@@ -159,6 +160,21 @@ export function closeChronicle(f: Franchise, before: Map<string, number>): strin
     if (tally.goals > 0 && (!best || tally.goals > best.goals)) best = { name: player.name, goals: tally.goals };
   }
 
+  // A title marks every artifact held with the handicap it was won under, if that is the most yet.
+  if (season.outcome === 'champion') {
+    const points = vowPoints(season.vows);
+    const marks = (f.wonWith ??= {});
+    for (const id of f.artifacts) marks[id] = Math.max(marks[id] ?? 0, points);
+  }
+  // Long service earns a name of its own.
+  for (const id of userTeam(league).roster) {
+    const player = league.players[id];
+    const served = f.career?.[id]?.seasons ?? 0;
+    if (player && !player.nickname && served >= NICKNAME_RULES.veteranSeasons) {
+      player.nickname = nicknameFor(id, 'veteran');
+      news.push(`Your club: after ${served} seasons, ${player.name} is "${player.nickname}" to everyone in the building.`);
+    }
+  }
   if (season.outcome) {
     (f.history ??= []).push({
       season: league.season,
