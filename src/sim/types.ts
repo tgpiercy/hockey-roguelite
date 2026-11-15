@@ -1,3 +1,4 @@
+import type { ShootoutRules, ShootoutState } from './shootout';
 import type { Modifier } from './modifiers';
 import type { MascotVisit } from './mascot';
 import type { Tactics } from './tactics';
@@ -231,6 +232,7 @@ export type SimEvent =
   | { type: 'goal'; side: -1 | 1; team: 0 | 1; scorer: number | null; assists: number[] }
   | { type: 'faceoff'; winner: 0 | 1 | null }
   | { type: 'period'; period: number }
+  | { type: 'shootout'; team: 0 | 1; scored: boolean }
   | { type: 'mascot'; team: 0 | 1; player: number; arrived: boolean }
   | { type: 'final' }
   | { type: 'change'; team: 0 | 1; off: number; on: number }
@@ -282,8 +284,12 @@ export interface World {
   /** AI level per team, 0 (easy) to 1 (hard). Null means "take it from the tuning". */
   levels: [number | null, number | null];
   lineup: 'full' | 'solo';
-  /** "scrimmage": endless play, no clock, faceoffs or line changes. "game": the full rules. */
-  rules: 'scrimmage' | 'game';
+  /** "scrimmage": endless play, no clock, faceoffs or line changes. "game": the full rules. "shootout": turns against the goalie (shootout.ts). */
+  rules: 'scrimmage' | 'game' | 'shootout';
+  /** Rules a rink changes for this game. Empty for the usual game. */
+  match: MatchRules;
+  /** The shootout in progress, when that is what is being played. */
+  shootout: ShootoutState | null;
   /** 1 to 3, then 4 for overtime. */
   period: number;
   /** Seconds left in the period; in overtime, seconds played. */
@@ -295,6 +301,16 @@ export interface World {
   hornWait: number;
   faceoff: FaceoffState | null;
   teams: [TeamState, TeamState];
+}
+
+/** Rules that differ from the usual game: a rink (rinks.json) or a mode sets them. */
+export interface MatchRules {
+  /** No clock: the first team to this many goals wins. */
+  firstTo?: number;
+  /** One line each and no changes: the second line never comes on. */
+  oneLine?: boolean;
+  /** Not a game at all but a shootout. */
+  shootout?: ShootoutRules;
 }
 
 export interface TeamState {

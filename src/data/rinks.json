@@ -1,0 +1,94 @@
+{
+  "standard": "standard",
+  "seasonChance": 0.3,
+  "seasonBonus": 6,
+  "shootout": {
+    "rounds": 5,
+    "attemptSeconds": 9,
+    "pauseSeconds": 1.3,
+    "goalie": []
+  },
+  "rinks": [
+    {
+      "id": "standard",
+      "name": "Standard rink",
+      "describe": "Three periods on the usual ice.",
+      "tuning": {},
+      "rules": {}
+    },
+    {
+      "id": "firstToThree",
+      "name": "First to three",
+      "describe": "No clock. The first team to three goals wins.",
+      "tuning": {},
+      "rules": {
+        "firstTo": 3
+      }
+    },
+    {
+      "id": "pond",
+      "name": "The pond",
+      "describe": "A small, slippery rink. One line each and no changes: everyone plays the whole game.",
+      "tuning": {
+        "rink": {
+          "length": 44,
+          "width": 22,
+          "cornerRadius": 6
+        },
+        "skater": {
+          "glideDrag": 0.45,
+          "brakeDecel": 13,
+          "turnRateFast": 2.6
+        },
+        "energy": {
+          "drainPerSecond": 0.008,
+          "sprintDrainPerSecond": 0.01
+        }
+      },
+      "rules": {
+        "oneLine": true
+      }
+    },
+    {
+      "id": "heavyPuck",
+      "name": "Heavy puck",
+      "describe": "The puck is slow and dies quickly. Keep passes short and shoot from close.",
+      "tuning": {
+        "puck": {
+          "drag": 0.75,
+          "slideDecel": 3.2
+        }
+      },
+      "rules": {}
+    },
+    {
+      "id": "livelyPuck",
+      "name": "Lively puck",
+      "describe": "The puck is fast and bounces hard off the boards and the posts.",
+      "tuning": {
+        "puck": {
+          "drag": 0.2,
+          "slideDecel": 0.8
+        },
+        "rink": {
+          "boardBounce": 0.92
+        },
+        "net": {
+          "postBounce": 0.95
+        }
+      },
+      "rules": {}
+    },
+    {
+      "id": "bigNets",
+      "name": "Big nets",
+      "describe": "Wider nets: more goals, and a hard night for goalies.",
+      "tuning": {
+        "net": {
+          "mouthWidth": 3.0
+        }
+      },
+      "rules": {}
+    }
+  ]
+}

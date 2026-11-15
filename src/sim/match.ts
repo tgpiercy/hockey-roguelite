@@ -126,6 +126,11 @@ export function shotInFlight(world: World, t: Tuning): boolean {
 /** Runs the period clock during play. Returns true if the period (or the game) just ended. */
 export function tickClock(world: World, t: Tuning, events: SimEvent[]): boolean {
   const dt = STEP_SECONDS;
+  // First to so many goals: there is no clock to run. The clock counts up, to show how long it has gone.
+  if (world.match.firstTo) {
+    world.clock += dt;
+    return false;
+  }
   if (world.overtime) {
     world.clock += dt;
     if (world.overtimeLimit > 0 && world.clock >= world.overtimeLimit) {
@@ -174,7 +179,8 @@ export function stepBreak(world: World, t: Tuning, events: SimEvent[]): void {
 
 /** After the goal celebration: overtime goals end the game, otherwise back to centre for a faceoff. */
 export function afterGoal(world: World, t: Tuning, events: SimEvent[]): void {
-  if (world.overtime) {
+  const target = world.match.firstTo ?? 0;
+  if (world.overtime || (target > 0 && Math.max(world.score[0], world.score[1]) >= target)) {
     world.phase = 'final';
     events.push({ type: 'final' });
     return;

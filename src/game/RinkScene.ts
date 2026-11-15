@@ -16,7 +16,7 @@ import { chargeFraction } from '../sim/shot';
 import { activeLabels } from '../sim/conditions';
 import { isMascot, mascotPlayer } from '../sim/mascot';
 import type { Tuning } from '../sim/tuning';
-import type { SimEvent, World } from '../sim/types';
+import type { SimEvent, World, MatchRules } from '../sim/types';
 import { NO_INPUT } from '../sim/types';
 import { createGame, step, STEP_SECONDS, type TeamSetup } from '../sim/world';
 import { Crowd } from './drawArena';
@@ -46,6 +46,8 @@ export interface RinkSceneOptions {
   teams: [TeamSetup, TeamSetup];
   /** What to call each team on the scoreboard. */
   names: [string, string];
+  /** Rules a rink or a mode changes for this game. Left out, the usual game. */
+  rules?: MatchRules;
   /** A second player with a controller of his own: on team 0 (co-op) or team 1 (versus). Left out, one player. */
   second?: 0 | 1;
   /** Each team's dressed players' names, in order: six skaters, then the goalie. For the commentary. */
@@ -194,6 +196,7 @@ export class RinkScene extends Phaser.Scene {
       levels: this.options.levels,
       powerups: this.options.powerups,
       ...(this.options.second !== undefined ? { second: this.options.second } : {}),
+      ...(this.options.rules ? { rules: this.options.rules } : {}),
     });
     if (this.options.second !== undefined) this.reader2 = new InputReader(1);
     for (const team of [0, 1] as const) {
@@ -385,7 +388,7 @@ export class RinkScene extends Phaser.Scene {
 
   private message(): string {
     const world = this.world;
-    if (world.phase === 'goal') return 'GOAL!';
+    if (world.phase === 'goal') return world.shootout?.last === 'miss' ? 'NO GOAL' : 'GOAL!';
     // A mascot has arrived: said until the puck is about to drop, for whichever side he plays.
     if (this.clock < this.mascotBanner.until && world.phase !== 'break' && !(world.phase === 'faceoff' && world.faceoff?.dropped)) {
       return `${(this.mascotName(this.mascotBanner.team) ?? 'The mascot').toUpperCase()} IS HERE FOR THE ${this.options.names[this.mascotBanner.team].toUpperCase()}!`;
@@ -959,7 +962,13 @@ export class RinkScene extends Phaser.Scene {
         score.setPosition(scoreXs[team] as number, midY);
       }
     }
-    const period = world.overtime && world.period > t.period.count ? 'OT' : `P${Math.min(world.period, t.period.count)}`;
+    const period = world.shootout
+      ? `SHOT ${Math.min(world.shootout.taken[0], world.shootout.taken[1]) + 1}`
+      : world.match.firstTo
+        ? `TO ${world.match.firstTo}`
+        : world.overtime && world.period > t.period.count
+          ? 'OT'
+          : `P${Math.min(world.period, t.period.count)}`;
     // The last seconds of regulation: the clock turns red and pulses.
     const lastSeconds = !world.overtime && world.period >= t.period.count && world.clock <= fx.lastSecondsPulse && world.phase !== 'final';
     this.clockTextObject.setColor(lastSeconds ? c.danger : c.accent);

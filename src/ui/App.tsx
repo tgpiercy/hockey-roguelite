@@ -1,3 +1,4 @@
+import { isVariant, nextRink, RINK_BONUS, rinkInfo, STANDARD_RINK } from '../core/rinks';
 import { kindName as tacticKindName, nextTactic, readTactics, TACTIC_KINDS, tacticInfo, tacticsLine } from '../sim/tactics';
 import { dropSecond, openJoining, secondJoined } from '../game/gamepad';
 import { music } from '../game/music';
@@ -184,6 +185,9 @@ export function App() {
   /** Two players: whether a second controller has joined, and how the two will play. */
   const [joined, setJoined] = useState(false);
   const [together, setTogether] = useState<'coop' | 'versus'>('coop');
+  // Exhibition: the rink to play on, and whether it is a game or a shootout.
+  const [exRink, setExRink] = useState<string>(STANDARD_RINK);
+  const [exShootout, setExShootout] = useState(false);
   useEffect(() => {
     // A second controller may join on the menus; during a game the seats are fixed.
     openJoining(!playing);
@@ -365,7 +369,7 @@ export function App() {
     setPlaying(true);
     const homeColour = jerseyColour(f);
     // A second player who has joined plays on your team in a season game.
-    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: homeGame(f, season.gamesPlayed + 1), forfeitNote: 'Giving the game up counts as a loss, whatever the score.', ...(joined ? { second: 0 as const } : {}) }, (result) => {
+    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: homeGame(f, season.gamesPlayed + 1), ...(game.rink ? { rink: game.rink } : {}), forfeitNote: 'Giving the game up counts as a loss, whatever the score.', ...(joined ? { second: 0 as const } : {}) }, (result) => {
       showOutcome(recordGame(f, result));
       // The pause menu may have changed the sound or the controls.
       setPrefs(loadPrefs());
@@ -629,6 +633,11 @@ export function App() {
                   {game.away.name} play {theirStyle.name.toLowerCase()}. {theirStyle.describe}
                 </div>
               )}
+              {isVariant(game.rink) && (
+                <div class="note">
+                  Rink: {rinkInfo(game.rink).name}. {rinkInfo(game.rink).describe}
+                </div>
+              )}
               {team.lineup.tactics && <div class="note">Your tactics: {tacticsLine(readTactics(team.lineup.tactics))}. Change them under Team, Lineup, or in the pause menu.</div>}
               {game.kind === 'playoff' && season.bracket && (
                 <div class="note">
@@ -844,6 +853,8 @@ export function App() {
     const options = availableStops(f);
     const region = options[0]?.region ?? 0;
     const myStrength = Math.round(teamStrength(league, team.id));
+    /** A sentence about the rink a stop is played on; nothing for the standard rink. */
+    const rinkLine = (id: string | undefined, pays: boolean): string => (isVariant(id) ? ` Played on ${rinkInfo(id).name}: ${rinkInfo(id).describe}${pays ? ` It pays ${RINK_BONUS} more Pucks.` : ''}` : '');
     const stopCard = (s: Stop): { label: ComponentChildren; detail: string } => {
       if (s.kind === 'game' && s.opponentId) {
         const opponent = league.teams.find((x) => x.id === s.opponentId) as Team;
@@ -851,7 +862,7 @@ export function App() {
           label: (
             <StopCard
               icon="game"
-              kind={isRival(f, s.opponentId) ? (s.elite ? 'Elite rival game' : 'Rival game') : s.elite ? 'Elite game' : 'Game'}
+              kind={`${isRival(f, s.opponentId) ? (s.elite ? 'Elite rival game' : 'Rival game') : s.elite ? 'Elite game' : 'Game'}${isVariant(s.rink) ? ` · ${rinkInfo(s.rink).name}` : ''}`}
               title={opponent.name}
               crest={teamCrest(opponent.name)}
               theirs={Math.round(teamStrength(league, opponent.id)) + (s.elite ? rules.eliteRatingBump : 0)}
@@ -861,15 +872,15 @@ export function App() {
           detail: s.elite
             ? `A stronger team playing above itself. Win: ${rules.eliteCurrency} more Pucks and a choice of ${rules.eliteArtifactChoices} artifacts. Lose: a strike.`
             : isRival(f, s.opponentId)
-              ? `Your rivals. A win pays ${standingsRules.rivalCurrency} more Pucks and a pack; a loss is a strike.`
-              : 'A win pays Pucks and a pack; a loss is a strike.',
+              ? `Your rivals. A win pays ${standingsRules.rivalCurrency} more Pucks and a pack; a loss is a strike.${rinkLine(s.rink, true)}`
+              : `A win pays Pucks and a pack; a loss is a strike.${rinkLine(s.rink, true)}`,
         };
       }
       if (s.kind === 'boss' && s.bossId) {
         const boss = bossInfo(s.bossId);
         return {
-          label: <StopCard icon="boss" kind="Boss" title={boss.name} />,
-          detail: `${boss.trait}: ${boss.description} Beat him to choose an artifact and wipe a strike; lose and it is a strike and a rematch.${season.scouted ? ' You have a scouting report on him.' : ''}`,
+          label: <StopCard icon="boss" kind={isVariant(s.rink) ? `Boss · ${rinkInfo(s.rink).name}` : 'Boss'} title={boss.name} />,
+          detail: `${boss.trait}: ${boss.description}${rinkLine(s.rink, false)} Beat him to choose an artifact and wipe a strike; lose and it is a strike and a rematch.${season.scouted ? ' You have a scouting report on him.' : ''}`,
         };
       }
       if (s.kind === 'training') return { label: <StopCard icon="training" kind="Training" title="One player improves" />, detail: 'One dressed player gains a little of everything, a lot of one rating, or a trait, for the rest of the season.' };
@@ -2566,6 +2577,22 @@ export function App() {
         header={`Your team averages ${mine} overall. Weakest opponents first. Exhibition games do not count. ${joined ? (together === 'coop' ? 'Two players, on the same team.' : 'Two players, head to head: player 2 takes the team you choose.') : 'For two players, press a button on a second controller.'}`}
         onBack={home}
         items={[
+          {
+            key: 'mode',
+            label: `Play: ${exShootout ? 'A shootout' : 'A game'}`,
+            detail: 'Press to change. A shootout: five turns each, one skater against the goalie from centre ice, nine seconds a turn; level after five, it goes on until one scores and the other does not. With two players, each takes turns.',
+            onSelect: () => setExShootout(!exShootout),
+          },
+          ...(exShootout
+            ? []
+            : [
+                {
+                  key: 'rink',
+                  label: `Rink: ${rinkInfo(exRink).name}`,
+                  detail: `${rinkInfo(exRink).describe} Press to change.`,
+                  onSelect: () => setExRink(nextRink(exRink).id),
+                },
+              ]),
           ...(joined
             ? [
                 {
@@ -2607,10 +2634,11 @@ export function App() {
               if (!homeTeam || !away) return;
               setPlaying(true);
               const homeColour = jerseyColour(f);
-              playMatch({ home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), ...(joined ? { second: together === 'coop' ? (0 as const) : (1 as const) } : {}) }, (result) => {
+              playMatch({ home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, shootout: exShootout, ...(joined ? { second: together === 'coop' ? (0 as const) : (1 as const) } : {}) }, (result) => {
+                const what = exShootout ? 'Shootout' : 'Exhibition';
                 const verdict = result.winner === 0 ? 'won' : result.winner === 1 ? 'lost' : 'tied';
                 setScreen({ name: 'home' });
-                setMessage(result.forfeit ? `Exhibition against ${opponent.name} ended early.` : `Exhibition: ${verdict} ${result.score[0]}-${result.score[1]} against ${opponent.name}.`);
+                setMessage(result.forfeit ? `${what} against ${opponent.name} ended early.` : `${what}: ${verdict} ${result.score[0]}-${result.score[1]} against ${opponent.name}.`);
                 setPrefs(loadPrefs());
                 setPlaying(false);
               });

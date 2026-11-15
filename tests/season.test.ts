@@ -65,6 +65,8 @@ const result = (won: boolean, margin = 1, used: string[] = [], overtime = false)
 const goTo = (f: Franchise, kind: StopKind): Stop => {
   const stop = availableStops(f).find((s) => s.kind === kind);
   if (!stop) throw new Error(`no ${kind} stop available: ${availableStops(f).map((s) => s.kind).join(',')}`);
+  // These tests are about the usual game: a stop's own rink (and its extra pay) is tested in rinks.test.ts.
+  delete stop.rink;
   expect(travel(f, stop.id).ok).toBe(true);
   return stop;
 };

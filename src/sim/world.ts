@@ -1,3 +1,4 @@
+import { newShootout, nextAttempt, readyGoalies, startAttempt, stepShootout } from './shootout';
 import { isPlain, plainOf, stepConditions } from './conditions';
 import { newVisit, rollMascots, type MascotSetup, type MascotVisit } from './mascot';
 import type { Tactics } from './tactics';
@@ -34,7 +35,7 @@ import { stepShooting } from './shot';
 import { createSkater, stepSkater } from './skater';
 import { attackDir, carrierOf, clearAhead, dist, givePuck, goalieOf, loosePuck, onIce, otherTeam, ownNet, skatersOf, humanOf, placeHumans, teamInput } from './team';
 import type { Tuning } from './tuning';
-import { NO_INPUT, type InputFrame, type Player, type SimEvent, type World } from './types';
+import { NO_INPUT, type InputFrame, type MatchRules, type Player, type SimEvent, type World } from './types';
 
 export { STEP_SECONDS, STEPS_PER_SECOND } from './clock';
 
@@ -80,6 +81,8 @@ export interface WorldOptions {
   overtimeLimit?: number;
   /** The human team's loaded powerups: one for each of the two buttons, or null. */
   powerups?: (PowerupSpec | null)[];
+  /** Rules a rink or a mode changes. Left out, the usual game. */
+  rules?: MatchRules;
 }
 
 /** Dressed per team: two lines of three skaters, then the goalie. A team's ids run from team * 7. */
@@ -227,6 +230,8 @@ export function createWorld(t: Tuning, seed: number | string, options: WorldOpti
     levels: options.levels ?? [null, null],
     lineup: options.lineup ?? 'full',
     rules: 'scrimmage',
+    match: options.rules ?? {},
+    shootout: null,
     period: 1,
     clock: t.period.seconds,
     overtime: false,
@@ -243,6 +248,13 @@ export function createWorld(t: Tuning, seed: number | string, options: WorldOpti
 /** A full game: three periods, faceoffs, line changes, fatigue and overtime. Starts lined up for the opening faceoff. */
 export function createGame(t: Tuning, seed: number | string, options: WorldOptions = {}): World {
   const world = createWorld(t, seed, { ...options, lineup: 'full' });
+  if (world.match.shootout) {
+    world.rules = 'shootout';
+    world.shootout = newShootout();
+    readyGoalies(world);
+    startAttempt(world, t);
+    return world;
+  }
   world.rules = 'game';
   // A mascot may be there from the opening faceoff. (The scene reads who is on from the world.)
   rollMascots(world, true, []);
@@ -344,10 +356,11 @@ function stepLineChanges(world: World, humanInput: InputFrame, t: Tuning, events
     state.changeCooldown = Math.max(0, state.changeCooldown - STEP_SECONDS);
     const asked = teamInput(world, team, humanInput, input2);
     if (asked) {
-      if (asked.lineChange && !state.changeHeld) callChange(world, team, t);
+      if (asked.lineChange && !state.changeHeld && !world.match.oneLine) callChange(world, team, t);
       state.changeHeld = asked.lineChange;
     }
-    autoChange(world, team, t);
+    // On a one-line rink nobody changes: the same three play the whole game.
+    if (!world.match.oneLine) autoChange(world, team, t);
   }
   stepChanges(world, t, events);
 }
@@ -378,6 +391,7 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
     world.phaseTime -= dt;
     if (world.phaseTime <= 0) {
       if (game) afterGoal(world, t, events);
+      else if (world.rules === 'shootout') nextAttempt(world, t, events);
       else lineUp(world, t);
     }
     return events;
@@ -389,8 +403,11 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
     stepLineChanges(world, humanInput, t, events, input2);
     stepPulls(world, humanInput, t, events, input2);
   }
-  updateControl(world, humanInput);
-  if (world.human2) updateControl(world, input2, world.human2);
+  // In a shootout whoever shoots is set for each attempt; nothing switches.
+  if (world.rules !== 'shootout') {
+    updateControl(world, humanInput);
+    if (world.human2) updateControl(world, input2, world.human2);
+  }
   const active = onIce(world);
   const inputs = active.map((p) => {
     if (p.role === 'goalie') return NO_INPUT;
@@ -491,5 +508,6 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
   stepTalents(world, t, events, dt);
   stepMomentum(world, t, events, dt);
   stepConditions(world, events, t.period.count);
+  if (world.rules === 'shootout') stepShootout(world, t, events);
   return events;
 }

@@ -1,3 +1,5 @@
+import bossData from '../data/bosses.json';
+import { isVariant, RINK_CHANCE, RINKS } from './rinks';
 import bosses from '../data/bosses.json';
 import events from '../data/events.json';
 import powerups from '../data/powerups.json';
@@ -17,6 +19,8 @@ export interface Stop {
   next: string[];
   /** Game stops: the league team to play. */
   opponentId?: string;
+  /** Game and boss stops: the rink it is played on (rinks.json). Left out, the standard rink. */
+  rink?: string;
   /** Game stops: an elite game, against a team from the next tier up playing above itself, for a better prize. */
   elite?: boolean;
   /** Event stops: which event. */
@@ -109,5 +113,22 @@ export function generateMap(seed: string, teamsByStrength: string[]): SeasonMap 
     for (const row of rows) for (const stop of row) stops[stop.id] = stop;
     regionStarts.push((rows[0] as Stop[]).map((s) => s.id));
   }
+  // Some ordinary games are on a rink of their own. (A stream of its own, so the map itself is as it always was.)
+  const rinks = createRng(`${seed}/rinks`);
+  const variants = RINKS.filter((x) => isVariant(x.id)).map((x) => x.id);
+  for (const id of Object.keys(stops).sort()) {
+    const stop = stops[id] as Stop;
+    if (stop.kind === 'boss' && stop.bossId) {
+      const at = bossHomeRink(stop.bossId);
+      if (at) stop.rink = at;
+    } else if (stop.kind === 'game' && !stop.elite && variants.length > 0 && rinks.chance(RINK_CHANCE)) {
+      stop.rink = rinks.pick(variants);
+    }
+  }
   return { stops, regionStarts };
+}
+
+/** The rink a boss plays his home game on, if he has one. */
+function bossHomeRink(bossId: string): string | undefined {
+  return (bossData as unknown as { id: string; rink?: string }[]).find((b) => b.id === bossId)?.rink;
 }

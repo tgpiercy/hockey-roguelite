@@ -22,7 +22,8 @@
       }
     ],
     "trick": "Shields: their goalie stops the first three shots on goal of every period, whatever they are. Burn them with quick shots.",
-    "star": []
+    "star": [],
+    "rink": "bigNets"
   },
   {
     "id": "speed-demons",
@@ -47,7 +48,8 @@
       }
     ],
     "trick": "Fast break: whoever of theirs wins the puck in their own end gets a burst of speed. Keep it out of their end.",
-    "star": []
+    "star": [],
+    "rink": "livelyPuck"
   },
   {
     "id": "bruisers",
@@ -67,7 +69,8 @@
       }
     ],
     "trick": "Flatteners: every body check of theirs that lands puts you on the ice. Deke, or move the puck early.",
-    "star": []
+    "star": [],
+    "rink": "pond"
   },
   {
     "id": "iron-lungs",
@@ -87,7 +90,8 @@
       }
     ],
     "trick": "Full press: all three come after you in your own end. Pass through them.",
-    "star": []
+    "star": [],
+    "rink": "pond"
   },
   {
     "id": "snipers",
@@ -113,7 +117,8 @@
         "op": "add",
         "value": 1
       }
-    ]
+    ],
+    "rink": "heavyPuck"
   },
   {
     "id": "trappers",
@@ -138,7 +143,8 @@
       }
     ],
     "trick": "Threaded passes: their flat passes cannot be picked off in the lane. Cover the man in front of your net, not the pass.",
-    "star": []
+    "star": [],
+    "rink": "heavyPuck"
   },
   {
     "id": "shadows",
@@ -156,7 +162,8 @@
     "star": [],
     "talents": [
       "spinMove"
-    ]
+    ],
+    "rink": "livelyPuck"
   },
   {
     "id": "furnace",
@@ -176,6 +183,7 @@
       }
     ],
     "trick": "Hot start: they are on fire from the opening faceoff of every period. Hold the puck and block shots until it burns out.",
-    "star": []
+    "star": [],
+    "rink": "firstToThree"
   }
 ]

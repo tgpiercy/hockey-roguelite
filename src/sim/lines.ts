@@ -154,7 +154,7 @@ export function freshLineOn(world: World, team: 0 | 1, t: Tuning): Player[] {
   state.extra = null;
   for (const p of world.players) if (p.team === team && p.role === 'goalie') p.onIce = true;
   const other = state.line === 0 ? 1 : 0;
-  if (lineEnergy(world, team, other) > lineEnergy(world, team, state.line) + t.energy.changeMargin) state.line = other;
+  if (!world.match.oneLine && lineEnergy(world, team, other) > lineEnergy(world, team, state.line) + t.energy.changeMargin) state.line = other;
   const door = benchDoor(team, t);
   const line: Player[] = [];
   for (const p of world.players) {

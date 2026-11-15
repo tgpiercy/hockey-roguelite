@@ -598,5 +598,5 @@ Built, deployed and checked with a simulated controller.
 - [x] 1. A stronger mascot (his own play)
 - [x] 2. Defence pays: momentum from steals and dekes, the steal at the wind-up, the horn waits
 - [x] 3. Conditional artifacts (12) and bargains (4)
-- [ ] 4. Rink and rule variants, and a shootout
+- [x] 4. Rink and rule variants, and a shootout
 - [ ] 5. Charters, handicaps and a weekly run

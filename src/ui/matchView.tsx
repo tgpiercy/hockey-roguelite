@@ -1,3 +1,5 @@
+import { rinkInfo, rinkTuning, SHOOTOUT } from '../core/rinks';
+import type { Tuning } from '../sim/tuning';
 import { BALANCED, type Tactics } from '../sim/tactics';
 import { music } from '../game/music';
 import { resultPiece, stingFor } from '../game/musicScore';
@@ -68,14 +70,29 @@ export interface MatchOptions {
   forfeitNote?: string;
   /** A second player: 0 puts him on your team (co-op), 1 on the other team (versus). Left out, one player. */
   second?: 0 | 1;
+  /** The rink to play on (rinks.json). Left out, the standard rink. */
+  rink?: string;
+  /** True for a shootout in place of a game. */
+  shootout?: boolean;
 }
 
 /**
  * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second }: MatchOptions, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
+  // The rink's own numbers sit on top of whatever the tuning panel holds; worked out again only when that changes.
+  const where = rinkInfo(shootout ? null : rink);
+  let tunedFrom: Tuning | null = null;
+  let tuned: Tuning = tuningStore.tuning;
+  const rinkTuned = (): Tuning => {
+    if (tunedFrom !== tuningStore.tuning) {
+      tunedFrom = tuningStore.tuning;
+      tuned = rinkTuning(tuningStore.tuning, where);
+    }
+    return tuned;
+  };
   const shift = tuningStore.tuning.game.opponentDifficulty - seasonRules.defaultDifficulty;
   const opponentLevel = level === undefined ? null : Math.max(0, Math.min(1, level + shift));
   document.body.className = 'mode-rink';
@@ -195,7 +212,8 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
         hintCounts[id] = (hintCounts[id] ?? 0) + 1;
         saveHintCounts(hintCounts);
       },
-      tuning: () => tuningStore.tuning,
+      tuning: rinkTuned,
+      rules: shootout ? { shootout: SHOOTOUT } : where.rules,
       onControls,
       paused: () => paused,
       onEvents: (events, world, t) => {

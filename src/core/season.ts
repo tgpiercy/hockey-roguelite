@@ -1,3 +1,4 @@
+import { isVariant, RINK_BONUS } from './rinks';
 import standingsRules from '../data/standings.json';
 import type { CareerLine, SeasonRecord } from './chronicle';
 import { creditGoals, newStandings, playoffField, playRound, recordResult, settleSeries, type LeagueResult, type Scoring, type Standings } from './standings';
@@ -592,6 +593,8 @@ export interface Matchup {
   /** True for an elite game: a tougher opponent and a better prize. */
   elite?: boolean;
   powerups: (PowerupSpec | null)[];
+  /** The rink it is played on (rinks.json). Left out, the standard rink. */
+  rink?: string;
   /** Each side's mascot tonight: who he is, the chance of his next roll, and who would give up his place. */
   mascots: { home: MascotOdds; away: MascotOdds };
 }
@@ -687,6 +690,7 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
       title: `Boss: ${boss.name}`,
       trait: `${boss.trait}: ${boss.description} ${boss.trick}${season.scouted ? ' Scouted: his team is weaker and slower to react today.' : ''}`,
       powerups: loaded,
+      ...(stop.rink ? { rink: stop.rink } : {}),
     };
   }
   if (stop.kind === 'game' && stop.opponentId) {
@@ -694,7 +698,7 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
     const away = dress(league, teamOf(league, stop.opponentId), { bumpAll: tougher + (elite ? stat(f, 'eliteBump', rules.eliteRatingBump) : 0) });
     if (!away) return null;
     if (elite) return { home, away, level: clampLevel(level + rules.eliteLevelBonus), kind: 'game', title: `Elite game against ${away.name}`, powerups: loaded, elite: true };
-    return { home, away, level, kind: 'game', title: `Game against ${away.name}`, powerups: loaded };
+    return { home, away, level, kind: 'game', title: `Game against ${away.name}`, powerups: loaded, ...(stop.rink ? { rink: stop.rink } : {}) };
   }
   return null;
 }
@@ -913,7 +917,9 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
     finishStop(f);
     return done(`You win the elite game and earn ${prize} Pucks.`);
   }
-  const amount = pay(rules.winCurrency + rivalBonus);
+  // A game on a rink of its own pays a little more.
+  const rinkBonus = isVariant(currentStop(f)?.rink) ? RINK_BONUS : 0;
+  const amount = pay(rules.winCurrency + rivalBonus + rinkBonus);
   let message = rivalBonus > 0 ? `You beat your rivals and earn ${amount} Pucks.` : `You win and earn ${amount} Pucks.`;
   const luck = roll(season, 'drop');
   if (luck.chance(stat(f, 'powerupDropChance', rules.powerupDropChance))) {

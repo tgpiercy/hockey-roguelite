@@ -758,6 +758,23 @@ So when he comes, a two-goal deficit is recovered about twice as often as withou
 
 What it shows. Most are within noise of even, as intended: they change when a team is strong, not how strong. Four were out of line and were cut; the cuts are not re-measured. Two bargain handicaps do not show as handicaps in all-AI play; they may for a person.
 
+## Rinks and the shootout (2026-11-15)
+
+100 all-AI games on each rink, equal teams rated 70 at level 0.5. No game got stuck on any of them.
+
+| Rink | Goals a team | Shots a team | Save percentage | Minutes of play | Overtime |
+| --- | --- | --- | --- | --- | --- |
+| Standard | 3.97 | 33.7 | .784 | 6.7 | 15% |
+| First to three | 2.06 | 18.4 | .800 | 3.6 | none |
+| The pond (44 x 22 m, slippery, one line) | 3.83 | 38.9 | .832 | 6.7 | 15% |
+| Heavy puck | 3.35 | 32.0 | .809 | 6.7 | 16% |
+| Lively puck | 3.53 | 32.2 | .798 | 6.8 | 14% |
+| Big nets (3.0 m; 3.5 m gave 9.7 goals a team) | 6.45 | 33.9 | .663 | 6.9 | 11% |
+
+What it shows. The AI plays a whole, sensible game on each. The pond has more shots and fewer of them go in; heavy and lively pucks each cost about half a goal a team; big nets add about two and a half. First to three is a little over half a game. Whether the pond feels slippery enough, or the pucks different enough, is for a person to say.
+
+**Shootout.** All-AI shooters score on 19% of turns and a shootout takes about 37 seconds of play (12 turns). The AI shoots early from range; a person who dekes or fakes should do better. A first try at giving the goalies an edge stopped every shot, so they have none.
+
 ## Change log
 
 | Date | Value | From | To | Why |
