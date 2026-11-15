@@ -40,6 +40,17 @@ export function passTarget(world: World, passer: Player, aim: number, speed: num
  *
  * A saucer pass flies over sticks, so its lane is never counted as blocked.
  */
+/**
+ * The team-mate a pass by this skater would go to right now, with the stick as it is: what pressing
+ * pass would do. Null if he has not got the puck, or nobody is on.
+ */
+export function passPreview(world: World, p: Player, input: InputFrame, t: Tuning): Player | null {
+  if (world.puck.carrier !== p.id) return null;
+  const tilt = Math.hypot(input.moveX, input.moveY);
+  const aim = tilt > 0 ? Math.atan2(input.moveY, input.moveX) : null;
+  return assistedPassTarget(world, p, aim, t.pass.speed * p.fx.passSpeedScale, false, t);
+}
+
 export function assistedPassTarget(
   world: World,
   passer: Player,

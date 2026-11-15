@@ -620,7 +620,7 @@ Built, deployed and checked with a simulated controller.
 - [x] 4. Stickers
 - [x] 5. Recipes
 - [x] 6. Exhibition tournament
-- [ ] 7. Floating words and a pass-target mark
-- [ ] 8. Passing chain
-- [ ] 9. Goal replay
+- [x] 7. Floating words and a pass-target mark
+- [x] 8. Passing chain
+- [x] 9. Goal replay
 - [ ] 10. Graphics review, then choose

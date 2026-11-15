@@ -297,6 +297,12 @@ function goal(world: World, side: -1 | 1, t: Tuning, events: SimEvent[]): void {
   const beaten = goalieOf(world, otherTeam(team));
   if (beaten) beaten.stats.goalsAgainst += 1;
 
+  // A give and go in progress is over: the play it was part of has ended.
+  for (const human of [world.human, world.human2]) {
+    if (!human) continue;
+    human.giveGo = null;
+    human.giveGoOffer = null;
+  }
   world.phase = 'goal';
   world.phaseTime = t.game.goalPauseSeconds;
   loosePuck(world);
@@ -462,6 +468,9 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
     if (speed !== null) {
       loosePuck(world);
       puck.shotBy = p.id;
+      // The passing chain goes into the shot: the goalie has less time. It is spent either way.
+      puck.shotChain = puck.chain;
+      puck.chain = 0;
       // A boss trick: the marksman's full wind-up cannot be saved.
       puck.unstoppable = woundUp && fx.unstoppableCharged > 0;
       p.pickupLock = t.puck.pickupCooldown;
@@ -504,6 +513,9 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
   }
 
   for (const p of active) if (p.role === 'goalie') recordPuck(p, world, t);
+  // A passing chain lapses if the next pass does not come soon enough.
+  puck.chainAge += dt;
+  if (puck.chain > 0 && puck.chainAge > t.chain.windowSeconds) puck.chain = 0;
   stepEnergy(world, t);
   if (game && world.phase === 'play') tickClock(world, t, events);
   stepTalents(world, t, events, dt);

@@ -10,7 +10,9 @@ import { STEPS_PER_SECOND } from './clock';
 function perceived(g: Player, world: World, t: Tuning): { pos: Vec; vel: Vec; loose: boolean } {
   const state = g.goalie!;
   // An attacker standing in his sightline makes him slower to see where the puck has gone.
-  const delaySteps = Math.round(goalieReaction(g, t) * (screened(g, world, t) ? t.tips.screenScale : 1) * STEPS_PER_SECOND);
+  // A shot at the end of a passing chain reaches a goalie still moving across: he reacts a little later for each pass in it.
+  const chained = 1 + t.chain.reactionPerStep * world.puck.shotChain;
+  const delaySteps = Math.round(goalieReaction(g, t) * (screened(g, world, t) ? t.tips.screenScale : 1) * chained * STEPS_PER_SECOND);
   const index = Math.max(0, state.seen.length - 1 - delaySteps);
   return state.seen[index] ?? { pos: world.puck.pos, vel: world.puck.vel, loose: world.puck.carrier === null };
 }

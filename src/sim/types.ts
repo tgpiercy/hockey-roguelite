@@ -226,6 +226,11 @@ export interface Puck {
   tipped: boolean;
   /** True for a shot no goalie can stop (a boss trick). */
   unstoppable: boolean;
+  /** The passing chain: completed passes in a row by one team, each soon after the last (up to a cap), and seconds since the last. */
+  chain: number;
+  chainAge: number;
+  /** The chain the shot now flying was taken with: it gives the goalie less time. */
+  shotChain: number;
 }
 
 export type SimEvent =

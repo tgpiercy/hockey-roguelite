@@ -22,6 +22,8 @@ export interface Rng {
    * It does not depend on, or disturb, how far this generator has advanced.
    */
   fork(label: string): Rng;
+  /** A separate generator that will give exactly the numbers this one is about to, without disturbing it. */
+  clone(): Rng;
 }
 
 /** Hashes a string into four 32-bit seeds (xmur3). */
@@ -42,7 +44,16 @@ function hashSeed(text: string): [number, number, number, number] {
 
 export function createRng(seed: number | string): Rng {
   const seedText = String(seed);
-  let [a, b, c, d] = hashSeed(seedText);
+  const [a, b, c, d] = hashSeed(seedText);
+  return generator(seedText, a, b, c, d, true);
+}
+
+/** A generator from a state. `mix` runs it on a little first, as a fresh one from a seed is. */
+function generator(seedText: string, a0: number, b0: number, c0: number, d0: number, mix: boolean): Rng {
+  let a = a0;
+  let b = b0;
+  let c = c0;
+  let d = d0;
 
   // sfc32
   const next = (): number => {
@@ -56,7 +67,7 @@ export function createRng(seed: number | string): Rng {
   };
 
   // Mix the state so similar seeds diverge straight away.
-  for (let i = 0; i < 12; i++) next();
+  if (mix) for (let i = 0; i < 12; i++) next();
 
   const int = (min: number, max: number): number => {
     if (!Number.isInteger(min) || !Number.isInteger(max) || max < min) {
@@ -86,5 +97,6 @@ export function createRng(seed: number | string): Rng {
       return out;
     },
     fork: (label) => createRng(`${seedText}/${label}`),
+    clone: () => generator(seedText, a, b, c, d, false),
   };
 }

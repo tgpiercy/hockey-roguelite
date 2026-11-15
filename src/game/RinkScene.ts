@@ -14,9 +14,13 @@ import { carrySpot } from '../sim/puck';
 import { goalLineX, nets } from '../sim/rink';
 import { chargeFraction } from '../sim/shot';
 import { activeLabels } from '../sim/conditions';
+import { passPreview } from '../sim/pass';
+import { STEPS_PER_SECOND } from '../sim/clock';
+import { newlyInForce, wordsFor } from './floatWords';
+import { copyWorld, goalOfTheGame, Recorder, type Clip, type GoalNote } from './replay';
 import { isMascot, mascotPlayer } from '../sim/mascot';
 import type { Tuning } from '../sim/tuning';
-import type { SimEvent, World, MatchRules } from '../sim/types';
+import type { SimEvent, World, MatchRules, InputFrame } from '../sim/types';
 import { NO_INPUT } from '../sim/types';
 import { createGame, step, STEP_SECONDS, type TeamSetup } from '../sim/world';
 import { Crowd } from './drawArena';
@@ -78,6 +82,10 @@ export interface RinkSceneOptions {
   onFrame?: (world: World, t: Tuning, seconds: number) => void;
   /** How often the player has done each move, for the on-screen hints; null (or left out) switches hints off. */
   hints?: () => HintCounts | null;
+  /** Whether a goal is shown again in slow motion. Left out, it is not. */
+  replays?: () => boolean;
+  /** Told when a replay starts (true) and ends (false). */
+  onReplay?: (on: boolean) => void;
   /** Called each time the player does a move a hint is about. */
   onHintDone?: (id: string) => void;
   /** Called with the result when the game ends, to show the summary. */
@@ -152,6 +160,21 @@ export class RinkScene extends Phaser.Scene {
   private mascotBanner = { until: 0, team: 0 as 0 | 1 };
   /** Things that happened before the first frame (a mascot there from the opening faceoff), to be told with it. */
   private pending: SimEvent[] = [];
+  /** Words rising from the play, and the text objects that show them. */
+  private floats: { text: string; x: number; y: number; age: number; item: boolean }[] = [];
+  private floatTexts: Phaser.GameObjects.Text[] = [];
+  /** The conditional items in force for the human's team last frame, to notice new ones. */
+  private inForce: ReadonlySet<string> = new Set();
+  /** Instant replay: the recorder, the clip being shown, the goal waiting to be shown, and every goal's clip. */
+  private recorder = new Recorder(1, look.replay.keepSeconds);
+  private replay: { world: World; inputs: [InputFrame, InputFrame][]; at: number; leftover: number } | null = null;
+  private goalWaiting: number | null = null;
+  private goalClips: (Clip | null)[] = [];
+  private goalNotes: (GoalNote & { scorer: number | null })[] = [];
+  private lastOneTimer = false;
+  private replayText!: Phaser.GameObjects.Text;
+  /** The stick as each player last held it, for the pass mark. */
+  private lastFrames: [InputFrame, InputFrame] = [NO_INPUT, NO_INPUT];
   private pullText!: Phaser.GameObjects.Text;
   /** Which way each player faced on screen last frame: left or right. */
   private readonly sides = new Map<number, 1 | -1>();
@@ -220,6 +243,8 @@ export class RinkScene extends Phaser.Scene {
       .setOrigin(0.5, 0.5)
       .setVisible(false);
     this.powerText = this.add.text(0, 0, '', { ...heading, color: c.text }).setOrigin(1, 0.5);
+    this.replayText = this.add.text(0, 0, 'REPLAY', { ...heading, color: c.accent }).setOrigin(0, 0).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
+    this.floatTexts = Array.from({ length: look.floatWords.most }, () => this.add.text(0, 0, '', { ...heading, color: look.floatWords.colour }).setOrigin(0.5, 1).setDepth(DEPTH.hud).setStroke(c.panel, 4).setVisible(false));
     this.pullText = this.add.text(0, 0, '', { ...heading, color: c.accent }).setOrigin(0.5, 1).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
     this.callText = this.add.text(0, 0, '', { ...heading, color: c.text }).setOrigin(0.5, 0).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
     this.commentator = new Commentator(this.options.seed);
@@ -272,12 +297,24 @@ export class RinkScene extends Phaser.Scene {
     this.passWasDown = controls.frame.pass;
 
     this.clock += real;
+    // A replay takes over the screen until it ends or a button skips it; the game itself waits.
+    if (this.replay) {
+      const skipping = controls.frame.pass || controls.frame.shoot || controls.frame.check;
+      const skip = skipping && !this.replaySkipHeld;
+      this.replaySkipHeld = skipping;
+      this.passWasDown = controls.frame.pass;
+      this.stepReplay(t, real, skip);
+      return;
+    }
+    this.replaySkipHeld = controls.frame.pass || controls.frame.shoot || controls.frame.check;
     const happened: SimEvent[] = this.pending.splice(0);
     let played = 0;
     if (this.world.phase === 'final') {
       if (!this.reported) {
         this.reported = true;
         this.options.onResult(gameResult(this.world));
+      } else if (controls.frame.shoot && !this.shootWasDown && !this.done && this.watchGoalOfTheGame()) {
+        // Shoot at the summary: the goal of the game, once more.
       } else if (passPressed && !this.done) {
         this.done = true;
         this.options.onDone(gameResult(this.world));
@@ -293,8 +330,29 @@ export class RinkScene extends Phaser.Scene {
         while (this.leftover >= STEP_SECONDS) {
           const controlled = this.world.human ? this.world.human.controlled : -1;
           const controlled2 = this.world.human2 ? this.world.human2.controlled : -1;
+          this.recorder.before(this.world, controls.frame, frame2);
           const stepped = step(this.world, controls.frame, t, frame2);
           happened.push(...stepped);
+          for (const e of stepped) {
+            if (e.type === 'shot') this.lastOneTimer = e.oneTimer === true;
+            if (e.type === 'goal') {
+              this.goalNotes.push({ team: e.team, score: [this.world.score[0], this.world.score[1]], overtime: this.world.overtime, oneTimer: this.lastOneTimer, scorer: e.scorer });
+              this.goalClips.push(null);
+              this.goalWaiting = this.world.tick;
+            }
+          }
+          // Once the celebration is over the goal's clip is cut, and shown if replays are on.
+          if (this.goalWaiting !== null && this.world.phase !== 'goal') {
+            const from = this.goalWaiting - Math.round(look.replay.beforeSeconds * STEPS_PER_SECOND);
+            const clip = this.recorder.clip(from, this.goalWaiting + Math.round(look.replay.afterSeconds * STEPS_PER_SECOND));
+            this.goalClips[this.goalClips.length - 1] = clip;
+            this.goalWaiting = null;
+            if (clip && (this.world.phase as string) !== 'final' && this.world.rules === 'game' && this.options.replays?.()) {
+              this.startReplay(clip);
+              this.leftover = 0;
+              break;
+            }
+          }
           for (const e of stepped) {
             // A move by either player counts toward the same tallies.
             const id = hintDone(e, controlled) ?? (controlled2 >= 0 ? hintDone(e, controlled2) : null);
@@ -304,6 +362,16 @@ export class RinkScene extends Phaser.Scene {
           played += STEP_SECONDS;
         }
       }
+    }
+    // Words rise from the play for the moves worth naming, and for an artifact of yours coming into force.
+    for (const word of wordsFor(happened)) {
+      const who = this.world.players[word.player];
+      if (who) this.floatWord(word.text, who.pos.x, who.pos.y, false);
+    }
+    if (this.world.human) {
+      const noted = newlyInForce(this.world, this.world.human.team, this.inForce);
+      this.inForce = noted.now;
+      for (const name of noted.fresh) this.floatWord(name.toUpperCase(), this.world.puck.pos.x, this.world.puck.pos.y, true);
     }
     for (const e of happened) {
       if (e.type === 'goal') {
@@ -349,7 +417,69 @@ export class RinkScene extends Phaser.Scene {
     }
     if (happened.length > 0) this.options.onEvents?.(happened, this.world, t);
     this.options.onFrame?.(this.world, t, real);
+    this.lastFrames = [controls.frame, frame2];
+    this.shootWasDown = controls.frame.shoot;
     this.draw(t, real);
+    this.drawFloats(real);
+  }
+
+  private replaySkipHeld = false;
+  private shootWasDown = false;
+
+  /** Starts showing a clip. The clip itself is left as it was, so it can be shown again. */
+  private startReplay(clip: Clip): void {
+    this.replay = { world: copyWorld(clip.start), inputs: clip.inputs, at: 0, leftover: 0 };
+    this.floats = [];
+    this.options.onReplay?.(true);
+  }
+
+  /** One frame of a replay: runs the copy on at its own speed, draws it in place of the game, and ends it when it is done or skipped. */
+  private stepReplay(t: Tuning, real: number, skip: boolean): void {
+    const replay = this.replay;
+    if (!replay) return;
+    const events: SimEvent[] = [];
+    let played = 0;
+    replay.leftover += real * look.replay.speed;
+    while (replay.leftover >= STEP_SECONDS && replay.at < replay.inputs.length) {
+      const [a, b] = replay.inputs[replay.at] as [InputFrame, InputFrame];
+      events.push(...step(replay.world, a, t, b));
+      replay.at += 1;
+      replay.leftover -= STEP_SECONDS;
+      played += 1;
+    }
+    const live = this.world;
+    this.world = replay.world;
+    this.effects.update(replay.world, events, t, played);
+    this.effects.shake = 0;
+    this.draw(t, real);
+    this.world = live;
+    this.drawFloats(real);
+    this.replayText.setVisible(true);
+    this.replayText.setFontSize(Math.max(12, this.scale.height * 0.05));
+    this.replayText.setPosition(look.marginPixels + 10, look.topBarPixels + 8);
+    this.replayText.setText('REPLAY  ·  ANY BUTTON SKIPS');
+    if (skip || replay.at >= replay.inputs.length) {
+      this.replay = null;
+      this.replayText.setVisible(false);
+      this.options.onReplay?.(false);
+    }
+  }
+
+  /** The goal of the game, for the summary: who scored it and the score it made, or null if nobody scored. */
+  goalOfTheGame(): { scorer: number | null; team: 0 | 1; score: [number, number]; canWatch: boolean } | null {
+    const index = goalOfTheGame(this.goalNotes);
+    if (index === null) return null;
+    const note = this.goalNotes[index] as GoalNote & { scorer: number | null };
+    return { scorer: note.scorer, team: note.team, score: note.score, canWatch: Boolean(this.goalClips[index]) };
+  }
+
+  /** Shows the goal of the game again. Returns false if there is none to show. */
+  watchGoalOfTheGame(): boolean {
+    const index = goalOfTheGame(this.goalNotes);
+    const clip = index === null ? null : this.goalClips[index];
+    if (!clip || this.replay) return false;
+    this.startReplay(clip);
+    return true;
   }
 
   /** Gives the game up: it ends now as a loss for the human's team, without the summary screen. */
@@ -382,6 +512,33 @@ export class RinkScene extends Phaser.Scene {
   }
 
   /** The big message in the middle of the ice, if any. */
+  /** Starts a word rising from a spot on the ice (in metres). The oldest gives way when there are too many. */
+  private floatWord(text: string, x: number, y: number, item: boolean): void {
+    if (this.floats.length >= look.floatWords.most) this.floats.shift();
+    this.floats.push({ text, x, y, age: 0, item });
+  }
+
+  /** Moves the rising words on and puts them on the screen. */
+  private drawFloats(real: number): void {
+    const fw = look.floatWords;
+    this.floats = this.floats.filter((w) => (w.age += real) < fw.seconds);
+    const size = Math.max(10, this.scale.height * fw.size);
+    this.floatTexts.forEach((label, i) => {
+      const w = this.floats[i];
+      if (!w) {
+        label.setVisible(false);
+        return;
+      }
+      const k = w.age / fw.seconds;
+      label.setText(w.text);
+      label.setFontSize(size);
+      label.setColor(w.item ? fw.itemColour : fw.colour);
+      label.setPosition(this.sx(w.x), this.sy(w.y) - this.zoom * (1.6 + fw.rise * k));
+      label.setAlpha(k < 0.7 ? 1 : (1 - k) / 0.3);
+      label.setVisible(true);
+    });
+  }
+
   private mascotName(team: 0 | 1): string | null {
     return this.options.teams[team].mascot?.name ?? null;
   }
@@ -599,6 +756,13 @@ export class RinkScene extends Phaser.Scene {
       this.figureKeys.clear();
       this.figurePixels = pixels;
     }
+    // Where each human's pass would go right now.
+    const passMarks = new Map<number, string>();
+    [world.human, world.human2].forEach((human, n) => {
+      const passer = human ? world.players[human.controlled] : undefined;
+      const target = passer && world.phase === 'play' ? passPreview(world, passer, this.lastFrames[n] as InputFrame, t) : null;
+      if (target) passMarks.set(target.id, n === 0 ? RET.colour : RET.colour2);
+    });
     for (const [i, p] of world.players.entries()) {
       const label = this.labels[i];
       const number = this.numbers[i];
@@ -710,7 +874,24 @@ export class RinkScene extends Phaser.Scene {
         this.top.strokeCircle(x, y - unit * 1.6, unit * 2.4);
       }
 
-      const ringColour = p === controlled ? RET.colour : world.human2 && world.human2.controlled === p.id ? RET.colour2 : null;
+      // The team-mate a pass would go to right now: a small diamond under him, in the passer's colour.
+      const marked = passMarks.get(p.id);
+      if (marked) {
+        const half = unit * look.passMark.size;
+        const tall = half * FIG.ringSquash;
+        const diamond = [
+          [x - half, y, x, y - tall],
+          [x, y - tall, x + half, y],
+          [x + half, y, x, y + tall],
+          [x, y + tall, x - half, y],
+        ] as const;
+        g.lineStyle(Math.max(2, unit * look.passMark.width) + RET.edgePixels * 2, colour(RET.edge));
+        for (const [ax, ay, bx, by] of diamond) g.lineBetween(ax, ay, bx, by);
+        g.lineStyle(Math.max(2, unit * look.passMark.width), colour(marked));
+        for (const [ax, ay, bx, by] of diamond) g.lineBetween(ax, ay, bx, by);
+      }
+      const second = world.human2 !== null && world.human2.controlled === p.id && p !== controlled;
+      const ringColour = p === controlled ? RET.colour : second ? RET.colour2 : null;
       if (ringColour !== null) {
         // The ring lies flat on the ice under him, with a tick pointing the way he truly faces. Player two's is blue.
         const ring = base * look.controlRingScale;
@@ -721,6 +902,8 @@ export class RinkScene extends Phaser.Scene {
         for (const [w, hex] of [[width + RET.edgePixels * 2, RET.edge], [width, ringColour]] as const) {
           g.lineStyle(w, colour(hex));
           g.strokeEllipse(x, y, ring * 2, ring * 2 * FIG.ringSquash);
+          // Player two's ring is doubled, so it differs in shape as well as colour.
+          if (second) g.strokeEllipse(x, y, ring * 1.45, ring * 1.45 * FIG.ringSquash);
           g.lineBetween(tx, ty, tx + Math.cos(p.facing) * ring * FIG.ringTick, ty + Math.sin(p.facing) * ring * FIG.ringTick * FIG.ringSquash);
         }
       }
@@ -824,6 +1007,11 @@ export class RinkScene extends Phaser.Scene {
       g.lineStyle(Math.max(2, look.lineWidth * z), colour(c.puck));
       g.strokeCircle(x, y, radius * 2.5);
       return;
+    }
+    // The passing chain: a bright ring round the puck for each pass in it.
+    for (let k = 1; k <= puck.chain; k++) {
+      g.lineStyle(Math.max(1.5, z * 0.09), colour(c.charge), 0.9);
+      g.strokeCircle(x, y, radius * (1.4 + k * 0.7));
     }
     const lift = puck.air > 0 ? radius * 1.2 : radius * 0.35;
     g.fillStyle(colour(c.shadow), 0.3);

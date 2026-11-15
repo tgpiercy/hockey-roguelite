@@ -788,6 +788,20 @@ The league stays at about 74.8. A free ringer wins the automatic manager a few m
 
 Not measured: how many Pucks a person now earns in a season. Bounties (6 to 15 a game), loans (20), rink bonuses (6) and handicap pay all add to it, against a shop where a strike repair costs 70. That needs a played season to judge.
 
+## The passing chain and the replay (2026-11-15)
+
+**Passing chain** (`physics.json` `chain`: `max` 3, `windowSeconds` 4). The standard series, 200 games:
+
+| `reactionPerStep` | Goals a team | Save percentage |
+| --- | --- | --- |
+| Before the chain | 4.03 / 4.28 | .780 |
+| 0.07 | 4.39 / 4.40 | .762 |
+| 0.03 (shipped) | 4.21 / 4.14 | .779 |
+
+At 0.07 it added about a quarter of a goal a team, so it was cut. At 0.03 scoring is where it was, within noise: in all-AI play the chain is close to cosmetic. Whether a person who passes on purpose feels it is for play to say.
+
+**Replay.** A copy of the game takes 0.16 ms on the development PC and is 32 KB; one is taken a second. Not measured on the phone. A re-run from a copy matches the live game exactly, step for step, in an all-AI game and in one with scripted inputs (`tests/replay.test.ts`).
+
 ## Change log
 
 | Date | Value | From | To | Why |

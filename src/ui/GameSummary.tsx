@@ -14,6 +14,8 @@ interface Props {
   teams: [DressedTeam, DressedTeam];
   /** Each team's crest, in the colours it wore. */
   crests: [Crest, Crest];
+  /** The goal of the game in words, and whether it can be watched again. */
+  best?: { text: string; canWatch: boolean } | null;
 }
 
 const minutes = (seconds: number): string => {
@@ -83,7 +85,7 @@ function TeamTable({ team, crest, players, mascot }: { team: DressedTeam; crest:
 }
 
 /** End-of-game screen: both crests and the score, the three stars of the game, and every player's line. */
-export function GameSummary({ result, teams, crests }: Props) {
+export function GameSummary({ result, teams, crests, best }: Props) {
   if (!result || !result.finished) return null;
   const [you, them] = result.score;
   const verdict = result.winner === 0 ? 'Victory' : result.winner === 1 ? 'Defeat' : 'Tie';
@@ -141,6 +143,11 @@ export function GameSummary({ result, teams, crests }: Props) {
         <TeamTable team={teams[0]} crest={crests[0]} players={result.players.filter((p) => p.team === 0)} mascot={result.mascots?.[0] ?? null} />
         <TeamTable team={teams[1]} crest={crests[1]} players={result.players.filter((p) => p.team === 1)} mascot={result.mascots?.[1] ?? null} />
       </div>
+      {best && (
+        <div class="summary-again">
+          Goal of the game: {best.text}.{best.canWatch ? ' Press Shoot (Space) to watch it again.' : ''}
+        </div>
+      )}
       <div class="summary-again">Press A, Z or Pass to continue</div>
     </div>
   );

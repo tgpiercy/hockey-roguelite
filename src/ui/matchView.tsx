@@ -211,6 +211,11 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
         if (commentary === 'voice' && voiceVolume > 0) speak(text, priority, voiceVolume);
       },
       hints: () => (hintsOn ? hintCounts : null),
+      replays: () => loadPrefs().replays,
+      // The summary steps aside while the goal of the game is shown again.
+      onReplay: (on) => {
+        summary.style.visibility = on ? 'hidden' : '';
+      },
       onHintDone: (id) => {
         hintCounts[id] = (hintCounts[id] ?? 0) + 1;
         saveHintCounts(hintCounts);
@@ -232,7 +237,18 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       onResult: (result) => {
         music.sting(resultPiece(result.winner === 0));
         render(
-          <GameSummary result={result} teams={[home, away]} crests={[teamCrest(home.name, homeColour ?? look.colours.teamHome), teamCrest(away.name, awayColour ?? look.colours.teamAway)]} />,
+          <GameSummary
+            result={result}
+            teams={[home, away]}
+            crests={[teamCrest(home.name, homeColour ?? look.colours.teamHome), teamCrest(away.name, awayColour ?? look.colours.teamAway)]}
+            best={(() => {
+              const best = scene.goalOfTheGame();
+              if (!best) return null;
+              const side = best.team === 0 ? home : away;
+              const who = best.scorer === null ? null : (side.players[best.scorer % 7]?.name ?? null);
+              return { text: `${who ? `${who} for ${side.name}` : `${side.name}`}, to make it ${best.score[0]}-${best.score[1]}`, canWatch: best.canWatch };
+            })()}
+          />,
           summary,
         );
       },
@@ -243,6 +259,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
         document.body.classList.remove('paused');
         render(null, pauseRoot);
         render(null, summary);
+        summary.style.visibility = '';
         render(null, touch);
         gameAudio.stopBeds();
         menuInput.setPlayer(0);

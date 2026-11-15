@@ -101,6 +101,11 @@ export function resolveLoosePuck(world: World, t: Tuning, events: SimEvent[]): v
         // Shoot already held as it arrives: he fires it first-touch.
         p.oneTimerArmed = p.shootHeld;
       }
+      // A pass that reaches its man adds to the chain, if it comes soon enough after the last one.
+      if (isTarget && puck.lastTeam === p.team) {
+        puck.chain = puck.chain === 0 || puck.chainAge <= t.chain.windowSeconds ? Math.min(t.chain.max, puck.chain + 1) : 1;
+        puck.chainAge = 0;
+      }
       givePuck(world, p);
       // A boss trick: winning the puck in his own end gives him a burst of speed.
       if (p.fx.gainBurst > 0 && attackDir(p.team) * p.pos.x < 0) p.burst = p.fx.gainBurst;

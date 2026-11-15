@@ -13,6 +13,8 @@ export interface Prefs {
   touch: 'auto' | 'always' | 'never';
   /** On-screen reminders of the moves, shown during a game until each has been done a few times. */
   hints: boolean;
+  /** Whether a goal is shown again in slow motion. */
+  replays: boolean;
   /** Commentary during a game: none, a line of text, or the text read aloud as well. */
   commentary: 'off' | 'text' | 'voice';
   /** Music on the menus and at big moments, and how loud (0 to 1). */
@@ -20,7 +22,7 @@ export interface Prefs {
   musicVolume: number;
 }
 
-export const DEFAULT_PREFS: Prefs = { sound: true, volume: 0.7, detail: 'full', touch: 'auto', hints: true, commentary: 'text', music: true, musicVolume: 0.5 };
+export const DEFAULT_PREFS: Prefs = { sound: true, volume: 0.7, detail: 'full', touch: 'auto', hints: true, replays: true, commentary: 'text', music: true, musicVolume: 0.5 };
 export const COMMENTARY_MODES: Prefs['commentary'][] = ['off', 'text', 'voice'];
 export const COMMENTARY_NAMES: Record<Prefs['commentary'], string> = { off: 'Off', text: 'Text', voice: 'Text and voice' };
 export const VOLUME_STEPS = [0.2, 0.4, 0.7, 1];
@@ -51,6 +53,7 @@ export function parsePrefs(raw: string | null): Prefs {
       detail: v.detail === 'low' || v.detail === 'full' ? v.detail : DEFAULT_PREFS.detail,
       touch: v.touch === 'auto' || v.touch === 'always' || v.touch === 'never' ? v.touch : DEFAULT_PREFS.touch,
       hints: typeof v.hints === 'boolean' ? v.hints : DEFAULT_PREFS.hints,
+      replays: typeof v.replays === 'boolean' ? v.replays : DEFAULT_PREFS.replays,
       commentary: v.commentary === 'off' || v.commentary === 'text' || v.commentary === 'voice' ? v.commentary : DEFAULT_PREFS.commentary,
       music: typeof v.music === 'boolean' ? v.music : DEFAULT_PREFS.music,
       musicVolume: typeof v.musicVolume === 'number' && Number.isFinite(v.musicVolume) ? Math.max(0, Math.min(1, v.musicVolume)) : DEFAULT_PREFS.musicVolume,

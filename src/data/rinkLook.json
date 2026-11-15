@@ -281,6 +281,17 @@
     "cheerHandY": 4.25,
     "cheerSpread": 0.55
   },
+  "replay": { "beforeSeconds": 3.2, "afterSeconds": 0.7, "speed": 0.5, "keepSeconds": 7 },
+  "floatWords": {
+    "seconds": 1.0,
+    "rise": 2.2,
+    "size": 0.05,
+    "most": 6,
+    "colour": "#ffffff",
+    "itemColour": "#ffd24a",
+    "texts": { "stolen": "STOLEN!", "bigHit": "BIG HIT!", "blocked": "BLOCKED!", "oneTimer": "ONE-TIMER!", "deked": "DEKED!", "denied": "DENIED!" }
+  },
+  "passMark": { "size": 0.9, "width": 0.16 },
   "reticle": {
     "colour": "#ff2436",
     "colour2": "#2f8bff",
