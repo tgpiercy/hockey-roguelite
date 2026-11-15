@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { homeGame, isHomeGame } from '../src/core/economy';
 import { generateLeague } from '../src/core/generate';
-import { availableStops, chooseEvent, currentStop, leaveShop, newFranchise, pickArtifact, playoffSeed, recordGame, startSeason, train, travel, type Franchise } from '../src/core/season';
+import { availableStops, chooseEvent, currentStop, leaveShop, newFranchise, pickArtifact, playoffSeed, recordGame, startSeason, train, travel, type Franchise, pickRinger } from '../src/core/season';
 import { creditGoals, gamesPlayed, newStandings, placeOf, playoffField, playRound, points, ranked, recordResult, settleSeries, type Scoring, type Standings } from '../src/core/standings';
 import { createRng } from '../src/core/rng';
 import rules from '../src/data/standings.json';
@@ -20,6 +20,10 @@ const started = (seed = 'standings'): Franchise => {
 const playMap = (f: Franchise, win: (n: number) => boolean): void => {
   let n = 0;
   for (let guard = 0; guard < 200 && f.season.phase === 'map'; guard++) {
+    if (f.season.stage === 'ringer') {
+      pickRinger(f, null);
+      continue;
+    }
     if (f.season.stage === 'reward') {
       pickArtifact(f, f.season.offer[0]!);
       continue;

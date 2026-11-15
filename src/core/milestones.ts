@@ -1,6 +1,6 @@
 import data from '../data/milestones.json';
 import type { GameResult } from '../sim/match';
-import { MASCOT_ID } from './mascot';
+import { isGuest } from './ringer';
 import type { DressedTeam } from './matchup';
 import type { Franchise } from './season';
 
@@ -27,7 +27,7 @@ export function tally(f: Franchise, result: GameResult, home: DressedTeam): void
     if (line.team !== 0 || line.goals === 0) continue;
     const player = home.players[dressedIndex(line)];
     // A mascot's goals count on the scoreboard but not toward anyone's milestones.
-    if (!player || player.id === MASCOT_ID) continue;
+    if (!player || isGuest(player.id)) continue;
     season.playerGoals[player.id] = (season.playerGoals[player.id] ?? 0) + line.goals;
     if (line.goals >= hatTrick) season.hatTrick = true;
   }

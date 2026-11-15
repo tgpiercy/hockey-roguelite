@@ -775,6 +775,19 @@ What it shows. The AI plays a whole, sensible game on each. The pond has more sh
 
 **Shootout.** All-AI shooters score on 19% of turns and a shootout takes about 37 seconds of play (12 turns). The AI shoots early from range; a person who dekes or fakes should do better. A first try at giving the goalies an edge stopped every shot, so they have none.
 
+## Run features and the league health check (2026-11-15)
+
+`npm run seasons -- --seeds 10 --years 12`, before and after bounties, the ringer, stickers and recipes (the automatic manager hires the first free ringer; it plays no bounties, since its games are settled from strength).
+
+| Manager, at year 12 | Your team before | after | Club value before | after | Bail-outs |
+| --- | --- | --- | --- | --- | --- |
+| Balanced | 69.2 | 69.5 | $106.5M | $109.0M | none |
+| Spender | 68.3 | 68.3 | $110.5M | $110.0M | none |
+
+The league stays at about 74.8. A free ringer wins the automatic manager a few more games a season, which shows as a little more club value; nothing else moves.
+
+Not measured: how many Pucks a person now earns in a season. Bounties (6 to 15 a game), loans (20), rink bonuses (6) and handicap pay all add to it, against a shop where a strike repair costs 70. That needs a played season to judge.
+
 ## Change log
 
 | Date | Value | From | To | Why |

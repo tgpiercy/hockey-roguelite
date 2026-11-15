@@ -4,7 +4,7 @@ import { clubRecords } from '../src/core/chronicle';
 import { generateLeague } from '../src/core/generate';
 import { beginSeason } from '../src/core/offseason';
 import { fromSave, franchiseOf, toSave } from '../src/core/save';
-import { availableStops, canSimulate, currentStop, healPrice, healStrike, matchup, maxStrikes, newFranchise, pickArtifact, recordGame, seasonRegions, shopPrice, startSeason, teamModifiers, travel, type Franchise } from '../src/core/season';
+import { availableStops, canSimulate, currentStop, healPrice, healStrike, matchup, maxStrikes, newFranchise, pickArtifact, recordGame, seasonRegions, shopPrice, startSeason, teamModifiers, travel, type Franchise, pickRinger } from '../src/core/season';
 import { betterResult, claimWeekly, isWeekly, newWeekly, resultLine, weekKey, weeklyOver, weeklyResult } from '../src/core/weekly';
 import data from '../src/data/charters.json';
 import rules from '../src/data/season.json';
@@ -196,7 +196,8 @@ describe('charters', () => {
     f.season.current = boss.id;
     f.season.stage = 'arrived';
     recordGame(f, result(true));
-    if ((f.season.stage as string) === 'reward') pickArtifact(f, f.season.offer[0]!);
+    while ((f.season.stage as string) === 'reward') pickArtifact(f, f.season.offer[0]!);
+    if ((f.season.stage as string) === 'ringer') pickRinger(f, null);
     expect(f.season.phase).toBe('playoffs');
   });
 
@@ -258,7 +259,8 @@ describe('the weekly run', () => {
     f.season.current = boss.id;
     f.season.stage = 'arrived';
     recordGame(f, result(true));
-    if ((f.season.stage as string) === 'reward') pickArtifact(f, f.season.offer[0]!);
+    while ((f.season.stage as string) === 'reward') pickArtifact(f, f.season.offer[0]!);
+    if ((f.season.stage as string) === 'ringer') pickRinger(f, null);
     expect(weeklyOver(f)).toBe(true);
     expect(currentStop(f)).toBeNull();
     expect(weeklyResult(f)).toMatchObject({ week: '2026-W46', won: true, wins: 1, losses: 0 });

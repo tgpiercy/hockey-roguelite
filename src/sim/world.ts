@@ -237,6 +237,7 @@ export function createWorld(t: Tuning, seed: number | string, options: WorldOpti
     overtime: false,
     overtimeLimit: options.overtimeLimit ?? 0,
     hornWait: 0,
+    periodScores: [],
     faceoff: null,
     teams: [newTeamState(options.human === false ? [] : (options.powerups ?? []), options.teams?.[0].style ?? null, options.teams?.[0].heavyLine ?? null, options.teams?.[0].tactics ?? null, visitOf(options, 0), options.teams?.[0].modifiers), newTeamState([], options.teams?.[1].style ?? null, options.teams?.[1].heavyLine ?? null, options.teams?.[1].tactics ?? null, visitOf(options, 1), options.teams?.[1].modifiers)],
   };

@@ -45,11 +45,13 @@ export interface SeasonMap {
  * `teamsByStrength` is the AI teams' ids, weakest first: the first region draws from the weakest
  * third, the last from the strongest.
  */
-export function generateMap(seed: string, teamsByStrength: string[], regions: number = rules.regions): SeasonMap {
+export function generateMap(seed: string, teamsByStrength: string[], regions: number = rules.regions, seenEvents: readonly string[] = []): SeasonMap {
   const rng = createRng(`${seed}/map`);
   const stops: Record<string, Stop> = {};
   const regionStarts: string[][] = [];
-  const eventOrder = rng.shuffle(events.map((e) => e.id));
+  // Events you have not had before come first; within each group the order is the seed's.
+  const shuffled = rng.shuffle(events.map((e) => e.id));
+  const eventOrder = [...shuffled.filter((id) => !seenEvents.includes(id)), ...shuffled.filter((id) => seenEvents.includes(id))];
   const bossOrder = rng.shuffle(bosses.map((b) => b.id));
   const tierSize = Math.max(1, Math.floor(teamsByStrength.length / regions));
   let nextEvent = 0;

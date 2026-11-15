@@ -20,8 +20,7 @@ import {
   trainingChoices,
   trainingFocus,
   travel,
-  type Franchise,
-} from '../src/core/season';
+  type Franchise, pickRinger } from '../src/core/season';
 import { generateMap, type Stop } from '../src/core/seasonMap';
 import artifacts from '../src/data/artifacts.json';
 import events from '../src/data/events.json';
@@ -37,6 +36,10 @@ const result = (won: boolean, margin = 1): GameResult => ({ score: won ? [margin
 
 /** Deals with the stop the season is on in the simplest way, winning any game. */
 const resolve = (f: Franchise): void => {
+  if (f.season.stage === 'ringer') {
+    pickRinger(f, null);
+    return;
+  }
   if (f.season.stage === 'reward') {
     pickArtifact(f, f.season.offer[0]!);
     return;

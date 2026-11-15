@@ -40,8 +40,7 @@ import {
   recordGame,
   startSeason,
   travel,
-  type Franchise,
-} from '../src/core/season';
+  type Franchise, pickRinger } from '../src/core/season';
 import gearData from '../src/data/gear.json';
 import packData from '../src/data/packs.json';
 import perks from '../src/data/perks.json';
@@ -511,7 +510,8 @@ describe('packs and milestones in a season', () => {
     for (let guard = 0; guard < 30; guard++) {
       const stop = currentStop(f);
       if (stop && (stop.kind === 'game' || stop.kind === 'boss') && f.season.stage === 'arrived') return;
-      if (f.season.stage === 'reward') pickArtifact(f, f.season.offer[0]!);
+      while ((f.season.stage as string) === 'reward') pickArtifact(f, f.season.offer[0]!);
+      if ((f.season.stage as string) === 'ringer') pickRinger(f, null);
       else if (!stop) {
         const options = availableStops(f);
         travel(f, (options.find((s) => s.kind === 'game' || s.kind === 'boss') ?? options[0]!).id);
@@ -577,7 +577,8 @@ describe('packs and milestones in a season', () => {
     const golds = (): number => f.gearCount && f.season.milestones.length;
     for (let wins = 1; wins <= 9; wins++) {
       play(f, game(2, 1));
-      if (f.season.stage === 'reward') pickArtifact(f, f.season.offer[0]!);
+      while ((f.season.stage as string) === 'reward') pickArtifact(f, f.season.offer[0]!);
+      if ((f.season.stage as string) === 'ringer') pickRinger(f, null);
       expect(f.season.milestones.includes('wins-4')).toBe(wins >= 4);
       expect(f.season.milestones.includes('wins-8')).toBe(wins >= 8);
     }

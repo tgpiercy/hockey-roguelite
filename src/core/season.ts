@@ -1,3 +1,6 @@
+import { bountyFor, bountyMet, STICKERS, UNSEEN_WEIGHT, type BountyInfo } from './bounty';
+import { isGuest, ringerOffer, withRinger, type Ringer } from './ringer';
+import { rinkInfo } from './rinks';
 import { charterInfo, cleanVows, opponentModifiers, setupModifiers, STANDARD_CHARTER, type SeasonSetup } from './charter';
 import type { MatchRules } from '../sim/types';
 import { isVariant, RINK_BONUS } from './rinks';
@@ -12,7 +15,7 @@ import prestigeRules from '../data/prestige.json';
 import rules from '../data/season.json';
 import type { GameResult } from '../sim/match';
 import { modified, type Modifier, type PowerupSpec } from '../sim/modifiers';
-import { aiTeamsByStrength, bossInfo, buildBoss } from './bosses';
+import { aiTeamsByStrength, bossInfo, buildBoss, teamStrength } from './bosses';
 import { clubModifiers } from './club';
 import { bookGame, bookMilestones, STARTING_CASH, STARTING_VALUE, isHomeGame, homeGame } from './economy';
 import { newFacilities, homeIceModifiers } from './facilities';
@@ -57,7 +60,15 @@ export interface SeasonState {
   /** The stop being dealt with now, or null while choosing where to go next. */
   current: string | null;
   /** "arrived": the stop is still to be done. "reward": a boss is beaten and an artifact is to be picked. */
-  stage: 'none' | 'arrived' | 'reward';
+  stage: 'none' | 'arrived' | 'reward' | 'ringer';
+  /** The loan skaters on offer after a boss, and the one playing for you this season. */
+  ringerOffer?: Ringer[];
+  ringer?: Ringer;
+  /** Stickers on the artifacts now on offer, by artifact id. */
+  offerStickers?: Record<string, 'loan' | 'pricey'>;
+  /** Artifacts on loan: games left, by artifact id. And those that cost Pucks after every game. */
+  loans?: Record<string, number>;
+  pricey?: string[];
   /** Artifact ids on offer after beating a boss. */
   offer: string[];
   /** The last stop finished. */
@@ -193,6 +204,8 @@ export interface Franchise {
   packsSinceLegendary: number;
   /** The week whose weekly-run prize has been collected. */
   weeklyClaimed?: string;
+  /** Artifacts you have ever held and events you have ever met: ones you have not come up more often. */
+  seen?: { artifacts: string[]; events: string[] };
   /** How many packs have ever been awarded; also numbers the pieces. */
   gearCount: number;
   prestige: PrestigeState;
@@ -335,6 +348,8 @@ export interface ArtifactInfo {
   modifiers: Modifier[];
   /** A bargain: for this many games after it is taken the handicap counts in place of the modifiers. */
   bargain?: { games: number; handicap: Modifier[] };
+  /** Made by holding these two together; never offered itself. */
+  recipe?: [string, string];
 }
 
 export function artifactInfo(id: string): ArtifactInfo {
@@ -394,6 +409,27 @@ function gainArtifact(f: Franchise, artifactId: string): void {
   f.artifacts.push(artifactId);
   const bargain = artifactInfo(artifactId).bargain;
   if (bargain) f.season.bargains = { ...(f.season.bargains ?? {}), [artifactId]: bargain.games };
+  remember(f, 'artifacts', artifactId);
+  // A recipe: two held together become a third. (One on loan is not yours to combine.)
+  for (const made of artifacts as unknown as ArtifactInfo[]) {
+    if (!made.recipe || !made.recipe.every((part) => f.artifacts.includes(part) && !(f.season.loans?.[part] ?? 0))) continue;
+    f.artifacts = [...f.artifacts.filter((id) => !made.recipe!.includes(id)), made.id];
+    if (f.season.pricey) f.season.pricey = f.season.pricey.filter((id) => !made.recipe!.includes(id));
+    remember(f, 'artifacts', made.id);
+  }
+}
+
+/** Notes an artifact or an event as one you have had. */
+function remember(f: Franchise, what: 'artifacts' | 'events', id: string): void {
+  const seen = (f.seen ??= { artifacts: [], events: [] });
+  if (!seen[what].includes(id)) seen[what].push(id);
+}
+
+/** What two artifacts you hold would make, if you had the other half: for the screens. */
+export function recipeFor(artifactId: string): { partner: string; makes: string } | null {
+  const made = (artifacts as unknown as ArtifactInfo[]).find((a) => a.recipe?.includes(artifactId));
+  if (!made || !made.recipe) return null;
+  return { partner: made.recipe.find((id) => id !== artifactId) as string, makes: made.id };
 }
 
 /** A "home" modifier is settled before the game: on in your own rink, dropped on the road. */
@@ -496,7 +532,7 @@ export function startSeason(f: Franchise, setup: SeasonSetup & { regions?: numbe
   const regions = setup.regions ?? charter.regions;
   if (regions !== undefined) season.regions = Math.max(1, Math.min(rules.regions, regions));
   if (setup.weekly) season.weekly = setup.weekly;
-  season.map = generateMap(season.seed, aiTeamsByStrength(f.league), season.regions ?? rules.regions);
+  season.map = generateMap(season.seed, aiTeamsByStrength(f.league), season.regions ?? rules.regions, f.seen?.events ?? []);
   season.dressed = [...dressedSkaters(team.lineup), team.lineup.goalie as string];
   season.standings = newStandings(f.league);
   season.scoring = {};
@@ -611,7 +647,7 @@ function leagueRound(f: Franchise, game: Matchup, result: GameResult): void {
   for (const line of result.players) {
     if (line.team !== 0 || line.role === 'goalie') continue;
     const player = game.home.players[line.line * 3 + line.slot];
-    if (!player || player.id === MASCOT_ID || (line.goals === 0 && line.assists === 0)) continue;
+    if (!player || isGuest(player.id) || (line.goals === 0 && line.assists === 0)) continue;
     const tally = (scoring[player.id] ??= { goals: 0, assists: 0 });
     tally.goals += line.goals;
     tally.assists += line.assists;
@@ -659,6 +695,12 @@ export interface MascotOdds {
 
 /** The player's team as it takes the ice: dressed lineup, season bumps, artifacts and temporary effects. */
 export function dressUser(f: Franchise): DressedTeam | null {
+  const team = dressOwn(f);
+  // A ringer hired this season takes your lowest-rated dressed skater's place.
+  return team && f.season.ringer ? withRinger(team, f.season.ringer) : team;
+}
+
+function dressOwn(f: Franchise): DressedTeam | null {
   return dress(f.league, userTeam(f.league), {
     bumps: f.season.bumps,
     modifiers: teamModifiers(f),
@@ -759,8 +801,31 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
 
 /** Up to `count` artifacts the franchise does not own yet. */
 function artifactOffer(f: Franchise, count: number): string[] {
-  const unowned = artifacts.map((a) => a.id).filter((id) => !f.artifacts.includes(id));
-  return roll(f.season, 'artifacts').shuffle(unowned).slice(0, count);
+  // Never one you hold, and never a recipe's result: those are made, not found.
+  const unowned = (artifacts as unknown as ArtifactInfo[]).filter((a) => !a.recipe && !f.artifacts.includes(a.id)).map((a) => a.id);
+  const rng = roll(f.season, 'artifacts');
+  const seen = f.seen?.artifacts ?? [];
+  const known = unowned.filter((id) => seen.includes(id)).length;
+  // With nothing seen, or everything, every artifact is as likely as any other, as it always was.
+  let offer: string[];
+  if (known === 0 || known === unowned.length) offer = rng.shuffle(unowned).slice(0, count);
+  else {
+    // Otherwise the ones you have never held come up more often.
+    const pool = unowned.map((id) => ({ id, weight: seen.includes(id) ? 1 : UNSEEN_WEIGHT }));
+    offer = [];
+    while (offer.length < count && pool.length > 0) {
+      let at = rng.next() * pool.reduce((sum, x) => sum + x.weight, 0);
+      let index = pool.findIndex((x) => (at -= x.weight) < 0);
+      if (index < 0) index = pool.length - 1;
+      offer.push((pool.splice(index, 1)[0] as { id: string }).id);
+    }
+  }
+  // Some come with a sticker. (A stream of its own, so nothing else in the season shifts.)
+  const stick = createRng(`${f.season.seed}/stickers/${f.season.gamesPlayed}`);
+  const stickers: Record<string, 'loan' | 'pricey'> = {};
+  for (const id of offer) if (stick.chance(STICKERS.chance)) stickers[id] = stick.pick(['loan', 'pricey'] as const);
+  f.season.offerStickers = stickers;
+  return offer;
 }
 
 function strike(f: Franchise): boolean {
@@ -800,6 +865,8 @@ export interface GameRewards {
   pack: string | null;
   /** Names of the season milestones this game completed. */
   milestones: string[];
+  /** The game's bounty, and whether it was met. Left out for a simulated game. */
+  bounty?: { text: string; pucks: number; met: boolean };
 }
 
 export type GameOutcome = ActionResult & { rewards?: GameRewards };
@@ -808,14 +875,18 @@ export type GameOutcome = ActionResult & { rewards?: GameRewards };
  * Records the game just played at the current stop or playoff round, and moves the season on.
  * A win earns a pack, and any season milestone it completes earns a Gold pack and a cash bonus.
  */
-export function recordGame(f: Franchise, result: GameResult): GameOutcome {
+export function recordGame(f: Franchise, result: GameResult, played = true): GameOutcome {
   const game = matchup(f);
-  const played = f.season.gamesPlayed;
+  // The bounty is for a game you play yourself.
+  const bounty = played ? gameBounty(f) : null;
+  const before = f.season.gamesPlayed;
   const pucksBefore = f.season.currency;
   const cashBefore = f.cash;
   const mascotKey = game ? theirMascotKey(f, game.kind) : '';
   const outcome = settleGame(f, result);
-  if (!outcome.ok || !game || f.season.gamesPlayed === played) return outcome;
+  if (!outcome.ok || !game || f.season.gamesPlayed === before) return outcome;
+  const met = bounty !== null && bountyMet(bounty, result, game.home);
+  if (bounty && met) f.season.currency += bounty.pucks;
   rememberMascots(f, result, mascotKey);
 
   tally(f, result, game.home);
@@ -834,6 +905,7 @@ export function recordGame(f: Franchise, result: GameResult): GameOutcome {
   }
   const millions = (Math.abs(net) / 1_000_000).toFixed(2);
   let message = `${result.forfeit ? 'You forfeit the game. ' : ''}${outcome.message} Cash ${net >= 0 ? '+' : '-'}$${millions}M.`;
+  if (bounty) message += met ? ` Bounty met (${bounty.text.toLowerCase()}): ${bounty.pucks} more Pucks.` : ` Bounty missed (${bounty.text.toLowerCase()}).`;
   const pack = packForWin(result, game.kind === 'boss');
   if (pack) {
     awardPack(f, pack, game.title);
@@ -852,6 +924,7 @@ export function recordGame(f: Franchise, result: GameResult): GameOutcome {
       xp,
       pack: pack ? packName(pack) : null,
       milestones: fresh.map((m) => m.name),
+      ...(bounty ? { bounty: { text: bounty.text, pucks: bounty.pucks, met } } : {}),
     },
   };
 }
@@ -874,7 +947,7 @@ export function simulateGame(f: Franchise): GameOutcome {
   if (!game) return refuse('There is no game to simulate.');
   if (game.kind !== 'game') return refuse('Bosses and playoff games have to be played.');
   const rng = roll(f.season, 'simulate');
-  return recordGame(f, quickResult(rng, game.home, game.away, levelEdge(game.level) + rules.simPenalty));
+  return recordGame(f, quickResult(rng, game.home, game.away, levelEdge(game.level) + rules.simPenalty), false);
 }
 
 function settleGame(f: Franchise, result: GameResult): ActionResult {
@@ -891,6 +964,15 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
   season.loadout = tidyLoadout(season.loadout, season.powerups);
   season.temps = season.temps.map((t) => ({ ...t, games: t.games - 1 })).filter((t) => t.games > 0);
   // A bargain's handicap runs down the same way; at nothing it turns into its reward.
+  // An artifact on loan goes back when its games are up.
+  if (season.loans) {
+    const left = Object.fromEntries(Object.entries(season.loans).map(([id, games]) => [id, games - 1] as [string, number]));
+    f.artifacts = f.artifacts.filter((id) => left[id] === undefined || left[id] > 0);
+    season.loans = Object.fromEntries(Object.entries(left).filter(([, games]) => games > 0));
+  }
+  // What costs Pucks a game is paid now: a pricey artifact, a pricey ringer. (You cannot go below nothing.)
+  const fees = (season.pricey ?? []).filter((id) => f.artifacts.includes(id)).length * STICKERS.priceyFee + (season.ringer?.fee ?? 0);
+  if (fees > 0) season.currency = Math.max(0, season.currency - fees);
   if (season.bargains) season.bargains = Object.fromEntries(Object.entries(season.bargains).map(([id, games]) => [id, games - 1] as [string, number]).filter(([, games]) => games > 0));
   season.gamesPlayed += 1;
   f.record = applyResult(f.record, result);
@@ -991,11 +1073,65 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
 
 /** After beating a boss: take one of the artifacts on offer. */
 export function pickArtifact(f: Franchise, artifactId: string): ActionResult {
-  if (f.season.stage !== 'reward' || !f.season.offer.includes(artifactId)) return refuse('That artifact is not on offer.');
+  const { season } = f;
+  if (season.stage !== 'reward' || !season.offer.includes(artifactId)) return refuse('That artifact is not on offer.');
+  const sticker = season.offerStickers?.[artifactId];
+  const name = artifactInfo(artifactId).name;
   gainArtifact(f, artifactId);
+  let words = `You take ${name}.`;
+  if (sticker === 'loan') {
+    // On loan: gone after a few games, and it comes with Pucks.
+    season.loans = { ...(season.loans ?? {}), [artifactId]: STICKERS.loanGames };
+    season.currency += STICKERS.loanPucks;
+    words = `You take ${name} on loan for ${STICKERS.loanGames} games, with ${STICKERS.loanPucks} Pucks.`;
+  }
+  if (sticker === 'pricey') {
+    // Pricey: it costs Pucks after every game, and you take a second artifact from the same offer.
+    season.pricey = [...(season.pricey ?? []), artifactId];
+    const rest = season.offer.filter((id) => id !== artifactId && !f.artifacts.includes(id));
+    if (rest.length > 0) {
+      season.offer = rest;
+      season.offerStickers = {};
+      return done(`You take ${name}: it costs ${STICKERS.priceyFee} Pucks after every game. Choose a second artifact.`);
+    }
+  }
+  season.offerStickers = {};
+  // After a boss, a ringer may be hired (not when the run ends here).
+  const stop = currentStop(f);
+  const lastOfWeekly = season.weekly !== undefined && stop?.region === seasonRegions(f) - 1;
+  if (stop?.kind === 'boss' && !lastOfWeekly) {
+    season.ringerOffer = ringerOffer(`${season.seed}/${stop.id}`, teamStrength(f.league, f.league.userTeamId));
+    season.offer = [];
+    season.stage = 'ringer';
+    return done(`${words} A ringer is on offer.`);
+  }
   finishStop(f);
   // Beating the last boss puts you in the playoffs, which is a milestone.
-  return done(`You take ${artifactInfo(artifactId).name}.${milestoneWords(awardMilestones(f))}`);
+  return done(`${words}${milestoneWords(awardMilestones(f))}`);
+}
+
+/**
+ * After a boss: hire one of the ringers on offer (by his place in the list), or none (null).
+ * He plays for you for the rest of the season in your lowest-rated dressed skater's place.
+ */
+export function pickRinger(f: Franchise, index: number | null): ActionResult {
+  const { season } = f;
+  if (season.stage !== 'ringer') return refuse('No ringer is on offer.');
+  const chosen = index === null ? null : (season.ringerOffer?.[index] ?? null);
+  if (index !== null && !chosen) return refuse('He is not one of those on offer.');
+  if (chosen) season.ringer = chosen;
+  delete season.ringerOffer;
+  finishStop(f);
+  const words = chosen ? `${chosen.player.name} joins you for the rest of the season${chosen.fee > 0 ? `, for ${chosen.fee} Pucks a game` : ''}.` : 'You hire nobody.';
+  return done(`${words}${milestoneWords(awardMilestones(f))}`);
+}
+
+/** The bounty on the game waiting: one optional goal that pays extra Pucks if you play the game and meet it. */
+export function gameBounty(f: Franchise): BountyInfo | null {
+  const game = plainMatchup(f);
+  if (!game) return null;
+  const firstTo = rinkInfo(game.rink).rules.firstTo !== undefined;
+  return bountyFor(`${f.season.seed}/${f.season.gamesPlayed}`, !firstTo);
 }
 
 // ---------- loadout ----------
@@ -1134,6 +1270,7 @@ export function chooseEvent(f: Franchise, choiceIndex: number): ActionResult {
       break;
     }
   }
+  remember(f, 'events', stop.eventId);
   applyEffects(f, outcome.effects);
   finishStop(f);
   return done(outcome.result);

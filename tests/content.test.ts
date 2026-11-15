@@ -4,7 +4,7 @@ import { generateLeague } from '../src/core/generate';
 import { userTeam } from '../src/core/league';
 import { dress } from '../src/core/matchup';
 import { kindsFor, talentInfo } from '../src/core/playerKind';
-import { availableStops, chooseEvent, currentStop, leaveShop, matchup, newFranchise, pickArtifact, recordGame, startSeason, train, travel, type Franchise } from '../src/core/season';
+import { availableStops, chooseEvent, currentStop, leaveShop, matchup, newFranchise, pickArtifact, recordGame, startSeason, train, travel, type Franchise, pickRinger } from '../src/core/season';
 import artifacts from '../src/data/artifacts.json';
 import bosses from '../src/data/bosses.json';
 import events from '../src/data/events.json';
@@ -111,6 +111,10 @@ describe('new events', () => {
     for (const seed of ['content', 'content-2', 'content-3', 'content-4']) {
       const f = started(seed);
       for (let guard = 0; guard < 40 && f.season.phase === 'map'; guard++) {
+        if (f.season.stage === 'ringer') {
+          pickRinger(f, null);
+          continue;
+        }
         if (f.season.stage === 'reward') {
           pickArtifact(f, f.season.offer[0]!);
           continue;

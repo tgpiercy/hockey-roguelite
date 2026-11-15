@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decideContract, finishSeason } from '../src/core/offseason';
-import { abandonSeason } from '../src/core/season';
+import { abandonSeason, pickRinger } from '../src/core/season';
 import { seasonSummary } from '../src/core/seasonSummary';
 import { aiTeamsByStrength, buildBoss, teamStrength } from '../src/core/bosses';
 import { generateLeague } from '../src/core/generate';
@@ -76,11 +76,21 @@ const resolve = (f: Franchise, win: boolean): void => {
   const stop = currentStop(f);
   if (!stop) return;
   if (stop.kind === 'game' || stop.kind === 'boss') {
-    if (f.season.stage === 'reward') pickArtifact(f, f.season.offer[0]!);
+    while ((f.season.stage as string) === 'reward') {
+      // These tests are about the plain pick: stickers are tested in runFeatures.test.ts.
+      f.season.offerStickers = {};
+      pickArtifact(f, f.season.offer[0]!);
+    }
+    if ((f.season.stage as string) === 'ringer') pickRinger(f, null);
     else {
       recordGame(f, result(win));
       // Beating a boss moves the stage on to the artifact pick.
-      if ((f.season.stage as string) === 'reward') pickArtifact(f, f.season.offer[0]!);
+      while ((f.season.stage as string) === 'reward') {
+      // These tests are about the plain pick: stickers are tested in runFeatures.test.ts.
+      f.season.offerStickers = {};
+      pickArtifact(f, f.season.offer[0]!);
+    }
+      if ((f.season.stage as string) === 'ringer') pickRinger(f, null);
     }
   } else if (stop.kind === 'training') train(f, f.season.dressed[0]!);
   else if (stop.kind === 'event') chooseEvent(f, 0);
@@ -615,7 +625,9 @@ describe('bosses and artifacts', () => {
 
   it('artifacts are never offered twice, and become team modifiers on the ice', () => {
     const f = atBoss();
-    f.artifacts = artifacts.map((a) => a.id).slice(0, artifacts.length - 2);
+    // Everything that can be offered but two. (A recipe's result is made, never offered.)
+    const offered = (artifacts as unknown as { id: string; recipe?: string[] }[]).filter((a) => !a.recipe).map((a) => a.id);
+    f.artifacts = offered.slice(0, offered.length - 2);
     recordGame(f, result(true));
     expect(f.season.offer).toHaveLength(2);
     for (const id of f.season.offer) expect(f.artifacts).not.toContain(id);

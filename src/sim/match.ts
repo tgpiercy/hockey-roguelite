@@ -170,6 +170,7 @@ export function tickClock(world: World, t: Tuning, events: SimEvent[]): boolean 
 export function stepBreak(world: World, t: Tuning, events: SimEvent[]): void {
   world.phaseTime -= STEP_SECONDS;
   if (world.phaseTime > 0) return;
+  world.periodScores.push([world.score[0], world.score[1]]);
   world.period += 1;
   world.clock = world.overtime ? 0 : t.period.seconds;
   events.push({ type: 'period', period: world.period });
@@ -212,6 +213,8 @@ export interface GameResult {
   players: PlayerLine[];
   /** Ids of the powerups team 0 used, in order. */
   powerupsUsed: string[];
+  /** The score at the end of each period, and last of all the final score. */
+  periodScores?: [number, number][];
   /** Each team's mascot, if it brought one: his own stat line, how often he came, and the misses in a row after the game. */
   mascots?: [MascotLine | null, MascotLine | null];
   /** True when the game was given up before the end: the winner is the other team, whatever the score. */
@@ -234,6 +237,7 @@ export function gameResult(world: World): GameResult {
     periods: world.period,
     players: world.players.map((p: Player) => ({ id: p.id, team: p.team, role: p.role, line: p.line, slot: p.slot, ...ownStats(world, p) })),
     powerupsUsed: [...world.teams[0].powerupsUsed],
+    periodScores: [...world.periodScores.map(([a, b]) => [a, b] as [number, number]), ...(finished ? [[home, away] as [number, number]] : [])],
     ...(world.teams.some((team) => team.mascot)
       ? { mascots: world.teams.map((team) => (team.mascot ? { ...team.mascot.stats, arrivals: team.mascot.arrivals, misses: team.mascot.misses } : null)) as [MascotLine | null, MascotLine | null] }
       : {}),

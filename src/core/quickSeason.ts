@@ -34,8 +34,7 @@ import {
   startSeason,
   train,
   travel,
-  type Franchise,
-} from './season';
+  type Franchise, pickRinger } from './season';
 
 const q = rules.quick;
 
@@ -196,7 +195,10 @@ export function quickSeason(f: Franchise, rng: Rng): void {
   if (!beginSeason(f).ok) return;
   for (let guard = 0; guard < 400 && f.season.phase !== 'ended'; guard++) {
     const game = matchup(f);
-    if (f.season.stage === 'reward') {
+    if (f.season.stage === 'ringer') {
+      // The automatic manager hires the first free ringer.
+      pickRinger(f, 0);
+    } else if (f.season.stage === 'reward') {
       pickArtifact(f, rng.pick(f.season.offer));
     } else if (game) {
       recordGame(f, quickResult(rng, game.home, game.away, levelEdge(game.level)));
@@ -223,7 +225,7 @@ export interface LeagueSnapshot {
   /** How many rostered players are in each grade. */
   grades: Record<string, number>;
   averageAge: number;
-  /** Teams without exactly 7 skaters and a goalie, or with an illegal lineup. */
+  /** Teams without a full roster and a goalie (yours: without enough skaters to ice a team). */
   illegalRosters: number;
   /** Teams over the cap. */
   overCap: number;
@@ -267,7 +269,11 @@ export function leagueSnapshot(f: Franchise): LeagueSnapshot {
         aiCount += 1;
       }
     }
-    const full = skatersOn(league, team).length === leagueRules.rosterSkaters && goaliesOn(league, team).length === leagueRules.rosterGoalies;
+    const skaters = skatersOn(league, team).length;
+    // An AI team is always filled exactly. Yours may be left a skater short by the automatic manager when nobody fits
+    // under the cap (it will not release a player to make room): that is legal as long as it can still ice a team.
+    const enough = team.id === league.userTeamId ? skaters >= leagueRules.dressedSkaters && skaters <= leagueRules.rosterSkaters : skaters === leagueRules.rosterSkaters;
+    const full = enough && goaliesOn(league, team).length === leagueRules.rosterGoalies;
     if (!full) illegal += 1;
     if (payroll(league, team) > leagueRules.cap) overCap += 1;
   }

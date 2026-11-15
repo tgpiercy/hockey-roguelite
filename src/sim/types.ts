@@ -297,6 +297,8 @@ export interface World {
   overtime: boolean;
   /** Overtime ends in a tie after this many seconds; 0 means it runs until someone scores. */
   overtimeLimit: number;
+  /** The score at the end of each period played so far. */
+  periodScores: [number, number][];
   /** Seconds the horn has waited, at the end of a period, for a shot already on its way. */
   hornWait: number;
   faceoff: FaceoffState | null;

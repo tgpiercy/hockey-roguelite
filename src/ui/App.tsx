@@ -1,3 +1,5 @@
+import { STICKERS } from '../core/bounty';
+import { afterTournamentGame, newTournament, tournamentOpponent, type Tournament } from '../core/tournament';
 import { CHARTERS, charterInfo, cleanVows, nextRank, setupLine, vowPackLuck, vowPay, vowPoints, VOWS, type SeasonSetup } from '../core/charter';
 import { betterResult, claimWeekly, newWeekly, resultLine, weekKey, weeklyOver, weeklyResult } from '../core/weekly';
 import { loadWeeklyBest, saveWeeklyBest } from './prefs';
@@ -31,7 +33,7 @@ import { canPlay, canSign, type MoveResult, deadCapFor } from '../core/roster';
 import { hiddenFreeAgents, potentialText, scoutingPoints, signPlayer } from '../core/scouting';
 import { gradePower, hire, kindName, letGo, roleOf, slotsFor, STAFF_KINDS, staffOfKind, staffSalePrice, type StaffMember } from '../core/staff';
 import { franchiseOf, fromSave, parseSave, toSave } from '../core/save';
-import { artifactInfo, artifactModifiers, bargainGames, maxStrikes, seasonRegions, setupOf, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
+import { artifactInfo, artifactModifiers, bargainGames, gameBounty, maxStrikes, pickRinger, recipeFor, seasonRegions, setupOf, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
 import type { Stop } from '../core/seasonMap';
 import { seasonSummary } from '../core/seasonSummary';
 import { teamColour } from '../core/teamColours';
@@ -192,6 +194,8 @@ export function App() {
   // Exhibition: the rink to play on, and whether it is a game or a shootout.
   const [exRink, setExRink] = useState<string>(STANDARD_RINK);
   const [exShootout, setExShootout] = useState(false);
+  // An exhibition tournament in progress, or null. It is not saved: it counts for nothing.
+  const [tourney, setTourney] = useState<Tournament | null>(null);
   // The charter and handicaps being chosen for the next season.
   const [plan, setPlan] = useState<SeasonSetup>({});
   // During a weekly run your own franchise waits here, untouched; null the rest of the time.
@@ -665,8 +669,39 @@ export function App() {
           header="Take one. You keep it for the rest of this season. Some only count at certain moments; a bargain costs you first and pays after."
           items={season.offer.map((id) => {
             const a = artifactInfo(id);
-            return tile(id, a.name, a.bargain ? `Bargain: ${a.bargain.games} games` : '', () => after(pickArtifact(f, id)), { icon: 'artifacts', primary: true, detail: a.description });
+            const sticker = season.offerStickers?.[id];
+            const tag = sticker === 'loan' ? `On loan: ${STICKERS.loanGames} games, +${STICKERS.loanPucks} Pucks` : sticker === 'pricey' ? `Pricey: ${STICKERS.priceyFee} Pucks a game, and a second pick` : a.bargain ? `Bargain: ${a.bargain.games} games` : '';
+            const half = recipeFor(id);
+            const pairs = half && f.artifacts.includes(half.partner) ? ` With your ${artifactInfo(half.partner).name} it becomes ${artifactInfo(half.makes).name}: ${artifactInfo(half.makes).description}` : '';
+            const terms =
+              sticker === 'loan'
+                ? ` On loan: it leaves after ${STICKERS.loanGames} games, and you get ${STICKERS.loanPucks} Pucks now.`
+                : sticker === 'pricey'
+                  ? ` Pricey: it costs ${STICKERS.priceyFee} Pucks after every game, and you then take a second artifact from this offer.`
+                  : '';
+            return tile(id, a.name, tag, () => after(pickArtifact(f, id)), { icon: 'artifacts', primary: true, detail: `${a.description}${terms}${pairs}` });
           })}
+        />
+      );
+    }
+    if (season.stage === 'ringer') {
+      const offer = season.ringerOffer ?? [];
+      return (
+        <Menu
+          key={screenKey}
+          title="Hire a ringer?"
+          message={message}
+          header="A loan skater for the rest of this season. He plays in place of your lowest-rated dressed skater, is not on your roster or your cap, and leaves when the season ends."
+          items={[
+            ...offer.map((x, i) =>
+              tile(`ringer-${i}`, x.player.name, `${x.player.position} · ${x.player.overall} overall · ${x.player.talent ? talentInfo(x.player.talent).name : 'no talent'}${x.fee > 0 ? ` · ${x.fee} Pucks a game` : ''}`, () => after(pickRinger(f, i)), {
+                icon: 'team',
+                primary: true,
+                detail: `${x.player.talent ? `${talentInfo(x.player.talent).name}: ${talentInfo(x.player.talent).description} ` : ''}${x.fee > 0 ? `He costs ${x.fee} Pucks after every game.` : 'He costs nothing.'}`,
+              }),
+            ),
+            tile('ringer-none', 'Hire nobody', 'Keep your own six', () => after(pickRinger(f, null)), { detail: 'Your lineup stays as it is.' }),
+          ]}
         />
       );
     }
@@ -719,6 +754,16 @@ export function App() {
               {theirStyle && (
                 <div class="note">
                   {game.away.name} play {theirStyle.name.toLowerCase()}. {theirStyle.describe}
+                </div>
+              )}
+              {gameBounty(f) && (
+                <div class="note">
+                  Bounty: {gameBounty(f)!.text.toLowerCase()} for {gameBounty(f)!.pucks} more Pucks. Only if you play the game; missing it costs nothing.
+                </div>
+              )}
+              {season.ringer && (
+                <div class="note">
+                  Ringer: {season.ringer.player.name} ({season.ringer.player.overall}) plays for you{season.ringer.fee > 0 ? `, for ${season.ringer.fee} Pucks a game` : ''}.
                 </div>
               )}
               {isVariant(game.rink) && (
@@ -2700,6 +2745,56 @@ export function App() {
         header={`Your team averages ${mine} overall. Weakest opponents first. Exhibition games do not count. ${joined ? (together === 'coop' ? 'Two players, on the same team.' : 'Two players, head to head: player 2 takes the team you choose.') : 'For two players, press a button on a second controller.'}`}
         onBack={home}
         items={[
+          ...(tourney && tournamentOpponent(tourney)
+            ? [
+                tile(
+                  'tourney-play',
+                  tourney.stage === 'semi' ? 'Tournament: semi-final' : 'Tournament: the final',
+                  `Against ${teamOf(league, tournamentOpponent(tourney) as string).name}`,
+                  () => {
+                    const opponent = teamOf(league, tournamentOpponent(tourney) as string);
+                    const homeTeam = dress(league, team);
+                    const away = dress(league, opponent);
+                    if (!homeTeam || !away) return;
+                    setPlaying(true);
+                    const homeColour = jerseyColour(f);
+                    playMatch({ home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, ...(joined ? { second: 0 as const } : {}) }, (result) => {
+                      const next = afterTournamentGame(tourney, result.winner === 0 && !result.forfeit);
+                      const over = tournamentOpponent(next) === null;
+                      if (next.stage === 'won') music.sting('fanfare');
+                      setTourney(over ? null : next);
+                      setMessage(
+                        next.stage === 'won'
+                          ? `You win the tournament, ${result.score[0]}-${result.score[1]} over ${opponent.name} in the final.`
+                          : next.stage === 'out'
+                            ? `Out of the tournament: ${result.score[0]}-${result.score[1]} against ${opponent.name}.`
+                            : `Into the final, ${result.score[0]}-${result.score[1]} over ${opponent.name}. You meet ${teamOf(league, next.finalist).name}.`,
+                      );
+                      setPrefs(loadPrefs());
+                      setPlaying(false);
+                    });
+                  },
+                  {
+                    primary: true,
+                    wide: true,
+                    icon: 'prestige',
+                    detail: `The other semi-final: ${teamOf(league, tourney.others[0]).name} against ${teamOf(league, tourney.others[1]).name}; ${teamOf(league, tourney.finalist).name} went through. Played on ${rinkInfo(exRink).name}.`,
+                  },
+                ),
+                { key: 'tourney-stop', label: 'Give up the tournament', detail: 'It counts for nothing either way.', onSelect: () => setTourney(null) },
+              ]
+            : [
+                {
+                  key: 'tourney',
+                  label: 'Start a tournament',
+                  detail: 'A four-team knockout against the three teams nearest your strength: a semi-final, then the final, on the rink chosen below. One player, or two on the same team. It counts for nothing.',
+                  onSelect: () => {
+                    const made = newTournament(league, String(Date.now()));
+                    setTourney(made);
+                    if (made) setMessage(`Tournament: you play ${teamOf(league, made.semi).name}; ${teamOf(league, made.finalist).name} wait in the final.`);
+                  },
+                },
+              ]),
           {
             key: 'mode',
             label: `Play: ${exShootout ? 'A shootout' : 'A game'}`,
@@ -2838,7 +2933,16 @@ export function App() {
         items={f.artifacts.map((id) => {
           const a = artifactInfo(id);
           const left = bargainGames(f, id);
-          return { key: id, label: left > 0 ? `${a.name} (handicap: ${left} ${left === 1 ? 'game' : 'games'} to go)` : a.name, detail: a.description, disabled: true };
+          const loan = season.loans?.[id] ?? 0;
+          const fee = (season.pricey ?? []).includes(id);
+          const half = recipeFor(id);
+          const notes = [left > 0 ? `handicap: ${left} ${left === 1 ? 'game' : 'games'} to go` : '', loan > 0 ? `on loan: ${loan} ${loan === 1 ? 'game' : 'games'} left` : '', fee ? `${STICKERS.priceyFee} Pucks a game` : ''].filter((x) => x !== '');
+          return {
+            key: id,
+            label: notes.length > 0 ? `${a.name} (${notes.join('; ')})` : a.name,
+            detail: `${a.description}${half ? ` With ${artifactInfo(half.partner).name} it becomes ${artifactInfo(half.makes).name}.` : ''}`,
+            disabled: true,
+          };
         })}
       />
     );

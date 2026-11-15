@@ -611,3 +611,16 @@ Built, deployed and checked with a simulated controller.
 - Changed from the plan: the Bruisers and Blue-line charters and three of the handicaps (see `docs/DECISIONS.md`); parts 1 to 3 went in as one commit, not three.
 - Not measured: what handicaps and charters do to a season's difficulty or to the economy. The league health check does not use them.
 - Found on the way and fixed: strike lights always showed three, whatever the season's limit.
+
+# The features round
+
+- [x] 1. Unseen-first offers
+- [x] 2. Bounties
+- [x] 3. The ringer
+- [x] 4. Stickers
+- [x] 5. Recipes
+- [x] 6. Exhibition tournament
+- [ ] 7. Floating words and a pass-target mark
+- [ ] 8. Passing chain
+- [ ] 9. Goal replay
+- [ ] 10. Graphics review, then choose

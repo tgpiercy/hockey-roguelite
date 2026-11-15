@@ -18,8 +18,7 @@ import {
   startSeason,
   train,
   travel,
-  type Franchise,
-} from '../src/core/season';
+  type Franchise, pickRinger } from '../src/core/season';
 import rules from '../src/data/season.json';
 import { gameResult } from '../src/sim/match';
 import { cloneTuning } from '../src/sim/tuning';
@@ -49,6 +48,9 @@ function autoSeason(seed: string) {
     const before = JSON.stringify(f.season);
     if (f.season.phase === 'playoffs') {
       playWaitingGame(f, `${seed}/g${guard}`);
+    } else if (f.season.stage === 'ringer') {
+      // Hire whoever is first on the list: a whole season with a ringer gets played too.
+      expect(pickRinger(f, 0).ok).toBe(true);
     } else if (f.season.stage === 'reward') {
       expect(pickArtifact(f, choose.pick(f.season.offer)).ok).toBe(true);
     } else if (f.season.current === null) {
