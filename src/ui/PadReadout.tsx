@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'preact/hooks';
 import controls from '../data/controls.json';
-import xbox from '../data/xboxMapping.json';
 import { readGamepad, type GamepadSnapshot } from '../game/gamepad';
+import { hasCustomPadMap, PAD_ACTIONS, padMap } from '../game/padMap';
 import { TOUCH_BUTTONS, touchState } from '../game/touch';
 
-/** What the game does with each controller button, by its number. */
-const ACTION_OF: Record<number, string> = Object.fromEntries(Object.entries(controls.buttons).map(([action, index]) => [index, action]));
+/** What the game does with each controller button, by its number, in the layout in use. */
+function actionOf(index: number): string {
+  const map = padMap();
+  return PAD_ACTIONS.filter((action) => map[action].kind === 'button' && map[action].index === index).join(', ');
+}
 
 /**
  * What the game is reading from the controller and the on-screen buttons right now. It is there to find out
@@ -42,11 +45,11 @@ export function PadReadout() {
             <b>
               {pressed.length === 0
                 ? 'nothing'
-                : pressed.map(({ i }) => `${xbox.buttons[i]?.label ?? `button ${i}`} (#${i}${ACTION_OF[i] ? `, ${ACTION_OF[i]}` : ', unused'})`).join(' · ')}
+                : pressed.map(({ i }) => `button ${i}: ${actionOf(i) || 'unused'}`).join(' · ')}
             </b>
           </span>
           <span>
-            Left stick: <b>{stick}</b>
+            Left stick: <b>{stick}</b> · Buttons: <b>{hasCustomPadMap() ? 'set up by you' : 'standard layout'}</b>
           </span>
         </>
       ) : (

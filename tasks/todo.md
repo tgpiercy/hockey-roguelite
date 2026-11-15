@@ -414,7 +414,9 @@ Built, deployed and checked with a simulated controller.
 - [x] Tried to reproduce with a simulated standard controller and with the on-screen buttons: both worked
 - [x] Removed three ways input could get trapped (stuck on-screen button, the resume guard, the give and go)
 - [x] Live controller read-out in the pause menu and in Settings
-- [ ] Hear back from the owner: what the read-out shows on the phone
+- [x] Heard back: the layout reads as standard, but the button marked X arrives as the one the game used for switch player
+- [x] Set up controller: the game asks for each action in turn and remembers it
+- [ ] Owner runs the setup on the phone and confirms shoot, check and pause
 
 ## Review (controller report)
 
@@ -422,3 +424,6 @@ Built, deployed and checked with a simulated controller.
 - What was found and fixed, each of which could explain part of it: with any action button reading as held after a pause (shown with the left trigger held), pass, shoot and check were locked out for good; an on-screen button stayed held if the overlay hid under the finger; pressing pass twice quickly started a give and go that left the player on a skater without the puck for up to 3 seconds, where shoot and check do nothing.
 - Not explained: why pause would not open. It may be a different cause on the real device (a controller the browser does not report in the standard layout would show exactly this pattern: some buttons right, others wrong). The read-out is there to tell.
 - 832 tests pass (2 new).
+- Cause, from the owner: the button labels on his controller do not sit where an Xbox pad's do, so the game's fixed numbering put shoot, check and pause on the wrong buttons. The game now learns the layout from the player.
+- Checked in the browser with a simulated controller: the setup took 14 presses, refused a button already used, and saved; in a game the button set as Shoot shot, the one set as Switch deked and did not shoot, and the pause button paused. 845 tests pass (13 new, for the layout code).
+- Not checked: the owner's real controller. Mine was a simulation with two buttons swapped.

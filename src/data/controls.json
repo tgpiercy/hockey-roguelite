@@ -112,5 +112,10 @@
   "touch": {
     "deadzone": 0.15,
     "stickTravel": 0.7
+  },
+  "padSetup": {
+    "buttonHeld": 0.5,
+    "axisHeld": 0.5,
+    "axisMoved": 0.6
   }
 }

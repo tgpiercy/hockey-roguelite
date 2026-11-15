@@ -3,6 +3,7 @@ import controls from '../data/controls.json';
 import xbox from '../data/xboxMapping.json';
 import { gameAudio } from '../game/audio';
 import { Menu } from './Menu';
+import { describeBinding, hasCustomPadMap, padMap } from '../game/padMap';
 import { PadReadout } from './PadReadout';
 import { loadPrefs, savePrefs, TOUCH_MODES, VOLUME_STEPS, type Prefs } from './prefs';
 
@@ -35,6 +36,8 @@ export function keyName(code: string): string {
 
 /** The button layout, read from the same tables the game reads its controls from. */
 function Layout() {
+  // With a layout the player set up himself, the Xbox names no longer apply: show what he chose.
+  const custom = hasCustomPadMap();
   return (
     <div class="controls-table">
       <div class="controls-row head">
@@ -50,7 +53,7 @@ function Layout() {
       {ACTIONS.map(([action, name]) => (
         <div key={action} class="controls-row">
           <span>{name}</span>
-          <span>{xbox.buttons[controls.buttons[action]]?.label ?? ''}</span>
+          <span>{custom ? describeBinding(padMap()[action]) : (xbox.buttons[controls.buttons[action]]?.label ?? '')}</span>
           <span>{[...new Set(controls.keys[action].map(keyName))].join(' or ')}</span>
         </div>
       ))}

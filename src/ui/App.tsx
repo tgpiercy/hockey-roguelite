@@ -74,7 +74,9 @@ import { BarRow, LineChart, sharesOf } from './Charts';
 import { Compare, FacilityCard, MascotPanel, OpenDesk, PrestigeLadder, StaffCard, TalentBadge, TradeOffer } from './screens/club';
 import { ChangeRow, EventHeader, MatchupPoster, powerupIcon, SeasonSummaryCard, ShopCard, StopCard, StrikeLights, TrainingGain } from './screens/season';
 import { Menu, MenuChrome, type MenuItem } from './Menu';
+import { hasCustomPadMap } from '../game/padMap';
 import { PadReadout } from './PadReadout';
+import { PadSetup } from './PadSetup';
 import { PackOpening } from './PackOpening';
 import { loadPrefs, savePrefs, VOLUME_STEPS, type Prefs } from './prefs';
 import { menuInput } from './menuInput';
@@ -126,6 +128,7 @@ type Screen =
   | { name: 'jersey' }
   | { name: 'saves' }
   | { name: 'padTest' }
+  | { name: 'padSetup' }
   | { name: 'confirmAbandon' }
   | { name: 'confirmNew' };
 
@@ -1752,6 +1755,10 @@ export function App() {
           tile('detail', 'Rink detail', prefs.detail === 'full' ? 'Full' : 'Low', () => changePrefs({ ...prefs, detail: prefs.detail === 'full' ? 'low' : 'full' }), {
             detail: 'Low drops the skate marks, snow, screen shake and crowd movement. Try it if the game does not run smoothly on your phone.',
           }),
+          tile('padSetup', 'Set up controller', hasCustomPadMap() ? 'Set up by you' : 'Standard layout', () => go({ name: 'padSetup' }), {
+            icon: 'detail',
+            detail: 'If a button does the wrong thing, press each one in turn and the game learns your controller. About 20 seconds.',
+          }),
           tile('padTest', 'Controller test', 'See what the game reads', () => go({ name: 'padTest' }), {
             icon: 'detail',
             detail: 'Shows which controller buttons and on-screen buttons the game sees as you press them.',
@@ -2287,6 +2294,17 @@ export function App() {
           ...(locked ? [{ key: 'abandon', label: 'Abandon this season', detail: 'Ends the season now and goes to the off-season. You keep your franchise.', onSelect: () => go({ name: 'confirmAbandon' }) }] : []),
           { key: 'new', label: 'Start a new franchise', onSelect: () => go({ name: 'confirmNew' }) },
         ]}
+      />
+    );
+  }
+
+  if (screen.name === 'padSetup') {
+    return (
+      <PadSetup
+        onDone={(text) => {
+          go({ name: 'settings' });
+          if (text) setMessage(text);
+        }}
       />
     );
   }

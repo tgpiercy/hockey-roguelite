@@ -2,6 +2,7 @@ import controls from '../data/controls.json';
 import { applyDeadzone } from '../sim/stick';
 import type { InputFrame } from '../sim/types';
 import { readGamepad, type GamepadSnapshot } from './gamepad';
+import { bindingDown, padMap, type PadAction } from './padMap';
 import { mergeFrames, touchFrame, touchState } from './touch';
 
 export interface Controls {
@@ -61,9 +62,9 @@ export class InputReader {
 
   read(nowMs: number): Controls {
     const pad = readGamepad();
-    const b = controls.buttons;
-    const down = (index: number): boolean => pad?.buttons[index]?.pressed ?? false;
-    const value = (index: number): number => pad?.buttons[index]?.value ?? 0;
+    // Each action is read through the layout in use: the standard one, or the player's own from the setup screen.
+    const map = padMap();
+    const down = (action: PadAction): boolean => bindingDown(pad, map[action]);
 
     // Skating: the stick if it is tilted, otherwise the keyboard.
     let move = pad
@@ -76,7 +77,7 @@ export class InputReader {
       if (length > 0) move = { x: kx / length, y: ky / length };
     }
 
-    const menuDown = down(b.menu) || this.key(controls.keys.menu);
+    const menuDown = down('menu') || this.key(controls.keys.menu);
     const menuPressed = menuDown && !this.menuWasDown;
     this.menuWasDown = menuDown;
 
@@ -91,15 +92,15 @@ export class InputReader {
       {
         moveX: move.x,
         moveY: move.y,
-        sprint: value(b.sprint) >= controls.triggerThreshold || down(b.sprint) || this.key(controls.keys.sprint),
-        shoot: down(b.shoot) || this.key(controls.keys.shoot),
-        pass: down(b.pass) || this.key(controls.keys.pass),
-        check: down(b.check) || this.key(controls.keys.check),
-        switchPlayer: down(b.switchPlayer) || this.key(controls.keys.switchPlayer),
-        lineChange: down(b.lineChange) || this.key(controls.keys.lineChange),
-        powerupA: value(b.powerupA) >= controls.triggerThreshold || down(b.powerupA) || this.key(controls.keys.powerupA),
-        powerupB: down(b.powerupB) || this.key(controls.keys.powerupB),
-        pullGoalie: down(b.view) || this.key(controls.keys.pullGoalie),
+        sprint: down('sprint') || this.key(controls.keys.sprint),
+        shoot: down('shoot') || this.key(controls.keys.shoot),
+        pass: down('pass') || this.key(controls.keys.pass),
+        check: down('check') || this.key(controls.keys.check),
+        switchPlayer: down('switchPlayer') || this.key(controls.keys.switchPlayer),
+        lineChange: down('lineChange') || this.key(controls.keys.lineChange),
+        powerupA: down('powerupA') || this.key(controls.keys.powerupA),
+        powerupB: down('powerupB') || this.key(controls.keys.powerupB),
+        pullGoalie: down('pullGoalie') || this.key(controls.keys.pullGoalie),
       },
       touchFrame(touchState),
     );
@@ -118,9 +119,9 @@ export class InputReader {
 
   /** One step when a d-pad direction goes down, then repeats while it is held. */
   private readNav(pad: GamepadSnapshot | null, nowMs: number): [-1 | 0 | 1, -1 | 0 | 1] {
-    const b = controls.buttons;
-    const down = (index: number): boolean => pad?.buttons[index]?.pressed ?? false;
-    const held = down(b.dpadUp) ? 'up' : down(b.dpadDown) ? 'down' : down(b.dpadLeft) ? 'left' : down(b.dpadRight) ? 'right' : '';
+    const map = padMap();
+    const down = (action: PadAction): boolean => bindingDown(pad, map[action]);
+    const held = down('dpadUp') ? 'up' : down('dpadDown') ? 'down' : down('dpadLeft') ? 'left' : down('dpadRight') ? 'right' : '';
 
     if (held === '') {
       this.navHeld = '';

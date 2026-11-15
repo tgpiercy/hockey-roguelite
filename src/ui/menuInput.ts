@@ -1,5 +1,6 @@
 import controls from '../data/controls.json';
 import { readGamepad } from '../game/gamepad';
+import { bindingDown, padMap, type PadAction } from '../game/padMap';
 
 export type MenuAction = 'up' | 'down' | 'left' | 'right' | 'confirm' | 'back';
 
@@ -63,19 +64,20 @@ class MenuInput {
     if (!this.running) return;
     const pad = readGamepad();
     if (pad) {
-      const b = controls.buttons;
-      const down = (index: number): boolean => pad.buttons[index]?.pressed ?? false;
+      // Read through the layout in use, so a controller set up by the player works the menus the same way.
+      const map = padMap();
+      const down = (action: PadAction): boolean => bindingDown(pad, map[action]);
       const x = pad.axes[controls.axes.moveX] ?? 0;
       const y = pad.axes[controls.axes.moveY] ?? 0;
 
       const direction: MenuAction | null =
-        down(b.dpadUp) || y < -STICK_THRESHOLD
+        down('dpadUp') || y < -STICK_THRESHOLD
           ? 'up'
-          : down(b.dpadDown) || y > STICK_THRESHOLD
+          : down('dpadDown') || y > STICK_THRESHOLD
             ? 'down'
-            : down(b.dpadLeft) || x < -STICK_THRESHOLD
+            : down('dpadLeft') || x < -STICK_THRESHOLD
               ? 'left'
-              : down(b.dpadRight) || x > STICK_THRESHOLD
+              : down('dpadRight') || x > STICK_THRESHOLD
                 ? 'right'
                 : null;
       if (direction === null) {
@@ -89,10 +91,10 @@ class MenuInput {
         emit(direction);
       }
 
-      const confirm = down(b.pass);
+      const confirm = down('pass');
       if (confirm && !this.confirmWasDown) emit('confirm');
       this.confirmWasDown = confirm;
-      const back = down(b.check);
+      const back = down('check');
       if (back && !this.backWasDown) emit('back');
       this.backWasDown = back;
     } else {
