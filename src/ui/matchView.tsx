@@ -1,3 +1,4 @@
+import { hush, speak } from '../game/voice';
 import * as Phaser from 'phaser';
 import { render } from 'preact';
 import { teamCrest } from '../core/crest';
@@ -80,6 +81,10 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
   let touchMode = loadPrefs().touch;
   // Hints: on or off, and how often each move has been done on this device.
   let hintsOn = loadPrefs().hints;
+  // Commentary: off, text, or text read aloud.
+  let commentary = loadPrefs().commentary;
+  let voiceVolume = loadPrefs().sound ? loadPrefs().volume : 0;
+  const lastName = (name: string): string => name.split(' ').slice(-1)[0] ?? name;
   const hintCounts = loadHintCounts();
   const showTouch = (): void => render(<TouchControls hidden={touchHidden} mode={touchMode} />, touch);
   showTouch();
@@ -92,6 +97,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
     paused = on;
     toggledAt = performance.now();
     gameAudio.hush(on);
+    if (on) hush();
     document.body.classList.toggle('paused', on);
     if (on) {
       menuInput.start();
@@ -107,6 +113,8 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
           onPrefs={(prefs) => {
             touchMode = prefs.touch;
             hintsOn = prefs.hints;
+            commentary = prefs.commentary;
+            voiceVolume = prefs.sound ? prefs.volume : 0;
             showTouch();
           }}
         />,
@@ -154,6 +162,11 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       ...(awayColour ? { awayColour } : {}),
       whiteTeam: userAtHome ? 1 : 0,
       detail: loadPrefs().detail,
+      playerNames: [home.players.map((p) => lastName(p.name)), away.players.map((p) => lastName(p.name))],
+      commentary: () => commentary !== 'off',
+      onCall: (text, priority) => {
+        if (commentary === 'voice' && voiceVolume > 0) speak(text, priority, voiceVolume);
+      },
       hints: () => (hintsOn ? hintCounts : null),
       onHintDone: (id) => {
         hintCounts[id] = (hintCounts[id] ?? 0) + 1;

@@ -1,0 +1,23 @@
+{
+  "minGapSeconds": 2.2,
+  "showSeconds": 2.6,
+  "priority": { "goal": 5, "final": 5, "fire": 4, "pull": 4, "bigHit": 3, "save": 3, "post": 3, "oneTimer": 3, "block": 2, "tip": 3, "fake": 2, "freeze": 1, "poke": 1, "period": 4 },
+  "lines": {
+    "goal": ["{name} scores! {score}", "Goal, {name}! {score}", "{name} finds the net. {score}", "He shoots, he scores! {name}. {score}", "{name} buries it! {score}"],
+    "goalAssist": ["{name}, from {assist}! {score}", "{assist} sets up {name}! {score}", "{name} finishes the pass from {assist}. {score}"],
+    "save": ["{name} shuts the door!", "What a save by {name}!", "{name} says no!", "Stopped by {name}!", "{name} stands tall!"],
+    "freeze": ["{name} holds on.", "{name} covers it up."],
+    "bigHit": ["Big hit by {name}!", "{name} flattens him!", "Crunch! {name} with the hit!", "{name} lays him out!"],
+    "poke": ["{name} pokes it free.", "Stolen by {name}."],
+    "post": ["Off the post!", "He rings the iron!", "Off the pipe and out!"],
+    "oneTimer": ["One-timer, {name}!", "{name} lets it go first time!", "{name} hammers the one-timer!"],
+    "fake": ["{name} with the fake...", "{name} pulls it back..."],
+    "block": ["{name} blocks the shot!", "{name} gets in front of it!", "Blocked by {name}!"],
+    "tip": ["Tipped by {name}!", "{name} gets a stick on it!"],
+    "fire": ["{team} are on fire!", "{team} have all the momentum!"],
+    "pullOn": ["{team} pull the goalie!", "Empty net for {team}!"],
+    "pullOff": ["{team} send the goalie back."],
+    "period": ["That is the end of the period. {score}"],
+    "final": ["That is the game! {score}", "The final horn! {score}"]
+  }
+}

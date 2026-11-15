@@ -1,3 +1,4 @@
+import { Commentator, COMMENTARY_SHOW_SECONDS } from './commentary';
 import * as Phaser from 'phaser';
 import { teamCrest, type Crest } from '../core/crest';
 import { lighten } from '../core/teamColours';
@@ -41,6 +42,12 @@ export interface RinkSceneOptions {
   teams: [TeamSetup, TeamSetup];
   /** What to call each team on the scoreboard. */
   names: [string, string];
+  /** Each team's dressed players' names, in order: six skaters, then the goalie. For the commentary. */
+  playerNames?: [string[], string[]];
+  /** Whether commentary lines are wanted now; left out, there is none. */
+  commentary?: () => boolean;
+  /** Called with each commentary line as it is shown, for the spoken voice. */
+  onCall?: (text: string, priority: number) => void;
   /** AI level per team, 0 to 1; null takes it from the tuning. */
   levels: [number | null, number | null];
   /** The powerups loaded on the human's two buttons. */
@@ -104,6 +111,10 @@ export class RinkScene extends Phaser.Scene {
   private reported = false;
   private done = false;
   private passWasDown = false;
+  /** The commentary: who makes the calls, the line on screen and when it comes down. */
+  private commentator!: Commentator;
+  private callText!: Phaser.GameObjects.Text;
+  private callUntil = 0;
   /** The hint on screen, how long it has been up, and the wait before the next one. */
   private hint: HintId | null = null;
   private hintShown = 0;
@@ -185,6 +196,8 @@ export class RinkScene extends Phaser.Scene {
       .setVisible(false);
     this.powerText = this.add.text(0, 0, '', { ...heading, color: c.text }).setOrigin(1, 0.5);
     this.pullText = this.add.text(0, 0, '', { ...heading, color: c.accent }).setOrigin(0.5, 1).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
+    this.callText = this.add.text(0, 0, '', { ...heading, color: c.text }).setOrigin(0.5, 0).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
+    this.commentator = new Commentator(this.options.seed);
     for (const item of [this.hud, ...this.nameTexts, ...this.scoreTexts, this.clockTextObject, ...this.barLabels, this.bigText, this.powerText]) item.setDepth(DEPTH.hud);
     this.events.once('destroy', () => this.reader.dispose());
   }
@@ -265,6 +278,20 @@ export class RinkScene extends Phaser.Scene {
       }
     }
     if (this.world.phase !== 'goal') this.scorer = null;
+    // Commentary: one short line for the most important thing that just happened.
+    if (happened.length > 0 && this.options.commentary?.() && this.options.playerNames) {
+      const names = this.options.playerNames;
+      const call = this.commentator.call(
+        happened,
+        { name: (id) => names[id < 7 ? 0 : 1][id % 7] ?? null, teams: this.options.names, score: this.world.score },
+        this.clock,
+      );
+      if (call) {
+        this.callText.setText(call.text.toUpperCase());
+        this.callUntil = this.clock + COMMENTARY_SHOW_SECONDS;
+        this.options.onCall?.(call.text, call.priority);
+      }
+    }
     const giveGo = Boolean(this.world.human?.giveGo);
     if (giveGo && !this.wasGiveGo) this.countHint('giveGo');
     this.wasGiveGo = giveGo;
@@ -877,6 +904,14 @@ export class RinkScene extends Phaser.Scene {
       this.pullText.setText(prompt);
       this.pullText.setFontSize(Math.max(10, height * 0.034));
       this.pullText.setPosition(width / 2, height - look.marginPixels - 44);
+    }
+    // The commentary line sits just under the scoreboard and fades out at the end of its time.
+    const callLeft = this.callUntil - this.clock;
+    this.callText.setVisible(callLeft > 0 && world.phase !== 'goal');
+    if (callLeft > 0) {
+      this.callText.setFontSize(Math.max(10, height * 0.04));
+      this.callText.setPosition(width / 2, y0 + boardH + 6);
+      this.callText.setAlpha(Math.min(1, callLeft / 0.4));
     }
     this.clockTextObject.setText(`${period}  ${clockText(world.clock)}`);
     this.clockTextObject.setPosition(left + nameW + scoreW + midW / 2, midY);

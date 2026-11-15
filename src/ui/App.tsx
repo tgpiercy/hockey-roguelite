@@ -50,7 +50,7 @@ import { hasCustomPadMap } from '../game/padMap';
 import { PadReadout } from './PadReadout';
 import { PadSetup } from './PadSetup';
 import { PackOpening } from './PackOpening';
-import { loadHintCounts, loadPrefs, saveHintCounts, savePrefs, VOLUME_STEPS, type Prefs } from './prefs';
+import { COMMENTARY_MODES, COMMENTARY_NAMES, loadHintCounts, loadPrefs, saveHintCounts, savePrefs, VOLUME_STEPS, type Prefs } from './prefs';
 import { HINT_IDS, retired } from '../game/hints';
 import { menuInput } from './menuInput';
 import { playMatch } from './matchView';
@@ -2078,6 +2078,10 @@ export function App() {
           }, { detail: 'Press to step through the levels.', disabled: !prefs.sound }),
           tile('detail', 'Rink detail', prefs.detail === 'full' ? 'Full' : 'Low', () => changePrefs({ ...prefs, detail: prefs.detail === 'full' ? 'low' : 'full' }), {
             detail: 'Low drops the skate marks, snow, screen shake and crowd movement. Try it if the game does not run smoothly on your phone.',
+          }),
+          tile('commentary', 'Commentary', COMMENTARY_NAMES[prefs.commentary], () => changePrefs({ ...prefs, commentary: COMMENTARY_MODES[(COMMENTARY_MODES.indexOf(prefs.commentary) + 1) % COMMENTARY_MODES.length] as Prefs['commentary'] }), {
+            icon: 'sound',
+            detail: 'Short lines for the big plays during a game. Text shows them on the rink; Text and voice also reads them aloud with this device\'s own voice, which differs from phone to phone.',
           }),
           tile('hints', 'Hints', prefs.hints ? 'On' : 'Off', () => changePrefs({ ...prefs, hints: !prefs.hints }), {
             icon: 'detail',

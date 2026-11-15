@@ -5,7 +5,7 @@ import { gameAudio } from '../game/audio';
 import { Menu } from './Menu';
 import { describeBinding, hasCustomPadMap, padMap } from '../game/padMap';
 import { PadReadout } from './PadReadout';
-import { loadPrefs, savePrefs, TOUCH_MODES, VOLUME_STEPS, type Prefs } from './prefs';
+import { COMMENTARY_MODES, COMMENTARY_NAMES, loadPrefs, savePrefs, TOUCH_MODES, VOLUME_STEPS, type Prefs } from './prefs';
 
 type Action = keyof typeof controls.buttons & keyof typeof controls.keys;
 
@@ -164,6 +164,12 @@ export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs }: Props
             change({ ...prefs, volume: next });
             gameAudio.play('chime');
           },
+        },
+        {
+          key: 'commentary',
+          label: `Commentary: ${COMMENTARY_NAMES[prefs.commentary]}`,
+          detail: 'A line of text for the big plays, or the same lines read aloud by this device\'s voice as well.',
+          onSelect: () => change({ ...prefs, commentary: COMMENTARY_MODES[(COMMENTARY_MODES.indexOf(prefs.commentary) + 1) % COMMENTARY_MODES.length] as Prefs['commentary'] }),
         },
         { key: 'hints', label: `Hints: ${prefs.hints ? 'On' : 'Off'}`, detail: 'Reminders of the moves, shown when one is on. Each stops once you have done it a few times.', onSelect: () => change({ ...prefs, hints: !prefs.hints }) },
         { key: 'controls', label: 'Controls', detail: 'What every button does, and the on-screen controls.', onSelect: () => setPage('controls') },
