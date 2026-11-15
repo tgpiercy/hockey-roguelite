@@ -1,5 +1,5 @@
 import data from '../data/ai.json';
-import { checkKind } from './check';
+import { checkKind, closingSpeed } from './check';
 import { STEP_SECONDS, STEPS_PER_SECOND } from './clock';
 import { leadPoint } from './pass';
 import { goalLineX } from './rink';
@@ -62,6 +62,7 @@ export function createAiMemory(): AiMemory {
     wantCheck: false,
     carryTime: 0,
     wantDeke: false,
+    checkSteps: 0,
     passTo: null,
     plant: false,
   };
@@ -529,10 +530,25 @@ export function aiInput(world: World, p: Player, t: Tuning, lv: AiLevel): InputF
     m.wantDeke = false;
   }
 
-  if (m.wantCheck && p.checkCooldown <= 0) {
+  // Checking: the button is held for a planned number of steps and let go on the last, which throws it.
+  if (m.checkSteps > 0) {
+    m.checkSteps -= 1;
+    input.check = m.checkSteps > 0;
+  } else if (m.wantCheck && p.checkCooldown <= 0) {
     const carrier = carrierOf(world);
-    if (carrier && carrier.team !== p.team && carrier.role === 'skater' && checkKind(p, carrier, world, t)) {
-      input.check = true;
+    if (carrier && carrier.team !== p.team && carrier.role === 'skater') {
+      // Closing on him: wind up a body check, starting early enough that the button comes up just as he gets there.
+      const closing = closingSpeed(p, carrier);
+      const holdSteps = Math.ceil(t.check.bodyHoldSeconds * STEPS_PER_SECOND) + 1;
+      const reach = t.check.bodyRange * P.bodyCheckAim + closing * (holdSteps / STEPS_PER_SECOND);
+      if (closing >= t.check.minClosingSpeed && dist(p.pos, carrier.pos) <= reach) {
+        m.checkSteps = holdSteps;
+        input.check = true;
+      } else if (checkKind(p, carrier, world, t, false) === 'poke') {
+        // A tap: down this step, up the next.
+        m.checkSteps = 1;
+        input.check = true;
+      }
     }
   }
   return input;

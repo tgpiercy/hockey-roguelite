@@ -24,7 +24,7 @@ import prestigeRules from '../src/data/prestige.json';
 import rules from '../src/data/season.json';
 import sets from '../src/data/sets.json';
 import colourRules from '../src/data/teamColours.json';
-import { stepChecking } from '../src/sim/check';
+import { resolveCheck } from '../src/sim/check';
 import { resolveLoosePuck } from '../src/sim/contact';
 import type { GameResult, PlayerLine } from '../src/sim/match';
 import type { Modifier } from '../src/sim/modifiers';
@@ -378,7 +378,7 @@ describe('real set bonuses on the ice', () => {
       const checker = place(world, ID.away1, never.check.bodyRange * 0.6, 0, Math.PI);
       checker.vel = { x: -closing, y: 0 };
       const events: SimEvent[] = [];
-      stepChecking(world, checker, { ...NO_INPUT, check: true }, never, events);
+      resolveCheck(world, checker, true, never, events);
       const check = events.find((e): e is Extract<SimEvent, { type: 'check' }> => e.type === 'check')!;
       expect(check.kind).toBe('body');
       return check.success;

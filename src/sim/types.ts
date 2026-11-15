@@ -49,6 +49,8 @@ export interface SkaterParams {
   chargedShotScale?: number;
   /** Given when this shot is a one-timer: it counts as fully charged and its speed is scaled by this. */
   oneTimer?: number;
+  /** Scales how far the shot can stray from its aim: under 1 for the human's assisted shots. Left out means 1. */
+  spreadScale?: number;
 }
 
 /** The moving body of a player. */
@@ -96,6 +98,8 @@ export interface AiMemory {
   carryTime: number;
   /** True when it has decided to deke on its next step. */
   wantDeke: boolean;
+  /** Steps left holding the check button: it is let go on the last one. */
+  checkSteps: number;
   /** The teammate its next pass must go to, whoever else is in that direction; null to choose as usual. */
   passTo: number | null;
   /** True while winding up a shot from distance: he plants his feet instead of skating in as he charges. */
@@ -149,6 +153,10 @@ export interface Player extends Skater {
   passCharge: number;
   passHeld: boolean;
   checkHeld: boolean;
+  /** Seconds the check button has been held: long enough makes it a body check on release. */
+  checkCharge: number;
+  /** The fastest he has closed on the puck carrier while holding the check button: what makes the hit count. */
+  checkClosing: number;
   /** Seconds until this player can check again. */
   checkCooldown: number;
   /** Seconds left knocked off balance: no control. */

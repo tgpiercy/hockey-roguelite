@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stepChecking } from '../src/sim/check';
+import { resolveCheck } from '../src/sim/check';
 import { gameResult } from '../src/sim/match';
 import { givePuck } from '../src/sim/team';
 import { cloneTuning } from '../src/sim/tuning';
@@ -133,20 +133,19 @@ describe('shots, saves and hits', () => {
     sure.check.bodyBaseChance = 1;
     sure.check.pokeBaseChance = 1;
     sure.check.ratingSwing = 0;
-    const press = { ...NO_INPUT, check: true };
 
     const body = setUp('hit');
     place(body, ID.away1, 0, 0);
     giveTo(body, ID.away1);
     place(body, ID.home1, -1.2, 0).vel = { x: 8, y: 0 };
-    stepChecking(body, player(body, ID.home1), press, sure, []);
+    resolveCheck(body, player(body, ID.home1), true, sure, []);
     expect(player(body, ID.home1).stats.hits).toBe(1);
 
     const poke = setUp('poke');
     place(poke, ID.away1, 0, 0);
     giveTo(poke, ID.away1);
     place(poke, ID.home1, poke.puck.pos.x, -1.4, Math.PI / 2);
-    stepChecking(poke, player(poke, ID.home1), press, sure, []);
+    resolveCheck(poke, player(poke, ID.home1), false, sure, []);
     expect(poke.puck.carrier).toBe(null);
     expect(player(poke, ID.home1).stats.hits).toBe(0);
   });

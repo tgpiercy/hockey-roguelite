@@ -3,7 +3,7 @@ import { bossInfo, buildBoss } from '../src/core/bosses';
 import { generateLeague } from '../src/core/generate';
 import bosses from '../src/data/bosses.json';
 import { aiLevel, think } from '../src/sim/ai';
-import { stepChecking } from '../src/sim/check';
+import { resolveCheck } from '../src/sim/check';
 import { resolveLoosePuck } from '../src/sim/contact';
 import { mayPull } from '../src/sim/lines';
 import type { Modifier } from '../src/sim/modifiers';
@@ -329,7 +329,7 @@ describe('boss tricks', () => {
       const checker = place(world, ID.away1, 1.2, 0, Math.PI);
       checker.vel = { x: -(sure.check.minClosingSpeed + 0.5), y: 0 };
       const events: SimEvent[] = [];
-      stepChecking(world, checker, { ...NO_INPUT, check: true }, sure, events);
+      resolveCheck(world, checker, true, sure, events);
       expect(events[0]).toMatchObject({ kind: 'body', success: true });
       return player(world, ID.home1).knockedDown;
     };

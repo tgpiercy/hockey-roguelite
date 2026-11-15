@@ -442,6 +442,32 @@ The save percentage fell again because every empty-net goal is a goal with no sa
 
 A bug found by measuring: the momentum meter filled and then the per-step drain took it just under full before the check, so no team was ever on fire in 100 games. The check now comes first.
 
+## Tap to poke, hold to hit; more shoot assist (2026-11-14)
+
+Both asked for by the owner.
+
+**Checking.** A tap of Check is a poke. Holding it for `check.bodyHoldSeconds` (0.25 s) and letting go is a body check, if the carrier is within arm's reach by then; otherwise that too is a poke. The check is thrown when the button comes up. Whether a hit counts, and whether it is a big hit, is judged by the fastest the checker closed on the carrier while the button was held, not by his speed at release: by then the two have usually bumped and stopped. The AI taps to poke and starts its hold early enough to let go as it arrives.
+
+**Shoot assist** (the human's shots only):
+
+| Value | From | To |
+| --- | --- | --- |
+| aimAssist.coneDegrees: how far off the net the stick may point and still be helped | 100 | 150 |
+| aimAssist.cornerInset: how far inside the post the shot is aimed | 0.35 m | 0.25 m |
+| aimAssist.spreadScale (new): how much the shot strays, against an unassisted one | 1 | 0.5 |
+
+A first attempt aimed further inside the post (0.5 m) with the same reduced scatter, on the idea that more shots would be on target. It cut the scripted player from 4.2 goals a game to 1.1: every shot went exactly where the goalie already was, and the scatter had been what beat him. Aiming nearer the post is what helps.
+
+Scripted slot-and-shoot player, 150 games each:
+
+| AI level | Where met | Before | After |
+| --- | --- | --- | --- |
+| 0.75 | Exhibition; Pro, later regions | 79 wins, 4.54 goals a game | 101 wins, 6.01 goals |
+| 0.5 | Pro, first region | 104 wins, 5.44 goals | 133 wins, 7.71 goals |
+| 0.3 | Rookie, first region | 136 wins, 6.95 goals | 149 wins, 11.36 goals |
+
+So the "wins about half at the default level" target from the earlier round is no longer met: the stronger assist was asked for and it makes a player who simply drives the net and shoots win two games in three. AI against AI is unchanged by the assist: 3.92 and 3.79 goals, save percentage .791, the 90 team winning 78%.
+
 ## Change log
 
 | Date | Value | From | To | Why |
@@ -459,5 +485,7 @@ A bug found by measuring: the momentum meter filled and then the per-step drain 
 | 2026-11-14 | ai.json: zone posts, longShotRange, longShotChance, longShotCharge, plantTilt | none | see "Spread-out attack" above | Attackers crowded the net |
 | 2026-11-14 | one-timer, deke, knock-down, rebound, goalie challenge, cover radius, AI styles | see "Deeper gameplay" above | | New moves and AI after the research report |
 | 2026-11-14 | momentum, tips, giveGo, pull, boss groups | none | see "Momentum, tips..." above | New mechanics |
+| 2026-11-14 | aimAssist cone, inset, spreadScale | 100, 0.35, none | 150, 0.25, 0.5 | The owner asked for more shoot assist |
+| 2026-11-14 | check.bodyHoldSeconds (new) | none | 0.25 | A body check needs the button held; a tap is a poke |
 | 2026-11-14 | check.pokeRange | 1.9 | 2.8 | The owner wanted a poke check that works from a stick length away |
 | 2026-11-14 | economy.json sponsorShareOfValue | 0.04 | 0.18 | Every manager style was bankrupt by season 3: income was per game but seasons can be 4 games long |

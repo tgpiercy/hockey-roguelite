@@ -427,3 +427,20 @@ Built, deployed and checked with a simulated controller.
 - Cause, from the owner: the button labels on his controller do not sit where an Xbox pad's do, so the game's fixed numbering put shoot, check and pause on the wrong buttons. The game now learns the layout from the player.
 - Checked in the browser with a simulated controller: the setup took 14 presses, refused a button already used, and saved; in a game the button set as Shoot shot, the one set as Switch deked and did not shoot, and the pause button paused. 845 tests pass (13 new, for the layout code).
 - Not checked: the owner's real controller. Mine was a simulation with two buttons swapped.
+
+# Checking and shooting: tap to poke, hold to hit; more shoot assist
+
+- [x] A tap is a poke; a hold and release in arm's reach is a body check
+- [x] The AI checks the same way
+- [x] More shoot assist for the player
+- [x] Tests; balance measured
+- [ ] Commit, push, deploy green
+- [ ] Play it (owner)
+
+## Review (checking and shooting)
+
+- Type check, 850 tests (5 new) and the build pass.
+- By keyboard in a live game: 12 taps were all pokes (5 freed the puck, no staggers); 12 hold-and-release checks at speed gave 6 knock-downs and 3 more loose pucks.
+- Two things found by measuring, not by reading the code. First, a held check never counted as a body check, for the AI or a player, because the two players had bumped and stopped closing before the button came up; the hit is now judged by the fastest closing speed during the hold. Second, my first "more assist" setting cut the scripted player's scoring by three quarters; the final one raises it by about a third.
+- With the stronger assist the scripted player wins 101 of 150 at the default level (was 79). That target from the gameplay round is no longer met, by the owner's choice.
+- Not checked: the feel of the hold on a controller; whether a quarter of a second is the right length; the bar over the player while holding (not looked at in a picture).

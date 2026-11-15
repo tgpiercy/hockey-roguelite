@@ -89,6 +89,8 @@ export function putOnIce(p: Player, x: number, y: number, facing: number): void 
   p.passCharge = 0;
   p.passHeld = false;
   p.checkHeld = false;
+  p.checkCharge = 0;
+  p.checkClosing = 0;
   p.ai.thinkIn = 0;
   p.ai.shootSteps = 0;
   p.ai.passSteps = 0;

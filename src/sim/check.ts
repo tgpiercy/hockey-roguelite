@@ -1,3 +1,4 @@
+import { STEP_SECONDS } from './clock';
 import { energyScale } from './lines';
 import { spinEscape } from './talents';
 import { wrapAngle } from './skater';
@@ -13,9 +14,13 @@ export function closingSpeed(checker: Player, target: Player): number {
   return ((checker.vel.x - target.vel.x) * dx + (checker.vel.y - target.vel.y) * dy) / d;
 }
 
-/** Which kind of check this would be right now, or null if the carrier is out of reach. */
-export function checkKind(checker: Player, carrier: Player, world: World, t: Tuning): 'body' | 'poke' | null {
-  if (dist(checker.pos, carrier.pos) <= t.check.bodyRange && closingSpeed(checker, carrier) >= t.check.minClosingSpeed) {
+/**
+ * Which kind of check this would be right now, or null if the carrier is out of reach. A body check needs
+ * the button to have been held (`charged`), the carrier within arm's reach and the checker closing on him.
+ * Anything else is a poke, if the puck is within a stick's reach and in front.
+ */
+export function checkKind(checker: Player, carrier: Player, world: World, t: Tuning, charged = true, closing = closingSpeed(checker, carrier)): 'body' | 'poke' | null {
+  if (charged && dist(checker.pos, carrier.pos) <= t.check.bodyRange && closing >= t.check.minClosingSpeed) {
     return 'body';
   }
   const puck = world.puck.pos;
@@ -25,19 +30,41 @@ export function checkKind(checker: Player, carrier: Player, world: World, t: Tun
 }
 
 /**
- * Handles the check button. Close to the puck carrier and closing on him: a body check, which
- * knocks the puck loose and staggers him. Otherwise, with the puck in reach of the stick: a poke check.
- * The checker's checking against the carrier's puck control shifts the odds.
+ * Tracks the check button. A tap is a poke check; holding it for a moment and letting go is a body check,
+ * if the carrier is within reach by then (otherwise that too is a poke). Either is thrown as the button comes up.
  */
 export function stepChecking(world: World, p: Player, input: InputFrame, t: Tuning, events: SimEvent[]): void {
-  const pressed = input.check && !p.checkHeld;
+  const wasHeld = p.checkHeld;
   p.checkHeld = input.check;
-  if (!pressed || p.checkCooldown > 0 || world.puck.carrier === p.id) return;
+  const target = carrierOf(world);
+  const closingNow = target && target.team !== p.team ? closingSpeed(p, target) : 0;
+  if (input.check) {
+    p.checkCharge += STEP_SECONDS;
+    // Remember how fast he came in: by the time the button comes up the two have usually bumped and stopped.
+    p.checkClosing = Math.max(p.checkClosing, closingNow);
+    return;
+  }
+  const held = p.checkCharge;
+  const closing = Math.max(p.checkClosing, closingNow);
+  p.checkCharge = 0;
+  p.checkClosing = 0;
+  if (!wasHeld) return;
+  resolveCheck(world, p, held >= t.check.bodyHoldSeconds, t, events, closing);
+}
+
+/**
+ * Throws a check. `charged` says the button was held long enough for a body check, which knocks the puck
+ * loose and staggers the carrier; otherwise, or out of arm's reach, it is a poke with the stick.
+ * The checker's checking against the carrier's puck control shifts the odds.
+ */
+export function resolveCheck(world: World, p: Player, charged: boolean, t: Tuning, events: SimEvent[], closing?: number): void {
+  if (p.checkCooldown > 0 || world.puck.carrier === p.id) return;
   p.checkCooldown = t.check.cooldownSeconds;
 
   const carrier = carrierOf(world);
   if (!carrier || carrier.team === p.team || carrier.role !== 'skater') return;
-  const kind = checkKind(p, carrier, world, t);
+  const speed = closing ?? closingSpeed(p, carrier);
+  const kind = checkKind(p, carrier, world, t, charged, speed);
   if (!kind) return;
 
   const strength = p.fx.checkStrength * energyScale(p, t.energy.minCheckScale, t);
@@ -45,11 +72,11 @@ export function stepChecking(world: World, p: Player, input: InputFrame, t: Tuni
   const base = kind === 'body' ? t.check.bodyBaseChance : t.check.pokeBaseChance;
   const rolled = world.rng.chance(base + swing);
   // Some gear makes a body check at high closing speed a big hit, which always frees the puck.
-  const bigHit = kind === 'body' && p.fx.bigHitKnock > 0 && closingSpeed(p, carrier) >= t.check.bigHitClosingSpeed;
+  const bigHit = kind === 'body' && p.fx.bigHitKnock > 0 && speed >= t.check.bigHitClosingSpeed;
   // A deke in progress slips the check. A spin move turns one that would have worked into one that does not.
   const success = (rolled || bigHit) && carrier.deke <= 0 && !spinEscape(carrier, events);
   // Thrown while closing fast, a body check that lands puts him on the ice.
-  const big = kind === 'body' && success && (p.fx.alwaysKnockdown > 0 || closingSpeed(p, carrier) >= t.check.bigHitClosingSpeed);
+  const big = kind === 'body' && success && (p.fx.alwaysKnockdown > 0 || speed >= t.check.bigHitClosingSpeed);
 
   if (kind === 'body') {
     p.vel.x *= t.check.checkerSpeedKeep;

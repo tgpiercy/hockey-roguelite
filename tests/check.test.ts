@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkKind, stepChecking } from '../src/sim/check';
+import { checkKind, resolveCheck, stepChecking } from '../src/sim/check';
 import { skaterEffects, type SkaterRatings } from '../src/sim/ratings';
 import { cloneTuning } from '../src/sim/tuning';
 import { NO_INPUT, type InputFrame, type SimEvent, type World } from '../src/sim/types';
@@ -29,9 +29,19 @@ const setUp = (gap: number, speed: number, seed = 'check'): World => {
   return world;
 };
 
-const check = (world: World, t = sure): SimEvent[] => {
+/** Throws a check with the button having been held long enough for a body check (which falls back to a poke out of reach). */
+const check = (world: World, t = sure, charged = true): SimEvent[] => {
   const events: SimEvent[] = [];
-  stepChecking(world, player(world, ID.home1), press, t, events);
+  resolveCheck(world, player(world, ID.home1), charged, t, events);
+  return events;
+};
+
+/** Holds the check button for a time and lets go, as a player would. */
+const holdAndRelease = (world: World, seconds: number, t = sure): SimEvent[] => {
+  const events: SimEvent[] = [];
+  const checker = player(world, ID.home1);
+  for (let i = 0; i < Math.max(1, Math.round(seconds * 60)); i++) stepChecking(world, checker, press, t, events);
+  stepChecking(world, checker, NO_INPUT, t, events);
   return events;
 };
 
@@ -167,6 +177,52 @@ describe('deke', () => {
   });
 });
 
+describe('tap or hold', () => {
+  it('a tap in arm\'s reach is a poke: the puck comes loose and nobody is staggered', () => {
+    const world = setUp(1.2, sure.check.minClosingSpeed + 1);
+    const events = holdAndRelease(world, 0.05);
+    expect(events[0]).toMatchObject({ kind: 'poke', success: true });
+    expect(player(world, ID.away1).stagger).toBe(0);
+    expect(world.puck.carrier).toBe(null);
+  });
+
+  it('held for a moment and let go in arm\'s reach, it is a body check that staggers', () => {
+    expect(sure.check.bodyHoldSeconds).toBeGreaterThan(0.1);
+    const world = setUp(1.2, sure.check.minClosingSpeed + 1);
+    const events = holdAndRelease(world, sure.check.bodyHoldSeconds + 0.05);
+    expect(events[0]).toMatchObject({ kind: 'body', success: true });
+    expect(player(world, ID.away1).stagger).toBeGreaterThan(0);
+  });
+
+  it('held, but the carrier is beyond arm\'s reach: still a poke with the stick', () => {
+    const world = setUp(6, 0);
+    place(world, ID.home1, world.puck.pos.x, -(sure.check.bodyRange + 0.6), Math.PI / 2);
+    const events = holdAndRelease(world, sure.check.bodyHoldSeconds + 0.05);
+    expect(events[0]).toMatchObject({ kind: 'poke', success: true });
+    expect(player(world, ID.away1).stagger).toBe(0);
+  });
+
+  it('counts the speed he came in at, not the speed left after the two have bumped', () => {
+    const world = setUp(1.2, sure.check.bigHitClosingSpeed + 2);
+    const checker = player(world, ID.home1);
+    const events: SimEvent[] = [];
+    for (let i = 0; i < Math.round((sure.check.bodyHoldSeconds + 0.05) * 60); i++) stepChecking(world, checker, press, sure, events);
+    // They have collided and he has stopped; then the button comes up.
+    checker.vel = { x: 0, y: 0 };
+    stepChecking(world, checker, NO_INPUT, sure, events);
+    expect(events[0]).toMatchObject({ kind: 'body', success: true, big: true });
+    expect(checker.checkClosing).toBe(0);
+  });
+
+  it('the hold starts again from nothing after each check', () => {
+    const world = setUp(1.2, sure.check.minClosingSpeed + 1);
+    const checker = player(world, ID.home1);
+    holdAndRelease(world, sure.check.bodyHoldSeconds + 0.05);
+    expect(checker.checkCharge).toBe(0);
+    expect(checkKind(checker, player(world, ID.away1), world, sure, false)).not.toBe('body');
+  });
+});
+
 describe('poke check', () => {
   /** The checker stands still beside the puck, stick side on, facing it (or facing away). */
   const beside = (facing: number): World => {
@@ -226,18 +282,21 @@ describe('check limits', () => {
     expect(player(world, ID.home1).checkCooldown).toBeCloseTo(sure.check.cooldownSeconds);
   });
 
-  it('needs a fresh press, and cannot be thrown again during the cooldown', () => {
+  it('is thrown when the button comes up, and cannot be thrown again during the cooldown', () => {
     const world = setUp(6, 8);
     const checker = player(world, ID.home1);
-    check(world);
-    // Now in range, but the button is still held and the cooldown is running.
+    // Out of range: nothing happens, but the cooldown starts.
+    expect(holdAndRelease(world, 0.05)).toEqual([]);
     place(world, ID.home1, -1.2, 0).vel = { x: 8, y: 0 };
-    expect(check(world)).toEqual([]);
-    stepChecking(world, checker, NO_INPUT, sure, []);
-    expect(check(world)).toEqual([]);
+    // Holding the button throws nothing by itself.
+    const events: SimEvent[] = [];
+    stepChecking(world, checker, press, sure, events);
+    expect(events).toEqual([]);
+    // Letting go during the cooldown throws nothing either.
+    stepChecking(world, checker, NO_INPUT, sure, events);
+    expect(events).toEqual([]);
     checker.checkCooldown = 0;
-    stepChecking(world, checker, NO_INPUT, sure, []);
-    expect(check(world)).toHaveLength(1);
+    expect(holdAndRelease(world, sure.check.bodyHoldSeconds + 0.05)).toHaveLength(1);
   });
 
   it('cannot check a teammate, or while carrying the puck', () => {

@@ -660,9 +660,15 @@ export class RinkScene extends Phaser.Scene {
 
     // Shot or pass wind-up, above the controlled skater.
     if (controlled) {
-      const held = Math.max(controlled.charge, controlled.passCharge);
+      const held = Math.max(controlled.charge, controlled.passCharge, controlled.checkCharge);
       if (held > 0) {
-        const fill = controlled.charge > 0 ? chargeFraction(controlled.charge, t) : Math.min(1, controlled.passCharge / t.pass.saucerHoldTime);
+        // A shot winding up, a pass on its way to being a saucer, or a check on its way to being a hit: full means it is.
+        const fill =
+          controlled.charge > 0
+            ? chargeFraction(controlled.charge, t)
+            : controlled.passCharge > 0
+              ? Math.min(1, controlled.passCharge / t.pass.saucerHoldTime)
+              : Math.min(1, controlled.checkCharge / t.check.bodyHoldSeconds);
         const w = t.skater.radius * 4 * z;
         const h = Math.max(4, 0.3 * z);
         const bx = this.sx(controlled.pos.x) - w / 2;

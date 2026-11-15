@@ -87,7 +87,8 @@
     "knockSpeed": 7,
     "pickupLockSeconds": 0.5,
     "checkerSpeedKeep": 0.5,
-    "knockdownSeconds": 1.5
+    "knockdownSeconds": 1.5,
+    "bodyHoldSeconds": 0.25
   },
   "body": {
     "handleSpeed": 16,
@@ -143,8 +144,9 @@
   },
   "aimAssist": {
     "strength": 1,
-    "coneDegrees": 100,
-    "cornerInset": 0.35
+    "coneDegrees": 150,
+    "cornerInset": 0.25,
+    "spreadScale": 0.5
   },
   "passAssist": {
     "strength": 1,

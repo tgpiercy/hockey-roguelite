@@ -51,7 +51,7 @@ import offseasonRules from '../src/data/offseason.json';
 import scoutingRules from '../src/data/scouting.json';
 import staffRules from '../src/data/staff.json';
 import talentRules from '../src/data/talents.json';
-import { stepChecking } from '../src/sim/check';
+import { resolveCheck } from '../src/sim/check';
 import type { GameResult, PlayerLine } from '../src/sim/match';
 import { defaultGoalieRatings, defaultSkaterRatings } from '../src/sim/ratings';
 import { goalLineX } from '../src/sim/rink';
@@ -801,7 +801,7 @@ describe('talents on the ice', () => {
       const events: SimEvent[] = [];
       checker.checkHeld = false;
       checker.checkCooldown = 0;
-      stepChecking(world, checker, { ...NO_INPUT, check: true }, sure, events);
+      resolveCheck(world, checker, true, sure, events);
       return events;
     };
     const first = poke();

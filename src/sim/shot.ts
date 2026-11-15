@@ -56,7 +56,7 @@ export function stepShooting(
   const tilt = Math.hypot(input.moveX, input.moveY);
   const asked = tilt > 0 ? Math.atan2(input.moveY, input.moveX) : s.facing;
   const aim = assist ? assist(asked) : asked;
-  const angle = aim + rng.range(-1, 1) * shotSpread(params.accuracy, t);
+  const angle = aim + rng.range(-1, 1) * shotSpread(params.accuracy, t) * (params.spreadScale ?? 1);
   // A one-timer counts as fully wound up however briefly the button was held.
   const oneTimer = params.oneTimer ?? 1;
   const held = params.oneTimer !== undefined ? Math.max(s.charge, t.shot.chargeTime) : s.charge;

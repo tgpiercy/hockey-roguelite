@@ -95,6 +95,8 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index:
     passCharge: 0,
     passHeld: false,
     checkHeld: false,
+    checkCharge: 0,
+    checkClosing: 0,
     checkCooldown: 0,
     stagger: 0,
     pickupLock: 0,
@@ -390,7 +392,9 @@ export function step(world: World, humanInput: InputFrame, t: Tuning): SimEvent[
     // A shot let go just after receiving a pass is a one-timer: fully wound up, and harder still with the right gear.
     const oneTimer = p.oneTimer > 0;
     const woundUp = chargeFraction(p.charge, t) >= 1;
-    const params = oneTimer ? { ...fx, oneTimer: fx.oneTimerScale * t.shot.oneTimerPower } : fx;
+    // The human's shots also stray less: part of the aim assist.
+    const steady = assist && t.aimAssist.strength > 0 ? { spreadScale: t.aimAssist.spreadScale } : {};
+    const params = oneTimer ? { ...fx, ...steady, oneTimer: fx.oneTimerScale * t.shot.oneTimerPower } : { ...fx, ...steady };
     const speed = stepShooting(p, hadPuck, puck, input, params, t, world.rng, dt, assist);
     if (speed !== null) {
       loosePuck(world);

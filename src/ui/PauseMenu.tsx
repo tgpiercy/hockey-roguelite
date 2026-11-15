@@ -13,7 +13,7 @@ type Action = keyof typeof controls.buttons & keyof typeof controls.keys;
 const ACTIONS: [Action, string][] = [
   ['pass', 'Pass, faceoff draw'],
   ['shoot', 'Shoot'],
-  ['check', 'Check'],
+  ['check', 'Check: tap to poke, hold to hit'],
   ['switchPlayer', 'Switch player; deke with the puck'],
   ['sprint', 'Sprint'],
   ['lineChange', 'Line change'],
@@ -65,10 +65,10 @@ function Layout() {
           <b>Deke:</b> with the puck, the switch button is a sidestep; a check thrown at you just then misses.
         </span>
         <span>
-          <b>Big hit:</b> a body check thrown at speed puts the carrier on the ice.
+          <b>Body check:</b> hold Check a moment as you skate into the carrier, then let go. At speed it puts him on the ice.
         </span>
         <span>
-          <b>Poke:</b> from a stick length away, Check knocks the puck loose without the hit.
+          <b>Poke:</b> tap Check. From a stick length away it knocks the puck loose, with no hit.
         </span>
         <span>
           <b>Give and go:</b> press Pass again just after passing; you stay on the passer and get it straight back.
