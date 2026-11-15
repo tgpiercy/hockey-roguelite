@@ -29,6 +29,9 @@ interface Particle {
   age: number;
   life: number;
 }
+interface Confetto extends Particle {
+  hex: string;
+}
 interface Ring {
   x: number;
   y: number;
@@ -49,6 +52,9 @@ export class Effects {
   private marks: Mark[] = [];
   private particles: Particle[] = [];
   private rings: Ring[] = [];
+  private confetti: Confetto[] = [];
+  /** The two teams' colours, for the confetti: set by the scene. */
+  teamColours: [string, string] = [look.colours.teamHome, look.colours.teamAway];
   private trail: { x: number; y: number; age: number }[] = [];
   private lastPos = new Map<number, { x: number; y: number; speed: number }>();
   /** How far through his stride each player is, in radians. */
@@ -78,6 +84,16 @@ export class Effects {
         this.excitement = 1;
         this.cheering = e.team;
         this.shake = Math.max(this.shake, fx.goalShake);
+        // Confetti in the scorers' colours bursts from the net they scored on. (Full detail only.)
+        if (this.full) {
+          const netX = (e.team === 0 ? 1 : -1) * (t.rink.length / 2 - t.rink.goalLineFromEnd);
+          const colours = [this.teamColours[e.team], look.colours.snow, this.teamColours[e.team]];
+          for (let i = 0; i < fx.confetti; i++) {
+            const angle = this.rng.range(0, Math.PI * 2);
+            const speed = this.rng.range(fx.confettiSpeed * 0.25, fx.confettiSpeed);
+            this.confetti.push({ x: netX, y: 0, vx: Math.cos(angle) * speed - Math.sign(netX) * fx.confettiSpeed * 0.35, vy: Math.sin(angle) * speed - fx.confettiSpeed * 0.3, age: 0, life: this.rng.range(fx.confettiSeconds * 0.5, fx.confettiSeconds), hex: colours[i % colours.length] as string });
+          }
+        }
       } else if (e.type === 'check' && e.success) {
         const target = players[e.target];
         if (target) {
@@ -146,6 +162,15 @@ export class Effects {
       particle.vy *= 1 - Math.min(1, fx.sprayDrag * dt);
     }
     this.particles = this.particles.filter((particle) => particle.age < particle.life);
+    for (const bit of this.confetti) {
+      bit.age += dt;
+      bit.x += bit.vx * dt;
+      bit.y += bit.vy * dt;
+      bit.vx *= 1 - Math.min(1, fx.sprayDrag * 0.5 * dt);
+      // It flutters down the screen as it slows.
+      bit.vy += fx.confettiFall * dt;
+    }
+    this.confetti = this.confetti.filter((bit) => bit.age < bit.life);
     for (const r of this.rings) r.age += dt;
     this.rings = this.rings.filter((r) => r.age < r.life);
   }
@@ -184,6 +209,11 @@ export class Effects {
     for (const particle of this.particles) {
       g.fillStyle(colour(look.colours.snow), 0.9 * (1 - particle.age / particle.life));
       g.fillRect(view.sx(particle.x) - size / 2, view.sy(particle.y) - size / 2, size, size);
+    }
+    const bitSize = Math.max(2, fx.confettiSize * view.zoom);
+    for (const bit of this.confetti) {
+      g.fillStyle(colour(bit.hex), Math.min(1, 2 * (1 - bit.age / bit.life)));
+      g.fillRect(view.sx(bit.x) - bitSize / 2, view.sy(bit.y) - bitSize / 2, bitSize, bitSize * 0.6);
     }
     for (const r of this.rings) {
       const k = r.age / r.life;

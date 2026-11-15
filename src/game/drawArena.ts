@@ -81,7 +81,9 @@ export class Crowd {
         if (rng.chance(arena.emptySeatChance)) continue;
         // Each team's fans sit mostly behind the net their team defends.
         const side = x < left + width / 2 ? 0 : 1;
-        const team = rng.chance(arena.teamFanChance) ? (rng.chance(arena.ownEndChance) ? side : 1 - side) : -1;
+        // Most seats wear a team's colours: more of them the home side's (team 0), and each side's mostly at its own end.
+        const lean = side === 0 ? arena.homeFanShare + (1 - arena.homeFanShare) * (arena.ownEndChance - 0.5) : arena.homeFanShare - arena.homeFanShare * (arena.ownEndChance - 0.5);
+        const team = rng.chance(arena.teamFanChance) ? (rng.chance(lean) ? 0 : 1) : -1;
         this.fans.push({ x, y, team: team as -1 | 0 | 1, shade: rng.int(0, arena.neutralColours.length - 1), phase: rng.range(0, Math.PI * 2) });
       }
     }

@@ -15,6 +15,7 @@ import { goalLineX, nets } from '../sim/rink';
 import { chargeFraction } from '../sim/shot';
 import { activeLabels } from '../sim/conditions';
 import { passPreview } from '../sim/pass';
+import { inkOn } from '../core/teamColours';
 import { STEPS_PER_SECOND } from '../sim/clock';
 import { newlyInForce, wordsFor } from './floatWords';
 import { copyWorld, goalOfTheGame, Recorder, type Clip, type GoalNote } from './replay';
@@ -203,6 +204,7 @@ export class RinkScene extends Phaser.Scene {
   create(): void {
     this.reader = new InputReader();
     this.effects = new Effects(this.full);
+    this.effects.teamColours = [this.teamColour(0), this.teamColour(1)];
     this.crests = [teamCrest(this.options.names[0], this.teamColour(0)), teamCrest(this.options.names[1], this.teamColour(1))];
     const heading = { fontFamily: look.font, fontStyle: 'bold' };
 
@@ -696,7 +698,8 @@ export class RinkScene extends Phaser.Scene {
     g.strokeRoundedRect(this.sx(-hx) - wall / 2, this.sy(-hy) - wall / 2, t.rink.length * z + wall, t.rink.width * z + wall, corner + wall / 2);
     const panel = arena.boardPanel;
     const straight = hx - t.rink.cornerRadius;
-    const panels = arena.boardPanelColours;
+    // The boards carry the home team's colour between the white panels, and the visitors' here and there.
+    const panels = [look.colours.boards, this.teamColour(0), look.colours.boards, this.teamColour(0), look.colours.boards, this.teamColour(1)];
     let n = 0;
     for (let x = -straight; x < straight - 0.01; x += panel) {
       const hex = panels[n++ % panels.length] as string;
@@ -1137,6 +1140,8 @@ export class RinkScene extends Phaser.Scene {
       const name = this.nameTexts[team];
       const score = this.scoreTexts[team];
       if (name) {
+        // Dark ink on a light team colour, white on a dark one.
+        name.setColor(inkOn(this.teamColour(team)));
         name.setFontSize(nameSize);
         name.setText(names[team].toUpperCase());
         // A long name is squeezed to fit its block.
@@ -1160,7 +1165,18 @@ export class RinkScene extends Phaser.Scene {
     // The last seconds of regulation: the clock turns red and pulses.
     const lastSeconds = !world.overtime && world.period >= t.period.count && world.clock <= fx.lastSecondsPulse && world.phase !== 'final';
     this.clockTextObject.setColor(lastSeconds ? c.danger : c.accent);
-    this.clockTextObject.setFontSize(Math.max(11, boardH * 0.58) * (lastSeconds ? 1 + 0.12 * Math.sin(this.clock * 10) : 1));
+    this.clockTextObject.setFontSize(Math.max(11, boardH * 0.5) * (lastSeconds ? 1 + 0.12 * Math.sin(this.clock * 10) : 1));
+    // The periods as pips under the clock: filled for the ones played and the one being played.
+    if (!world.shootout && !world.match.firstTo) {
+      const pipR = Math.max(1.6, boardH * 0.07);
+      const gap = pipR * 3.4;
+      const cx = left + nameW + scoreW + midW / 2;
+      for (let k = 0; k < t.period.count; k++) {
+        const on = k < world.period;
+        g.fillStyle(colour(on ? c.accent : c.panelLine), on ? 1 : 0.9);
+        g.fillCircle(cx + (k - (t.period.count - 1) / 2) * gap, y0 + boardH - pipR - 2.5, pipR);
+      }
+    }
 
     // Momentum: a strip along the bottom of each team's name, bright and full while it is on fire.
     for (const team of [0, 1] as const) {
@@ -1210,7 +1226,7 @@ export class RinkScene extends Phaser.Scene {
       this.callText.setAlpha(Math.min(1, callLeft / 0.4));
     }
     this.clockTextObject.setText(`${period}  ${clockText(world.clock)}`);
-    this.clockTextObject.setPosition(left + nameW + scoreW + midW / 2, midY);
+    this.clockTextObject.setPosition(left + nameW + scoreW + midW / 2, !world.shootout && !world.match.firstTo ? midY - boardH * 0.1 : midY);
 
     // Bottom left: sprint bar of the controlled skater, then the energy of each line (the one on the ice is ringed).
     const barH = Math.max(7, height * 0.022);
