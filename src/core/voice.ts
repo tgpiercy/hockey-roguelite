@@ -2,7 +2,8 @@ import data from '../data/voice.json';
 import { bossInfo } from './bosses';
 import { teamOf, userTeam } from './league';
 import type { PlayerRecord } from './player';
-import { currentStop, isRival, maxStrikes, type Franchise } from './season';
+import { expectationMet } from './expectation';
+import { currentStop, isCupTie, isRival, maxStrikes, type Franchise } from './season';
 import { createRng } from './rng';
 
 /**
@@ -45,6 +46,9 @@ export interface VoiceFacts {
   player?: string;
   age?: number;
   goals?: number;
+  /** A nickname, and the league the club plays in. */
+  nick?: string;
+  league?: string;
 }
 
 /** One thing the season has to say right now, with what its lines need. Most pressing first when listed. */
@@ -103,6 +107,8 @@ export function seasonContexts(f: Franchise): Context[] {
     const boss = bossInfo(waiting.bossId);
     out.push({ id: 'boss', facts: { ...base, boss: boss.name, person: boss.person.name, role: boss.person.role } });
   }
+  // A cup tie waiting is the night's business, after a boss and before a rival.
+  if (waiting && isCupTie(f, waiting)) out.push({ id: 'cupTie', facts: base });
   if (waiting?.kind === 'game' && waiting.opponentId && isRival(f, waiting.opponentId)) {
     out.push({ id: 'rival', facts: { ...base, rival: teamOf(league, waiting.opponentId).name } });
   }
@@ -114,7 +120,13 @@ export function seasonContexts(f: Franchise): Context[] {
   if (streak >= THRESHOLDS.winStreak) out.push({ id: 'winStreak', facts: { ...base, n: streak } });
   if (season.phase === 'map' && season.gamesPlayed === 0) out.push({ id: 'opener', facts: base });
   const last = (f.history ?? [])[(f.history ?? []).length - 1];
-  if (last?.outcome === 'champion' && season.gamesPlayed < 3) out.push({ id: 'champions', facts: base });
+  // The first nights after a step up to a bigger league come before the banner.
+  const promoted = (f.promotions ?? [])[(f.promotions ?? []).length - 1];
+  if (promoted && last && promoted.season === last.season && season.gamesPlayed < THRESHOLDS.openingGames) out.push({ id: 'newLeague', facts: { ...base, league: promoted.league } });
+  if (last?.outcome === 'champion' && season.gamesPlayed < THRESHOLDS.openingGames) out.push({ id: 'champions', facts: base });
+  // The sponsor's target, one win away.
+  const target = season.expectation;
+  if (season.phase === 'map' && target?.kind === 'wins' && season.gamesWon === target.wins - 1) out.push({ id: 'targetNear', facts: base });
 
   // People: the scorer who is running hot, a rookie finding his feet, the oldest man still dressing.
   const dressed = season.dressed.map((id) => league.players[id]).filter((p): p is PlayerRecord => p !== undefined && p.position !== 'G');
@@ -125,6 +137,16 @@ export function seasonContexts(f: Franchise): Context[] {
   if (rookie) out.push({ id: 'rookie', facts: { ...base, player: rookie.name, age: rookie.age, goals: goalsOf(rookie.id) } });
   const veteran = [...dressed].filter((p) => p.age >= THRESHOLDS.veteranAge).sort((a, b) => b.age - a.age || a.id.localeCompare(b.id))[0];
   if (veteran) out.push({ id: 'veteran', facts: { ...base, player: veteran.name, age: veteran.age } });
+
+  // The quieter facts of the season: the cup, the sponsor satisfied, a name earned, an old player on the staff, a season shared.
+  if (season.cup?.alive && season.cup.won > 0 && season.phase === 'map') out.push({ id: 'cupAlive', facts: { ...base, n: season.cup.won } });
+  if (season.cup && !season.cup.alive && season.phase === 'map') out.push({ id: 'cupOut', facts: base });
+  if (target && expectationMet(f)) out.push({ id: 'targetMet', facts: base });
+  const named = [...dressed].filter((p) => p.nickname).sort((a, b) => a.id.localeCompare(b.id))[0];
+  if (named?.nickname) out.push({ id: 'nickname', facts: { ...base, player: named.name, nick: named.nickname } });
+  const old = (f.staff ?? []).find((member) => member.id.startsWith('legacy/'));
+  if (old) out.push({ id: 'legacy', facts: { ...base, player: old.name } });
+  if (season.coop) out.push({ id: 'twoPlayers', facts: base });
 
   out.push({ id: 'plain', facts: base });
   return out;
@@ -137,7 +159,7 @@ export function pregameLine(f: Franchise): string {
 }
 
 /** The quiet things, which are true most nights: they take turns, so the same one is not said every game. */
-const QUIET: ContextId[] = ['hot', 'rookie', 'veteran', 'plain'];
+const QUIET: ContextId[] = ['hot', 'rookie', 'veteran', 'cupAlive', 'cupOut', 'targetMet', 'nickname', 'legacy', 'twoPlayers', 'plain'];
 
 /** The thing to lead with: whatever is pressing, or on a quiet night one of the quiet things, by turns. */
 export function leadContext(f: Franchise, label: string): Context {

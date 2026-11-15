@@ -136,8 +136,8 @@ describe('new events', () => {
     throw new Error('no event stop found');
   };
 
-  it('there are twenty-seven', () => {
-    expect(events).toHaveLength(27);
+  it('there are thirty-eight', () => {
+    expect(events).toHaveLength(38);
   });
 
   it('the clinic sells skill points for one player', () => {

@@ -198,7 +198,7 @@ describe('content', () => {
   });
 
   const simStats = new Set([...Object.keys(skaterEffects(defaultSkaterRatings)), ...Object.keys(goalieEffects(defaultGoalieRatings))]);
-  const seasonStats = new Set(['currencyGain', 'shopPrice', 'trainingBonus', 'powerupDropChance', 'eliteGain', 'eliteBump']);
+  const seasonStats = new Set(['currencyGain', 'shopPrice', 'trainingBonus', 'powerupDropChance', 'eliteGain', 'eliteBump', 'cupGain', 'bountyGain']);
   const validModifier = (m: { stat: string; op: string; value: number }, allowSeason: boolean): void => {
     expect(['add', 'mul']).toContain(m.op);
     expect(Number.isFinite(m.value)).toBe(true);

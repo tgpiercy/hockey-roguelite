@@ -1,3 +1,4 @@
+import { BEFORE } from '../src/core/season';
 import { describe, expect, it } from 'vitest';
 import { generateLeague } from '../src/core/generate';
 import { artifactInfo, artifactModifiers, availableStops, bargainGames, newFranchise, recordGame, startSeason, teamModifiers, travel, type Franchise } from '../src/core/season';
@@ -137,7 +138,7 @@ describe('a game with conditional modifiers', () => {
   it('plays to the end, and a team without any plays exactly as before', () => {
     const plain = runGame('cond', team(), team());
     expect(runGame('cond', team([]), team([]))).toEqual(plain);
-    const all: Modifier[] = (artifacts as unknown as { modifiers: Modifier[] }[]).flatMap((a) => a.modifiers).filter((m) => !isPlain(m) && m.when !== 'home');
+    const all: Modifier[] = (artifacts as unknown as { modifiers: Modifier[] }[]).flatMap((a) => a.modifiers).filter((m) => !isPlain(m) && !(BEFORE as readonly string[]).includes(m.when ?? ''));
     const result = runGame('cond', team(all), team());
     expect(result.finished).toBe(true);
   });
@@ -155,12 +156,14 @@ describe('the conditional artifacts and the bargains', () => {
   it('every condition and trigger is one the game knows, on a stat the ice reads', () => {
     for (const a of list) {
       for (const m of [...a.modifiers, ...(a.bargain?.handicap ?? [])]) {
-        if (m.when !== undefined) expect([...WHEN, 'home'], a.id).toContain(m.when);
+        if (m.when !== undefined) expect([...WHEN, ...BEFORE], a.id).toContain(m.when);
         if (m.on !== undefined) {
           expect(ON as readonly string[], a.id).toContain(m.on);
           expect(m.seconds, a.id).toBeGreaterThan(0);
         }
-        if (!isPlain(m)) expect(simStats.has(m.stat), `${a.id}: ${m.stat}`).toBe(true);
+        // A condition of the game in progress needs a stat the ice reads; one settled before the game may also be the season's.
+        const settledBefore = (BEFORE as readonly string[]).includes(m.when ?? '');
+        if (!isPlain(m) && !settledBefore) expect(simStats.has(m.stat), `${a.id}: ${m.stat}`).toBe(true);
         expect(m.when !== undefined && m.on !== undefined, a.id).toBe(false);
       }
       if (a.bargain) {

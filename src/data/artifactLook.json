@@ -1,13 +1,111 @@
 {
   "families": {
-    "skating": { "name": "Skating", "icon": "pSpeed", "colour": "#3d8bfd", "stats": ["topSpeedScale", "accelerationScale", "carrySpeedScale", "breakawaySpeedScale", "gainBurst"] },
-    "shooting": { "name": "Shooting", "icon": "pShot", "colour": "#f25c54", "stats": ["shotPower", "accuracy", "chargedShotScale", "oneTimerScale", "fakeBiteScale", "unstoppableCharged"] },
-    "passing": { "name": "Passing", "icon": "pPass", "colour": "#2ec4b6", "stats": ["passSpeedScale", "passSpreadDegrees", "passThrough"] },
-    "checking": { "name": "Checking", "icon": "pHit", "colour": "#f4a259", "stats": ["checkStrength", "puckSecurity", "bigHitKnock", "alwaysKnockdown", "blockReachScale", "handleSpeedScale"] },
-    "goalie": { "name": "Goalie", "icon": "pWall", "colour": "#a685e2", "stats": ["reactionSeconds", "lateralSpeed", "coverRadius", "depth", "freezeSpeed", "reboundKeep", "periodAutoSaves"] },
-    "stamina": { "name": "Stamina", "icon": "pEnergy", "colour": "#6bd28a", "stats": ["drainScale", "recoverScale"] },
-    "money": { "name": "Money", "icon": "finances", "colour": "#f6c945", "stats": ["currencyGain", "shopPrice", "trainingBonus", "powerupDropChance", "eliteGain", "eliteBump"] }
+    "skating": {
+      "name": "Skating",
+      "icon": "pSpeed",
+      "colour": "#3d8bfd",
+      "stats": [
+        "topSpeedScale",
+        "accelerationScale",
+        "carrySpeedScale",
+        "breakawaySpeedScale",
+        "gainBurst"
+      ]
+    },
+    "shooting": {
+      "name": "Shooting",
+      "icon": "pShot",
+      "colour": "#f25c54",
+      "stats": [
+        "shotPower",
+        "accuracy",
+        "chargedShotScale",
+        "oneTimerScale",
+        "fakeBiteScale",
+        "unstoppableCharged"
+      ]
+    },
+    "passing": {
+      "name": "Passing",
+      "icon": "pPass",
+      "colour": "#2ec4b6",
+      "stats": [
+        "passSpeedScale",
+        "passSpreadDegrees",
+        "passThrough"
+      ]
+    },
+    "checking": {
+      "name": "Checking",
+      "icon": "pHit",
+      "colour": "#f4a259",
+      "stats": [
+        "checkStrength",
+        "puckSecurity",
+        "bigHitKnock",
+        "alwaysKnockdown",
+        "blockReachScale",
+        "handleSpeedScale"
+      ]
+    },
+    "goalie": {
+      "name": "Goalie",
+      "icon": "pWall",
+      "colour": "#a685e2",
+      "stats": [
+        "reactionSeconds",
+        "lateralSpeed",
+        "coverRadius",
+        "depth",
+        "freezeSpeed",
+        "reboundKeep",
+        "periodAutoSaves"
+      ]
+    },
+    "stamina": {
+      "name": "Stamina",
+      "icon": "pEnergy",
+      "colour": "#6bd28a",
+      "stats": [
+        "drainScale",
+        "recoverScale"
+      ]
+    },
+    "money": {
+      "name": "Money",
+      "icon": "finances",
+      "colour": "#f6c945",
+      "stats": [
+        "currencyGain",
+        "shopPrice",
+        "trainingBonus",
+        "powerupDropChance",
+        "eliteGain",
+        "eliteBump",
+        "cupGain",
+        "bountyGain"
+      ]
+    }
   },
-  "when": { "leading": "While leading", "trailing": "While trailing", "tied": "While level", "lastPeriod": "Last period", "overtime": "Overtime", "home": "At home" },
-  "on": { "goalFor": "After you score", "goalAgainst": "After they score", "bigHit": "After a big hit", "save": "After a save", "steal": "After a steal", "pass": "After a pass" }
+  "when": {
+    "leading": "While leading",
+    "trailing": "While trailing",
+    "tied": "While level",
+    "lastPeriod": "Last period",
+    "overtime": "Overtime",
+    "home": "At home",
+    "away": "On the road",
+    "cupTie": "Cup ties",
+    "rival": "Against a rival",
+    "boss": "Against a boss",
+    "targetMet": "Sponsor satisfied"
+  },
+  "on": {
+    "goalFor": "After you score",
+    "goalAgainst": "After they score",
+    "bigHit": "After a big hit",
+    "save": "After a save",
+    "steal": "After a steal",
+    "pass": "After a pass"
+  }
 }

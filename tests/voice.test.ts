@@ -30,7 +30,7 @@ const atGame = (f: Franchise): void => {
 };
 const ids = (f: Franchise): ContextId[] => seasonContexts(f).map((c) => c.id);
 /** Everything a line could ask for. */
-const FULL: VoiceFacts = { team: 'Redcliff Miners', town: 'Redcliff', n: 4, rival: 'Ashdown Owls', boss: 'Greyport Wall', person: 'Anders Holm', role: 'captain', player: 'Wes Breniss', age: 36, goals: 7 };
+const FULL: VoiceFacts = { team: 'Redcliff Miners', town: 'Redcliff', n: 4, rival: 'Ashdown Owls', boss: 'Greyport Wall', person: 'Anders Holm', role: 'captain', player: 'Wes Breniss', age: 36, goals: 7, nick: 'Pops', league: 'the Border League' };
 
 describe('the paper and the announcer', () => {
   it('a town is the name of the team without its last word', () => {
@@ -56,6 +56,8 @@ describe('the paper and the announcer', () => {
       for (let i = 0; i < 40; i++) {
         const line = lineFor({ id, facts: FULL }, `fill/${i}`);
         expect(line, id).not.toMatch(/[{}]/);
+        // Nothing is left empty either: no doubled space, no empty quotes, no space before a full stop.
+        expect(line, id).not.toMatch(/ {2}|""| [.,]/);
         expect(line.length).toBeGreaterThan(12);
         const said = announcerLine({ id, facts: FULL }, `fill/${i}`);
         expect(said).not.toMatch(/[{}]/);
@@ -183,5 +185,66 @@ describe('boss clubs', () => {
     expect(f.season.ringerOffer![2]!.player.name).toBe(bossInfo(boss.bossId!).person.name);
     expect(availableStops(f)).toEqual([]);
     expect(travel(f, 'nowhere').ok).toBe(false);
+  });
+});
+
+describe('the cup, the sponsor, names and leagues in the voice', () => {
+  it('a cup tie waiting is noticed, and a cup run or its end is a quiet fact', () => {
+    const f = started('voice-cup');
+    const tie = Object.values(f.season.map!.stops).find((s) => s.cup && s.region === 0)!;
+    f.season.current = tie.id;
+    f.season.stage = 'arrived';
+    expect(ids(f)).toContain('cupTie');
+    expect(ids(f)).not.toContain('cupAlive');
+    f.season.cup = { won: 2, alive: true };
+    expect(seasonContexts(f).find((c) => c.id === 'cupAlive')!.facts.n).toBe(2);
+    f.season.cup = { won: 1, alive: false };
+    expect(ids(f)).toContain('cupOut');
+    expect(ids(f)).not.toContain('cupTie');
+    expect(ids(f)).not.toContain('cupAlive');
+  });
+
+  it('the sponsor is noticed one win short, and again once satisfied', () => {
+    const f = started('voice-target');
+    const wins = f.season.expectation!.wins;
+    f.season.gamesWon = wins - 1;
+    expect(ids(f)).toContain('targetNear');
+    expect(ids(f)).not.toContain('targetMet');
+    f.season.gamesWon = wins;
+    expect(ids(f)).not.toContain('targetNear');
+    expect(ids(f)).toContain('targetMet');
+  });
+
+  it('a nickname in the lineup, an old player on the staff and a shared season are each said', () => {
+    const f = started('voice-people');
+    expect(ids(f)).not.toContain('nickname');
+    const skater = f.league.players[f.season.dressed.find((id) => f.league.players[id]!.position !== 'G')!]!;
+    skater.nickname = 'Pops';
+    const said = seasonContexts(f).find((c) => c.id === 'nickname')!;
+    expect(said.facts).toMatchObject({ player: skater.name, nick: 'Pops' });
+    f.staff.push({ id: 'legacy/old', name: 'Ben Oldhand', role: 'shooting', grade: 'C', salary: 1, contractYears: 1 });
+    expect(seasonContexts(f).find((c) => c.id === 'legacy')!.facts.player).toBe('Ben Oldhand');
+    f.season.coop = true;
+    expect(ids(f)).toContain('twoPlayers');
+  });
+
+  it('the first nights in a new league are noticed, and not after', () => {
+    const f = started('voice-league');
+    f.history = [{ season: 3, outcome: 'champion', wins: 9, losses: 1, place: 1, points: 20, topScorer: null, awards: [] }];
+    f.promotions = [{ season: 3, league: 'the Border League' }];
+    const all = ids(f);
+    expect(all).toContain('newLeague');
+    expect(all.indexOf('newLeague')).toBeLessThan(all.indexOf('champions'));
+    f.season.gamesPlayed = THRESHOLDS.openingGames;
+    expect(ids(f)).not.toContain('newLeague');
+    // A step up taken seasons ago is not news.
+    f.season.gamesPlayed = 0;
+    f.promotions = [{ season: 1, league: 'the Border League' }];
+    expect(ids(f)).not.toContain('newLeague');
+  });
+
+  it('there are well over a hundred lines', () => {
+    const total = CONTEXTS.reduce((sum, id) => sum + (voice.contexts as Record<string, string[]>)[id]!.length, 0);
+    expect(total).toBeGreaterThanOrEqual(180);
   });
 });

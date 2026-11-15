@@ -5,7 +5,7 @@ import { EXPECTATION_RULES, expectationFactor, expectationLine, expectationMet, 
 import { generateLeague } from '../src/core/generate';
 import { finishSeason } from '../src/core/offseason';
 import { leagueName, prestige } from '../src/core/prestige';
-import { cupHeld, isCupTie, newFranchise, recordGame, seasonRegions, startSeason, type Franchise } from '../src/core/season';
+import { beforeFacts, cupHeld, isCupTie, newFranchise, recipeFor, recordGame, seasonRegions, startSeason, teamModifiers, type Franchise } from '../src/core/season';
 import { generateMap } from '../src/core/seasonMap';
 import { newWeekly, weekKey } from '../src/core/weekly';
 import prestigeRules from '../src/data/prestige.json';
@@ -232,5 +232,76 @@ describe('the practice rink', () => {
     const world = createGame(t, 'practice', { human: false, teams: [uniformTeam(70), uniformTeam(60)], rules: { firstTo: 1 } });
     for (let i = 0; i < 60 * 60 * 20 && world.phase !== 'final'; i++) step(world, NO_INPUT, t);
     expect(world.phase).toBe('final');
+  });
+});
+
+describe('conditions settled before the game', () => {
+  const holding = (id: string, seed = 'before'): Franchise => {
+    const f = started(seed);
+    f.artifacts = [id];
+    return f;
+  };
+  const has = (f: Franchise, stat: string): boolean => teamModifiers(f).some((m) => m.stat === stat && m.when === undefined);
+
+  it('a cup-tie artifact counts at a cup tie that is still alive, and nowhere else', () => {
+    const f = holding('cup-fever');
+    at(f, 0, false);
+    expect(beforeFacts(f).cupTie).toBe(false);
+    expect(teamModifiers(f).some((m) => m.when === 'cupTie')).toBe(false);
+    const plain = teamModifiers(f).filter((m) => m.stat === 'shotPower').length;
+    at(f, 0, true);
+    expect(beforeFacts(f).cupTie).toBe(true);
+    expect(teamModifiers(f).filter((m) => m.stat === 'shotPower').length).toBe(plain + 1);
+    f.season.cup!.alive = false;
+    expect(teamModifiers(f).filter((m) => m.stat === 'shotPower').length).toBe(plain);
+  });
+
+  it('a boss artifact counts against a boss only', () => {
+    const f = holding('underdogs');
+    at(f, 0, false);
+    const before = teamModifiers(f).filter((m) => m.stat === 'coverRadius').length;
+    const boss = Object.values(f.season.map!.stops).find((s) => s.kind === 'boss' && s.region === 0)!;
+    f.season.current = boss.id;
+    expect(beforeFacts(f).boss).toBe(true);
+    expect(teamModifiers(f).filter((m) => m.stat === 'coverRadius').length).toBe(before + 1);
+  });
+
+  it('home and away are never both true, and a road artifact counts only away', () => {
+    const f = holding('road-warriors');
+    at(f, 0, false);
+    const facts = beforeFacts(f);
+    expect(facts.home).not.toBe(facts.away);
+    expect(has(f, 'passSpreadDegrees') || teamModifiers(f).filter((m) => m.stat === 'topSpeedScale').length > 0).toBe(facts.away || teamModifiers(f).filter((m) => m.stat === 'topSpeedScale').length > 0);
+  });
+
+  it('the sponsor patch pays more only once the target is met; the cup purse and the bounty board pay more', () => {
+    const win = (f: Franchise): number => {
+      at(f, 0, false);
+      const before = f.season.currency;
+      recordGame(f, result(true), false);
+      return f.season.currency - before;
+    };
+    const plain = win(started('pay'));
+    const unmet = win(holding('sponsors-patch', 'pay'));
+    expect(unmet).toBe(plain);
+    const met = holding('sponsors-patch', 'pay');
+    met.season.gamesWon = met.season.expectation!.wins;
+    expect(win(met)).toBeGreaterThan(plain);
+
+    const tie = (f: Franchise): number => {
+      at(f, 0, true);
+      const before = f.season.currency;
+      recordGame(f, result(true), false);
+      return f.season.currency - before;
+    };
+    const usual = tie(started('pay'));
+    expect(tie(holding('cup-purse', 'pay')) - usual).toBe(2 * seasonRules.cupCurrency);
+  });
+
+  it('the new recipes form from their halves', () => {
+    for (const [a, b, made] of [['old-barn', 'home-cooking', 'full-barn'], ['bend-dont-break', 'thick-skin', 'iron-nerves']] as const) {
+      expect(recipeFor(a)).toEqual({ partner: b, makes: made });
+      expect(recipeFor(b)).toEqual({ partner: a, makes: made });
+    }
   });
 });

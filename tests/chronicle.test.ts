@@ -182,12 +182,12 @@ describe('league news', () => {
 
   it('after a round it has the leader, the scoring race and the results', () => {
     const f = started();
-    travel(f, availableStops(f).find((s) => !s.elite)!.id);
+    travel(f, availableStops(f).find((s) => s.kind === 'game' && !s.elite)!.id);
     const opponent = currentStop(f)!.opponentId!;
     recordGame(f, game(true, 3));
     const news = leagueNews(f);
     expect(news.some((line) => /lead the league with \d+ points/.test(line))).toBe(true);
-    expect(news.some((line) => /leads the league with \d+ goals/.test(line))).toBe(true);
+    expect(news.some((line) => /leads the league with \d+ goals?/.test(line))).toBe(true);
     expect(news.filter((line) => /\d, .* \d/.test(line)).length).toBeGreaterThanOrEqual(3);
     expect(news.join(' ')).not.toContain(teamOf(f.league, opponent).name + ' 0,');
   });

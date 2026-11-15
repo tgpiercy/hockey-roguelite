@@ -1,3 +1,4 @@
+import { BEFORE } from '../src/core/season';
 import { describe, expect, it } from 'vitest';
 import { conditionWords, FAMILIES, familyInfo, familyOf, familyOfStat } from '../src/core/artifactFamily';
 import artifacts from '../src/data/artifacts.json';
@@ -114,7 +115,7 @@ describe('artifact families', () => {
       { stat: 'accuracy', op: 'add', value: 1, on: 'save', seconds: 5 },
     ])).toEqual(['While trailing', 'After a save']);
     // Every condition and trigger the game knows has its words.
-    for (const when of [...WHEN, 'home']) expect((look.when as Record<string, string>)[when], when).toBeDefined();
+    for (const when of [...WHEN, ...BEFORE]) expect((look.when as Record<string, string>)[when], when).toBeDefined();
     for (const on of ON) expect((look.on as Record<string, string>)[on], on).toBeDefined();
   });
 });

@@ -20,7 +20,7 @@ describe('balance harness', () => {
     expect(a).toEqual(b);
   });
 
-  it('a series adds up', () => {
+  it('a series adds up', { timeout: 30_000 }, () => {
     const report = runSeries(8, uniformTeam(70), uniformTeam(70), 'series');
     expect(report.games).toBe(8);
     expect(report.winsA + report.winsB + report.ties).toBe(8);

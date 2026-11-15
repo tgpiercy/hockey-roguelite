@@ -1,4 +1,4 @@
-import { nextExpectation, type Expectation } from './expectation';
+import { expectationMet, nextExpectation, type Expectation } from './expectation';
 import { cleanName, nicknameFor, nicknamesOf, NICKNAME_RULES } from './temperament';
 import { bountyFor, bountyMet, STICKERS, UNSEEN_WEIGHT, type BountyInfo } from './bounty';
 import { isGuest, ringerOffer, withRinger, type Ringer } from './ringer';
@@ -451,11 +451,31 @@ export function recipeFor(artifactId: string): { partner: string; makes: string 
   return { partner: made.recipe.find((id) => id !== artifactId) as string, makes: made.id };
 }
 
-/** A "home" modifier is settled before the game: on in your own rink, dropped on the road. */
-function settleHome(modifiers: Modifier[], home: boolean): Modifier[] {
+/**
+ * Conditions that are known before the puck drops, and so are settled then: on for the whole game or
+ * dropped. (The ones that change during a game, such as "leading", are the simulation's: conditions.ts.)
+ */
+export const BEFORE = ['home', 'away', 'cupTie', 'rival', 'boss', 'targetMet'] as const;
+
+/** Which of those hold for the game waiting (or, between games, for the season as it stands). */
+export function beforeFacts(f: Franchise): Record<(typeof BEFORE)[number], boolean> {
+  const stop = currentStop(f);
+  const atHome = homeGame(f, f.season.gamesPlayed + 1);
+  return {
+    home: atHome,
+    away: !atHome,
+    cupTie: isCupTie(f, stop),
+    rival: stop?.kind === 'game' && isRival(f, stop.opponentId),
+    boss: stop?.kind === 'boss',
+    targetMet: f.season.expectation !== undefined && expectationMet(f),
+  };
+}
+
+/** Settles the before-the-game conditions: a modifier whose condition holds becomes a plain one, the others go. */
+function settleBefore(modifiers: Modifier[], facts: Record<string, boolean>): Modifier[] {
   return modifiers.flatMap((m) => {
-    if (m.when !== 'home') return [m];
-    if (!home) return [];
+    if (m.when === undefined || !(BEFORE as readonly string[]).includes(m.when)) return [m];
+    if (!facts[m.when]) return [];
     const { when: _when, label: _label, ...plain } = m;
     return [plain];
   });
@@ -466,12 +486,12 @@ export function teamModifiers(f: Franchise): Modifier[] {
   // At home the arena adds its home-ice edge.
   const atHome = homeGame(f, f.season.gamesPlayed + 1);
   const home = atHome ? homeIceModifiers(f) : [];
-  return [...settleHome(artifactModifiers(f), atHome), ...seasonSetupModifiers(f), ...f.season.temps.flatMap((t) => t.modifiers), ...clubModifiers(f), ...home];
+  return [...settleBefore(artifactModifiers(f), beforeFacts(f)), ...seasonSetupModifiers(f), ...f.season.temps.flatMap((t) => t.modifiers), ...clubModifiers(f), ...home];
 }
 
 /** A season-level number (such as currency gain) after the artifacts owned. */
 function stat(f: Franchise, name: string, base: number): number {
-  return modified(base, name, [...artifactModifiers(f), ...seasonSetupModifiers(f)]);
+  return modified(base, name, [...settleBefore(artifactModifiers(f), beforeFacts(f)), ...seasonSetupModifiers(f)]);
 }
 
 /** How this season was set up. */
@@ -914,7 +934,9 @@ export function recordGame(f: Franchise, result: GameResult, played = true): Gam
   const outcome = settleGame(f, result);
   if (!outcome.ok || !game || f.season.gamesPlayed === before) return outcome;
   const met = bounty !== null && bountyMet(bounty, result, game.home);
-  if (bounty && met) f.season.currency += bounty.pucks;
+  // An artifact may make bounties pay more.
+  const bountyPay = bounty ? Math.round(bounty.pucks * stat(f, 'bountyGain', 1)) : 0;
+  if (bounty && met) f.season.currency += bountyPay;
   rememberMascots(f, result, mascotKey);
 
   tally(f, result, game.home);
@@ -935,7 +957,7 @@ export function recordGame(f: Franchise, result: GameResult, played = true): Gam
   const millions = (Math.abs(net) / 1_000_000).toFixed(2);
   let message = `${result.forfeit ? 'You forfeit the game. ' : ''}${outcome.message} Cash ${net >= 0 ? '+' : '-'}$${millions}M.`;
   for (const line of named) message += ` ${line}`;
-  if (bounty) message += met ? ` Bounty met (${bounty.text.toLowerCase()}): ${bounty.pucks} more Pucks.` : ` Bounty missed (${bounty.text.toLowerCase()}).`;
+  if (bounty) message += met ? ` Bounty met (${bounty.text.toLowerCase()}): ${bountyPay} more Pucks.` : ` Bounty missed (${bounty.text.toLowerCase()}).`;
   const pack = packForWin(result, game.kind === 'boss');
   if (pack) {
     awardPack(f, pack, game.title);
@@ -954,7 +976,7 @@ export function recordGame(f: Franchise, result: GameResult, played = true): Gam
       xp,
       pack: pack ? packName(pack) : null,
       milestones: fresh.map((m) => m.name),
-      ...(bounty ? { bounty: { text: bounty.text, pucks: bounty.pucks, met } } : {}),
+      ...(bounty ? { bounty: { text: bounty.text, pucks: bountyPay, met } } : {}),
     },
   };
 }
@@ -1097,7 +1119,7 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
   if (tie && season.cup) season.cup.won += 1;
   // A game on a rink of its own pays a little more.
   const rinkBonus = isVariant(currentStop(f)?.rink) ? RINK_BONUS : 0;
-  const amount = pay(rules.winCurrency + rivalBonus + rinkBonus + (tie ? rules.cupCurrency : 0));
+  const amount = pay(rules.winCurrency + rivalBonus + rinkBonus + (tie ? Math.round(rules.cupCurrency * stat(f, 'cupGain', 1)) : 0));
   let message = rivalBonus > 0 ? `You beat your rivals and earn ${amount} Pucks.` : `You win and earn ${amount} Pucks.`;
   if (tie && season.cup) message += cupHeld(f) ? ' The cup is yours.' : ` You are through in the cup (${season.cup.won} of ${seasonRegions(f)}).`;
   const luck = roll(season, 'drop');

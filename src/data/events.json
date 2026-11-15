@@ -5,7 +5,7 @@
     "text": "Two hours from the rink, the team bus gives up. A local garage can fix it fast for a price, or the players can push on by foot and thumb.",
     "choices": [
       {
-        "label": "Pay the garage (25 currency)",
+        "label": "Pay the garage (25 Pucks)",
         "outcomes": [
           {
             "result": "The bus is rolling again within the hour. Everyone arrives rested.",
@@ -450,7 +450,7 @@
     "text": "The next rink's ice is slush. You can pay to have it scraped and flooded, or play it as it lies.",
     "choices": [
       {
-        "label": "Pay for good ice (20 currency)",
+        "label": "Pay for good ice (20 Pucks)",
         "outcomes": [
           {
             "result": "A clean sheet. Nothing holds you back.",
@@ -498,7 +498,7 @@
     "text": "A bag of gear has gone missing in transit. It held some of your powerups.",
     "choices": [
       {
-        "label": "Pay to have it found (25 currency)",
+        "label": "Pay to have it found (25 Pucks)",
         "outcomes": [
           {
             "result": "The bag turns up before the game.",
@@ -762,7 +762,7 @@
     "text": "A storm closes the roads. You can charter a small plane, or wait it out and arrive just before the puck drops.",
     "choices": [
       {
-        "label": "Charter the plane (40 currency)",
+        "label": "Charter the plane (40 Pucks)",
         "outcomes": [
           {
             "result": "You land with a day to spare, well rested for the next game.",
@@ -1286,6 +1286,529 @@
                     "stat": "passSpreadDegrees",
                     "op": "mul",
                     "value": 0.8
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ice-plant",
+    "title": "The ice plant fails",
+    "text": "The compressor behind the rink quits the morning of a game. The man who can fix it wants paying today, not at the end of the month.",
+    "choices": [
+      {
+        "label": "Pay him (30 Pucks)",
+        "outcomes": [
+          {
+            "result": "The ice is hard by the afternoon. Nobody in the stands ever knows.",
+            "effects": [
+              {
+                "type": "currency",
+                "amount": -30
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Play on what there is",
+        "outcomes": [
+          {
+            "result": "Soft ice and puddles at the blue line. Your passes are slow next game.",
+            "effects": [
+              {
+                "type": "temp",
+                "label": "Soft ice",
+                "games": 1,
+                "modifiers": [
+                  {
+                    "stat": "passSpeedScale",
+                    "op": "mul",
+                    "value": 0.88
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bake-sale",
+    "title": "The boosters' bake sale",
+    "text": "The boosters are selling pies in the lobby and want the players behind the table all afternoon.",
+    "choices": [
+      {
+        "label": "Put them in aprons",
+        "outcomes": [
+          {
+            "result": "The pies sell out and the till is full. The players have been on their feet all day.",
+            "effects": [
+              {
+                "type": "currency",
+                "amount": 30
+              },
+              {
+                "type": "temp",
+                "label": "On their feet all day",
+                "games": 1,
+                "modifiers": [
+                  {
+                    "stat": "drainScale",
+                    "op": "mul",
+                    "value": 1.15
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Buy a pie and let them rest",
+        "outcomes": [
+          {
+            "result": "A good pie. The boosters manage without you.",
+            "effects": [
+              {
+                "type": "currency",
+                "amount": -5
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "hardware-store",
+    "title": "A name on the sweaters",
+    "text": "The hardware store on the main street will pay to have its name stitched across the back, or pay in kind from the stock room.",
+    "choices": [
+      {
+        "label": "Take the money",
+        "outcomes": [
+          {
+            "result": "The sweaters look like a catalogue. The cheque clears.",
+            "effects": [
+              {
+                "type": "currency",
+                "amount": 40
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Take it in kind",
+        "outcomes": [
+          {
+            "result": "A crate from the stock room turns out to be useful.",
+            "effects": [
+              {
+                "type": "powerup"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "town-meeting",
+    "title": "The town meeting",
+    "text": "The council is arguing about the rink's lease tonight. Somebody from the club ought to stand up and speak.",
+    "choices": [
+      {
+        "label": "Go and speak",
+        "outcomes": [
+          {
+            "weight": 3,
+            "result": "It goes well. A councillor passes the hat for the club on the way out.",
+            "effects": [
+              {
+                "type": "currency",
+                "amount": 35
+              }
+            ]
+          },
+          {
+            "weight": 2,
+            "result": "The meeting runs past midnight and settles nothing. The team is a step slow next game.",
+            "effects": [
+              {
+                "type": "temp",
+                "label": "Late night",
+                "games": 1,
+                "modifiers": [
+                  {
+                    "stat": "topSpeedScale",
+                    "op": "mul",
+                    "value": 0.97
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Stay home",
+        "outcomes": [
+          {
+            "result": "The lease is tabled until spring. It usually is.",
+            "effects": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "old-timers",
+    "title": "The old-timers' hour",
+    "text": "The men who play on Sunday mornings have asked whether your players would skate with them. Some of them wore this sweater once.",
+    "choices": [
+      {
+        "label": "Send the young ones",
+        "outcomes": [
+          {
+            "result": "An old winger shows your weakest skater a thing or two about using his edges.",
+            "effects": [
+              {
+                "type": "skillPoint",
+                "who": "worst",
+                "amount": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Send everyone",
+        "outcomes": [
+          {
+            "result": "A long, cheerful morning. One of yours comes away sharper, and all of them come away tired.",
+            "effects": [
+              {
+                "type": "bump",
+                "who": "random",
+                "amount": 2
+              },
+              {
+                "type": "temp",
+                "label": "A long morning",
+                "games": 1,
+                "modifiers": [
+                  {
+                    "stat": "drainScale",
+                    "op": "mul",
+                    "value": 1.2
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Decline, kindly",
+        "outcomes": [
+          {
+            "result": "They understand. They did not always have the time either.",
+            "effects": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "snowed-in",
+    "title": "Snowed in",
+    "text": "The road home is closed and the team is stuck at a motel with one deck of cards and a parking lot full of snow.",
+    "choices": [
+      {
+        "label": "Let them sleep",
+        "outcomes": [
+          {
+            "result": "Two nights of doing nothing at all. Your skaters tire more slowly next game.",
+            "effects": [
+              {
+                "type": "temp",
+                "label": "Well rested",
+                "games": 1,
+                "modifiers": [
+                  {
+                    "stat": "drainScale",
+                    "op": "mul",
+                    "value": 0.8
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Shovel the lot and practise",
+        "outcomes": [
+          {
+            "result": "Road hockey in boots. One of your players sharpens up; everybody starts the next game on heavy legs.",
+            "effects": [
+              {
+                "type": "bump",
+                "who": "random",
+                "amount": 2
+              },
+              {
+                "type": "temp",
+                "label": "Heavy legs",
+                "games": 1,
+                "modifiers": [
+                  {
+                    "stat": "drainScale",
+                    "op": "mul",
+                    "value": 1.25
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "school-visit",
+    "title": "The school visit",
+    "text": "The school has asked for players to come and read to the youngest class. The whole team, if you can spare them.",
+    "choices": [
+      {
+        "label": "Send the whole team",
+        "outcomes": [
+          {
+            "result": "The parents hear about it. A collection comes in at the next game, and the players are worn out by six-year-olds.",
+            "effects": [
+              {
+                "type": "currency",
+                "amount": 25
+              },
+              {
+                "type": "temp",
+                "label": "Worn out by six-year-olds",
+                "games": 1,
+                "modifiers": [
+                  {
+                    "stat": "accelerationScale",
+                    "op": "mul",
+                    "value": 0.96
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Send two veterans",
+        "outcomes": [
+          {
+            "result": "One of the children hands over a lucky charm. It goes in the bag.",
+            "effects": [
+              {
+                "type": "powerup"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "zamboni-driver",
+    "title": "The zamboni driver has a system",
+    "text": "The man who floods the ice played senior hockey thirty years ago and has drawn your breakout on the back of a work order.",
+    "choices": [
+      {
+        "label": "Try it his way",
+        "outcomes": [
+          {
+            "weight": 2,
+            "result": "It works. For two games your passes find their man.",
+            "effects": [
+              {
+                "type": "temp",
+                "label": "The driver's system",
+                "games": 2,
+                "modifiers": [
+                  {
+                    "stat": "passSpreadDegrees",
+                    "op": "mul",
+                    "value": 0.75
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "weight": 1,
+            "result": "Nobody can read his writing. Your passes go astray next game.",
+            "effects": [
+              {
+                "type": "temp",
+                "label": "Crossed wires",
+                "games": 1,
+                "modifiers": [
+                  {
+                    "stat": "passSpreadDegrees",
+                    "op": "mul",
+                    "value": 1.25
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Thank him and keep the work order",
+        "outcomes": [
+          {
+            "result": "He floods the ice a little unevenly for a week. Nothing comes of it.",
+            "effects": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "morning-show",
+    "title": "The morning show",
+    "text": "The radio wants one of your players in the studio at six in the morning to talk about the season.",
+    "choices": [
+      {
+        "label": "Send your best player",
+        "outcomes": [
+          {
+            "result": "He is good on the air and the station sends a cheque. He is short of sleep next game, and so are his shots.",
+            "effects": [
+              {
+                "type": "currency",
+                "amount": 30
+              },
+              {
+                "type": "temp",
+                "label": "Short of sleep",
+                "games": 1,
+                "modifiers": [
+                  {
+                    "stat": "accuracy",
+                    "op": "add",
+                    "value": -0.04
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Send the quiet one",
+        "outcomes": [
+          {
+            "result": "He says eleven words in ten minutes and comes back standing a little taller.",
+            "effects": [
+              {
+                "type": "skillPoint",
+                "who": "worst",
+                "amount": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Nobody is getting up at six",
+        "outcomes": [
+          {
+            "result": "They play a record instead.",
+            "effects": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "attic-trunk",
+    "title": "The trunk in the attic",
+    "text": "Above the dressing room is a trunk nobody has opened since the club's first years. The museum down the road has the key and would like a donation.",
+    "choices": [
+      {
+        "label": "Make the donation (45 Pucks)",
+        "outcomes": [
+          {
+            "result": "Under the moth-eaten sweaters is something the club can still use.",
+            "effects": [
+              {
+                "type": "currency",
+                "amount": -45
+              },
+              {
+                "type": "artifact"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Leave the past where it is",
+        "outcomes": [
+          {
+            "result": "The trunk stays shut. The museum keeps the key.",
+            "effects": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "broken-glass",
+    "title": "Broken glass",
+    "text": "A slap shot at practice goes through the glass behind the net. The rink manager is holding the bill.",
+    "choices": [
+      {
+        "label": "Pay it (25 Pucks)",
+        "outcomes": [
+          {
+            "result": "New glass by Thursday. The shooter is told to keep doing whatever that was.",
+            "effects": [
+              {
+                "type": "currency",
+                "amount": -25
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Board it up and carry on",
+        "outcomes": [
+          {
+            "result": "Practice moves to half the ice for a week. Your passing is ragged next game.",
+            "effects": [
+              {
+                "type": "temp",
+                "label": "Half-ice practice",
+                "games": 1,
+                "modifiers": [
+                  {
+                    "stat": "passSpreadDegrees",
+                    "op": "mul",
+                    "value": 1.15
                   }
                 ]
               }
