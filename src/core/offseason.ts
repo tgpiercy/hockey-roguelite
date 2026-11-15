@@ -1,3 +1,4 @@
+import { overLimit } from './economy';
 import leagueRules from '../data/league.json';
 import rules from '../data/offseason.json';
 import grades from '../data/grades.json';
@@ -48,14 +49,19 @@ export function finishSeason(f: Franchise): ActionResult {
 
   // 0. The books: sponsorship in, the season's bills out, for the team that played it.
   bookSeasonEnd(f);
+  // Pay owed to players released a year ago has run its course.
+  for (const team of league.teams) delete team.deadCap;
 
   // 1. Bank XP: your players level up from what they earned this season.
   for (const id of mine.roster) {
     const player = playerOf(league, id);
     // Trainers and the training centre raise what a season's XP is worth.
     const boost = clubStat(f, 'xpGain', 1) * clubStat(f, `xpGain.${player.position}`, 1);
-    addXp(player, withAgeBonus(player, f.season.xp[id] ?? 0) * boost);
+    // Your players' points are kept for you to spend.
+    addXp(player, withAgeBonus(player, f.season.xp[id] ?? 0) * boost, true);
   }
+  const waiting = mine.roster.reduce((sum, id) => sum + (playerOf(league, id).points ?? 0), 0);
+  if (waiting > 0) report.news.push(`Your players earned ${waiting} skill point${waiting === 1 ? '' : 's'}: spend them under Team, Skill points.`);
   // Everyone else develops by a simple yearly rule.
   const mineSet = new Set(mine.roster);
   const everyone = Object.values(league.players).sort((a, b) => a.id.localeCompare(b.id));
@@ -101,8 +107,12 @@ export function finishSeason(f: Franchise): ActionResult {
  * What re-signing a player would cost a year: the cap hit for his grade as it stands now,
  * less the front office's discount if the franchise is given.
  */
-export function resignCapHit(player: PlayerRecord, f?: Franchise): number {
-  const full = capHitOf(player.overall);
+export function resignCapHit(player: PlayerRecord, f?: Franchise, years = 1): number {
+  // A longer deal costs more a year for a player still improving (you are buying his better years at
+  // today's price) and less for one past his peak (he takes security over pay).
+  const c = rules.contract;
+  const perYear = player.age <= c.youngMaxAge ? c.youngPerYear : player.age >= c.oldMinAge ? -c.oldPerYear : 0;
+  const full = Math.max(MIN_CAP_HIT, Math.round((capHitOf(player.overall) * (1 + perYear * (years - 1))) / grades.capRounding) * grades.capRounding);
   if (!f) return full;
   const discounted = Math.round(clubStat(f, 'resignCost', full) / grades.capRounding) * grades.capRounding;
   return Math.max(MIN_CAP_HIT, Math.min(full, discounted));
@@ -125,12 +135,16 @@ export function decideContract(f: Franchise, playerId: string, years: number | n
     f.offseason.released.push(playerId);
   } else {
     if (!rules.resignYears.includes(years)) return { ok: false, reason: 'Contracts run from 1 to 4 years.' };
-    const cost = resignCapHit(player, f);
+    const cost = resignCapHit(player, f, years);
     const after = payroll(league, team) - player.capHit + cost;
+
     if (after > leagueRules.cap) {
       const money = (n: number): string => `$${(n / 1_000_000).toFixed(2)}M`;
       return { ok: false, reason: `Over the cap: re-signing him at ${money(cost)} would put you at ${money(after)}.` };
     }
+    // A raise has to fit under the owner's limit too; staying on the same pay or less always does.
+    const limit = overLimit(f, cost - player.capHit, 0);
+    if (!limit.ok) return limit;
     player.capHit = cost;
     player.contractYears = years;
   }

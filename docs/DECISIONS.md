@@ -176,6 +176,11 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Hints | A line on the rink names a move when it is on (by action, not by button letter, since controllers differ). Each stops after it has been done three times on this device. Settings and the pause menu switch hints off; Settings can bring them all back. The saucer pass (hold Pass) already existed and now has a hint. | Gameplay round |
 | 2026-11-14 | Ratings matter more | What each rating does on the ice is about twice as steep, through the same value at 70. A 90 team beats a 70 team about 89% of the time (was 78%). | Choices-matter round |
 | 2026-11-14 | Player kinds and talents | Every player is a kind (sniper, playmaker, speedster, enforcer, two-way; goalies reflex, positional, steady), worked out from his ratings and shown on his row. New players lean about 12 points toward their kind. Better players may carry a talent of the sort only the mascot had. Existing saves: players keep their ratings and are shown as whatever kind those make them; they have no talents. | Choices-matter round |
+| 2026-11-14 | Payroll limit | You may not pay your players more than 17% of the club's value plus half its cash (and never more than the cap). It replaces "the cap is tight from year one": the cap already binds the top teams, so tightening it would have weakened them and not you. Cash spent on buildings lowers the limit until the buildings raise the club's value. | Choices-matter round |
+| 2026-11-14 | Contracts and releases | A longer contract costs more a year for a player of 25 or under and less for one of 31 or over. Releasing a player under contract leaves half his pay on your cap for the coming season. | Choices-matter round |
+| 2026-11-14 | Skill points | Your players' level-ups give points you place yourself (Team, Skill points), or automatically. A player's kind follows his ratings, so you can turn one kind into another. | Choices-matter round |
+| 2026-11-14 | Roster of 8, balanced lines | A roster holds 8 skaters, 6 dress. A line with both a forward and a defenceman gets a small bonus. Choosing which line takes longer shifts was planned and not built. | Choices-matter round |
+| 2026-11-14 | Gear | A piece's perk grows 10% a level; the 2-piece set bonuses are real effects, not +5 to a rating. | Choices-matter round |
 
 ## Open
 

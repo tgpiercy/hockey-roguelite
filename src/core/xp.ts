@@ -3,6 +3,7 @@ import data from '../data/xp.json';
 import type { GameResult } from '../sim/match';
 import type { DressedTeam } from './matchup';
 import { gradeOf, overallOf, type PlayerRecord } from './player';
+import type { MoveResult } from './roster';
 
 /** XP needed to go from this level to the next. */
 export function xpForLevel(level: number): number {
@@ -86,18 +87,45 @@ export function withAgeBonus(player: PlayerRecord, xp: number): number {
   return player.age <= data.youngMaxAge ? xp * data.youngBonus : xp;
 }
 
+/** True if this player can still be made better with a point: he is short of his ceiling. */
+export function canGrow(player: PlayerRecord): boolean {
+  return overallOf(player.position, player.ratings) < player.potential;
+}
+
+/** Spends one banked point on the rating you choose. */
+export function spendPoint(player: PlayerRecord, rating: string): MoveResult {
+  const ratings = player.ratings as unknown as Record<string, number>;
+  if ((player.points ?? 0) <= 0) return { ok: false, reason: 'He has no points to spend.' };
+  if (!(rating in ratings)) return { ok: false, reason: 'He has no such rating.' };
+  if ((ratings[rating] as number) >= data.maxRating) return { ok: false, reason: 'That rating is as high as it goes.' };
+  if (!canGrow(player)) return { ok: false, reason: 'He has reached his ceiling: he cannot get any better.' };
+  ratings[rating] = (ratings[rating] as number) + 1;
+  player.points = (player.points as number) - 1;
+  if (player.points === 0) delete player.points;
+  regrade(player);
+  return { ok: true };
+}
+
+/** Spends every banked point the automatic way. Returns how many went in; any he cannot use are dropped. */
+export function autoSpend(player: PlayerRecord): number {
+  const points = player.points ?? 0;
+  delete player.points;
+  return points > 0 ? placePoints(player, points) : 0;
+}
+
 /**
- * Adds XP to a player. Every level reached gives rating points, placed automatically.
- * Returns how many levels he gained.
+ * Adds XP to a player. Every level reached gives rating points: placed automatically, or with `bank`
+ * kept for you to spend. Returns how many levels he gained.
  */
-export function addXp(player: PlayerRecord, xp: number): number {
+export function addXp(player: PlayerRecord, xp: number, bank = false): number {
   player.xp += xp;
   let gained = 0;
   while (player.xp >= xpForLevel(player.level)) {
     player.xp -= xpForLevel(player.level);
     player.level += 1;
     gained += 1;
-    placePoints(player, data.pointsPerLevel);
+    if (bank && canGrow(player)) player.points = (player.points ?? 0) + data.pointsPerLevel;
+    else if (!bank) placePoints(player, data.pointsPerLevel);
   }
   return gained;
 }

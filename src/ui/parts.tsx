@@ -1,3 +1,4 @@
+import { payRoom } from '../core/economy';
 import { kindOf, talentOf } from '../core/playerKind';
 import { createContext, type ComponentChildren } from 'preact';
 import { useContext, useEffect, useState } from 'preact/hooks';
@@ -104,13 +105,12 @@ export function RatingBar({ name, value, extra }: { name: string; value: number;
   );
 }
 
-/** A player's individual ratings as bars, shown in the side panel for whoever is focused. */
-export function Ratings({ player }: { player: PlayerRecord }) {
-  const ratings = player.ratings as unknown as Record<string, number>;
+/** What kind of player he is, and his talent if he has one: the lines above his ratings. */
+export function KindLines({ player }: { player: PlayerRecord }) {
   const kind = kindOf(player.position, player.ratings);
   const talent = talentOf(player);
   return (
-    <div class="ratings">
+    <>
       <span class="kind-line">
         <b>{kind.name}</b> {kind.description}
       </span>
@@ -119,6 +119,16 @@ export function Ratings({ player }: { player: PlayerRecord }) {
           <b>{talent.name}</b> {talent.description}
         </span>
       )}
+    </>
+  );
+}
+
+/** A player's individual ratings as bars, shown in the side panel for whoever is focused. */
+export function Ratings({ player }: { player: PlayerRecord }) {
+  const ratings = player.ratings as unknown as Record<string, number>;
+  return (
+    <div class="ratings">
+      <KindLines player={player} />
       {Object.keys(ratings).map((key) => (
         <RatingBar key={key} name={ratingNames[key] ?? key} value={ratings[key] as number} />
       ))}
@@ -179,8 +189,8 @@ export function Wallet({ f }: { f: Franchise }) {
   return (
     <div class="wallet">
       <span class="chip">
-        <i>Cap space</i>
-        <b>{money(capSpace(f.league, userTeam(f.league)))}</b>
+        <i>Pay room</i>
+        <b>{money(Math.min(capSpace(f.league, userTeam(f.league)), payRoom(f)))}</b>
       </span>
       <span class={`chip${f.cash < 0 ? ' neg' : ''}`}>
         <i>Cash</i>

@@ -2,7 +2,8 @@ import leagueRules from '../data/league.json';
 import rules from '../data/offseason.json';
 import { playerOf, teamOf, userTeam } from './league';
 import { autoLineup, repairLineup } from './lineup';
-import type { PlayerRecord } from './player';
+import { capHitOf, type PlayerRecord } from './player';
+import { overLimit } from './economy';
 import { payroll, type MoveResult } from './roster';
 import { rosterLocked, type Franchise } from './season';
 
@@ -12,7 +13,9 @@ import { rosterLocked, type Franchise } from './season';
  */
 export function tradeValue(p: PlayerRecord): number {
   const t = rules.trade;
-  return p.overall + Math.max(0, p.potential - p.overall) * t.youthCredit - Math.max(0, p.age - t.agePenaltyFrom) * t.agePenaltyPerYear;
+  // A player paid more than his grade is worth is worth less to a team with a cap; a bargain is worth more.
+  const overpaid = (p.capHit - capHitOf(p.overall)) / 1_000_000;
+  return p.overall + Math.max(0, p.potential - p.overall) * t.youthCredit - Math.max(0, p.age - t.agePenaltyFrom) * t.agePenaltyPerYear - overpaid * t.salaryPerMillion;
 }
 
 const money = (n: number): string => `$${(n / 1_000_000).toFixed(2)}M`;
@@ -43,7 +46,7 @@ export function evaluateTrade(f: Franchise, minePlayerId: string, theirTeamId: s
   if (tradeValue(mine) < tradeValue(theirs) + rules.trade.acceptMargin) {
     return { ok: false, reason: `${theirTeam.name} say no: they value ${theirs.name} more than ${mine.name}.` };
   }
-  return { ok: true };
+  return overLimit(f, theirs.capHit - mine.capHit, 0);
 }
 
 /** Makes the trade, if the other team accepts. Your player's gear comes back to the inventory. */

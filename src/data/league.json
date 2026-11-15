@@ -1,6 +1,8 @@
 {
   "cap": 35000000,
-  "rosterSkaters": 7,
+  "rosterSkaters": 8,
+  "deadCapShare": 0.5,
+  "lineBonus": { "name": "Balanced line", "description": "A line with a forward and a defenceman holds the puck and checks a little better.", "modifiers": [{ "stat": "puckSecurity", "op": "add", "value": 0.04 }, { "stat": "checkStrength", "op": "add", "value": 0.04 }] },
   "rosterGoalies": 1,
   "dressedSkaters": 6,
   "forwardsPerTeam": 4,
@@ -14,9 +16,9 @@
   "positionBias": 4,
   "potentialMaxBonus": 14,
   "potentialPeakAge": 30,
-  "userTeam": { "skaters": [74, 71, 69, 68, 67, 66, 62], "goalie": 68 },
+  "userTeam": { "skaters": [74, 71, 69, 68, 67, 66, 62, 60], "goalie": 68 },
   "aiTeamStrengths": [66, 67, 68, 69, 70, 71, 72, 73, 74, 76, 78, 80],
-  "aiSkaterOffsets": [6, 3, 1, 0, -2, -4, -6],
+  "aiSkaterOffsets": [6, 3, 1, 0, -2, -4, -6, -8],
   "aiGoalieSpread": 3,
   "freeAgents": [
     { "position": "F", "overall": 89 },

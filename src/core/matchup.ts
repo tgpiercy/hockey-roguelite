@@ -1,3 +1,4 @@
+import leagueRules from '../data/league.json';
 import { alwaysOnModifiers, talentOf } from './playerKind';
 import { playStyle } from './playStyle';
 import type { GameResult } from '../sim/match';
@@ -43,6 +44,14 @@ function bumped<T extends SkaterRatings | GoalieRatings>(ratings: T, points: num
  * Turns a team's dressed lineup into the roster the simulation takes: six skaters
  * (line 1 then line 2, each with its centre first) and a goalie. Returns null if the lineup is not legal.
  */
+const LINE_BONUS = leagueRules.lineBonus.modifiers as Modifier[];
+
+/** True if one of the two dressed lines (the first three skaters, or the next three) has a forward and a defenceman. */
+export function balancedLine(skaters: Pick<PlayerRecord, 'position'>[], line: 0 | 1): boolean {
+  const three = skaters.slice(line * 3, line * 3 + 3);
+  return three.some((p) => p.position === 'F') && three.some((p) => p.position === 'D');
+}
+
 export function dress(league: League, team: Team, options: DressOptions = {}): DressedTeam | null {
   if (!canPlay(league, team).ok) return null;
   const bump = (p: PlayerRecord): number => (options.bumps?.[p.id] ?? 0) + (options.bumpAll ?? 0);
@@ -58,7 +67,7 @@ export function dress(league: League, team: Team, options: DressOptions = {}): D
       goalie: boostedRatings(bumped(goalie.ratings as GoalieRatings, bump(goalie)), gear(goalie)),
       positions: skaters.map((p) => (p.position === 'D' ? 'D' : 'F')),
       modifiers: options.modifiers ?? [],
-      skaterModifiers: skaters.map((p) => [...abilityModifiers(gear(p)), ...alwaysOnModifiers(talentOf(p))]),
+      skaterModifiers: skaters.map((p, i) => [...abilityModifiers(gear(p)), ...alwaysOnModifiers(talentOf(p)), ...(balancedLine(skaters, i < 3 ? 0 : 1) ? LINE_BONUS : [])]),
       skaterTalents: skaters.map((p) => (talentOf(p) ? [p.talent as string] : [])),
       goalieModifiers: abilityModifiers(gear(goalie)),
       // Every team but yours attacks in its own way; your linemates have no leaning.

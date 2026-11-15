@@ -1,10 +1,11 @@
+import leagueRules from '../data/league.json';
 import type { ComponentChildren } from 'preact';
 import { useEffect, useReducer, useRef, useState } from 'preact/hooks';
 import { bossInfo, teamStrength } from '../core/bosses';
 import { sortPlayers, wouldReplace, type PlayerSort, type PositionFilter } from '../core/compare';
 import { teamCrest } from '../core/crest';
 import { styleInfo } from '../core/playStyle';
-import { bailOut, canBailOut, inFireSale, isHomeGame, playerSalePrice, seasonEndBills, starCount } from '../core/economy';
+import { bailOut, canBailOut, inFireSale, isHomeGame, playerSalePrice, seasonEndBills, starCount, payrollLimit } from '../core/economy';
 import { build, buildCost, FACILITIES, facilityLevel, facilityUpkeep, MAX_FACILITY_LEVEL } from '../core/facilities';
 import { equip, levelCost, levelUp, rarityInfo, releasePlayer, scrap, unequip, wornBy, type GearItem } from '../core/gear';
 import { generateLeague } from '../core/generate';
@@ -16,7 +17,7 @@ import { dress } from '../core/matchup';
 import { decideContract, finishSeason, resignCapHit } from '../core/offseason';
 import { openPack, packName } from '../core/packs';
 import { canPrestige, jerseyColour, prestige, prestigeEffects, setJersey, unlockedJerseys } from '../core/prestige';
-import { canPlay, canSign, type MoveResult } from '../core/roster';
+import { canPlay, canSign, type MoveResult, deadCapFor } from '../core/roster';
 import { hiddenFreeAgents, potentialText, scoutingPoints, signPlayer } from '../core/scouting';
 import { gradePower, hire, kindName, letGo, roleOf, slotsFor, STAFF_KINDS, staffOfKind, staffSalePrice, type StaffMember } from '../core/staff';
 import { franchiseOf, fromSave, parseSave, toSave } from '../core/save';
@@ -58,7 +59,7 @@ import { seasonSummary } from '../core/seasonSummary';
 import { teamColour } from '../core/teamColours';
 import { modified } from '../sim/modifiers';
 import { evaluateTrade, trade } from '../core/trades';
-import { xpForLevel } from '../core/xp';
+import { xpForLevel, autoSpend, canGrow, spendPoint } from '../core/xp';
 import gearData from '../data/gear.json';
 import offseasonRules from '../data/offseason.json';
 import mascotRules from '../data/mascot.json';
@@ -109,6 +110,8 @@ type Screen =
   | { name: 'report' }
   | { name: 'contracts' }
   | { name: 'contract'; playerId: string }
+  | { name: 'skills' }
+  | { name: 'skill'; playerId: string }
   | { name: 'tradeTeams' }
   | { name: 'tradeTheirs'; teamId: string }
   | { name: 'tradeMine'; teamId: string; theirId: string }
@@ -1221,7 +1224,7 @@ export function App() {
               <PlayerRow player={p} />
             </div>
             <div>
-              He was paid {money(p.capHit)}. A new contract is <b>{money(cost)}</b> a season, and that stays fixed until it runs out.
+              He was paid {money(p.capHit)}. A one-season contract is <b>{money(cost)}</b>, and the price stays fixed until it runs out. Your payroll limit is {money(payrollLimit(f))}.
             </div>
             <div>
               <CapLine league={league} team={team} />
@@ -1232,8 +1235,8 @@ export function App() {
         items={[
           ...offseasonRules.resignYears.map((years) => ({
             key: `y${years}`,
-            label: `Re-sign for ${years} season${years === 1 ? '' : 's'} · ${money(cost)} a season`,
-            detail: p.age + years > 30 ? `He will be ${p.age + years} when it ends. Players slow down from 31.` : `He will be ${p.age + years} when it ends.`,
+            label: `Re-sign for ${years} season${years === 1 ? '' : 's'} · ${money(resignCapHit(p, f, years))} a season`,
+            detail: `${p.age + years > 30 ? `He will be ${p.age + years} when it ends. Players slow down from 31.` : `He will be ${p.age + years} when it ends.`} ${p.age <= offseasonRules.contract.youngMaxAge ? 'He is still improving, so each extra year costs more: you are buying his better seasons at a set price.' : p.age >= offseasonRules.contract.oldMinAge ? 'He is past his peak, so each extra year costs less: he takes security over pay, and you carry the risk of his decline.' : 'In his prime: the price is the same for any length.'}`,
             onSelect: () => done(decideContract(f, p.id, years), `${p.name} re-signed for ${years} season${years === 1 ? '' : 's'}.`),
           })),
           {
@@ -1654,18 +1657,108 @@ export function App() {
 
   // ---------------------------------------------------------------- hub groups
 
+  if (screen.name === 'skills') {
+    const withPoints = rosterOf(league, team).filter((p) => (p.points ?? 0) > 0);
+    return (
+      <Menu
+        key={screenKey}
+        remember="skills"
+        title="Skill points"
+        message={message}
+        header="Players who levelled up have points to spend. Put them where you like: what a player is good at decides what kind of player he is."
+        onBack={() => go({ name: 'team' })}
+        items={
+          withPoints.length === 0
+            ? [{ key: 'done', label: 'Every point is spent', onSelect: () => go({ name: 'team' }) }]
+            : [
+                ...withPoints.map((p) => ({
+                  key: p.id,
+                  label: <PlayerRow player={p} note={`${p.points} point${p.points === 1 ? '' : 's'}`} />,
+                  detail: <Ratings player={p} />,
+                  onSelect: () => go({ name: 'skill', playerId: p.id }),
+                })),
+                {
+                  key: 'auto',
+                  label: 'Spend them all automatically',
+                  detail: 'Each point goes where his position values it most, as it did before you could choose.',
+                  onSelect: () => {
+                    for (const p of withPoints) autoSpend(p);
+                    after({ ok: true, message: 'Every point was placed.' }, { name: 'team' });
+                  },
+                },
+              ]
+        }
+      />
+    );
+  }
+
+  if (screen.name === 'skill') {
+    const p = playerOf(league, screen.playerId);
+    const ratings = p.ratings as unknown as Record<string, number>;
+    const names = gearData.ratingNames as Record<string, string>;
+    const left = p.points ?? 0;
+    return (
+      <Menu
+        key={screenKey}
+        remember={`skill-${p.id}`}
+        title={`${p.name}: ${left} point${left === 1 ? '' : 's'}`}
+        message={message}
+        header={
+          <>
+            <div>
+              <PlayerRow player={p} />
+            </div>
+            <Ratings player={p} />
+            {!canGrow(p) && <div class="warn">He has reached his ceiling and cannot get any better.</div>}
+          </>
+        }
+        onBack={() => go({ name: 'skills' })}
+        items={[
+          ...Object.keys(ratings).map((key) => ({
+            key,
+            label: `${names[key] ?? key} ${ratings[key]} → ${Math.min(99, (ratings[key] as number) + 1)}`,
+            disabled: left <= 0,
+            onSelect: () => {
+              const result = spendPoint(p, key);
+              after(result.ok ? { ok: true, message: `${names[key] ?? key} is now ${ratings[key]}.` } : result, (p.points ?? 0) > 0 ? undefined : { name: 'skills' });
+            },
+          })),
+          {
+            key: 'auto',
+            label: 'Place the rest automatically',
+            disabled: left <= 0,
+            onSelect: () => {
+              autoSpend(p);
+              after({ ok: true, message: `${p.name}'s points were placed.` }, { name: 'skills' });
+            },
+          },
+        ]}
+      />
+    );
+  }
+
   if (screen.name === 'team') {
     const pending = f.offseason.pending.length;
+    const pointsToSpend = rosterOf(league, team).reduce((sum, p) => sum + (p.points ?? 0), 0);
     return (
       <Menu
         key={screenKey}
         remember="group-team"
         title="Team"
         message={message}
-        header={<CapLine league={league} team={team} />}
+        header={
+          <>
+            <CapLine league={league} team={team} />
+            <div>
+              Payroll limit <b>{money(payrollLimit(f))}</b>: what the owner will pay, set by the club's value and its cash.
+              {team.deadCap ? ` Dead cap this season: ${money(team.deadCap)}.` : ''}
+            </div>
+          </>
+        }
         onBack={top}
         items={[
           ...(pending > 0 ? [tile('contracts', 'Contracts', `${pending} to decide`, () => go({ name: 'contracts' }), { badge: pending, primary: true })] : []),
+          ...(pointsToSpend > 0 ? [tile('skills', 'Skill points', `${pointsToSpend} to spend`, () => go({ name: 'skills' }), { badge: pointsToSpend, icon: 'roster' })] : []),
           tile('roster', locked ? 'Players' : 'Roster', `${rosterOf(league, team).length} players: gear, details${locked ? '' : ', release'}`, () => go({ name: 'roster' })),
           tile('lineup', 'Lineup', 'Two lines of three and a goalie', () => go({ name: 'lineup' })),
           tile('fa', 'Free agents', 'Sign players from the pool', () => go({ name: 'freeAgents' }), { lock: locked ? 'Signing happens in the off-season.' : undefined }),
@@ -1951,6 +2044,9 @@ export function App() {
               <PlayerRow player={p} />
             </div>
             <div>He goes to the free-agent pool and {money(p.capHit)} comes off your cap. His gear returns to your inventory.</div>
+            {!fireSale && deadCapFor(league, p.id) > 0 && (
+              <div class="warn">He is under contract: {money(deadCapFor(league, p.id))} stays on your cap as dead money until the end of the coming season.</div>
+            )}
             {playerSalePrice(f, p) > 0 && <div class="up">Fire sale: another club pays you {money(playerSalePrice(f, p))} to take over his contract.</div>}
             {fireSale && playerSalePrice(f, p) === 0 && <div class="warn">Releasing him raises no cash: he joined this off-season, or his contract has run out.</div>}
           </>
@@ -2087,6 +2183,19 @@ export function App() {
         header={
           <>
             <div>Two lines of three: a centre between two wings. The centre takes faceoffs. Lines change by themselves as they tire.</div>
+            <div>
+              {([0, 1] as const).map((line) => {
+                const three = (line === 0 ? team.lineup.line1 : team.lineup.line2).filter((id): id is string => id !== null).map((id) => playerOf(league, id));
+                const on = three.some((x) => x.position === 'F') && three.some((x) => x.position === 'D');
+                return (
+                  <span key={line} class={on ? 'up' : 'warn'}>
+                    Line {line + 1}: {on ? 'balanced' : 'no bonus'}
+                    {line === 0 ? ' · ' : ''}
+                  </span>
+                );
+              })}
+              <span class="dim"> · {leagueRules.lineBonus.description}</span>
+            </div>
             {spare.length > 0 && (
               <div class="bench">
                 <i>{locked ? 'Spare' : 'Not dressed'}</i>

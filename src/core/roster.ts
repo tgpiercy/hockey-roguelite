@@ -7,9 +7,15 @@ export type MoveResult = { ok: true } | { ok: false; reason: string };
 
 const money = (dollars: number): string => `$${(dollars / 1_000_000).toFixed(2)}M`;
 
-/** Total cap hit of everyone on the team. */
+/** Total cap hit of everyone on the team, plus what it still owes players it released under contract. */
 export function payroll(league: League, team: Team): number {
-  return rosterOf(league, team).reduce((sum, p) => sum + p.capHit, 0);
+  return rosterOf(league, team).reduce((sum, p) => sum + p.capHit, 0) + (team.deadCap ?? 0);
+}
+
+/** What releasing this player would leave on the cap for the rest of the season: part of his pay, if he is under contract. */
+export function deadCapFor(league: League, playerId: string): number {
+  const player = playerOf(league, playerId);
+  return player.contractYears > 0 ? Math.round(player.capHit * rules.deadCapShare) : 0;
 }
 
 export function capSpace(league: League, team: Team): number {
@@ -47,7 +53,7 @@ export function sign(league: League, team: Team, playerId: string): MoveResult {
   return { ok: true };
 }
 
-/** Releases a player to the free-agent pool. His cap hit comes off at once. */
+/** Takes a player off the team and puts him in the free-agent pool. (Your own releases go through `releasePlayer`, which adds dead cap.) */
 export function release(league: League, team: Team, playerId: string): MoveResult {
   if (!team.roster.includes(playerId)) return { ok: false, reason: 'He is not on your team.' };
   team.roster = team.roster.filter((id) => id !== playerId);

@@ -17,7 +17,8 @@
   "replacementOverall": 45,
   "aiResignMaxAge": 35,
   "resignYears": [1, 2, 3, 4],
-  "trade": { "youthCredit": 0.5, "agePenaltyFrom": 30, "agePenaltyPerYear": 1.5, "acceptMargin": 0 },
+  "contract": { "youngMaxAge": 25, "youngPerYear": 0.05, "oldMinAge": 31, "oldPerYear": 0.05 },
+  "trade": { "salaryPerMillion": 1.5, "youthCredit": 0.3, "agePenaltyFrom": 30, "agePenaltyPerYear": 1.5, "acceptMargin": 0 },
   "quick": { "ratingPointsFor75Percent": 12, "minGoals": 1, "maxWinnerGoals": 6, "shotsPerGoal": 8, "secondsOnIcePerGame": 180, "hitsPerGame": 6, "blocksPerGame": 4, "ratingPointsPerTenthOfLevel": 1.5, "autoKeepMaxAge": 34, "autoKeepOverall": 80, "autoLongDealMaxAge": 28, "autoLongDealYears": 3, "firstSeasonIncome": 24000000,
     "styles": {
       "cautious": { "reserveShareOfBills": 0.6, "cashShareForPayroll": 0.1, "maxStaffPower": 2, "maxStaffSalaryShare": 0.04 },

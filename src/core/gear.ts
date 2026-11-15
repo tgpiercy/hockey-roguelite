@@ -3,12 +3,12 @@ import perks from '../data/perks.json';
 import sets from '../data/sets.json';
 import { modified, type Modifier } from '../sim/modifiers';
 import type { GoalieRatings, SkaterRatings } from '../sim/ratings';
-import { playerSalePrice } from './economy';
+import { inFireSale, playerSalePrice } from './economy';
 import { book } from './ledger';
 import { playerOf, userTeam } from './league';
 import type { PlayerRecord } from './player';
 import type { Rng } from './rng';
-import { release, type MoveResult } from './roster';
+import { type MoveResult, deadCapFor, release } from './roster';
 import type { Franchise } from './season';
 
 export type RarityId = 'common' | 'rare' | 'epic' | 'legendary';
@@ -60,7 +60,10 @@ export function perkInfo(item: GearItem): { name: string; description: string; m
   const perk = perks.find((p) => p.id === item.perk);
   if (!perk) return null;
   const tier = item.rarity === 'legendary' ? perk.legendary : perk.epic;
-  return { name: perk.name, description: tier.description, modifiers: tier.modifiers as Modifier[] };
+  // Each level above the first makes the perk that much stronger.
+  const k = 1 + (item.level - 1) * data.perkPerLevel;
+  const modifiers = (tier.modifiers as Modifier[]).map((m): Modifier => (m.op === 'mul' ? { ...m, value: 1 + (m.value - 1) * k } : { ...m, value: m.value * k }));
+  return { name: perk.name, description: tier.description, modifiers };
 }
 
 /**
@@ -137,7 +140,7 @@ export function itemSummary(item: GearItem): string {
   const names = data.ratingNames as Record<string, string>;
   const boosts = item.boosts.map((r) => `+${boostPoints(item)} ${names[r] ?? r}`).join(', ');
   const perk = perkInfo(item);
-  return `${boosts}${perk ? `. ${perk.name}: ${perk.description.toLowerCase()}` : ''}${item.level > 1 ? ` (level ${item.level})` : ''}`;
+  return `${boosts}${perk ? `. ${perk.name}: ${perk.description.toLowerCase()}` : ''}${item.level > 1 ? ` (level ${item.level}${perk ? `, perk ${Math.round((item.level - 1) * data.perkPerLevel * 100)}% stronger` : ''})` : ''}`;
 }
 
 /** The modifiers one piece gives its wearer: rating boosts, and its perk. */
@@ -215,13 +218,19 @@ export function unequip(f: Franchise, itemId: string): MoveResult {
   return { ok: true };
 }
 
-/** Releases a player; everything he was wearing goes back to the inventory. */
+/**
+ * Releases a player; everything he was wearing goes back to the inventory. If he was under contract,
+ * part of his pay stays on your cap until the end of the coming season (dead cap).
+ */
 export function releasePlayer(f: Franchise, playerId: string): MoveResult {
-  // In a fire sale another club pays to take over his contract.
+  // In a fire sale another club pays to take over his contract, so nothing is left owing.
   const player = f.league.players[playerId];
   const price = player ? playerSalePrice(f, player) : 0;
-  const result = release(f.league, userTeam(f.league), playerId);
+  const team = userTeam(f.league);
+  const owed = player && team.roster.includes(playerId) && !inFireSale(f) ? deadCapFor(f.league, playerId) : 0;
+  const result = release(f.league, team, playerId);
   if (!result.ok) return result;
+  if (owed > 0) team.deadCap = (team.deadCap ?? 0) + owed;
   for (const item of f.gear) if (item.wornBy === playerId) item.wornBy = null;
   if (price > 0) book(f, 'sales', price);
   return result;

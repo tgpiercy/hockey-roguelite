@@ -144,7 +144,7 @@ describe('generating gear', () => {
   it('names and describes a piece in words', () => {
     const item = piece({ rarity: 'epic', set: 'sniper', boosts: ['shooting', 'passing'], perk: 'heavy-shot', level: 2 });
     expect(itemName(item)).toBe('Epic Sniper stick');
-    expect(itemSummary(item)).toBe('+5 Shooting, +5 Passing. Heavy shot: harder shots (level 2)');
+    expect(itemSummary(item)).toBe('+5 Shooting, +5 Passing. Heavy shot: harder shots (level 2, perk 10% stronger)');
   });
 });
 
@@ -303,8 +303,8 @@ describe('sets', () => {
 
   it('the goalie set reaches its top bonus at 3 pieces, since goalies have 3 slots', () => {
     const wall = ['mask', 'legPads', 'blocker'].map((slot) => piece({ kind: 'goalie', set: 'brick-wall', slot, boosts: [], id: `bw-${slot}` }));
-    expect(has(wall.slice(0, 1), 'rating.reflexes')).toBe(false);
-    expect(has(wall.slice(0, 2), 'rating.reflexes')).toBe(true);
+    expect(has(wall.slice(0, 1), 'reactionSeconds')).toBe(false);
+    expect(has(wall.slice(0, 2), 'reactionSeconds')).toBe(true);
     expect(has(wall.slice(0, 2), 'periodAutoSaves')).toBe(false);
     expect(has(wall, 'periodAutoSaves')).toBe(true);
     expect(gearData.slots.goalie).toHaveLength(3);
@@ -408,10 +408,11 @@ describe('equipping', () => {
     equip(f, perk.id, skater.id);
     const dressed = dressUser(f)!;
     const index = dressed.players.findIndex((p) => p.id === skater.id);
-    expect(dressed.setup.skaterModifiers![index]).toEqual([{ stat: 'accelerationScale', op: 'mul', value: 1.04 }]);
-    expect(dressed.setup.skaterModifiers!.filter((m) => m.length > 0)).toHaveLength(1);
+    const quick = { stat: 'accelerationScale', op: 'mul', value: 1.04 };
+    expect(dressed.setup.skaterModifiers![index]).toContainEqual(quick);
+    expect(dressed.setup.skaterModifiers!.filter((m) => m.some((x) => x.stat === 'accelerationScale'))).toHaveLength(1);
     expect(dressed.setup.goalieModifiers).toEqual([]);
-    expect(abilityModifiers(playerGearModifiers(f, skater.id))).toEqual(dressed.setup.skaterModifiers![index]);
+    expect(abilityModifiers(playerGearModifiers(f, skater.id))).toEqual([quick]);
   });
 
   it('taking a piece off removes its effect', () => {

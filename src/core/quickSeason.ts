@@ -1,3 +1,5 @@
+import { payrollLimit } from './economy';
+import { autoSpend } from './xp';
 import leagueRules from '../data/league.json';
 import rules from '../data/offseason.json';
 import type { GameResult, PlayerLine } from '../sim/match';
@@ -136,14 +138,17 @@ function spend(f: Franchise, style: ManagerStyle): void {
 export function autoOffseason(f: Franchise, style: ManagerStyle = 'none'): OffseasonMoney {
   const { league } = f;
   const team = userTeam(league);
-  const budget = payrollBudget(f, style);
+  // It spends its skill points the automatic way, and never plans to pay more than the owner allows.
+  for (const id of team.roster) autoSpend(playerOf(league, id));
+  const budget = Math.min(payrollBudget(f, style), payrollLimit(f));
 
   for (const id of [...f.offseason.pending]) {
     const player = playerOf(league, id);
-    const after = payroll(league, team) - player.capHit + resignCapHit(player, f);
+    const years = player.age <= q.autoLongDealMaxAge ? q.autoLongDealYears : 1;
+    const after = payroll(league, team) - player.capHit + resignCapHit(player, f, years);
     const affordable = after <= leagueRules.cap && after <= budget;
     const useful = player.age <= q.autoKeepMaxAge || player.overall >= q.autoKeepOverall;
-    if (!(affordable && useful && decideContract(f, id, player.age <= q.autoLongDealMaxAge ? q.autoLongDealYears : 1).ok)) decideContract(f, id, null);
+    if (!(affordable && useful && decideContract(f, id, years).ok)) decideContract(f, id, null);
   }
 
   const money = resolveFireSale(f);
@@ -165,7 +170,16 @@ export function autoOffseason(f: Franchise, style: ManagerStyle = 'none'): Offse
       .filter((p) => (p.position === 'G') === needGoalie && p.capHit <= Math.min(capRoom, moneyRoom) && canSign(league, team, p.id).ok)
       .sort((x, y) => y.overall - x.overall || x.id.localeCompare(y.id))[0];
     if (choice && signPlayer(f, choice.id).ok) continue;
-    // Nobody affordable: let the most expensive contract go and try again.
+    // Nobody within the budget: take the cheapest who fits the cap rather than leave the spot empty.
+    const cheapest = league.freeAgents
+      .filter((id) => !hidden.has(id))
+      .map((id) => playerOf(league, id))
+      .filter((p) => (p.position === 'G') === needGoalie && canSign(league, team, p.id).ok)
+      .sort((x, y) => x.capHit - y.capHit || x.id.localeCompare(y.id))[0];
+    if (cheapest && signPlayer(f, cheapest.id).ok) continue;
+    // Enough to ice a team already: go a player short rather than release someone (which leaves dead cap).
+    if (skatersOn(league, team).length >= leagueRules.dressedSkaters && !needGoalie) break;
+    // Cannot even ice a team: let the most expensive contract go and try again.
     const costly = rosterOf(league, team).sort((x, y) => y.capHit - x.capHit || x.id.localeCompare(y.id))[0];
     if (!costly) break;
     releasePlayer(f, costly.id);

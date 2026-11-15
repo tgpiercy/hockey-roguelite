@@ -13,7 +13,7 @@ import { canPlay, payroll } from '../src/core/roster';
 import { franchiseOf, fromSave, parseSave, SAVE_VERSION, toSave } from '../src/core/save';
 import { dressUser, matchup, newFranchise, startSeason, travel, availableStops, type Franchise } from '../src/core/season';
 import { evaluateTrade, trade, tradeValue } from '../src/core/trades';
-import { addXp, gameXp, homeShare, placePoints, withAgeBonus, xpForLevel } from '../src/core/xp';
+import { addXp, autoSpend, gameXp, homeShare, placePoints, withAgeBonus, xpForLevel } from '../src/core/xp';
 import aging from '../src/data/aging.json';
 import leagueRules from '../src/data/league.json';
 import offseasonRules from '../src/data/offseason.json';
@@ -270,8 +270,12 @@ describe('the end of a season', () => {
     f.season.xp[star.id] = 2000;
     expect(finishSeason(f).ok).toBe(true);
     expect(star.level).toBeGreaterThan(5);
+    // The points are yours to spend: nothing has moved yet.
+    expect(star.points).toBeGreaterThan(5);
+    expect(star.overall).toBe(before);
+    expect(autoSpend(star)).toBeGreaterThan(5);
+    expect(star.points).toBeUndefined();
     expect(star.overall).toBeGreaterThan(before);
-    expect(f.offseason.report?.improved.find((c) => c.id === star.id)).toMatchObject({ from: before, to: star.overall });
     expect(f.season.phase).toBe('offseason');
     expect(f.league.season).toBe(2);
     expect(f.offseason.report?.season).toBe(1);
@@ -817,7 +821,7 @@ describe('20 seasons from 20 seeds', () => {
     autoOffseason(f);
     const snap = leagueSnapshot(f);
     expect(snap.illegalRosters).toBe(0);
-    expect(Object.values(snap.grades).reduce((s, v) => s + v, 0)).toBe(13 * 8);
+    expect(Object.values(snap.grades).reduce((s, v) => s + v, 0)).toBe(13 * 9);
     quickSeason(f, createRng('single'));
     expect(f.season.phase).toBe('offseason');
     expect(f.league.season).toBe(2);

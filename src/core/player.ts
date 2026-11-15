@@ -25,6 +25,8 @@ export interface PlayerRecord {
   level: number;
   /** The id of the talent he carries (see talents.json), if any. Left out for most players. */
   talent?: string;
+  /** Rating points earned by levelling up and not yet spent. Left out when there are none. */
+  points?: number;
 }
 
 export function isGoalie(p: PlayerRecord): boolean {

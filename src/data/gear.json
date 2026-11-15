@@ -1,6 +1,7 @@
 {
   "maxLevel": 5,
   "pointsPerLevel": 1,
+  "perkPerLevel": 0.1,
   "maxRating": 99,
   "goalieShare": 0.1667,
   "slots": {

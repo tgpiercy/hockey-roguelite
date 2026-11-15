@@ -14,6 +14,8 @@ export interface Team {
   /** Player ids: up to 7 skaters and 1 goalie. */
   roster: string[];
   lineup: Lineup;
+  /** Dollars still counted against the cap this season for players released under contract. */
+  deadCap?: number;
 }
 
 export interface League {

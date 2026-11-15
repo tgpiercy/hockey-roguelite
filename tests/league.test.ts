@@ -156,7 +156,7 @@ describe('roster moves', () => {
     expect(refused.ok).toBe(false);
     expect(!refused.ok && refused.reason).toMatch(/full/);
     expect(sign(league, team, skater).ok).toBe(false);
-    expect(team.roster).toHaveLength(8);
+    expect(team.roster).toHaveLength(rules.rosterSkaters + rules.rosterGoalies);
   });
 
   it('releasing frees the cap at once and sends the player to the pool', () => {
@@ -219,7 +219,7 @@ describe('roster moves', () => {
   it('a team can play with 6 skaters and a goalie, but not with 5', () => {
     const league = fresh();
     const team = userTeam(league);
-    release(league, team, skatersOn(league, team)[6]!.id);
+    while (skatersOn(league, team).length > 6) release(league, team, skatersOn(league, team)[6]!.id);
     expect(canPlay(league, team)).toEqual({ ok: true });
     release(league, team, skatersOn(league, team)[5]!.id);
     expect(canPlay(league, team).ok).toBe(false);

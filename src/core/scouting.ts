@@ -1,3 +1,5 @@
+import leagueRules from '../data/league.json';
+import { overLimit } from './economy';
 import aging from '../data/aging.json';
 import offseasonRules from '../data/offseason.json';
 import data from '../data/scouting.json';
@@ -64,6 +66,17 @@ export function visibleFreeAgents(f: Franchise): string[] {
 /** Signs a free agent your scouts can see. He is noted as signed this off-season. */
 export function signPlayer(f: Franchise, playerId: string): MoveResult {
   if (hiddenFreeAgents(f).has(playerId)) return { ok: false, reason: 'Your scouts have not found him.' };
+  const wanted = f.league.players[playerId];
+  if (wanted && f.league.freeAgents.includes(playerId)) {
+    // The owner's limit never stops you icing a team: it only applies once you have enough players to play.
+    const team = userTeam(f.league);
+    const have = team.roster.map((id) => playerOf(f.league, id)).filter((p) => (p.position === 'G') === (wanted.position === 'G')).length;
+    const needed = wanted.position === 'G' ? leagueRules.rosterGoalies : leagueRules.dressedSkaters;
+    if (have >= needed) {
+      const limit = overLimit(f, wanted.capHit, offseasonRules.cheapCapHit);
+      if (!limit.ok) return limit;
+    }
+  }
   const result = sign(f.league, userTeam(f.league), playerId);
   if (result.ok) f.offseason.signed.push(playerId);
   return result;

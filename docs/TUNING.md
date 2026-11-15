@@ -536,6 +536,29 @@ Save percentage is still under the .850 target for equal teams; the better team'
 
 League health (6 seeds, 8 years, three manager styles): no bail-outs, team strength and cash follow the same paths as before.
 
+## Roster decisions (2026-11-14)
+
+Second stage of the "choices matter" round.
+
+| Rule | Value | Where |
+| --- | --- | --- |
+| Payroll limit (yours only) | 17% of the club's value plus 50% of its cash, never above the cap | `economy.json` `payroll` |
+| Always allowed | a player at or under `cheapCapHit` ($1.5M), and any signing while you cannot ice a team | `offseason.json`, `scouting.ts` |
+| Contract length | +5% a year for each extra year at 25 or younger; -5% at 31 or older; flat between | `offseason.json` `contract` |
+| Dead cap | half the cap hit of a player released under contract, until the end of the coming season; none in a fire sale | `league.json` `deadCapShare` |
+| Trade value | minus 1.5 for each $1M a player is paid above his grade's price; credit for room to grow cut from 0.5 to 0.3 a point | `offseason.json` `trade` |
+| Roster | 8 skaters (was 7); the eighth is 60 for you, strength - 8 for AI teams | `league.json` |
+| Balanced line | +0.04 puck security and check strength for the skaters of a line with a forward and a defenceman | `league.json` `lineBonus` |
+| Gear level | each level above the first makes the piece's perk 10% stronger | `gear.json` `perkPerLevel` |
+| 2-piece sets | Enforcer +0.1 check strength; Burner +3% top speed; Playmaker +8% pass speed; Brick Wall reacts 8% sooner (each was +5 to a rating) | `sets.json` |
+| Skill points | your players' level-ups bank 3 points each for you to place | `xp.json` |
+
+A new club has a limit of $22.0M against a payroll of $18.3M, so the best free agent ($8.4M) no longer fits beside the second best; before, both did.
+
+**Why the limit, and not a lower cap.** Measured first: the top AI teams already sit at $34.5M of the $35M cap, and your starting team at $16.9M. Lowering the cap or raising pay would weaken the top of the league, not squeeze you. So the squeeze is an owner's limit that grows with the club.
+
+League health, automatic managers, 10 seeds and 12 years: no bail-outs under any style; cash and value follow the earlier paths. The automatic managers' teams finish near 70 against a league average of 74.5 (before this stage, about 72 at year eight): the limit holds back a manager who does not win. A player who wins raises the club's value and so the limit; that has not been measured, because the automatic manager cannot do it.
+
 ## Change log
 
 | Date | Value | From | To | Why |
