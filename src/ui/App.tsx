@@ -1,3 +1,4 @@
+import { music } from '../game/music';
 import standingsRules from '../data/standings.json';
 import { clubRecords, leagueNews } from '../core/chronicle';
 import { gamesPlayed, placeOf, points, ranked, type Row } from '../core/standings';
@@ -184,6 +185,10 @@ export function App() {
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
   // Sound follows the device's preferences from the first moment.
   useEffect(() => gameAudio.configure(prefs.sound, prefs.volume), [prefs]);
+  // Music has its own switch and volume, and falls silent with the sound.
+  useEffect(() => music.configure(prefs.sound && prefs.music, prefs.musicVolume), [prefs]);
+  // The theme plays on the menus; a game stops it and starts it again when it ends.
+  useEffect(() => music.loop('theme'), []);
   const changePrefs = (next: Prefs): void => {
     savePrefs(next);
     setPrefs(next);
@@ -350,6 +355,8 @@ export function App() {
   /** After a season game, played or simulated: save, and step through what it earned. */
   const showOutcome = (outcome: ReturnType<typeof recordGame>): void => {
     setGroup(null);
+    // A championship gets its fanfare.
+    if (f.season.outcome === 'champion') music.sting('fanfare');
     if (outcome.ok && outcome.rewards) {
       setRewards(outcome.rewards);
       setScreen({ name: 'rewards', shown: 1 });
@@ -2076,6 +2083,13 @@ export function App() {
             changePrefs({ ...prefs, volume: next });
             gameAudio.play('chime');
           }, { detail: 'Press to step through the levels.', disabled: !prefs.sound }),
+          tile('music', 'Music', prefs.music ? `On · ${Math.round(prefs.musicVolume * 100)}%` : 'Off', () => {
+            // Off, then each volume step in turn.
+            const at = VOLUME_STEPS.findIndex((v) => v >= prefs.musicVolume - 0.001);
+            if (!prefs.music) changePrefs({ ...prefs, music: true, musicVolume: VOLUME_STEPS[0] as number });
+            else if (at >= VOLUME_STEPS.length - 1) changePrefs({ ...prefs, music: false });
+            else changePrefs({ ...prefs, musicVolume: VOLUME_STEPS[at + 1] as number });
+          }, { icon: 'sound', detail: 'A theme on the menus and short pieces for goals, wins and pack openings; nothing plays during a game. Press to step through the volumes and Off.', disabled: !prefs.sound }),
           tile('detail', 'Rink detail', prefs.detail === 'full' ? 'Full' : 'Low', () => changePrefs({ ...prefs, detail: prefs.detail === 'full' ? 'low' : 'full' }), {
             detail: 'Low drops the skate marks, snow, screen shake and crowd movement. Try it if the game does not run smoothly on your phone.',
           }),

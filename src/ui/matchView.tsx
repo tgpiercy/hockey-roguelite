@@ -1,3 +1,5 @@
+import { music } from '../game/music';
+import { resultPiece, stingFor } from '../game/musicScore';
 import { hush, speak } from '../game/voice';
 import * as Phaser from 'phaser';
 import { render } from 'preact';
@@ -75,6 +77,9 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
   const opponentLevel = level === undefined ? null : Math.max(0, Math.min(1, level + shift));
   document.body.className = 'mode-rink';
   if (tuningStore.open) tuningStore.toggle();
+  // The menu theme stops for the game; the organ plays it in.
+  music.stop();
+  music.sting('organ');
 
   // The on-screen controls show once the screen is touched, and step aside for a controller or keyboard.
   let touchHidden = false;
@@ -175,17 +180,23 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       tuning: () => tuningStore.tuning,
       onControls,
       paused: () => paused,
-      onEvents: (events, world, t) => gameAudio.onEvents(events, world, t),
+      onEvents: (events, world, t) => {
+        gameAudio.onEvents(events, world, t);
+        const piece = stingFor(events, world.human?.team ?? 0);
+        if (piece) music.sting(piece);
+      },
       onFrame: (world, t, seconds) => {
         // A one-goal game in the last period: the crowd is on its feet.
         gameAudio.tension(world.phase !== 'final' && world.period >= t.period.count && Math.abs(world.score[0] - world.score[1]) <= 1);
         gameAudio.onFrame(seconds);
       },
-      onResult: (result) =>
+      onResult: (result) => {
+        music.sting(resultPiece(result.winner === 0));
         render(
           <GameSummary result={result} teams={[home, away]} crests={[teamCrest(home.name, homeColour ?? look.colours.teamHome), teamCrest(away.name, awayColour ?? look.colours.teamAway)]} />,
           summary,
-        ),
+        );
+      },
       onDone: (result) => {
         document.removeEventListener('visibilitychange', onHidden);
         onPauseButton = null;
@@ -195,6 +206,8 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
         render(null, summary);
         render(null, touch);
         gameAudio.stopBeds();
+        hush();
+        music.loop('theme');
         if (tuningStore.open) tuningStore.toggle();
         game.destroy(true);
         onDone(result);

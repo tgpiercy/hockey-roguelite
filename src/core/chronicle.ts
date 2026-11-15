@@ -43,6 +43,8 @@ export interface CareerLine {
 
 const teamOfPlayer = (league: League, playerId: string): string | null => league.teams.find((t) => t.roster.includes(playerId))?.id ?? null;
 const pointsOf = (s: { goals: number; assists: number }): number => s.goals + s.assists;
+/** "3 goals and 1 assist". */
+const tally = (s: { goals: number; assists: number }): string => `${s.goals} goal${s.goals === 1 ? '' : 's'} and ${s.assists} assist${s.assists === 1 ? '' : 's'}`;
 
 /** The league's best by goals and assists, best first. Only players still on a team count. */
 export function scoringLeaders(league: League, scoring: Scoring): { player: PlayerRecord; teamId: string; goals: number; assists: number }[] {
@@ -67,7 +69,7 @@ export function seasonAwards(league: League, table: Standings, scoring: Scoring,
   };
   const leaders = scoringLeaders(league, scoring);
   const top = leaders[0];
-  if (top && pointsOf(top) > 0) make('scorer', 'Top scorer', top.player, top.teamId, `${top.goals} goals and ${top.assists} assists`);
+  if (top && pointsOf(top) > 0) make('scorer', 'Top scorer', top.player, top.teamId, tally(top));
 
   const stingiest = Object.keys(table)
     .filter((id) => gamesPlayed(table[id] as Row) >= data.improvedMinGames)
@@ -90,7 +92,7 @@ export function seasonAwards(league: League, table: Standings, scoring: Scoring,
   if (improved) make('improved', 'Most improved', improved.player, improved.teamId, `${improved.gain} better overall`);
 
   const rookie = leaders.find((line) => line.player.age - (agedThisSeason ? 1 : 0) <= data.rookieMaxAge && pointsOf(line) > 0);
-  if (rookie) make('rookie', 'Rookie of the year', rookie.player, rookie.teamId, `${rookie.goals} goals and ${rookie.assists} assists`);
+  if (rookie) make('rookie', 'Rookie of the year', rookie.player, rookie.teamId, tally(rookie));
   return awards;
 }
 
@@ -232,7 +234,7 @@ export function leagueNews(f: Franchise): string[] {
   const cold = order.filter((id) => (table[id] as Row).streak <= -3).sort((a, b) => (table[a] as Row).streak - (table[b] as Row).streak)[0];
   if (cold) news.push(`${name(cold)} have lost ${-(table[cold] as Row).streak} in a row.`);
   const scorer = scoringLeaders(league, season.scoring ?? {})[0];
-  if (scorer && pointsOf(scorer) > 0) news.push(`${scorer.player.name} (${name(scorer.teamId)}) leads the league with ${scorer.goals} goals and ${scorer.assists} assists.`);
+  if (scorer && pointsOf(scorer) > 0) news.push(`${scorer.player.name} (${name(scorer.teamId)}) leads the league with ${tally(scorer)}.`);
   for (const r of (season.lastRound ?? []).slice(0, 4)) {
     const homeWon = r.homeGoals > r.awayGoals;
     news.push(`${name(homeWon ? r.home : r.away)} ${Math.max(r.homeGoals, r.awayGoals)}, ${name(homeWon ? r.away : r.home)} ${Math.min(r.homeGoals, r.awayGoals)}${r.overtime ? ' (overtime)' : ''}.`);

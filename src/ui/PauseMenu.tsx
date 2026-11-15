@@ -1,3 +1,4 @@
+import { music } from '../game/music';
 import { useState } from 'preact/hooks';
 import controls from '../data/controls.json';
 import xbox from '../data/xboxMapping.json';
@@ -101,6 +102,7 @@ export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs }: Props
     savePrefs(next);
     setPrefs(next);
     gameAudio.configure(next.sound, next.volume);
+    music.configure(next.sound && next.music, next.musicVolume);
     onPrefs(next);
   };
 
@@ -165,6 +167,7 @@ export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs }: Props
             gameAudio.play('chime');
           },
         },
+        { key: 'music', label: `Music: ${prefs.music ? 'On' : 'Off'}`, detail: 'Short pieces for goals and the end of the game. Nothing plays during play.', disabled: !prefs.sound, onSelect: () => change({ ...prefs, music: !prefs.music }) },
         {
           key: 'commentary',
           label: `Commentary: ${COMMENTARY_NAMES[prefs.commentary]}`,

@@ -659,6 +659,18 @@ After the round, AI against AI at level 0.5, 200 games, equal teams: 4.08 and 4.
 
 Not measured: how hard the three new bosses are to beat. The Furnace starts each period with the on-fire boost (about eight seconds of harder shots and faster skating), three times a game.
 
+## A living league, commentary and music (2026-11-15)
+
+**The league** (`standings.json`): a win is 2 points, an overtime loss 1; a one-goal game between AI teams goes to overtime 20% of the time; the playoffs take 4 teams (you and the best 3 AI teams); a rival's game pays 15 more Pucks; 2 map losses to one team make it a rival; at most 2 rivals; an award for one of yours pays $0.75M and 1 skill point.
+
+AI games are settled from team strength by the same curve as Simulate. Over 40 rounds the strongest team finishes above the weakest and at least one of the top three teams by strength is in the top four of the table (tested).
+
+**Commentary** (`commentary.json`): one line at most every 2.2 seconds unless something bigger happens; a line shows for 2.6 seconds. Sixteen kinds of call with two to five wordings each.
+
+**Music** (`music.json`): eight pieces. The theme is 16 bars at 104 beats a minute (about 37 seconds) and loops; the others last under 6 seconds. Overall music level 0.5 before the player's volume; the theme dips to 0.35 under a short piece.
+
+League health (6 seeds, 6 years) is unchanged: the table and bracket do not change who is strong, only whom you meet.
+
 ## Change log
 
 | Date | Value | From | To | Why |

@@ -133,6 +133,11 @@ export class GameAudio {
     if (this.ctx.state === 'suspended') void this.ctx.resume();
   }
 
+  /** Where other sound (the music) joins in: the audio context and the node to play into. Null until sound is unlocked. */
+  bus(): { ctx: AudioContext; out: AudioNode } | null {
+    return this.ctx && this.master ? { ctx: this.ctx, out: this.master } : null;
+  }
+
   /** Plays one sound now. Does nothing until sound has been unlocked, or while it is switched off. */
   play(name: SoundName, gain = 1): void {
     this.played[name] = (this.played[name] ?? 0) + 1;

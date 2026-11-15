@@ -1,3 +1,5 @@
+import { useEffect } from 'preact/hooks';
+import { music } from '../game/music';
 import { itemName, type GearItem } from '../core/gear';
 import { GearArt } from './GearArt';
 import { GearCard } from './gearParts';
@@ -16,6 +18,10 @@ interface Props {
  * The movement is all CSS, and is switched off for anyone whose device asks for reduced motion.
  */
 export function PackOpening({ title, items, shown }: Props) {
+  // A flourish as the first piece comes out of the pack.
+  useEffect(() => {
+    if (shown === 1) music.sting('reveal');
+  }, [shown]);
   if (shown === 0) {
     return (
       <div class="pack-stage">

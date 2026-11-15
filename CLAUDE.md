@@ -89,6 +89,18 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - All randomness in a season comes from its seed and a roll counter, so a season replays exactly.
 - `tests/seasonRun.test.ts` plays whole seasons automatically with real simulated games; it prints how each ended.
 
+## How the league fits together
+
+- `src/core/standings.ts`: the table (`Standings`, `Row`, `points`, `ranked`), a round of AI games (`playRound`, settled from strength), `creditGoals` (who scored), `playoffField` and `settleSeries`. `season.leagueRound` runs after each of your map games: your result, your opponent's, then everyone else's. The table, the scoring and the last round's results live on the season (`standings`, `scoring`, `lastRound`: all optional, so a season begun earlier still loads and finishes by the old rule).
+- The playoffs are a bracket (`season.bracket`): you and the best three AI teams, seeded by the table. `homeGame(f, n)` in `economy.ts` says where a game is played: it alternates, except that `season.homeOverride` gives the higher seed games one and three of a series.
+- `src/core/chronicle.ts`: `leagueNews` (worked out from the season each time, nothing stored), `seasonAwards`, `closeChronicle` (called by `finishSeason`: awards, the season's line in `f.history`, career lines in `f.career`, next season's `f.rivals`), `clubRecords` and `rememberRetired`. `isRival` in `season.ts`; beating one pays more.
+- Screens: League, Standings, News, Trophy room in `App.tsx`.
+
+## How commentary and music fit together
+
+- `src/game/commentary.ts` (pure, tested): `Commentator.call(events, context, now)` returns the line for the most important thing in a batch of events, from the wordings in `src/data/commentary.json`. `RinkScene` shows it under the scoreboard and hands it to `onCall`; `matchView` passes that to `src/game/voice.ts` (the browser's speech synthesis) when the preference is "voice". `Prefs.commentary` is off, text or voice.
+- `src/game/musicScore.ts` (pure, tested) reads tunes written as note names and beats in `src/data/music.json` and says which piece goes with what (`stingFor`, `resultPiece`). `src/game/music.ts` plays them through the game's own audio context (`gameAudio.bus()`): `music.loop('theme')` on the menus, `music.sting(...)` for moments. `music.played` counts what was asked for, like `gameAudio.played`. No continuous music during a game.
+
 ## How gear and packs fit together
 
 - `src/core/gear.ts`: the gear item, generation from the tables, the modifiers a piece gives, set bonuses, equip, level up, scrap. `src/core/packs.ts`: awarding a pack (contents rolled then, from the franchise seed and a counter), the pity timer, which pack a win earns, opening. `src/core/milestones.ts`: the season milestones and the tallies behind them.

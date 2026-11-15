@@ -192,6 +192,10 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-15 | Trades by position | An AI team pays more for a position it is short of, less for one it has plenty of, and never trades away its last two forwards or defencemen. | Loose ends |
 | 2026-11-15 | Elite games must be played | Found while checking the screens: an elite game could be simulated, which took the risk out of it. | Loose ends |
 | 2026-11-15 | More content | Three bosses, six powerups, five talents (two per kind of skater), eight events and six artifacts. | New content |
+| 2026-11-15 | A league table and a seeded bracket | The other teams play a round each time you play, and the playoffs are you and the best three AI teams, seeded by the table, with the higher seed at home. Chosen by the owner over a flavour-only table and over replacing the map with a schedule. | League round |
+| 2026-11-15 | Rivals, news, awards, trophy room | Rivals come from the playoffs and from losing twice to a team; a news page, four league-wide awards, and a record of every season. Built with optional save fields in place of the planned save version 7: nothing in an old save needed changing. | League round |
+| 2026-11-15 | Commentary | A line of text for big plays, and the same line spoken by the device's voice if chosen. The default is text only. | League round |
+| 2026-11-15 | Music | A theme on the menus and short pieces for the opening, goals, the end of a period and of a game, pack openings and a championship. Nothing continuous during play. Composed without being heard. | League round |
 
 ## Open
 

@@ -1,11 +1,22 @@
 import { render } from 'preact';
 import { gameAudio } from './game/audio';
+import { music } from './game/music';
 import { App } from './ui/App';
 import { ArtSheet } from './ui/ArtSheet';
 import './style.css';
 
 // Browsers only allow sound once the player has pressed or tapped something: any such press wakes it.
-for (const type of ['keydown', 'pointerdown', 'touchstart']) window.addEventListener(type, () => gameAudio.unlock(), { passive: true });
+for (const type of ['keydown', 'pointerdown', 'touchstart']) {
+  window.addEventListener(
+    type,
+    () => {
+      gameAudio.unlock();
+      // The menu theme starts on the first press, if it was waiting for sound to be allowed.
+      setTimeout(() => music.wake(), 60);
+    },
+    { passive: true },
+  );
+}
 
 const query = new URLSearchParams(location.search);
 if (query.has('sheet')) {

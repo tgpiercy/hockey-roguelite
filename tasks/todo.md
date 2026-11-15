@@ -523,3 +523,21 @@ Built, deployed and checked with a simulated controller.
 - Seen in the browser on a fresh franchise: the shift setting on the Lineup screen, the elite game card and the E marks on the map, the choice of two artifacts after an elite win, the shop with the scouting report and a new powerup, an event card naming a new event.
 - Not seen: the three new bosses' tells, the Hammers flash and the full-press banner in a live game, the goal banner's new position (all drawn in code that type-checks, none looked at in a picture); the skill-point screens, contract lengths, mascot choice and club report from the last round are still unseen.
 - Not measured: how hard the new bosses are.
+
+# A living league, commentary and music
+
+- [x] Stage 1: standings, a league round after each of your games, the seeded bracket, home ice by seed
+- [x] Stage 2: rivals, news, awards, trophy room
+- [x] Stage 3: commentary as text and a spoken voice
+- [x] Stage 4: music (theme and short pieces)
+- [ ] Listen to it (owner): music and the voice were made without being heard
+- [ ] Play it (owner)
+
+## Review (league, commentary, music)
+
+- Four commits, each stopped by the gate if a test failed (it stopped one). Type check, 1053 tests (62 new) and the build pass.
+- Seen in the browser at phone size on a fresh franchise: the League card on the map ("6th of 13"), the Standings table after one round, the News page (leader, scoring race, four results), an empty Trophy room, and a commentary line under the scoreboard during a live game. The music player reported the theme and the opening organ as asked for.
+- Not seen: the playoff bracket note, a rival game card, awards in a report, a filled trophy room (each needs a finished season; their rules are tested). Not heard: any music, or the voice.
+- Changed from the plan: no save version 7; every new field is optional. AI trades and signings are not in the news page (the off-season report already lists them); there is no "player of the week" (the scoring leader is named instead); the map shows the standing on the League card, not as a strip.
+- Found and fixed while checking: "1 assists".
+- Risks: the music may simply not be to taste (one switch turns it off); the voice varies by phone; you will tend to top the table while winning stays this easy.
