@@ -1,5 +1,6 @@
 import { rinkInfo, rinkTuning, SHOOTOUT } from '../core/rinks';
 import type { Tuning } from '../sim/tuning';
+import type { MatchRules } from '../sim/types';
 import { BALANCED, type Tactics } from '../sim/tactics';
 import { music } from '../game/music';
 import { resultPiece, stingFor } from '../game/musicScore';
@@ -74,13 +75,15 @@ export interface MatchOptions {
   rink?: string;
   /** True for a shootout in place of a game. */
   shootout?: boolean;
+  /** Rules changed on top of the rink's (a season's charter). */
+  rules?: MatchRules;
 }
 
 /**
  * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout }: MatchOptions, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
   // The rink's own numbers sit on top of whatever the tuning panel holds; worked out again only when that changes.
   const where = rinkInfo(shootout ? null : rink);
@@ -213,7 +216,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
         saveHintCounts(hintCounts);
       },
       tuning: rinkTuned,
-      rules: shootout ? { shootout: SHOOTOUT } : where.rules,
+      rules: shootout ? { shootout: SHOOTOUT } : { ...where.rules, ...(rules ?? {}) },
       onControls,
       paused: () => paused,
       onEvents: (events, world, t) => {

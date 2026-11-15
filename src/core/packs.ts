@@ -1,3 +1,4 @@
+import { vowPackLuck } from './charter';
 import data from '../data/packs.json';
 import type { GameResult } from '../sim/match';
 import prestigeRules from '../data/prestige.json';
@@ -32,7 +33,8 @@ export function awardPack(f: Franchise, type: PackType, reason: string): Pack {
   const spec = data.types[type];
 
   // Each prestige level makes everything above Common likelier.
-  const table = rarityTable(prestigeRules.rarityBoostPerLevel ** f.prestige.level, prestigeRules.minCommonChance);
+  // So do the handicaps taken for this season.
+  const table = rarityTable(prestigeRules.rarityBoostPerLevel ** f.prestige.level * vowPackLuck(f.season.vows), prestigeRules.minCommonChance);
   const rarities: RarityId[] = [];
   for (let i = 0; i < spec.items; i++) rarities.push(rollRarity(rng, i === 0 ? (spec.guarantee as RarityId | '') : '', table));
   // Pity timer: after a long run with no Legendary, the guaranteed slot becomes one.

@@ -1,3 +1,4 @@
+import type { SeasonSetup } from './charter';
 import { closeChronicle, rememberRetired } from './chronicle';
 import { overLimit } from './economy';
 import leagueRules from '../data/league.json';
@@ -238,11 +239,11 @@ function fillRoster(f: Franchise, team: Team, rng: Rng, names: NameMaker, nextId
  * Starts the next season. First, if they have not yet, the other teams make their off-season moves: you
  * have had first pick of the free agents, and they take what is left.
  */
-export function beginSeason(f: Franchise): ActionResult {
+export function beginSeason(f: Franchise, setup: SeasonSetup = {}): ActionResult {
   const mine = canStartSeason(f);
   if (!mine.ok) return mine;
   if (!f.offseason.leagueMoved) leagueMoves(f);
-  return startSeason(f);
+  return startSeason(f, setup);
 }
 
 /**

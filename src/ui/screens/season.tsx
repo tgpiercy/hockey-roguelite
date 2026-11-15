@@ -27,12 +27,12 @@ const POWERUP_ICONS: Record<string, IconName> = {
 };
 export const powerupIcon = (id: string): IconName => POWERUP_ICONS[id] ?? 'powerups';
 
-/** Three lights for the season's strikes: lit red for each one taken. */
-export function StrikeLights({ strikes }: { strikes: number }) {
+/** A light for each strike the season allows: lit red for each one taken. */
+export function StrikeLights({ strikes, of = rules.maxStrikes }: { strikes: number; of?: number }) {
   return (
-    <span class="strike-lights" aria-label={`${strikes} of ${rules.maxStrikes} strikes`}>
+    <span class="strike-lights" aria-label={`${strikes} of ${of} strikes`}>
       <i>Strikes</i>
-      {Array.from({ length: rules.maxStrikes }, (_, n) => (
+      {Array.from({ length: of }, (_, n) => (
         <span key={n} class={n < strikes ? 'light on' : 'light'} />
       ))}
     </span>

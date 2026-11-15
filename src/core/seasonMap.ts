@@ -45,19 +45,19 @@ export interface SeasonMap {
  * `teamsByStrength` is the AI teams' ids, weakest first: the first region draws from the weakest
  * third, the last from the strongest.
  */
-export function generateMap(seed: string, teamsByStrength: string[]): SeasonMap {
+export function generateMap(seed: string, teamsByStrength: string[], regions: number = rules.regions): SeasonMap {
   const rng = createRng(`${seed}/map`);
   const stops: Record<string, Stop> = {};
   const regionStarts: string[][] = [];
   const eventOrder = rng.shuffle(events.map((e) => e.id));
   const bossOrder = rng.shuffle(bosses.map((b) => b.id));
-  const tierSize = Math.max(1, Math.floor(teamsByStrength.length / rules.regions));
+  const tierSize = Math.max(1, Math.floor(teamsByStrength.length / regions));
   let nextEvent = 0;
 
-  for (let region = 0; region < rules.regions; region++) {
-    const tier = teamsByStrength.slice(region * tierSize, region === rules.regions - 1 ? undefined : (region + 1) * tierSize);
+  for (let region = 0; region < regions; region++) {
+    const tier = teamsByStrength.slice(region * tierSize, region === regions - 1 ? undefined : (region + 1) * tierSize);
     let opponents = rng.shuffle(tier);
-    const above = region === rules.regions - 1 ? [] : teamsByStrength.slice((region + 1) * tierSize, region === rules.regions - 2 ? undefined : (region + 2) * tierSize);
+    const above = region === regions - 1 ? [] : teamsByStrength.slice((region + 1) * tierSize, region === regions - 2 ? undefined : (region + 2) * tierSize);
     const harder = above.length > 0 ? above : tier.slice(-Math.max(1, Math.ceil(tier.length / 2)));
     const rows: Stop[][] = [];
 

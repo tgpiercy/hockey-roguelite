@@ -1,3 +1,6 @@
+import { CHARTERS, charterInfo, cleanVows, nextRank, setupLine, vowPackLuck, vowPay, vowPoints, VOWS, type SeasonSetup } from '../core/charter';
+import { betterResult, claimWeekly, newWeekly, resultLine, weekKey, weeklyOver, weeklyResult } from '../core/weekly';
+import { loadWeeklyBest, saveWeeklyBest } from './prefs';
 import { isVariant, nextRink, RINK_BONUS, rinkInfo, STANDARD_RINK } from '../core/rinks';
 import { kindName as tacticKindName, nextTactic, readTactics, TACTIC_KINDS, tacticInfo, tacticsLine } from '../sim/tactics';
 import { dropSecond, openJoining, secondJoined } from '../game/gamepad';
@@ -28,7 +31,7 @@ import { canPlay, canSign, type MoveResult, deadCapFor } from '../core/roster';
 import { hiddenFreeAgents, potentialText, scoutingPoints, signPlayer } from '../core/scouting';
 import { gradePower, hire, kindName, letGo, roleOf, slotsFor, STAFF_KINDS, staffOfKind, staffSalePrice, type StaffMember } from '../core/staff';
 import { franchiseOf, fromSave, parseSave, toSave } from '../core/save';
-import { artifactInfo, artifactModifiers, bargainGames, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
+import { artifactInfo, artifactModifiers, bargainGames, maxStrikes, seasonRegions, setupOf, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
 import type { Stop } from '../core/seasonMap';
 import { seasonSummary } from '../core/seasonSummary';
 import { teamColour } from '../core/teamColours';
@@ -61,7 +64,7 @@ import { playMatch } from './matchView';
 import type { PlayerRecord } from '../core/player';
 import { CapLine, CountUp, Dots, Face, Grade, Meter, money, NO_TEAM, PlayerRow, Ratings, Wallet, WearingContext, type Wearing } from './parts';
 import { MapKey, SeasonMapView } from './SeasonMap';
-import { downloadText, loadStored, pickTextFile, store } from './storage';
+import { downloadText, loadStored, pickTextFile, store, WEEKLY_KEY } from './storage';
 
 type Screen =
   | { name: 'title' }
@@ -102,6 +105,7 @@ type Screen =
   | { name: 'staffMember'; staffId: string }
   | { name: 'facilities' }
   | { name: 'mascot' }
+  | { name: 'setup' }
   | { name: 'team' }
   | { name: 'office' }
   | { name: 'collection' }
@@ -188,6 +192,10 @@ export function App() {
   // Exhibition: the rink to play on, and whether it is a game or a shootout.
   const [exRink, setExRink] = useState<string>(STANDARD_RINK);
   const [exShootout, setExShootout] = useState(false);
+  // The charter and handicaps being chosen for the next season.
+  const [plan, setPlan] = useState<SeasonSetup>({});
+  // During a weekly run your own franchise waits here, untouched; null the rest of the time.
+  const mainRef = useRef<Franchise | null>(null);
   useEffect(() => {
     // A second controller may join on the menus; during a game the seats are fixed.
     openJoining(!playing);
@@ -220,7 +228,8 @@ export function App() {
   /** Writes the franchise to storage and redraws. Call after anything changes. */
   const commit = (franchise: Franchise): void => {
     ref.current = franchise;
-    store(toSave(franchise, new Date().toISOString())).catch(() => setMessage('Could not save: storage is unavailable in this browser.'));
+    // A weekly run is a save of its own.
+    store(toSave(franchise, new Date().toISOString()), mainRef.current ? WEEKLY_KEY : undefined).catch(() => setMessage('Could not save: storage is unavailable in this browser.'));
     redraw(0);
   };
   const startOver = (difficulty?: string): void => commit(newFranchise(generateLeague(String(Date.now())), difficulty));
@@ -270,6 +279,41 @@ export function App() {
     if (next && result.ok) setScreen(next);
     commit(f);
   };
+  /** This week's key, from today's date. */
+  const thisWeek = (): string => {
+    const now = new Date();
+    return weekKey(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  };
+  const weeklyOn = mainRef.current !== null;
+  /** Sets your franchise aside and opens this week's run: the one in progress, or a new one. */
+  const enterWeekly = (fresh = false): void => {
+    const key = thisWeek();
+    const open = (run: Franchise): void => {
+      if (!mainRef.current) mainRef.current = f;
+      setGroup(null);
+      setScreen({ name: 'home' });
+      setMessage(`Weekly run ${key}: ${setupLine(setupOf(run)) || 'standard rules'}. One region and its boss. Your own franchise is untouched.`);
+      commit(run);
+    };
+    if (fresh) return open(newWeekly(key));
+    loadStored(WEEKLY_KEY)
+      .then((raw) => {
+        const loaded = raw === null ? null : fromSave(raw);
+        const kept = loaded && loaded.ok ? franchiseOf(loaded.save) : null;
+        open(kept && kept.season.weekly === key ? kept : newWeekly(key));
+      })
+      .catch(() => open(newWeekly(key)));
+  };
+  /** Back to your own franchise. The run is kept as it stands. */
+  const leaveWeekly = (note: string): void => {
+    const main = mainRef.current;
+    if (!main) return;
+    mainRef.current = null;
+    setGroup(null);
+    setScreen({ name: 'home' });
+    setMessage(note);
+    commit(main);
+  };
   /** Back to where the player came from: the hub group he opened, or the top. */
   const home = (): void => go(group ? { name: group } : { name: 'home' });
   /** Back to the very top, leaving any group. */
@@ -305,6 +349,13 @@ export function App() {
     onSelect,
   });
   /** A dashboard tile for the hub's grid: a big icon, a name, and what is going on in there right now. */
+  /** The weekly run's tile: into it from your franchise, or back out of it. */
+  const weeklyCard = (): MenuItem =>
+    weeklyOn
+      ? card('weekly', 'Leave the weekly run', 'Back to your franchise', () => leaveWeekly('Back with your franchise. The weekly run is kept as you left it.'), { detail: 'The run stays as it is; come back to it any time this week.' })
+      : card('weekly', 'Weekly run', `${thisWeek()}${f.weeklyClaimed === thisWeek() ? ' · won' : ''}`, () => enterWeekly(), {
+          detail: 'A short season, one region and its boss, with a roster and rules that are the same for everyone this week. It is separate from your franchise; beat the boss and your franchise earns a Gold pack, once a week.',
+        });
   const card = (key: string, name: string, status: string, onSelect: () => void, extra: { badge?: number; disabled?: boolean; detail?: ComponentChildren } = {}): MenuItem => ({
     key,
     label: (
@@ -369,7 +420,7 @@ export function App() {
     setPlaying(true);
     const homeColour = jerseyColour(f);
     // A second player who has joined plays on your team in a season game.
-    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: homeGame(f, season.gamesPlayed + 1), ...(game.rink ? { rink: game.rink } : {}), forfeitNote: 'Giving the game up counts as a loss, whatever the score.', ...(joined ? { second: 0 as const } : {}) }, (result) => {
+    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: homeGame(f, season.gamesPlayed + 1), ...(game.rink ? { rink: game.rink } : {}), ...(game.rules ? { rules: game.rules } : {}), forfeitNote: 'Giving the game up counts as a loss, whatever the score.', ...(joined ? { second: 0 as const } : {}) }, (result) => {
       showOutcome(recordGame(f, result));
       // The pause menu may have changed the sound or the controls.
       setPrefs(loadPrefs());
@@ -398,7 +449,7 @@ export function App() {
 
   const seasonLine = (
     <div>
-      Strikes <Dots filled={season.strikes} total={rules.maxStrikes} /> · Powerups {season.powerups.length} · Artifacts {f.artifacts.length}
+      Strikes <Dots filled={season.strikes} total={maxStrikes(f)} /> · Powerups {season.powerups.length} · Artifacts {f.artifacts.length}
       {season.temps.length > 0 && <> · {season.temps.map((t) => `${t.label} (${t.games} game${t.games === 1 ? '' : 's'})`).join(', ')}</>}
     </div>
   );
@@ -418,6 +469,41 @@ export function App() {
   );
 
   const view = ((): ComponentChildren => {
+  // ---------------------------------------------------------------- a finished weekly run
+
+  if (weeklyOn && weeklyOver(f)) {
+    const result = weeklyResult(f);
+    const best = betterResult(loadWeeklyBest(), result);
+    saveWeeklyBest(best);
+    const main = mainRef.current as Franchise;
+    const prize = result.won && main.weeklyClaimed !== result.week;
+    return (
+      <Menu
+        key="weekly-over"
+        stack
+        title={`Weekly run ${result.week}`}
+        message={message}
+        header={
+          <div class="note">
+            {resultLine(result)} Your best this week: {resultLine(best)} {prize ? 'Your franchise earns a Gold pack.' : result.won ? "This week's pack has already been collected." : 'Beat the boss to earn your franchise a Gold pack.'}
+          </div>
+        }
+        items={[
+          {
+            key: 'back',
+            label: 'Back to your franchise',
+            detail: 'The weekly run changes nothing else about your franchise.',
+            onSelect: () => {
+              const given = claimWeekly(main, result);
+              leaveWeekly(given ? 'You beat the weekly run: a Gold pack is waiting in your collection.' : 'Back with your franchise.');
+            },
+          },
+          { key: 'again', label: "Play this week's run again", detail: 'The same league, roster, map and rules, from the start.', onSelect: () => { claimWeekly(main, result); enterWeekly(true); } },
+        ]}
+      />
+    );
+  }
+
   // ---------------------------------------------------------------- title
 
   if (screen.name === 'title') {
@@ -503,7 +589,7 @@ export function App() {
                   }),
                 ]
               : []),
-            tile('start', 'Start the season', `Season ${league.season}: three regions, then the playoffs`, () => after(beginSeason(f)), {
+            tile('start', 'Start the season', `Season ${league.season}: choose how to play it`, () => go({ name: 'setup' }), {
               primary: pending === 0,
               wide: true,
               disabled: !ready.ok || pending > 0 || fireSale,
@@ -538,6 +624,7 @@ export function App() {
               disabled: !ready.ok,
               detail: 'A one-off game against any team. Nothing is won or lost.',
             }),
+            weeklyCard(),
           ]}
         />
       );
@@ -600,6 +687,7 @@ export function App() {
       card('league', 'League', leagueStatus(), () => openGroup('league')),
       card('settings', 'Settings', 'Sound, detail, save', () => openGroup('settings')),
       card('exhibition', 'Exhibition', 'A game that does not count', () => go({ name: 'exhibition' })),
+      weeklyCard(),
     ];
     const best = (players: PlayerRecord[]): PlayerRecord[] => [...players].sort((x, y) => y.overall - x.overall).slice(0, 3);
 
@@ -666,7 +754,7 @@ export function App() {
                 </div>
               )}
               <div class="poster-foot">
-                <StrikeLights strikes={season.strikes} />
+                <StrikeLights strikes={season.strikes} of={maxStrikes(f)} />
                 {series && (
                   <span>
                     Best of {rules.seriesWins * 2 - 1}: you <Dots filled={series.wins} total={rules.seriesWins} /> them <Dots filled={series.losses} total={rules.seriesWins} />
@@ -768,7 +856,7 @@ export function App() {
             <>
               <EventHeader text={event.text} />
               <div class="poster-foot">
-                <StrikeLights strikes={season.strikes} />
+                <StrikeLights strikes={season.strikes} of={maxStrikes(f)} />
                 <span>Pucks {season.currency}</span>
                 <span>Powerups {season.powerups.length}</span>
               </div>
@@ -797,7 +885,7 @@ export function App() {
                 <b>{season.currency}</b>
               </div>
               <div class="poster-foot">
-                <StrikeLights strikes={season.strikes} />
+                <StrikeLights strikes={season.strikes} of={maxStrikes(f)} />
                 <span>Powerups in the bag {season.powerups.length}</span>
               </div>
             </>
@@ -903,7 +991,7 @@ export function App() {
         key={screenKey}
         remember="map"
         columns={2}
-        title={`Season ${league.season} · Region ${region + 1} of ${rules.regions}`}
+        title={`${season.weekly ? `Weekly run ${season.weekly}` : `Season ${league.season}`} · Region ${region + 1} of ${seasonRegions(f)}`}
         message={message}
         onFocus={setMapFocus}
         header={
@@ -913,7 +1001,7 @@ export function App() {
             )}
             <MapKey />
             <div class="poster-foot">
-              <StrikeLights strikes={season.strikes} />
+              <StrikeLights strikes={season.strikes} of={maxStrikes(f)} />
               <span>Powerups {season.powerups.length}</span>
               <span>Artifacts {f.artifacts.length}</span>
               {season.temps.map((t) => (
@@ -2146,8 +2234,9 @@ export function App() {
             icon: 'detail',
             detail: 'Shows which controller buttons and on-screen buttons the game sees as you press them.',
           }),
-          tile('saves', 'Save and load', 'Export, import, or start again', () => go({ name: 'saves' }), {
-            detail: 'The game saves by itself after every move, every stop and every game.',
+          tile('saves', 'Save and load', weeklyOn ? 'Leave the weekly run first' : 'Export, import, or start again', () => go({ name: 'saves' }), {
+            disabled: weeklyOn,
+            detail: weeklyOn ? 'Saving, loading and starting again are for your own franchise: leave the weekly run first.' : 'The game saves by itself after every move, every stop and every game.',
           }),
         ]}
       />
@@ -2226,7 +2315,7 @@ export function App() {
                 {!r.won && season.phase !== 'ended' && (
                   <div class="reward">
                     <i>Strikes</i>
-                    <Dots filled={season.strikes} total={rules.maxStrikes} />
+                    <Dots filled={season.strikes} total={maxStrikes(f)} />
                   </div>
                 )}
               </div>
@@ -2562,6 +2651,40 @@ export function App() {
           detail: <Ratings player={p} />,
           onSelect: () => after(setSeasonLineupSlot(f, screen.line, screen.slot, p.id), { name: 'lineup' }),
         }))}
+      />
+    );
+  }
+
+  if (screen.name === 'setup') {
+    const charter = charterInfo(plan.charter);
+    const points = vowPoints(plan.vows);
+    const next = CHARTERS[(CHARTERS.findIndex((c) => c.id === charter.id) + 1) % CHARTERS.length] as (typeof CHARTERS)[number];
+    return (
+      <Menu
+        key={screenKey}
+        title={`Season ${league.season}`}
+        message={message}
+        header={
+          <div class="note">
+            {points === 0
+              ? 'No handicaps. Each one you take is worth points; every point pays more Pucks and better pack luck this season.'
+              : `${points} handicap ${points === 1 ? 'point' : 'points'}: games pay ${Math.round((vowPay(plan.vows) - 1) * 100)}% more Pucks, and packs are ${Math.round((vowPackLuck(plan.vows) - 1) * 100)}% luckier, this season.`}
+          </div>
+        }
+        onBack={home}
+        items={[
+          tile('go', 'Start the season', setupLine(plan) || 'Standard, no handicaps', () => after(beginSeason(f, plan), { name: 'home' }), { primary: true, wide: true, detail: 'Your seventh skater is the spare: you can swap him in between games.' }),
+          { key: 'charter', label: `Charter: ${charter.name}`, detail: `${charter.describe} Press to change.`, onSelect: () => setPlan({ ...plan, charter: next.id }) },
+          ...VOWS.map((vow): MenuItem => {
+            const rank = cleanVows(plan.vows)[vow.id] ?? 0;
+            return {
+              key: vow.id,
+              label: `${vow.name}: ${rank === 0 ? 'off' : vow.ranks > 1 ? `rank ${rank} of ${vow.ranks}` : 'on'}`,
+              detail: `${vow.describe} Worth ${vow.ranks > 1 ? 'a point a rank' : 'a point'}. Press to change.`,
+              onSelect: () => setPlan({ ...plan, vows: nextRank(plan.vows, vow.id) }),
+            };
+          }),
+        ]}
       />
     );
   }

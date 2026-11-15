@@ -1,3 +1,4 @@
+import type { WeeklyResult } from '../core/weekly';
 /**
  * Preferences that belong to this device, not to the franchise: sound, volume and how much detail to draw.
  * They are kept apart from the save file, so importing a save does not change them.
@@ -107,5 +108,26 @@ export function saveHintCounts(counts: Record<string, number>): void {
     localStorage.setItem(HINTS_KEY, JSON.stringify(counts));
   } catch {
     // Storage is unavailable: the counts last until the page is closed.
+  }
+}
+
+/** The best weekly-run result on this device (for the latest week played), kept apart from the save. */
+const WEEKLY_BEST = 'hockey-weekly';
+
+export function loadWeeklyBest(): WeeklyResult | null {
+  try {
+    const raw = localStorage.getItem(WEEKLY_BEST);
+    const value = raw === null ? null : (JSON.parse(raw) as Partial<WeeklyResult>);
+    return value && typeof value.week === 'string' && typeof value.won === 'boolean' ? { week: value.week, won: value.won, wins: Number(value.wins) || 0, losses: Number(value.losses) || 0, strikes: Number(value.strikes) || 0 } : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveWeeklyBest(result: WeeklyResult): void {
+  try {
+    localStorage.setItem(WEEKLY_BEST, JSON.stringify(result));
+  } catch {
+    // Storage may be unavailable; the best result is then simply not kept.
   }
 }

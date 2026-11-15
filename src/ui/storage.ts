@@ -1,6 +1,8 @@
 const DB_NAME = 'hockey-roguelite';
 const STORE = 'saves';
 const KEY = 'franchise';
+/** The weekly run is a save of its own. */
+export const WEEKLY_KEY = 'weekly';
 
 function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -30,13 +32,13 @@ function run<T>(mode: IDBTransactionMode, work: (store: IDBObjectStore) => IDBRe
 }
 
 /** The stored save as it was written, or null if there is none. It still has to go through the version check. */
-export function loadStored(): Promise<unknown> {
-  return run<unknown>('readonly', (store) => store.get(KEY)).then((value) => value ?? null);
+export function loadStored(key: string = KEY): Promise<unknown> {
+  return run<unknown>('readonly', (store) => store.get(key)).then((value) => value ?? null);
 }
 
 /** Writes the save, replacing the previous one. */
-export function store(save: unknown): Promise<void> {
-  return run('readwrite', (s) => s.put(save, KEY)).then(() => undefined);
+export function store(save: unknown, key: string = KEY): Promise<void> {
+  return run('readwrite', (s) => s.put(save, key)).then(() => undefined);
 }
 
 /** Offers some text to the user as a file download. */

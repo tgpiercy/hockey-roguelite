@@ -599,4 +599,15 @@ Built, deployed and checked with a simulated controller.
 - [x] 2. Defence pays: momentum from steals and dekes, the steal at the wind-up, the horn waits
 - [x] 3. Conditional artifacts (12) and bargains (4)
 - [x] 4. Rink and rule variants, and a shootout
-- [ ] 5. Charters, handicaps and a weekly run
+- [x] 5. Charters, handicaps and a weekly run
+- [ ] Play it (owner)
+
+## Review (research round)
+
+- Four commits, each gated on the type check and the tests; 1189 tests and the build pass. A standard season with no handicaps, on the standard rink, with no conditional artifacts and no mascot, plays as it did before.
+- Measured, all in `docs/TUNING.md`: the mascot's visit (a two-goal deficit is recovered about twice as often when he comes), the standard balance series after momentum from defending (unchanged), every new artifact over 100 games (four retuned, not re-measured), every rink over 100 games, the shootout.
+- Seen in the test browser at phone size: the shootout (an attempt, NO GOAL, the scoreboard), the pond rink drawn smaller, the Exhibition rows, the season set-up screen with a charter and handicaps chosen and a season started from it, a "First to three" stop on the new map, the weekly run opened, left and reopened with the franchise untouched.
+- Not seen: a triggered artifact's name on the ice, an artifact offer showing a bargain, the weekly run's result screen, a boss on his home rink, the stronger mascot in a real game. Each is covered by tests only.
+- Changed from the plan: the Bruisers and Blue-line charters and three of the handicaps (see `docs/DECISIONS.md`); parts 1 to 3 went in as one commit, not three.
+- Not measured: what handicaps and charters do to a season's difficulty or to the economy. The league health check does not use them.
+- Found on the way and fixed: strike lights always showed three, whatever the season's limit.

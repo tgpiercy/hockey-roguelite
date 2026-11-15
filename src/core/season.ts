@@ -1,3 +1,5 @@
+import { charterInfo, cleanVows, opponentModifiers, setupModifiers, STANDARD_CHARTER, type SeasonSetup } from './charter';
+import type { MatchRules } from '../sim/types';
 import { isVariant, RINK_BONUS } from './rinks';
 import standingsRules from '../data/standings.json';
 import type { CareerLine, SeasonRecord } from './chronicle';
@@ -63,6 +65,15 @@ export interface SeasonState {
   /** Every stop finished this season, in order: the route walked, for the map. */
   visited: string[];
   strikes: number;
+  /** How the season was set up: its charter and the handicap ranks taken (charter.ts). Left out, a standard season. */
+  charter?: string;
+  vows?: Record<string, number>;
+  /** Goals your defencemen have scored this season, for a charter that counts them. */
+  defenceGoals?: number;
+  /** How many regions this season's map has. Left out, the usual number. */
+  regions?: number;
+  /** Set for a weekly run (its week): it ends when its last boss is beaten, with no playoffs. */
+  weekly?: string;
   /** Bargain artifacts whose handicap is still running: games left, by artifact id. */
   bargains?: Record<string, number>;
   /** Rolls in a row that have missed for each opponent's mascot this season, by team id (a boss: "boss/" and its id). */
@@ -180,6 +191,8 @@ export interface Franchise {
   tape: number;
   /** Packs awarded since the last one that held a Legendary, for the pity timer. */
   packsSinceLegendary: number;
+  /** The week whose weekly-run prize has been collected. */
+  weeklyClaimed?: string;
   /** How many packs have ever been awarded; also numbers the pieces. */
   gearCount: number;
   prestige: PrestigeState;
@@ -398,12 +411,32 @@ export function teamModifiers(f: Franchise): Modifier[] {
   // At home the arena adds its home-ice edge.
   const atHome = homeGame(f, f.season.gamesPlayed + 1);
   const home = atHome ? homeIceModifiers(f) : [];
-  return [...settleHome(artifactModifiers(f), atHome), ...f.season.temps.flatMap((t) => t.modifiers), ...clubModifiers(f), ...home];
+  return [...settleHome(artifactModifiers(f), atHome), ...seasonSetupModifiers(f), ...f.season.temps.flatMap((t) => t.modifiers), ...clubModifiers(f), ...home];
 }
 
 /** A season-level number (such as currency gain) after the artifacts owned. */
 function stat(f: Franchise, name: string, base: number): number {
-  return modified(base, name, artifactModifiers(f));
+  return modified(base, name, [...artifactModifiers(f), ...seasonSetupModifiers(f)]);
+}
+
+/** How this season was set up. */
+export function setupOf(f: Franchise): SeasonSetup {
+  return { ...(f.season.charter ? { charter: f.season.charter } : {}), ...(f.season.vows ? { vows: f.season.vows } : {}) };
+}
+
+/** What the season's charter and handicaps give your side, for the ice and for the season rules. */
+function seasonSetupModifiers(f: Franchise): Modifier[] {
+  return f.season.charter || f.season.vows ? setupModifiers(setupOf(f), f.season.defenceGoals ?? 0) : [];
+}
+
+/** How many strikes end the season: the usual number, less any a handicap takes. */
+export function maxStrikes(f: Franchise): number {
+  return Math.max(1, Math.round(stat(f, 'maxStrikes', rules.maxStrikes)));
+}
+
+/** How many regions this season has. */
+export function seasonRegions(f: Franchise): number {
+  return f.season.regions ?? rules.regions;
 }
 
 export function currentStop(f: Franchise): Stop | null {
@@ -446,7 +479,7 @@ export function canStartSeason(f: Franchise): ActionResult {
  * Locks in the dressed lineup and generates the season's map. The rest of the league must have made its
  * off-season moves first: start a season through `beginSeason` in offseason.ts, which sees to that.
  */
-export function startSeason(f: Franchise): ActionResult {
+export function startSeason(f: Franchise, setup: SeasonSetup & { regions?: number; weekly?: string } = {}): ActionResult {
   const mine = canStartSeason(f);
   if (!mine.ok) return mine;
   if (!f.offseason.leagueMoved) return refuse('The other teams have not made their off-season moves yet.');
@@ -455,7 +488,15 @@ export function startSeason(f: Franchise): ActionResult {
   const season = newSeasonState();
   season.phase = 'map';
   season.seed = `${f.league.seed}/season-${f.league.season}`;
-  season.map = generateMap(season.seed, aiTeamsByStrength(f.league));
+  // The set-up first: the map and everything after may depend on it.
+  const charter = charterInfo(setup.charter);
+  if (charter.id !== STANDARD_CHARTER) season.charter = charter.id;
+  const vows = cleanVows(setup.vows);
+  if (Object.keys(vows).length > 0) season.vows = vows;
+  const regions = setup.regions ?? charter.regions;
+  if (regions !== undefined) season.regions = Math.max(1, Math.min(rules.regions, regions));
+  if (setup.weekly) season.weekly = setup.weekly;
+  season.map = generateMap(season.seed, aiTeamsByStrength(f.league), season.regions ?? rules.regions);
   season.dressed = [...dressedSkaters(team.lineup), team.lineup.goalie as string];
   season.standings = newStandings(f.league);
   season.scoring = {};
@@ -463,7 +504,8 @@ export function startSeason(f: Franchise): ActionResult {
   // Each season is its own build: last season's artifacts are gone.
   f.artifacts = [];
   const gift = roll(season, 'start');
-  for (let i = 0; i < rules.startingPowerups; i++) season.powerups.push(gift.pick(powerups).id);
+  const starting = Math.max(0, Math.round(stat(f, 'startingPowerups', rules.startingPowerups)));
+  for (let i = 0; i < starting; i++) season.powerups.push(gift.pick(powerups).id);
   return done('The season begins.');
 }
 
@@ -506,8 +548,14 @@ function finishStop(f: Franchise): void {
   season.current = null;
   season.stage = 'none';
   season.offer = [];
+  // A weekly run is over when its last boss is beaten: there are no playoffs.
+  if (stop && stop.kind === 'boss' && stop.region === seasonRegions(f) - 1 && season.weekly) {
+    season.phase = 'ended';
+    season.outcome = 'champion';
+    return;
+  }
   // Beating the last region's boss leads to the playoffs.
-  if (stop && stop.kind === 'boss' && stop.region === rules.regions - 1) {
+  if (stop && stop.kind === 'boss' && stop.region === seasonRegions(f) - 1) {
     season.phase = 'playoffs';
     if (season.standings) {
       // A real bracket: you and the best AI teams in the table, first against last and second against third.
@@ -595,6 +643,8 @@ export interface Matchup {
   powerups: (PowerupSpec | null)[];
   /** The rink it is played on (rinks.json). Left out, the standard rink. */
   rink?: string;
+  /** Rules the season's charter changes in every game. */
+  rules?: MatchRules;
   /** Each side's mascot tonight: who he is, the chance of his next roll, and who would give up his place. */
   mascots: { home: MascotOdds; away: MascotOdds };
 }
@@ -642,7 +692,11 @@ export function matchup(f: Franchise): Matchup | null {
   });
   const home = bring(game.home, userMascot(f), f.mascot.misses ?? 0);
   const away = bring(game.away, theirs, season.mascotMisses?.[key] ?? 0);
-  return { ...game, home: home.team, away: away.team, mascots: { home: home.odds, away: away.odds } };
+  // The charter may give every opponent something, and change a rule of every game.
+  const extra = opponentModifiers(setupOf(f));
+  const awayTeam = extra.length > 0 ? { ...away.team, setup: { ...away.team.setup, modifiers: [...(away.team.setup.modifiers ?? []), ...extra] } } : away.team;
+  const charterRules = charterInfo(season.charter).rules;
+  return { ...game, home: home.team, away: awayTeam, mascots: { home: home.odds, away: away.odds }, ...(charterRules ? { rules: charterRules } : {}) };
 }
 
 /** After a game that was played: each mascot's run of misses is remembered. A simulated game has no rolls and changes nothing. */
@@ -658,9 +712,9 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
   if (!home) return null;
   const loaded = season.loadout.map((id) => (id ? powerupInfo(id) : null));
   // Each prestige level makes every opponent a little better and a little sharper.
-  const tougher = f.prestige.level * prestigeRules.opponentRatingPerLevel;
+  const tougher = f.prestige.level * prestigeRules.opponentRatingPerLevel + stat(f, 'opponentRating', 0);
   // The difficulty shifts every opponent's AI level, and each prestige level sharpens it a little more.
-  const sharper = f.prestige.level * prestigeRules.opponentLevelPerLevel + difficultyInfo(f.difficulty).levelShift;
+  const sharper = f.prestige.level * prestigeRules.opponentLevelPerLevel + difficultyInfo(f.difficulty).levelShift + stat(f, 'opponentLevel', 0);
 
   if (season.phase === 'playoffs' && season.playoffs) {
     const away = dress(league, teamOf(league, season.playoffs.opponentId), { bumpAll: tougher });
@@ -711,7 +765,7 @@ function artifactOffer(f: Franchise, count: number): string[] {
 
 function strike(f: Franchise): boolean {
   f.season.strikes += 1;
-  if (f.season.strikes < rules.maxStrikes) return false;
+  if (f.season.strikes < maxStrikes(f)) return false;
   f.season.phase = 'ended';
   f.season.outcome = 'struckOut';
   f.season.current = null;
@@ -765,6 +819,9 @@ export function recordGame(f: Franchise, result: GameResult): GameOutcome {
   rememberMascots(f, result, mascotKey);
 
   tally(f, result, game.home);
+  // Goals by your defencemen, for a charter that counts them. (A mascot's are his own, and are not here.)
+  const byDefence = result.players.filter((p) => p.team === 0 && p.role === 'skater' && game.home.players[p.line * 3 + p.slot]?.position === 'D').reduce((sum, p) => sum + p.goals, 0);
+  if (byDefence > 0) f.season.defenceGoals = (f.season.defenceGoals ?? 0) + byDefence;
   const net = bookGame(f, game.kind === 'playoff');
   // XP: dressed players earn their own; anyone on the roster who did not dress gets a share.
   const earned = gameXp(result, game.home);
@@ -803,7 +860,8 @@ export function recordGame(f: Franchise, result: GameResult): GameOutcome {
 export function canSimulate(f: Franchise): boolean {
   const game = matchup(f);
   // An elite game, like a boss or a playoff game, has to be played: its prize is for beating it yourself.
-  return game?.kind === 'game' && !game.elite;
+  // So does every game, under the handicap that says so.
+  return game?.kind === 'game' && !game.elite && stat(f, 'noSimulate', 0) < 1;
 }
 
 /**
@@ -884,7 +942,7 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
   if (game.kind === 'boss') {
     if (!won) {
       if (strike(f)) return done('The boss beats you. That is your third strike: the season is over.');
-      return done(`The boss beats you. Strike ${season.strikes} of ${rules.maxStrikes}. You must play the boss again.`);
+      return done(`The boss beats you. Strike ${season.strikes} of ${maxStrikes(f)}. You must play the boss again.`);
     }
     const amount = pay(rules.bossCurrency);
     delete season.scouted;
@@ -892,7 +950,7 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
     const healed = Math.min(season.strikes, rules.bossHealsStrikes);
     season.strikes -= healed;
     const relief = healed > 0 ? ' The win wipes a strike.' : '';
-    season.offer = artifactOffer(f, rules.artifactChoices);
+    season.offer = artifactOffer(f, Math.max(1, Math.round(stat(f, 'artifactChoices', rules.artifactChoices))));
     if (season.offer.length === 0) {
       finishStop(f);
       return done(`You beat the boss and win ${amount} Pucks.${relief}`);
@@ -904,12 +962,12 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
   if (!won) {
     if (strike(f)) return done('You lose. That is your third strike: the season is over.');
     finishStop(f);
-    return done(`You lose. Strike ${season.strikes} of ${rules.maxStrikes}.`);
+    return done(`You lose. Strike ${season.strikes} of ${maxStrikes(f)}.`);
   }
   if (game.elite) {
     // An elite win pays more and offers an artifact in place of the chance of a powerup.
     const prize = pay(rules.winCurrency + Math.round(stat(f, 'eliteGain', rules.eliteCurrency)) + rivalBonus);
-    season.offer = artifactOffer(f, rules.eliteArtifactChoices);
+    season.offer = artifactOffer(f, Math.max(1, Math.round(stat(f, 'artifactChoices', rules.eliteArtifactChoices))));
     if (season.offer.length > 0) {
       season.stage = 'reward';
       return done(`You win the elite game and earn ${prize} Pucks. Choose an artifact.`);
@@ -1031,7 +1089,7 @@ function applyEffects(f: Franchise, effects: EventEffect[]): void {
       }
     } else if (effect.type === 'strike') {
       // An event can wipe a strike, or add one, but never deliver the fatal one.
-      season.strikes = Math.max(0, Math.min(rules.maxStrikes - 1, season.strikes + effect.amount));
+      season.strikes = Math.max(0, Math.min(maxStrikes(f) - 1, season.strikes + effect.amount));
     } else if (effect.type === 'bump') {
       const players = season.dressed.map((id) => playerOf(league, id)).sort((a, b) => b.overall - a.overall || a.id.localeCompare(b.id));
       const chosen =
@@ -1113,6 +1171,7 @@ export function buy(f: Franchise, powerupId: string): ActionResult {
 /** Pays to wipe one strike. */
 export function healStrike(f: Franchise): ActionResult {
   if (!shopStop(f)) return refuse('You are not in a shop.');
+  if (stat(f, 'noRepairs', 0) >= 1) return refuse('Shops do not wipe strikes this season: that is the handicap you took.');
   if (f.season.strikes === 0) return refuse('You have no strikes to wipe.');
   const price = healPrice(f);
   if (f.season.currency < price) return refuse(`You need ${price} Pucks and have ${f.season.currency}.`);
