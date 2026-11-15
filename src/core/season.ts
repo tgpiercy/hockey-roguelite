@@ -1,3 +1,5 @@
+import standingsRules from '../data/standings.json';
+import type { CareerLine, SeasonRecord } from './chronicle';
 import { creditGoals, newStandings, playoffField, playRound, recordResult, settleSeries, type LeagueResult, type Scoring, type Standings } from './standings';
 import gearRules from '../data/gear.json';
 import artifacts from '../data/artifacts.json';
@@ -80,6 +82,8 @@ export interface SeasonState {
   standings?: Standings;
   /** Goals and assists for every player in the league this season. */
   scoring?: Scoring;
+  /** Map games you have lost this season, by the team that beat you: lose often enough and they become a rival. */
+  lossesTo?: Record<string, number>;
   /** The other teams' results in the latest round, for the news. */
   lastRound?: LeagueResult[];
   /** The playoff field in seeding order, the other semi-final, and who won it once it is settled. */
@@ -155,6 +159,14 @@ export interface Franchise {
   season: SeasonState;
   /** Artifact ids, kept across seasons until prestige. */
   artifacts: string[];
+  /** Team ids of this season's rivals: beating one pays more. */
+  rivals?: string[];
+  /** Every finished season, oldest first, for the trophy room. */
+  history?: SeasonRecord[];
+  /** What each of your players has done for the club, by player id. */
+  career?: Record<string, CareerLine>;
+  /** Players who retired after a few seasons with you, in words. */
+  greats?: string[];
   /** Every piece of gear the team owns. Permanent. */
   gear: GearItem[];
   /** Packs awarded and not yet opened. */
@@ -475,6 +487,11 @@ function seriesHome(f: Franchise, opponentId: string): void {
   season.homeOverride = { ...(season.homeOverride ?? {}), [next]: higher, [next + 1]: !higher, [next + 2]: higher };
 }
 
+/** True if this team is one of your rivals this season. */
+export function isRival(f: Franchise, teamId: string | undefined | null): boolean {
+  return Boolean(teamId) && (f.rivals ?? []).includes(teamId as string);
+}
+
 /** Your place among the playoff seeds (1 is the top seed), or null outside a seeded playoff. */
 export function playoffSeed(f: Franchise, teamId: string = f.league.userTeamId): number | null {
   const at = f.season.bracket?.seeds.indexOf(teamId) ?? -1;
@@ -496,6 +513,7 @@ function leagueRound(f: Franchise, game: Matchup, result: GameResult): void {
   // Your own game goes into the table whoever it was against: a boss is not in the league, but the result still counts for you.
   recordResult(season.standings, { home: mine, away: theirs ?? '', homeGoals: result.score[0], awayGoals: result.score[1], overtime: result.overtime });
   if (theirs) creditGoals(league, theirs, result.score[1], round, scoring);
+  if (theirs && result.winner !== 0) season.lossesTo = { ...(season.lossesTo ?? {}), [theirs]: (season.lossesTo?.[theirs] ?? 0) + 1 };
   // Your players' goals and assists come from the game itself.
   for (const line of result.players) {
     if (line.team !== 0 || line.role === 'goalie') continue;
@@ -789,6 +807,9 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
     return amount;
   };
 
+  // Beating a rival on the map pays extra.
+  const rivalBonus = isRival(f, game.kind === 'game' ? currentStop(f)?.opponentId : undefined) ? standingsRules.rivalCurrency : 0;
+
   if (game.kind === 'playoff' && season.playoffs) {
     const series = season.playoffs;
     if (won) {
@@ -847,7 +868,7 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
   }
   if (game.elite) {
     // An elite win pays more and offers an artifact in place of the chance of a powerup.
-    const prize = pay(rules.winCurrency + Math.round(stat(f, 'eliteGain', rules.eliteCurrency)));
+    const prize = pay(rules.winCurrency + Math.round(stat(f, 'eliteGain', rules.eliteCurrency)) + rivalBonus);
     season.offer = artifactOffer(f, rules.eliteArtifactChoices);
     if (season.offer.length > 0) {
       season.stage = 'reward';
@@ -856,8 +877,8 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
     finishStop(f);
     return done(`You win the elite game and earn ${prize} Pucks.`);
   }
-  const amount = pay(rules.winCurrency);
-  let message = `You win and earn ${amount} Pucks.`;
+  const amount = pay(rules.winCurrency + rivalBonus);
+  let message = rivalBonus > 0 ? `You beat your rivals and earn ${amount} Pucks.` : `You win and earn ${amount} Pucks.`;
   const luck = roll(season, 'drop');
   if (luck.chance(stat(f, 'powerupDropChance', rules.powerupDropChance))) {
     const found = luck.pick(powerups);

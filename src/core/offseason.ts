@@ -1,3 +1,4 @@
+import { closeChronicle, rememberRetired } from './chronicle';
 import { overLimit } from './economy';
 import leagueRules from '../data/league.json';
 import rules from '../data/offseason.json';
@@ -46,6 +47,7 @@ export function finishSeason(f: Franchise): ActionResult {
   const rng = createRng(`${league.seed}/offseason/${league.season}`);
   const report: OffseasonReport = { season: league.season, improved: [], declined: [], retired: [], leagueRetired: 0, news: [] };
   const before = new Map(mine.roster.map((id) => [id, playerOf(league, id).overall]));
+  const beforeAll = new Map(Object.values(league.players).map((p) => [p.id, p.overall]));
 
   // 0. The books: sponsorship in, the season's bills out, for the team that played it.
   const closed = bookSeasonEnd(f);
@@ -98,11 +100,17 @@ export function finishSeason(f: Franchise): ActionResult {
     if (c) (c.to > c.from ? report.improved : report.declined).push(c);
   }
 
+  // The season's awards, its place in the club's history, and next season's rivals.
+  report.news.push(...closeChronicle(f, beforeAll));
+
   // 3. Retirements.
   for (const player of everyone) {
     if (!retires(player, rng)) continue;
     report.leagueRetired += 1;
-    if (mineSet.has(player.id)) report.retired.push(`${player.name} (${player.age})`);
+    if (mineSet.has(player.id)) {
+      report.retired.push(`${player.name} (${player.age})`);
+      rememberRetired(f, player.id);
+    }
     removePlayer(f, player.id);
   }
 

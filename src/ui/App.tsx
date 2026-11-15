@@ -1,3 +1,5 @@
+import standingsRules from '../data/standings.json';
+import { clubRecords, leagueNews } from '../core/chronicle';
 import { gamesPlayed, placeOf, points, ranked, type Row } from '../core/standings';
 import leagueRules from '../data/league.json';
 import type { ComponentChildren } from 'preact';
@@ -22,7 +24,7 @@ import { canPlay, canSign, type MoveResult, deadCapFor } from '../core/roster';
 import { hiddenFreeAgents, potentialText, scoutingPoints, signPlayer } from '../core/scouting';
 import { gradePower, hire, kindName, letGo, roleOf, slotsFor, STAFF_KINDS, staffOfKind, staffSalePrice, type StaffMember } from '../core/staff';
 import { franchiseOf, fromSave, parseSave, toSave } from '../core/save';
-import { artifactInfo, artifactModifiers, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, seatMascot, playoffSeed } from '../core/season';
+import { artifactInfo, artifactModifiers, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, seatMascot, playoffSeed, isRival } from '../core/season';
 import type { Stop } from '../core/seasonMap';
 import { seasonSummary } from '../core/seasonSummary';
 import { teamColour } from '../core/teamColours';
@@ -78,6 +80,8 @@ type Screen =
   | { name: 'artifacts' }
   | { name: 'league' }
   | { name: 'standings' }
+  | { name: 'news' }
+  | { name: 'trophies' }
   | { name: 'report' }
   | { name: 'contracts' }
   | { name: 'contract'; playerId: string }
@@ -115,6 +119,8 @@ const TILE_ICONS: Record<string, IconName> = {
   team: 'team',
   league: 'report',
   standings: 'report',
+  news: 'report',
+  trophies: 'prestige',
   office: 'office',
   collection: 'collection',
   settings: 'settings',
@@ -834,7 +840,7 @@ export function App() {
           label: (
             <StopCard
               icon="game"
-              kind={s.elite ? 'Elite game' : 'Game'}
+              kind={isRival(f, s.opponentId) ? (s.elite ? 'Elite rival game' : 'Rival game') : s.elite ? 'Elite game' : 'Game'}
               title={opponent.name}
               crest={teamCrest(opponent.name)}
               theirs={Math.round(teamStrength(league, opponent.id)) + (s.elite ? rules.eliteRatingBump : 0)}
@@ -843,7 +849,9 @@ export function App() {
           ),
           detail: s.elite
             ? `A stronger team playing above itself. Win: ${rules.eliteCurrency} more Pucks and a choice of ${rules.eliteArtifactChoices} artifacts. Lose: a strike.`
-            : 'A win pays Pucks and a pack; a loss is a strike.',
+            : isRival(f, s.opponentId)
+              ? `Your rivals. A win pays ${standingsRules.rivalCurrency} more Pucks and a pack; a loss is a strike.`
+              : 'A win pays Pucks and a pack; a loss is a strike.',
         };
       }
       if (s.kind === 'boss' && s.bossId) {
@@ -1744,7 +1752,78 @@ export function App() {
             : 'The league keeps a table from the start of each season.'
         }
         onBack={top}
-        items={[tile('standings', 'Standings', table ? 'The table, and who is in the playoff places' : 'Starts with the season', () => go({ name: 'standings' }), { lock: table ? undefined : 'The table starts when the season does.' })]}
+        items={[
+          tile('standings', 'Standings', table ? 'The table, and who is in the playoff places' : 'Starts with the season', () => go({ name: 'standings' }), { lock: table ? undefined : 'The table starts when the season does.' }),
+          tile('news', 'News', table ? (leagueNews(f)[0] ?? 'Nothing yet') : 'Starts with the season', () => go({ name: 'news' }), { lock: table ? undefined : 'The news starts when the season does.' }),
+          tile('trophies', 'Trophy room', `${(f.history ?? []).filter((x) => x.outcome === 'champion').length} championships · ${(f.history ?? []).length} seasons`, () => go({ name: 'trophies' })),
+        ]}
+      />
+    );
+  }
+
+  if (screen.name === 'news') {
+    const lines = leagueNews(f);
+    return (
+      <Menu
+        key={screenKey}
+        title="League news"
+        message={message}
+        header={
+          <div class="news">
+            {lines.length === 0 ? <div class="news-item">No news yet.</div> : lines.map((text, i) => (
+              <div key={i} class="news-item">
+                {text}
+              </div>
+            ))}
+          </div>
+        }
+        stack
+        onBack={() => go({ name: 'league' })}
+        items={[{ key: 'back', label: 'Back', onSelect: () => go({ name: 'league' }) }]}
+      />
+    );
+  }
+
+  if (screen.name === 'trophies') {
+    const records = clubRecords(f);
+    const past = [...(f.history ?? [])].reverse();
+    const finish = (s: { outcome: string }): string => (s.outcome === 'champion' ? 'Champions' : s.outcome === 'eliminated' ? 'Lost in the playoffs' : s.outcome === 'abandoned' ? 'Abandoned' : 'Struck out on the map');
+    return (
+      <Menu
+        key={screenKey}
+        remember="trophies"
+        title="Trophy room"
+        message={message}
+        header={
+          <>
+            {records.map((line) => (
+              <div key={line.label}>
+                {line.label}: <b>{line.value}</b>
+              </div>
+            ))}
+            {(f.greats ?? []).length > 0 && (
+              <div class="news">
+                <i>Retired greats</i>
+                {(f.greats ?? []).map((text, i) => (
+                  <div key={i} class="news-item">
+                    {text}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        }
+        onBack={() => go({ name: 'league' })}
+        items={
+          past.length === 0
+            ? [{ key: 'none', label: 'No season finished yet', onSelect: () => go({ name: 'league' }) }]
+            : past.map((s) => ({
+                key: `s${s.season}`,
+                label: `Season ${s.season}: ${finish(s)} · ${s.wins}-${s.losses}${s.place !== null ? ` · ${ordinal(s.place)} in the table` : ''}`,
+                detail: `${s.topScorer ? `Top scorer: ${s.topScorer.name}, ${s.topScorer.goals} goals. ` : ''}${s.awards.length > 0 ? `Awards: ${s.awards.join(', ')}.` : 'No awards.'}`,
+                onSelect: () => undefined,
+              }))
+        }
       />
     );
   }
