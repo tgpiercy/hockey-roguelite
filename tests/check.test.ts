@@ -231,7 +231,7 @@ describe('deke', () => {
     expect(check(caught)[0]).toMatchObject({ kind: 'body', success: true });
   });
 
-  it('cannot be used again until the cooldown is over, nor without the puck, nor when out of breath', () => {
+  it('cannot be used again until the cooldown is over, nor without the puck; being out of breath does not stop it', () => {
     const world = carrying();
     const count = (events: SimEvent[]): number => events.filter((e) => e.type === 'deke').length;
     expect(count(step(world, deke, sure))).toBe(1);
@@ -239,7 +239,11 @@ describe('deke', () => {
     expect(count(step(world, deke, sure))).toBe(0);
     for (let i = 0; i < 60 * (sure.deke.cooldownSeconds + 0.1); i++) step(world, NO_INPUT, sure);
     step(world, NO_INPUT, sure);
-    // A tired skater can still deke: it takes what stamina he has left.
+    // A tired skater can still deke: it takes what stamina he has left. (He is handed the puck again in case it got away while waiting.)
+    giveTo(world, ID.home1);
+    world.human!.controlled = ID.home1;
+    player(world, ID.home1).dekeCooldown = 0;
+    player(world, ID.home1).stagger = 0;
     player(world, ID.home1).stamina = sure.deke.staminaCost / 2;
     expect(count(step(world, deke, sure))).toBe(1);
     expect(player(world, ID.home1).stamina).toBeLessThan(sure.deke.staminaCost / 2);
