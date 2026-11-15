@@ -41,9 +41,19 @@ export const NICKNAMES = data.nicknames;
 export const NICKNAME_RULES = data.nicknameRules;
 export const LEGACY = data.legacy;
 
-/** A nickname of a kind for a player: the same player always gets the same one. */
-export function nicknameFor(playerId: string, kind: keyof typeof data.nicknames): string {
-  return createRng(`nickname/${playerId}/${kind}`).pick(data.nicknames[kind]);
+/**
+ * A nickname of a kind for a player: the same player always gets the same one, except that a name
+ * somebody on the club already answers to (`taken`) is passed over while any other is left.
+ */
+export function nicknameFor(playerId: string, kind: keyof typeof data.nicknames, taken: readonly string[] = []): string {
+  const all = data.nicknames[kind];
+  const free = all.filter((name) => !taken.includes(name));
+  return createRng(`nickname/${playerId}/${kind}`).pick(free.length > 0 ? free : all);
+}
+
+/** The nicknames already in use among these players. */
+export function nicknamesOf(players: readonly ({ nickname?: string } | undefined)[]): string[] {
+  return players.map((p) => p?.nickname).filter((x): x is string => typeof x === 'string');
 }
 
 /** A name as a player would be renamed to: trimmed, a sensible length, letters and the few marks names have. Null if it will not do. */

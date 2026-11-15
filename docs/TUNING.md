@@ -911,6 +911,8 @@ What the first pass showed: fewer passes and fewer long shots simply win, so a s
 
 A powerup costs 40 to 55 and a strike repair 70, so emptying a shop is about 200 Pucks. A Pro season's 386 Pucks would empty nearly every shop it reaches: price is rarely the thing that stops a purchase. Not changed: whether shops should bite harder is the owner's call. (These first 40 Pro seasons won 37% of titles; the same seeds are the lucky end of the 100 above, which is the figure to trust.)
 
+**Replay cost.** One whole exhibition game stepped by hand in the test pane at 844 x 390, full rink detail, replays on (22,888 live frames and 1,584 replay frames): a live frame took 5.3 ms on average and a replay frame 3.8 ms. Showing a replay costs no more than playing. The recorder's copy of the world once a second is inside the live figure, which is the same 5 to 8 ms measured before replays existed. The longest single frames (up to about a second) came at the start of each batch of stepping and are the test pane, not the game. A desktop pane is not a phone: this says replays are not the expensive part, not that the phone holds 60 frames a second.
+
 | Date | Value | From | To | Why |
 | --- | --- | --- | --- | --- |
 | 2026-11-13 | goalie positioning cover radius (ratings.json) | 0.5 to 0.9 | 0.3 to 0.6 | All-AI games averaged under 1 goal per 5 minutes; now about 3 |

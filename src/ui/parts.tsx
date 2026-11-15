@@ -1,3 +1,4 @@
+import { temperamentOf } from '../core/temperament';
 import { payRoom } from '../core/economy';
 import { kindOf, talentOf } from '../core/playerKind';
 import { createContext, type ComponentChildren } from 'preact';
@@ -75,10 +76,7 @@ export function PlayerRow({ player, note, bump = 0 }: { player: PlayerRecord; no
       <Face player={player} />
       <Grade player={player} />
       <span class="ovr">{player.overall}</span>
-      <span class="pname">
-        {player.name}
-        {player.nickname && <i class="nick">“{player.nickname}”</i>}
-      </span>
+      <span class="pname">{player.name}</span>
       <span class="pos">{player.position}</span>
       <span class={`kind${player.talent ? ' gifted' : ''}`}>{kindOf(player.position, player.ratings).tag}</span>
       <span class="age">{player.age}y</span>
@@ -112,11 +110,18 @@ export function RatingBar({ name, value, extra }: { name: string; value: number;
 export function KindLines({ player }: { player: PlayerRecord }) {
   const kind = kindOf(player.position, player.ratings);
   const talent = talentOf(player);
+  const temper = player.position === 'G' ? null : temperamentOf(player);
   return (
     <>
+      {player.nickname && <span class="kind-line nick-line">“{player.nickname}”</span>}
       <span class="kind-line">
         <b>{kind.name}</b> {kind.description}
       </span>
+      {temper && (
+        <span class="kind-line">
+          <b>{temper.name}</b> {temper.describe}
+        </span>
+      )}
       {talent && (
         <span class="kind-line talent">
           <b>{talent.name}</b> {talent.description}

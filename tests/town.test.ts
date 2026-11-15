@@ -124,6 +124,11 @@ describe('named leagues', () => {
       return;
     }
     expect(f.promotions).toEqual([{ season: f.league.season, league: leagueName(before + 1) }]);
+    // With a season in the history, the step up is dated by the season that was won, not the one coming.
+    f.history = [{ season: 4, outcome: 'champion', wins: 9, losses: 1, place: 1, points: 20, topScorer: null, awards: [] }];
+    f.league.season = 5;
+    f.prestige.championAt = true;
+    if (prestige(f).ok) expect(f.promotions![1]).toEqual({ season: 4, league: leagueName(before + 2) });
   });
 });
 

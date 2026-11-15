@@ -46,7 +46,9 @@ export function prestige(f: Franchise): MoveResult {
   f.prestige.level += 1;
   f.prestige.championAt = false;
   // Going up is a line in the club's history.
-  (f.promotions ??= []).push({ season: f.league.season, league: leagueName(f.prestige.level) });
+  // (The league's year has already moved on to the next season when a prestige is taken.)
+  const won = (f.history ?? [])[(f.history ?? []).length - 1]?.season ?? f.league.season;
+  (f.promotions ??= []).push({ season: won, league: leagueName(f.prestige.level) });
   // The club gets something back: a facility level to build for nothing (and a bigger share of sponsorship, see economy).
   f.prestige.freeBuilds = (f.prestige.freeBuilds ?? 0) + rules.freeBuildsPerLevel;
   f.artifacts = [];

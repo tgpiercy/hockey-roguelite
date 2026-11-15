@@ -93,20 +93,33 @@
       "Trigger",
       "Three-Piece",
       "The Finisher",
-      "Goals"
+      "Goals",
+      "Sniper",
+      "Hands",
+      "The Closer"
     ],
     "veteran": [
       "Old Reliable",
       "Iron",
       "The Mayor",
       "Pops",
-      "Lifer"
+      "Lifer",
+      "The Landlord",
+      "Uncle",
+      "Furniture",
+      "The Deacon",
+      "Clockwork",
+      "First In",
+      "The Caretaker"
     ],
     "rival": [
       "Spoiler",
       "The Thorn",
       "Derby Day",
-      "Big Game"
+      "Big Game",
+      "Heartbreak",
+      "The Nuisance",
+      "Bad News"
     ]
   },
   "nicknameRules": {

@@ -144,7 +144,7 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
   padding: 5px 10px; border-radius: 0 var(--radius) var(--radius) 0; font-weight: 600;
 }
 .menu-body { flex: 1; min-height: 0; display: flex; gap: 12px; }
-.menu-list { flex: 1 1 0; min-width: 0; overflow-y: auto; min-height: 0; touch-action: pan-y; display: flex; flex-direction: column; gap: 3px; padding-right: 2px; }
+.menu-list { flex: 1 1 0; min-width: 0; overflow-y: auto; overflow-x: hidden; min-height: 0; touch-action: pan-y; display: flex; flex-direction: column; gap: 3px; padding-right: 2px; }
 .menu-body.two .menu-list { flex: 1.25 1 0; }
 .menu-body.stack { flex-direction: column-reverse; gap: 8px; }
 .menu-body.stack .menu-list { flex: none; }
@@ -443,6 +443,7 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .menu-message { animation: screen-in 0.2s ease-out; }
 /* A nickname beside a name, and a temperament as a word. */
 .nick { font-style: italic; font-weight: 400; color: var(--accent); margin-left: 6px; }
+.kind-line.nick-line { font-style: italic; color: var(--accent); }
 .temper { font: 800 11px/1 var(--heading); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ice); border: 1px solid var(--line); border-radius: 999px; padding: 3px 8px; }
 .found-row { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; }
 .found-row.unfound { opacity: 0.45; }
@@ -483,6 +484,11 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
   background: color-mix(in srgb, var(--fam) 20%, var(--panel)); border: 1px solid color-mix(in srgb, var(--fam) 55%, transparent);
 }
 .art-card.tall .art-icon { width: 50px; height: 50px; border-radius: 13px; }
+/* A tall card is as wide as its cell and no wider: its words and chips wrap inside it. */
+.art-card.tall .art-text { align-self: stretch; }
+.art-card.tall .art-what { overflow-wrap: anywhere; }
+.art-card.tall .art-chip { white-space: normal; font-size: 10px; line-height: 1.25; border-radius: 9px; }
+.menu-list.grid .menu-item:has(.art-card.tall) { min-width: 0; overflow: hidden; }
 .art-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
 .art-text b { font: 800 15px/1.15 var(--heading); letter-spacing: 0.05em; text-transform: uppercase; }
 .art-family { font: 800 10px/1 var(--heading); letter-spacing: 0.1em; text-transform: uppercase; color: var(--fam); }

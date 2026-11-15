@@ -1,5 +1,5 @@
 import seasonRules from '../data/season.json';
-import { nicknameFor, NICKNAME_RULES } from './temperament';
+import { nicknameFor, nicknamesOf, NICKNAME_RULES } from './temperament';
 import { vowPoints } from './charter';
 import data from '../data/standings.json';
 import { book } from './ledger';
@@ -175,7 +175,7 @@ export function closeChronicle(f: Franchise, before: Map<string, number>): strin
     const player = league.players[id];
     const served = f.career?.[id]?.seasons ?? 0;
     if (player && !player.nickname && served >= NICKNAME_RULES.veteranSeasons) {
-      player.nickname = nicknameFor(id, 'veteran');
+      player.nickname = nicknameFor(id, 'veteran', nicknamesOf(userTeam(league).roster.map((other) => league.players[other])));
       news.push(`Your club: after ${served} seasons, ${player.name} is "${player.nickname}" to everyone in the building.`);
     }
   }

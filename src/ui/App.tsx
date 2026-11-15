@@ -2610,7 +2610,7 @@ export function App() {
         help="A gear and details · B back"
         items={rosterOf(league, team).map((p) => ({
           key: p.id,
-          label: <PlayerRow player={p} bump={bump(p.id)} note={dressed.has(p.id) ? '' : locked ? 'spare' : 'not dressed'} />,
+          label: <PlayerRow player={p} bump={bump(p.id)} note={dressed.has(p.id) ? '' : locked ? 'spare' : 'sitting'} />,
           detail: <GearedRatings f={f} player={p} />,
           onSelect: () => go({ name: 'player', playerId: p.id }),
         }))}
@@ -2855,7 +2855,7 @@ export function App() {
       const b = team.lineup.line2.indexOf(id);
       if (a !== -1) return `line 1 ${a === 0 ? 'centre' : 'wing'}`;
       if (b !== -1) return `line 2 ${b === 0 ? 'centre' : 'wing'}`;
-      return locked ? 'spare' : 'not dressed';
+      return locked ? 'spare' : 'sitting';
     };
     const choices = skatersOn(league, team);
     return (

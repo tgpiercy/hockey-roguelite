@@ -244,6 +244,7 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-15 | Pro wins a title about one time in four | Chosen by the owner. On Pro, opponents in regions two and three and the playoffs think more slowly than their region would have them (0.33, 0.43 and 0.43 lower), which offsets their being stronger teams. The first region is unchanged, and Pro has no extra strikes. Pro is still harder than Rookie and easier than All-Star in every region; a test says so. | Balance round |
 | 2026-11-15 | The save-percentage target is retired | The first targets asked for .850 to .920, real hockey's figure. Chosen by the owner: scoring stays at about 4 goals a side, and in a short game with about 35 shots a team that means about .78. That is now the design figure, not a miss. | Balance round |
 | 2026-11-15 | AI styles are evened out | Rush, cycle and dump-and-chase teams of equal rating now score within about half a goal of each other. The styles lean less far apart than before: that is the price. | Balance round |
+| 2026-11-15 | Nicknames do not repeat on one club | A nickname somebody on your roster already answers to is passed over while any other of its kind is left; the lists were lengthened. Found when four veterans all became "Lifer" in one off-season. The nickname shows above a player's ratings (with his temperament), not squeezed into the list row. | Balance round |
 
 ## Open
 

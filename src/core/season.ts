@@ -1,5 +1,5 @@
 import { nextExpectation, type Expectation } from './expectation';
-import { cleanName, nicknameFor, NICKNAME_RULES } from './temperament';
+import { cleanName, nicknameFor, nicknamesOf, NICKNAME_RULES } from './temperament';
 import { bountyFor, bountyMet, STICKERS, UNSEEN_WEIGHT, type BountyInfo } from './bounty';
 import { isGuest, ringerOffer, withRinger, type Ringer } from './ringer';
 import { rinkInfo } from './rinks';
@@ -1179,7 +1179,7 @@ function earnNicknames(f: Franchise, result: GameResult, home: DressedTeam, agai
     if (!player || player.nickname) continue;
     const kind = line.goals >= NICKNAME_RULES.hatTrickGoals ? 'hatTrick' : againstRival && line.goals >= NICKNAME_RULES.rivalGoals ? 'rival' : null;
     if (!kind) continue;
-    player.nickname = nicknameFor(player.id, kind);
+    player.nickname = nicknameFor(player.id, kind, nicknamesOf(userTeam(f.league).roster.map((other) => f.league.players[other])));
     out.push(`${player.name} has earned a name: "${player.nickname}".`);
   }
   return out;

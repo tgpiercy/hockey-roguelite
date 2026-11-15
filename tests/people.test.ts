@@ -254,3 +254,22 @@ describe('what a title was won with', () => {
     expect(f.wonWith ?? {}).toEqual({});
   });
 });
+
+describe('nicknames on one club', () => {
+  it('a name somebody already answers to is passed over while another is left', () => {
+    const all = NICKNAMES.veteran;
+    const first = nicknameFor('p1', 'veteran');
+    const second = nicknameFor('p1', 'veteran', [first]);
+    expect(second).not.toBe(first);
+    expect(all).toContain(second);
+    // Every name taken: one is repeated, and the game does not stop.
+    expect(all).toContain(nicknameFor('p1', 'veteran', all));
+    // Nobody else has one: the same player, the same name.
+    expect(nicknameFor('p1', 'veteran', [])).toBe(first);
+  });
+
+  it('there are enough for a roster of veterans', () => {
+    expect(new Set(NICKNAMES.veteran).size).toBeGreaterThanOrEqual(9);
+    for (const list of Object.values(NICKNAMES)) expect(new Set(list).size).toBe(list.length);
+  });
+});
