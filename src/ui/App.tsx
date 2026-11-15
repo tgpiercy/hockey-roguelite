@@ -27,7 +27,7 @@ import { canPlay, canSign, type MoveResult, deadCapFor } from '../core/roster';
 import { hiddenFreeAgents, potentialText, scoutingPoints, signPlayer } from '../core/scouting';
 import { gradePower, hire, kindName, letGo, roleOf, slotsFor, STAFF_KINDS, staffOfKind, staffSalePrice, type StaffMember } from '../core/staff';
 import { franchiseOf, fromSave, parseSave, toSave } from '../core/save';
-import { artifactInfo, artifactModifiers, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, seatMascot, playoffSeed, isRival } from '../core/season';
+import { artifactInfo, artifactModifiers, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
 import type { Stop } from '../core/seasonMap';
 import { seasonSummary } from '../core/seasonSummary';
 import { teamColour } from '../core/teamColours';
@@ -644,23 +644,13 @@ export function App() {
                   <span>{game.trait}</span>
                 </div>
               )}
-              {game.mascots.home && (
-                <div class="banner good">
-                  <Icon name="mascot" size={18} />
-                  <span>
-                    Your mascot {game.mascots.home.mascot.name} drops in ({mascotRating(game.mascots.home.mascot.power)} overall). {game.mascots.home.sits} sits out.
-                  </span>
-                </div>
-              )}
-              {game.mascots.away && (
-                <div class="banner bad">
-                  <Icon name="mascot" size={18} />
-                  <span>
-                    Their mascot {game.mascots.away.mascot.name} is playing ({mascotRating(game.mascots.away.mascot.power)} overall):{' '}
-                    {game.mascots.away.mascot.talents.map((id) => talentInfo(id).name).join(', ')}.
-                  </span>
-                </div>
-              )}
+              <div class="banner">
+                <Icon name="mascot" size={18} />
+                <span>
+                  Mascots: your {game.mascots.home.mascot.name} {Math.round(game.mascots.home.chance * 100)}% (in for {game.mascots.home.sits}) · their {game.mascots.away.mascot.name}{' '}
+                  {Math.round(game.mascots.away.chance * 100)}%. One may come for a period: at the start, or when two behind.
+                </span>
+              </div>
               {f.prestige.level > 0 && (
                 <div class="note">
                   Prestige {f.prestige.level}: they play {f.prestige.level * prestigeRules.opponentRatingPerLevel} points better than shown, and react sooner.
@@ -693,22 +683,6 @@ export function App() {
                 ]
               : []),
             tile('play', 'Play', game.elite ? 'Elite games must be played' : game.kind === 'game' ? 'Take the ice' : game.kind === 'boss' ? 'Bosses must be played' : 'Playoff games must be played', playSeasonGame, { primary: true, wide: true }),
-            ...(game.mascotOffered
-              ? [
-                  tile(
-                    'mascotSeat',
-                    game.mascots.home ? `Mascot plays for ${game.mascots.home.sits}` : 'Mascot sent home',
-                    'Press to change who sits',
-                    () => {
-                      // Each press moves on: the next dressed skater sits, and after the last, the mascot stays home.
-                      const sitting = game.mascots.home ? game.home.players.findIndex((p) => p.id === MASCOT_ID) : -1;
-                      const next = sitting === -1 ? 0 : sitting >= 5 ? null : sitting + 1;
-                      after(seatMascot(f, next));
-                    },
-                    { wide: true, icon: 'mascot', detail: `${f.mascot.name} has turned up for this game. He takes one skater's place: choose who sits, or send him home and play your own six.` },
-                  ),
-                ]
-              : []),
             ...(canSimulate(f)
               ? [
                   tile('simulate', 'Simulate', 'Settle it without playing', () => showOutcome(simulateGame(f)), {
@@ -1749,9 +1723,9 @@ export function App() {
         title="Mascot"
         message={message}
         header={
-          <MascotPanel name={f.mascot.name} power={mascotPower(f)} chance={dropInChance(mine.power)} rating={mascotRating(mine.power)}>
+          <MascotPanel name={f.mascot.name} power={mascotPower(f)} chance={dropInChance(f.mascot.misses ?? 0)} rating={mascotRating(mine.power)}>
             <div class="talents">
-              {f.mascot.talents.map((id, i) => (
+              {f.mascot.talents.slice(0, mascotRules.talentUnlockPower.length).map((id, i) => (
                 <TalentBadge key={id} name={talentInfo(id).name} known={i < mine.talents.length} needs={mascotRules.talentUnlockPower[i] ?? 0} />
               ))}
             </div>
@@ -1763,7 +1737,8 @@ export function App() {
             const result = upgradeCostume(f);
             after(result.ok ? { ok: true, message: `${f.mascot.name} has a new costume.` } : result);
           }, { icon: 'jersey', primary: true, disabled: cost === null || f.cash < cost, detail: `Each costume level is ${mascotRules.costume.powerPerLevel} mascot power.` }),
-          ...f.mascot.talents.map((id, i): MenuItem => {
+          // He learns as many talents as there are marks on the power meter, in his own order.
+          ...f.mascot.talents.slice(0, mascotRules.talentUnlockPower.length).map((id, i): MenuItem => {
             const talent = talentInfo(id);
             const known = i < mine.talents.length;
             return tile(id, talent.name, known ? 'Knows it' : `At power ${mascotRules.talentUnlockPower[i]}`, () => undefined, { icon: known ? 'prestige' : 'detail', disabled: true, detail: talent.description });

@@ -17,6 +17,8 @@ export interface CallContext {
   name: (playerId: number) => string | null;
   /** The two teams' names. */
   teams: [string, string];
+  /** Each team's mascot's name, where it has one. */
+  mascots?: [string | null, string | null];
   /** The score after the event. */
   score: [number, number];
 }
@@ -75,6 +77,8 @@ export function describe(e: SimEvent, ctx: CallContext): { kind: Kind; fill: Rec
       return { kind: e.on ? 'pullOn' : 'pullOff', fill: { team: ctx.teams[e.team] } };
     case 'period':
       return { kind: 'period', fill: { score } };
+    case 'mascot':
+      return { kind: e.arrived ? 'mascotOn' : 'mascotOff', fill: { name: ctx.mascots?.[e.team] ?? 'The mascot', team: ctx.teams[e.team] } };
     case 'final':
       return { kind: 'final', fill: { score } };
     default:

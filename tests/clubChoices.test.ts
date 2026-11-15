@@ -5,7 +5,7 @@ import { generateLeague } from '../src/core/generate';
 import { MASCOT_ID } from '../src/core/mascot';
 import { finishSeason } from '../src/core/offseason';
 import { prestige, prestigeEffects } from '../src/core/prestige';
-import { availableStops, matchup, newFranchise, recordGame, seatMascot, startSeason, teamModifiers, travel, type Franchise } from '../src/core/season';
+import { availableStops, matchup, newFranchise, recordGame, startSeason, teamModifiers, travel, type Franchise } from '../src/core/season';
 import { staffModifiers } from '../src/core/staff';
 import facilities from '../src/data/facilities.json';
 import prestigeRules from '../src/data/prestige.json';
@@ -91,56 +91,6 @@ describe('prestige gives the club something back', () => {
     f.cash = buildCost(1)!;
     expect(build(f, 'arena')).toEqual({ ok: true });
     expect(f.cash).toBe(0);
-  });
-});
-
-describe('your say over the mascot', () => {
-  /** A season at a game where your mascot has turned up. */
-  const withMascot = (): Franchise => {
-    const f = started();
-    f.facilities.den = 5;
-    f.mascot.costume = 5;
-    for (let guard = 0; guard < 400; guard++) {
-      if (f.season.current === null) travel(f, availableStops(f).find((s) => s.kind === 'game' && !s.elite)!.id);
-      if (matchup(f)?.mascotOffered) return f;
-      f.season.gamesPlayed += 1;
-    }
-    throw new Error('the mascot never came');
-  };
-
-  it('he takes a random skater\'s place unless you choose', () => {
-    const f = withMascot();
-    const game = matchup(f)!;
-    expect(game.mascots.home).not.toBeNull();
-    expect(game.home.players.filter((p) => p.id === MASCOT_ID)).toHaveLength(1);
-  });
-
-  it('you choose who sits', () => {
-    const f = withMascot();
-    for (const slot of [0, 3, 5]) {
-      expect(seatMascot(f, slot).ok).toBe(true);
-      expect(matchup(f)!.home.players.findIndex((p) => p.id === MASCOT_ID)).toBe(slot);
-    }
-  });
-
-  it('or send him home and play your own six', () => {
-    const f = withMascot();
-    expect(seatMascot(f, null).ok).toBe(true);
-    const game = matchup(f)!;
-    expect(game.mascots.home).toBeNull();
-    expect(game.mascotOffered).toBe(true);
-    expect(game.home.players.some((p) => p.id === MASCOT_ID)).toBe(false);
-  });
-
-  it('the choice is for that game only, and refused when he has not come', () => {
-    const f = withMascot();
-    seatMascot(f, null);
-    expect(seatMascot(f, 9).ok).toBe(false);
-    recordGame(f, won);
-    expect(f.season.mascotSeat?.game).not.toBe(f.season.gamesPlayed);
-    const g = started();
-    travel(g, availableStops(g).find((s) => s.kind === 'game' && !s.elite)!.id);
-    if (!matchup(g)!.mascotOffered) expect(seatMascot(g, 0).ok).toBe(false);
   });
 });
 

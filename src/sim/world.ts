@@ -1,3 +1,4 @@
+import { newVisit, rollMascots, type MascotSetup, type MascotVisit } from './mascot';
 import type { Tactics } from './tactics';
 import { chargeFraction } from './shot';
 import { stepMomentum } from './momentum';
@@ -56,6 +57,8 @@ export interface TeamSetup {
   heavyLine?: 0 | 1;
   /** How its AI skaters are told to play. Left out, no leaning. */
   tactics?: Tactics;
+  /** Its mascot, who may visit for a period. Left out, it has none. */
+  mascot?: MascotSetup;
 }
 
 export interface WorldOptions {
@@ -159,8 +162,14 @@ function createPlayers(t: Tuning, options: WorldOptions): Player[] {
   return players;
 }
 
-function newTeamState(powerups: (PowerupSpec | null)[], style: string | null, heavyLine: 0 | 1 | null = null, tactics: Tactics | null = null): World['teams'][number] {
+function visitOf(options: WorldOptions, team: 0 | 1): MascotVisit | null {
+  const setup = options.teams?.[team];
+  return setup?.mascot ? newVisit(setup.mascot, setup.modifiers ?? []) : null;
+}
+
+function newTeamState(powerups: (PowerupSpec | null)[], style: string | null, heavyLine: 0 | 1 | null = null, tactics: Tactics | null = null, mascot: MascotVisit | null = null): World['teams'][number] {
   return {
+    mascot,
     heavyLine,
     tactics,
     line: 0,
@@ -219,7 +228,7 @@ export function createWorld(t: Tuning, seed: number | string, options: WorldOpti
     overtime: false,
     overtimeLimit: options.overtimeLimit ?? 0,
     faceoff: null,
-    teams: [newTeamState(options.human === false ? [] : (options.powerups ?? []), options.teams?.[0].style ?? null, options.teams?.[0].heavyLine ?? null, options.teams?.[0].tactics ?? null), newTeamState([], options.teams?.[1].style ?? null, options.teams?.[1].heavyLine ?? null, options.teams?.[1].tactics ?? null)],
+    teams: [newTeamState(options.human === false ? [] : (options.powerups ?? []), options.teams?.[0].style ?? null, options.teams?.[0].heavyLine ?? null, options.teams?.[0].tactics ?? null, visitOf(options, 0)), newTeamState([], options.teams?.[1].style ?? null, options.teams?.[1].heavyLine ?? null, options.teams?.[1].tactics ?? null, visitOf(options, 1))],
   };
   lineUp(world, t);
   return world;
@@ -229,6 +238,8 @@ export function createWorld(t: Tuning, seed: number | string, options: WorldOpti
 export function createGame(t: Tuning, seed: number | string, options: WorldOptions = {}): World {
   const world = createWorld(t, seed, { ...options, lineup: 'full' });
   world.rules = 'game';
+  // A mascot may be there from the opening faceoff. (The scene reads who is on from the world.)
+  rollMascots(world, true, []);
   startFaceoff(world, t);
   return world;
 }

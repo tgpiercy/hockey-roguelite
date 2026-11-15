@@ -13,6 +13,7 @@ import type { PowerupSpec } from '../sim/modifiers';
 import { carrySpot } from '../sim/puck';
 import { goalLineX, nets } from '../sim/rink';
 import { chargeFraction } from '../sim/shot';
+import { isMascot, mascotPlayer } from '../sim/mascot';
 import type { Tuning } from '../sim/tuning';
 import type { SimEvent, World } from '../sim/types';
 import { NO_INPUT } from '../sim/types';
@@ -144,6 +145,10 @@ export class RinkScene extends Phaser.Scene {
   private scorer: number | null = null;
   /** The real-time clock reading until which the on-fire banner shows, and for which team. */
   private fireBanner = { until: 0, team: 0 as 0 | 1 };
+  /** The same for a mascot's arrival. */
+  private mascotBanner = { until: 0, team: 0 as 0 | 1 };
+  /** Things that happened before the first frame (a mascot there from the opening faceoff), to be told with it. */
+  private pending: SimEvent[] = [];
   private pullText!: Phaser.GameObjects.Text;
   /** Which way each player faced on screen last frame: left or right. */
   private readonly sides = new Map<number, 1 | -1>();
@@ -190,6 +195,10 @@ export class RinkScene extends Phaser.Scene {
       ...(this.options.second !== undefined ? { second: this.options.second } : {}),
     });
     if (this.options.second !== undefined) this.reader2 = new InputReader(1);
+    for (const team of [0, 1] as const) {
+      const visitor = mascotPlayer(this.world, team);
+      if (visitor && isMascot(this.world, visitor)) this.pending.push({ type: 'mascot', team, player: visitor.id, arrived: true });
+    }
     // Layers, bottom to top: the ice; shadows, rings and sticks; the players; the puck and sparks; labels; the scoreboard.
     this.g.setDepth(DEPTH.ground);
     this.sprites = this.world.players.map(() => this.add.image(0, 0, '__DEFAULT').setVisible(false).setDepth(DEPTH.players));
@@ -259,7 +268,7 @@ export class RinkScene extends Phaser.Scene {
     this.passWasDown = controls.frame.pass;
 
     this.clock += real;
-    const happened: SimEvent[] = [];
+    const happened: SimEvent[] = this.pending.splice(0);
     let played = 0;
     if (this.world.phase === 'final') {
       if (!this.reported) {
@@ -303,6 +312,8 @@ export class RinkScene extends Phaser.Scene {
         this.freeze = Math.max(this.freeze, fx.hitFreezeSeconds);
       } else if (e.type === 'fire') {
         this.fireBanner = { until: this.clock + fx.fireBannerSeconds, team: e.team };
+      } else if (e.type === 'mascot' && e.arrived) {
+        this.mascotBanner = { until: this.clock + fx.mascotBannerSeconds, team: e.team };
       }
     }
     if (this.world.phase !== 'goal') this.scorer = null;
@@ -311,7 +322,7 @@ export class RinkScene extends Phaser.Scene {
       const names = this.options.playerNames;
       const call = this.commentator.call(
         happened,
-        { name: (id) => names[id < 7 ? 0 : 1][id % 7] ?? null, teams: this.options.names, score: this.world.score },
+        { name: (id) => names[id < 7 ? 0 : 1][id % 7] ?? null, teams: this.options.names, score: this.world.score, mascots: [this.mascotName(0), this.mascotName(1)] },
         this.clock,
       );
       if (call) {
@@ -367,9 +378,17 @@ export class RinkScene extends Phaser.Scene {
   }
 
   /** The big message in the middle of the ice, if any. */
+  private mascotName(team: 0 | 1): string | null {
+    return this.options.teams[team].mascot?.name ?? null;
+  }
+
   private message(): string {
     const world = this.world;
     if (world.phase === 'goal') return 'GOAL!';
+    // A mascot has arrived: said until the puck is about to drop, for whichever side he plays.
+    if (this.clock < this.mascotBanner.until && world.phase !== 'break' && !(world.phase === 'faceoff' && world.faceoff?.dropped)) {
+      return `${(this.mascotName(this.mascotBanner.team) ?? 'The mascot').toUpperCase()} IS HERE FOR THE ${this.options.names[this.mascotBanner.team].toUpperCase()}!`;
+    }
     if (world.phase === 'play' && this.clock < this.fireBanner.until) return `${this.options.names[this.fireBanner.team].toUpperCase()} ON FIRE!`;
     if (world.phase === 'faceoff') return world.faceoff?.dropped ? 'DROP!' : 'READY';
     if (world.phase === 'break') return world.overtime ? 'OVERTIME' : `END OF PERIOD ${world.period}`;
@@ -643,6 +662,13 @@ export class RinkScene extends Phaser.Scene {
       if (p.burst > 0) {
         g.lineStyle(Math.max(1.5, unit * 0.14), colour(c.shield), 0.8);
         for (const off of [-0.5, 0, 0.5]) g.lineBetween(x - side * unit * 1.2, y - unit * (1.6 + off), x - side * unit * 2.6, y - unit * (1.6 + off));
+      }
+      // A mascot: a gold ring at his feet and a gold pip over his head, for either side, for as long as he is on.
+      if (!goalie && isMascot(world, p)) {
+        g.lineStyle(Math.max(2, unit * 0.22), colour(c.mascot), 0.95);
+        g.strokeEllipse(x, y, unit * 3.6, unit * 3.6 * FIG.ringSquash);
+        this.top.fillStyle(colour(c.mascot));
+        this.top.fillCircle(x, y + fig.top * unit - unit * 0.55, Math.max(3, unit * 0.36));
       }
       // The marksman: a ring under him that closes in as he winds up; full means it cannot be saved.
       if (p.fx.unstoppableCharged > 0) {

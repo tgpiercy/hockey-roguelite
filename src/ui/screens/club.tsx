@@ -159,7 +159,11 @@ export function MascotPanel({ name, power, chance, rating, children }: { name: s
         <div class="mascot-facts">
           <b>{name}</b>
           <span>
-            Drops in for <strong>{Math.round(chance * 100)}%</strong> of games · plays at <strong>{rating}</strong> overall
+            <strong>{Math.round(chance * 100)}%</strong> to turn up on his next roll · plays at <strong>{rating}</strong> overall
+          </span>
+          <span>
+            Rolled at the opening faceoff, and to start a period when you are {mascotRules.trailBy} or more behind. He plays that period in place of your lowest-rated dressed skater. Each miss adds{' '}
+            {Math.round(mascotRules.missStep * 100)}%; when he comes it starts again at {Math.round(mascotRules.baseChance * 100)}%. Simulated games make no roll.
           </span>
           <span>Never plays goal, earns no XP, never ages. Costs {money(mascotRules.salary)} a season.</span>
         </div>

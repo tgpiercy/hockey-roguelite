@@ -73,7 +73,9 @@ export function stingFor(events: readonly SimEvent[], myTeam: 0 | 1): PieceName 
   for (const e of events) {
     if (e.type === 'goal') return e.team === myTeam ? 'goalFor' : 'goalAgainst';
     // The organ strikes up as a period ends, to carry the break.
-    if (e.type === 'period') pick = 'organ';
+    if (e.type === 'period' && pick === null) pick = 'organ';
+    // A fanfare for a mascot's arrival, for either side.
+    if (e.type === 'mascot' && e.arrived) pick = 'fanfare';
   }
   return pick;
 }

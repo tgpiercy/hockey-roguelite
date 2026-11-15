@@ -1,3 +1,4 @@
+import { ownStats, rollMascots } from './mascot';
 import data from '../data/ai.json';
 import { aiLevel } from './ai';
 import { STEP_SECONDS } from './clock';
@@ -152,6 +153,7 @@ export function stepBreak(world: World, t: Tuning, events: SimEvent[]): void {
   world.period += 1;
   world.clock = world.overtime ? 0 : t.period.seconds;
   events.push({ type: 'period', period: world.period });
+  rollMascots(world, false, events);
   startFaceoff(world, t);
 }
 
@@ -174,6 +176,11 @@ export interface PlayerLine extends PlayerStats {
 }
 
 /** Everything later phases need to know about a finished (or running) game. */
+export interface MascotLine extends PlayerStats {
+  arrivals: number;
+  misses: number;
+}
+
 export interface GameResult {
   score: [number, number];
   /** The winning team, or null for a tie (only possible when overtime has a time limit) or an unfinished game. */
@@ -184,6 +191,8 @@ export interface GameResult {
   players: PlayerLine[];
   /** Ids of the powerups team 0 used, in order. */
   powerupsUsed: string[];
+  /** Each team's mascot, if it brought one: his own stat line, how often he came, and the misses in a row after the game. */
+  mascots?: [MascotLine | null, MascotLine | null];
   /** True when the game was given up before the end: the winner is the other team, whatever the score. */
   forfeit?: boolean;
 }
@@ -202,7 +211,10 @@ export function gameResult(world: World): GameResult {
     finished,
     overtime: world.overtime,
     periods: world.period,
-    players: world.players.map((p: Player) => ({ id: p.id, team: p.team, role: p.role, line: p.line, slot: p.slot, ...p.stats })),
+    players: world.players.map((p: Player) => ({ id: p.id, team: p.team, role: p.role, line: p.line, slot: p.slot, ...ownStats(world, p) })),
     powerupsUsed: [...world.teams[0].powerupsUsed],
+    ...(world.teams.some((team) => team.mascot)
+      ? { mascots: world.teams.map((team) => (team.mascot ? { ...team.mascot.stats, arrivals: team.mascot.arrivals, misses: team.mascot.misses } : null)) as [MascotLine | null, MascotLine | null] }
+      : {}),
   };
 }

@@ -37,7 +37,8 @@
     "iceShade": "#3a6a94",
     "fire": "#ff7a1a",
     "shield": "#7fd4ff",
-    "danger": "#ff2436"
+    "danger": "#ff2436",
+    "mascot": "#ffd24a"
   },
   "font": "'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', system-ui, sans-serif",
   "marginPixels": 8,
@@ -104,6 +105,7 @@
     "goalSlowSeconds": 0.7,
     "goalSlowScale": 0.4,
     "fireBannerSeconds": 1.2,
+    "mascotBannerSeconds": 2.4,
     "lastSecondsPulse": 10,
     "resumeHoldSeconds": 0.4
   },

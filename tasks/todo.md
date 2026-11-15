@@ -575,3 +575,20 @@ Built, deployed and checked with a simulated controller.
 - The boss games were started from the test browser by calling the game's own code, so no test-only link was added to the game (the plan had proposed one).
 - Not seen: player two's hint line on screen (every hint on the test browser had already been done three times; its logic is tested); the pause menu being worked by a controller (the hidden test browser does not run the menu's controller polling at all, for either player); the mascot choice, a refused trade, prestige's free facility level and a rival game card (still only tested).
 - Risk: first pick of free agents plus a growing payroll limit makes team-building easier than it was.
+
+# The mascot as a visitor, and a second research report
+
+- [x] Chance: 10%, plus 5% for each miss; power no longer counts
+- [x] Rolled at the opening and at a period start when two or more behind; one period only
+- [x] Replaces the lowest-rated dressed skater; both sides; more than once a game
+- [x] Banner, commentary line, fanfare, gold ring; his own line in the summary
+- [x] Research: `reports/Arcade sports mechanics to borrow.md`
+- [ ] Choose what to build from the report (owner)
+
+## Review (mascot round)
+
+- Type check, 1109 tests (the old drop-in tests replaced by `tests/mascot.test.ts`) and the build pass. A game with no mascot is unchanged.
+- Seen in the test browser, with the chance forced to certain for the pictures and put back after: both mascots at the opening faceoff with banner, commentary line, gold ring and pip; both leaving at the period's end; yours coming straight back when two behind and theirs not; his own line in the summary; the Mascot screen; the game screen's odds line.
+- Fixed on the way: the Mascot screen listed ten talents, five of them "at power undefined" (he can only ever learn five); and he started his period on the bench with line two, so now his line takes the faceoff.
+- Not heard: the fanfare. Not seen: a full real game at the true 10% chance. When both arrive at once only one banner shows (the commentary line names the other).
+- Balance: in all-AI games he does not measurably change comebacks (table in `docs/TUNING.md`).

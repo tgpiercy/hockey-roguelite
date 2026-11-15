@@ -14,7 +14,7 @@ import { clubModifiers } from './club';
 import { bookGame, bookMilestones, STARTING_CASH, STARTING_VALUE, isHomeGame, homeGame } from './economy';
 import { newFacilities, homeIceModifiers } from './facilities';
 import { newLedger, type Ledger, type SeasonBooks } from './ledger';
-import { aiMascot, bossMascot, newMascot, rollDropIn, userMascot, withMascot, type MascotSpec, type MascotState, MASCOT_ID } from './mascot';
+import { aiMascot, bossMascot, dropInChance, mascotSetup, newMascot, sitsFor, userMascot, type MascotSpec, type MascotState, MASCOT_ID } from './mascot';
 import { generateStaffPool, type StaffMember } from './staff';
 import { playerGearModifiers, type GearItem } from './gear';
 import { playerOf, teamOf, userTeam, type League } from './league';
@@ -62,8 +62,8 @@ export interface SeasonState {
   /** Every stop finished this season, in order: the route walked, for the map. */
   visited: string[];
   strikes: number;
-  /** Your say over the mascot's drop-in for one game (by its number): the dressed skater who sits, or null to send him home. */
-  mascotSeat?: { game: number; slot: number | null };
+  /** Rolls in a row that have missed for each opponent's mascot this season, by team id (a boss: "boss/" and its id). */
+  mascotMisses?: Record<string, number>;
   /** True once the next boss has been scouted: he plays below himself when you meet. Cleared when he is beaten. */
   scouted?: boolean;
   /** What training has given each player this season beyond the all-round bump: a rating boost or a trait, as modifiers. */
@@ -560,15 +560,15 @@ export interface Matchup {
   /** True for an elite game: a tougher opponent and a better prize. */
   elite?: boolean;
   powerups: (PowerupSpec | null)[];
-  /** A mascot that has dropped in for this game, for either side: who he is and which skater sits. */
-  mascots: { home: DropIn | null; away: DropIn | null };
-  /** True if your mascot turned up for this game, whether or not you let him play: you may choose who sits, or send him home. */
-  mascotOffered: boolean;
+  /** Each side's mascot tonight: who he is, the chance of his next roll, and who would give up his place. */
+  mascots: { home: MascotOdds; away: MascotOdds };
 }
 
-export interface DropIn {
+export interface MascotOdds {
   mascot: MascotSpec;
-  /** The name of the skater he replaces for this game. */
+  /** The chance of his next roll. */
+  chance: number;
+  /** The name of the skater whose place he would take. */
   sits: string;
 }
 
@@ -582,54 +582,42 @@ export function dressUser(f: Franchise): DressedTeam | null {
   });
 }
 
+/** The key an opponent's mascot is remembered under this season. */
+function theirMascotKey(f: Franchise, kind: Matchup['kind']): string {
+  const stop = currentStop(f);
+  if (kind === 'boss' && stop?.bossId) return `boss/${stop.bossId}`;
+  return kind === 'playoff' ? (f.season.playoffs?.opponentId ?? '') : (stop?.opponentId ?? '');
+}
+
 /**
  * The game waiting to be played at the current stop or playoff round, or null if there is none.
- * Before each game either side's mascot may drop in, taking a random dressed skater's place for that game.
- * The roll is fixed by the season seed and the game number, so asking twice gives the same answer.
+ * Each side brings its mascot: he may arrive at the opening faceoff, or at the start of a later period
+ * when his team is two or more behind, and plays that period only (the simulation rolls it: sim/mascot.ts).
  */
 export function matchup(f: Franchise): Matchup | null {
   const game = plainMatchup(f);
   if (!game) return null;
   const { season, league } = f;
-  const label = (side: string): string => `${season.seed}/mascot/${side}/${season.gamesPlayed}`;
-  let mascotOffered = false;
-  const dropIn = (team: DressedTeam, spec: MascotSpec, side: string): { team: DressedTeam; info: DropIn | null } => {
-    const rolled = rollDropIn(label(side), spec.power);
-    if (rolled === null) return { team, info: null };
-    let slot: number | null = rolled;
-    if (side === 'home') {
-      mascotOffered = true;
-      // You may have chosen who sits for him, or sent him home.
-      const say = season.mascotSeat && season.mascotSeat.game === season.gamesPlayed ? season.mascotSeat : null;
-      if (say) slot = say.slot;
-    }
-    if (slot === null) return { team, info: null };
-    return { team: withMascot(team, spec, slot), info: { mascot: spec, sits: team.players[slot]?.name ?? '' } };
-  };
   const stop = currentStop(f);
-  const theirs =
-    game.kind === 'boss' && stop?.bossId
-      ? bossMascot(season.seed, stop.bossId, stop.region)
-      : aiMascot(league, game.kind === 'playoff' ? (season.playoffs?.opponentId ?? '') : (stop?.opponentId ?? ''));
-  const home = dropIn(game.home, userMascot(f), 'home');
-  const away = dropIn(game.away, theirs, 'away');
-  return { ...game, home: home.team, away: away.team, mascots: { home: home.info, away: away.info }, mascotOffered };
+  const key = theirMascotKey(f, game.kind);
+  const theirs = game.kind === 'boss' && stop?.bossId ? bossMascot(season.seed, stop.bossId, stop.region) : aiMascot(league, key);
+  const bring = (team: DressedTeam, spec: MascotSpec, misses: number): { team: DressedTeam; odds: MascotOdds } => ({
+    team: { ...team, setup: { ...team.setup, mascot: mascotSetup(spec, team, misses) } },
+    odds: { mascot: spec, chance: dropInChance(misses), sits: team.players[sitsFor(team)]?.name ?? '' },
+  });
+  const home = bring(game.home, userMascot(f), f.mascot.misses ?? 0);
+  const away = bring(game.away, theirs, season.mascotMisses?.[key] ?? 0);
+  return { ...game, home: home.team, away: away.team, mascots: { home: home.odds, away: away.odds } };
 }
 
-/**
- * Your say over the mascot when he turns up for the game waiting: `slot` is the dressed skater (0 to 5)
- * who sits for him, or null to send him home.
- */
-export function seatMascot(f: Franchise, slot: number | null): ActionResult {
-  const game = matchup(f);
-  if (!game || !game.mascotOffered) return refuse('Your mascot is not dropping in for this game.');
-  if (slot !== null && (!Number.isInteger(slot) || slot < 0 || slot > 5)) return refuse('Nobody plays there.');
-  f.season.mascotSeat = { game: f.season.gamesPlayed, slot };
-  const after = matchup(f);
-  return done(slot === null ? 'The mascot watches this one from the stands.' : `${after?.mascots.home?.sits ?? 'He'} sits out for the mascot.`);
+/** After a game that was played: each mascot's run of misses is remembered. A simulated game has no rolls and changes nothing. */
+function rememberMascots(f: Franchise, result: GameResult, key: string): void {
+  const [mine, theirs] = result.mascots ?? [null, null];
+  if (mine) f.mascot.misses = mine.misses;
+  if (theirs && key) f.season.mascotMisses = { ...(f.season.mascotMisses ?? {}), [key]: theirs.misses };
 }
 
-function plainMatchup(f: Franchise): Omit<Matchup, 'mascots' | 'mascotOffered'> | null {
+function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
   const { season, league } = f;
   const home = dressUser(f);
   if (!home) return null;
@@ -735,8 +723,10 @@ export function recordGame(f: Franchise, result: GameResult): GameOutcome {
   const played = f.season.gamesPlayed;
   const pucksBefore = f.season.currency;
   const cashBefore = f.cash;
+  const mascotKey = game ? theirMascotKey(f, game.kind) : '';
   const outcome = settleGame(f, result);
   if (!outcome.ok || !game || f.season.gamesPlayed === played) return outcome;
+  rememberMascots(f, result, mascotKey);
 
   tally(f, result, game.home);
   const net = bookGame(f, game.kind === 'playoff');

@@ -703,6 +703,24 @@ What the table does and does not show. Every setting changes goals for and again
 
 **First pick of free agents.** The pool opens when a season ends, with the new rookies; AI teams make their moves when you start the next season. League health, 10 seeds and 12 years: no bail-outs; the automatic managers' teams finish at 70.3, 69.2 and 68.4 against a league at about 74.8 (before: 69.6, 68.6, 67.0): first pick helps a little, and the payroll limit still decides most of it.
 
+## The mascot as a visitor (2026-11-15)
+
+`mascot.json`: `baseChance` 0.10, `missStep` 0.05, `trailBy` 2. By arithmetic a rising chance hits about one roll in four.
+
+200 all-AI games, equal teams rated 70 at level 0.5, both with a mascot (two talents) whose run of misses carries from game to game, against the same 200 seeds with none.
+
+| | No mascots | Mascots rated 88 | Mascots rated 94 |
+| --- | --- | --- | --- |
+| Arrivals per team per game | 0 | 0.30 | 0.32 |
+| Games with a mascot on either side | 0 | 52% | 53% |
+| Goals per game (A / B) | 4.01 / 3.88 | 3.90 / 4.05 | 3.87 / 4.01 |
+| A team two or more behind at a period start that does not lose | 9% (16 of 179) | 9% (16 of 169) | 5% (10 of 182) |
+| The same, when he came | | 5% (2 of 41) | 11% (5 of 47) |
+| The same, when he did not | | 11% (14 of 128) | 4% (5 of 135) |
+| His goals | | 30 in 113 minutes on the ice | 38 in 121 |
+
+What it shows. He turns up in about half of all games for one side or the other. On the ice he scores about 0.27 to 0.31 goals a minute, against about 0.22 for an ordinary skater in these games: better, not overwhelming. In all-AI play he does not measurably change how often a two-goal deficit is recovered: the differences above are a handful of games either way. So the fear that he would swing games too far is not borne out here; if anything he is a small help. With a person controlling him it may be more. These rows were measured before his line was made to take the faceoff on arrival, which gives him a little more ice time.
+
 ## Change log
 
 | Date | Value | From | To | Why |

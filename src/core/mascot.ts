@@ -1,5 +1,6 @@
 import data from '../data/mascot.json';
 import talentData from '../data/talents.json';
+import { mascotChance, type MascotSetup } from '../sim/mascot';
 import type { Modifier } from '../sim/modifiers';
 import type { SkaterRatings } from '../sim/ratings';
 import { teamStrength } from './bosses';
@@ -22,6 +23,8 @@ export interface MascotState {
   costume: number;
   /** Every talent in the order he learns them; how many he knows depends on his power. */
   talents: string[];
+  /** How many of his rolls in a row have missed. Each adds to the chance of the next. */
+  misses?: number;
 }
 
 /** A mascot as he would take the ice: yours, an AI team's or a boss's. */
@@ -63,9 +66,12 @@ export function mascotPower(f: Franchise): number {
   return clubStat(f, 'mascotPower', f.mascot.costume * data.costume.powerPerLevel);
 }
 
-/** The chance he drops in for a game: 5% with no power, rising to a cap of 35%. */
-export function dropInChance(power: number): number {
-  return Math.min(data.maxChance, data.baseChance + data.chancePerPower * Math.max(0, power));
+/**
+ * The chance of his next roll: 10%, and 5% more for every roll in a row that has missed.
+ * He is rolled at the opening faceoff, and at the start of a later period for a team two or more goals behind.
+ */
+export function dropInChance(misses: number): number {
+  return mascotChance(misses);
 }
 
 /** How many talents a mascot of this power knows: one to start, another at each threshold. */
@@ -122,16 +128,6 @@ export function mascotSalary(): number {
   return data.salary;
 }
 
-/**
- * Rolls whether a mascot drops in for a game. Returns which of the six dressed skaters sits (0 to 5),
- * or null if he stays away. The label fixes the roll, so the same game always gets the same answer.
- */
-export function rollDropIn(label: string, power: number): number | null {
-  const rng = createRng(label);
-  if (!rng.chance(dropInChance(power))) return null;
-  return rng.int(0, 5);
-}
-
 /** The mascot as a player for the summary screen. He has no contract, no age and earns no XP. */
 function mascotRecord(spec: MascotSpec): PlayerRecord {
   const rating = mascotRating(spec.power);
@@ -152,27 +148,32 @@ function mascotRecord(spec: MascotSpec): PlayerRecord {
   };
 }
 
-/** A dressed team with the mascot in one skater's place for this game. The team given is left alone. */
-export function withMascot(team: DressedTeam, spec: MascotSpec, slot: number): DressedTeam {
-  const record = mascotRecord(spec);
-  const count = team.setup.skaters.length;
-  const skaterModifiers = Array.from({ length: count }, (_, i) => team.setup.skaterModifiers?.[i] ?? []);
-  const skaterTalents = Array.from({ length: count }, (_, i) => team.setup.skaterTalents?.[i] ?? []);
-  // A talent that is simply always on (such as the cannon shot) goes in as his own modifiers.
-  skaterModifiers[slot] = spec.talents.flatMap((id) => {
-    const talent = talentInfo(id);
-    return talent.seconds === undefined && talent.modifiers ? talent.modifiers : [];
+/** The mascot as he is shown on the summary screen. */
+export function mascotPlayer(spec: MascotSpec): PlayerRecord {
+  return mascotRecord(spec);
+}
+
+/** Which of the six dressed skaters gives up his place when the mascot arrives: the lowest rated (of equals, the later one). */
+export function sitsFor(team: DressedTeam): number {
+  let slot = 0;
+  team.players.slice(0, team.setup.skaters.length).forEach((p, i) => {
+    if (p.overall <= (team.players[slot]?.overall ?? Infinity)) slot = i;
   });
-  skaterTalents[slot] = [...spec.talents];
+  return slot;
+}
+
+/** A mascot as the simulation takes him: his ratings and talents, whose place he takes, and the misses he comes with. */
+export function mascotSetup(spec: MascotSpec, team: DressedTeam, misses: number): MascotSetup {
   return {
-    ...team,
-    players: team.players.map((p, i) => (i === slot ? record : p)),
-    setup: {
-      ...team.setup,
-      skaters: team.setup.skaters.map((r, i) => (i === slot ? (record.ratings as SkaterRatings) : r)),
-      positions: Array.from({ length: count }, (_, i) => (i === slot ? 'F' : (team.setup.positions?.[i] ?? 'F'))),
-      skaterModifiers,
-      skaterTalents,
-    },
+    name: spec.name,
+    ratings: mascotRecord(spec).ratings as SkaterRatings,
+    // A talent that is simply always on (such as the cannon shot) goes in as his own modifiers.
+    modifiers: spec.talents.flatMap((id) => {
+      const talent = talentInfo(id);
+      return talent.seconds === undefined && talent.modifiers ? talent.modifiers : [];
+    }),
+    talents: [...spec.talents],
+    slot: sitsFor(team),
+    misses,
   };
 }

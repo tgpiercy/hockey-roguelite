@@ -1,13 +1,52 @@
 {
-  "baseChance": 0.05,
-  "chancePerPower": 0.03,
-  "maxChance": 0.35,
+  "baseChance": 0.1,
+  "missStep": 0.05,
+  "trailBy": 2,
   "baseRating": 88,
   "ratingPerPower": 0.75,
   "maxRating": 99,
   "salary": 500000,
-  "costume": { "maxLevel": 5, "costPerLevel": 2000000, "powerPerLevel": 1 },
-  "talentUnlockPower": [0, 3, 6, 9, 12],
-  "ai": { "strengthFrom": 66, "powerPerStrengthPoint": 0.5, "bossPower": [4, 6, 8] },
-  "names": ["Puckles", "Big Blade", "Grizzle", "Frostbite", "Honker", "Tusk", "Blizzard Bill", "Captain Icicle", "Sir Skates-a-Lot", "Rumble", "Slush", "Old Antlers", "Thunderpaws", "Whiskers", "The Yeti", "Buckshot", "Snowplough Sam", "Moosey", "Chilly", "Rink Rat"]
+  "costume": {
+    "maxLevel": 5,
+    "costPerLevel": 2000000,
+    "powerPerLevel": 1
+  },
+  "talentUnlockPower": [
+    0,
+    3,
+    6,
+    9,
+    12
+  ],
+  "ai": {
+    "strengthFrom": 66,
+    "powerPerStrengthPoint": 0.5,
+    "bossPower": [
+      4,
+      6,
+      8
+    ]
+  },
+  "names": [
+    "Puckles",
+    "Big Blade",
+    "Grizzle",
+    "Frostbite",
+    "Honker",
+    "Tusk",
+    "Blizzard Bill",
+    "Captain Icicle",
+    "Sir Skates-a-Lot",
+    "Rumble",
+    "Slush",
+    "Old Antlers",
+    "Thunderpaws",
+    "Whiskers",
+    "The Yeti",
+    "Buckshot",
+    "Snowplough Sam",
+    "Moosey",
+    "Chilly",
+    "Rink Rat"
+  ]
 }

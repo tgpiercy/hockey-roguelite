@@ -3,7 +3,7 @@ import { MASCOT_ID } from '../core/mascot';
 import type { DressedTeam } from '../core/matchup';
 import { portraitOf } from '../core/portrait';
 import { threeStars } from '../core/stars';
-import type { GameResult, PlayerLine } from '../sim/match';
+import type { GameResult, PlayerLine, MascotLine } from '../sim/match';
 import { CrestBadge } from './Crest';
 import { Icon } from './Icon';
 import { PortraitFace } from './Portrait';
@@ -24,7 +24,7 @@ const minutes = (seconds: number): string => {
 /** Where a simulation player sits in his team's dressed list: line 1, line 2, then the goalie. */
 const indexInTeam = (p: PlayerLine): number => (p.role === 'goalie' ? 6 : p.line * 3 + p.slot);
 
-function TeamTable({ team, crest, players }: { team: DressedTeam; crest: Crest; players: PlayerLine[] }) {
+function TeamTable({ team, crest, players, mascot }: { team: DressedTeam; crest: Crest; players: PlayerLine[]; mascot: MascotLine | null }) {
   const named = (p: PlayerLine) => team.players[indexInTeam(p)];
   const skaters = players.filter((p) => p.role === 'skater');
   const goalies = players.filter((p) => p.role === 'goalie');
@@ -60,6 +60,17 @@ function TeamTable({ team, crest, players }: { team: DressedTeam; crest: Crest; 
               <td>{minutes(p.timeOnIce)}</td>
             </tr>
           ))}
+          {mascot && mascot.arrivals > 0 && (
+            <tr class={mascot.goals > 0 ? 'scored' : ''}>
+              <td>{team.setup.mascot?.name ?? 'Mascot'} (mascot)</td>
+              <td></td>
+              <td>{mascot.goals}</td>
+              <td>{mascot.assists}</td>
+              <td>{mascot.shots}</td>
+              <td>{mascot.hits}</td>
+              <td>{minutes(mascot.timeOnIce)}</td>
+            </tr>
+          )}
         </tbody>
       </table>
       {goalies.map((p) => (
@@ -127,8 +138,8 @@ export function GameSummary({ result, teams, crests }: Props) {
       )}
 
       <div class="summary-teams">
-        <TeamTable team={teams[0]} crest={crests[0]} players={result.players.filter((p) => p.team === 0)} />
-        <TeamTable team={teams[1]} crest={crests[1]} players={result.players.filter((p) => p.team === 1)} />
+        <TeamTable team={teams[0]} crest={crests[0]} players={result.players.filter((p) => p.team === 0)} mascot={result.mascots?.[0] ?? null} />
+        <TeamTable team={teams[1]} crest={crests[1]} players={result.players.filter((p) => p.team === 1)} mascot={result.mascots?.[1] ?? null} />
       </div>
       <div class="summary-again">Press A, Z or Pass to continue</div>
     </div>

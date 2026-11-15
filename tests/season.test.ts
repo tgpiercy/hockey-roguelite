@@ -580,7 +580,10 @@ describe('bosses and artifacts', () => {
     const best = teamStrength(f.league, order[3]!);
     const boss = game.away.players.reduce((s, p) => s + p.overall, 0) / game.away.players.length;
     expect(boss).toBeGreaterThan(best);
-    expect(buildBoss(f.league, currentStop(f)!.bossId!, 0, f.season.seed)).toEqual(game.away);
+    // The game adds the boss's mascot to the team; everything else is the boss as built.
+    const { mascot: bossMascot, ...bossSetup } = game.away.setup;
+    expect(bossMascot).toBeDefined();
+    expect(buildBoss(f.league, currentStop(f)!.bossId!, 0, f.season.seed)).toEqual({ ...game.away, setup: bossSetup });
   });
 
   it('losing to a boss is a strike and he must be played again', () => {

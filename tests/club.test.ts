@@ -24,16 +24,12 @@ import {
   aiMascot,
   bossMascot,
   costumeCost,
-  dropInChance,
-  MASCOT_ID,
   mascotPower,
   mascotRating,
-  rollDropIn,
   talentCount,
   TALENTS,
   upgradeCostume,
   userMascot,
-  withMascot,
 } from '../src/core/mascot';
 import { decideContract, finishSeason, resignCapHit } from '../src/core/offseason';
 import { capHitOf, type PlayerRecord } from '../src/core/player';
@@ -52,6 +48,7 @@ import scoutingRules from '../src/data/scouting.json';
 import staffRules from '../src/data/staff.json';
 import talentRules from '../src/data/talents.json';
 import { resolveCheck } from '../src/sim/check';
+import type { Modifier } from '../src/sim/modifiers';
 import type { GameResult, PlayerLine } from '../src/sim/match';
 import { defaultGoalieRatings, defaultSkaterRatings } from '../src/sim/ratings';
 import { goalLineX } from '../src/sim/rink';
@@ -612,33 +609,6 @@ describe('the mascot', () => {
     expect(userMascot(f).talents).toEqual(f.mascot.talents.slice(0, 1));
   });
 
-  it('drops in 5% of the time with no power, more with power, and never more than 35%', () => {
-    expect(dropInChance(0)).toBeCloseTo(0.05);
-    expect(dropInChance(5)).toBeCloseTo(0.2);
-    expect(dropInChance(10)).toBeCloseTo(0.35);
-    expect(dropInChance(50)).toBeCloseTo(0.35);
-    const rate = (power: number): number => {
-      let hits = 0;
-      for (let i = 0; i < 20000; i++) if (rollDropIn(`rate/${power}/${i}`, power) !== null) hits++;
-      return hits / 20000;
-    };
-    expect(rate(0)).toBeGreaterThan(0.04);
-    expect(rate(0)).toBeLessThan(0.06);
-    expect(rate(30)).toBeGreaterThan(0.33);
-    expect(rate(30)).toBeLessThan(0.37);
-  });
-
-  it('the roll is fixed by its label, and always names one of the six skaters', () => {
-    for (let i = 0; i < 500; i++) {
-      const slot = rollDropIn(`slot/${i}`, 30);
-      expect(rollDropIn(`slot/${i}`, 30)).toBe(slot);
-      if (slot !== null) {
-        expect(slot).toBeGreaterThanOrEqual(0);
-        expect(slot).toBeLessThanOrEqual(5);
-      }
-    }
-  });
-
   it('power comes from the costume, the den and the promoter; talents unlock as it grows', () => {
     const f = fresh();
     f.cash = 100_000_000;
@@ -662,91 +632,6 @@ describe('the mascot', () => {
     expect(mascotRating(0)).toBe(mascotRules.baseRating);
     expect(mascotRating(8)).toBeGreaterThan(mascotRating(0));
     expect(mascotRating(1000)).toBe(mascotRules.maxRating);
-  });
-
-  it('takes a skater\'s place in the dressed team, never the goalie\'s, and leaves the real team alone', () => {
-    const f = fresh();
-    const team = dressUser(f)!;
-    const spec = { name: 'Testy', power: 12, talents: TALENTS.map((t) => t.id) };
-    const swapped = withMascot(team, spec, 4);
-    expect(swapped.players[4]!.id).toBe(MASCOT_ID);
-    expect(swapped.players[6]).toBe(team.players[6]);
-    expect(swapped.players.filter((p) => p.id === MASCOT_ID)).toHaveLength(1);
-    expect(swapped.setup.skaters[4]!.shooting).toBe(mascotRating(12));
-    expect(swapped.setup.skaterTalents?.[4]).toEqual(spec.talents);
-    expect(swapped.setup.skaterTalents?.[0]).toEqual(team.setup.skaterTalents?.[0]);
-    // The cannon shot is simply always on, so it travels as one of his own modifiers.
-    const alwaysOn = spec.talents.flatMap((id) => {
-      const talent = talentRules.talents.find((x) => x.id === id)! as { seconds?: number; modifiers?: unknown[] };
-      return talent.seconds === undefined && talent.modifiers ? talent.modifiers : [];
-    });
-    expect(swapped.setup.skaterModifiers?.[4]).toEqual(alwaysOn);
-    expect(alwaysOn.length).toBeGreaterThan(0);
-    expect(team.players[4]!.id).not.toBe(MASCOT_ID);
-    expect(team.setup.skaterTalents?.[4]).not.toEqual(spec.talents);
-  });
-
-  /** Moves the game counter on until your mascot drops in (or, with `want` false, stays away). */
-  const untilDropIn = (f: Franchise, want: boolean): void => {
-    for (let i = 0; i < 200; i++) {
-      f.season.gamesPlayed = i;
-      if ((matchup(f)!.mascots.home !== null) === want) return;
-    }
-    throw new Error('no such game found');
-  };
-
-  it('before a game he may replace one dressed skater, who is back for the next game', () => {
-    const f = atFirstGame('drop');
-    f.facilities.den = 5;
-    f.mascot.costume = 5;
-    const dressed = dressUser(f)!.players.map((p) => p.id);
-    untilDropIn(f, true);
-    const withHim = matchup(f)!;
-    const slot = withHim.home.players.findIndex((p) => p.id === MASCOT_ID);
-    expect(slot).toBeGreaterThanOrEqual(0);
-    expect(slot).toBeLessThan(6);
-    expect(withHim.mascots.home!.sits).toBe(playerOf(f.league, dressed[slot]!).name);
-    expect(withHim.mascots.home!.mascot.name).toBe(f.mascot.name);
-    // Asking again gives the same answer.
-    expect(matchup(f)!.home.players.map((p) => p.id)).toEqual(withHim.home.players.map((p) => p.id));
-    untilDropIn(f, false);
-    expect(matchup(f)!.home.players.map((p) => p.id)).toEqual(dressed);
-  });
-
-  it('he earns no XP and his goals count for no milestone; the skater who sat gets the stay-at-home share', () => {
-    const f = atFirstGame('drop');
-    f.facilities.den = 5;
-    f.mascot.costume = 5;
-    untilDropIn(f, true);
-    const withHim = matchup(f)!;
-    const slot = withHim.home.players.findIndex((p) => p.id === MASCOT_ID);
-    const sat = dressUser(f)!.players[slot]!;
-    recordGame(f, game(true, [0, 1, 2, 3, 4, 5, 6].map((i) => line(i, i === slot ? { goals: 3 } : {}))));
-    expect(f.season.xp[MASCOT_ID]).toBeUndefined();
-    expect(f.season.playerGoals[MASCOT_ID]).toBeUndefined();
-    expect(f.season.hatTrick).toBe(false);
-    expect(f.season.xp[sat.id]).toBeGreaterThan(0);
-    const other = withHim.home.players.find((p) => p.id !== MASCOT_ID && p.position !== 'G')!;
-    expect(f.season.xp[sat.id]).toBeLessThan(f.season.xp[other.id]!);
-    expect(f.league.players[MASCOT_ID]).toBeUndefined();
-  });
-
-  it('AI teams have mascots too: stronger teams have stronger ones, and they can drop in against you', () => {
-    const f = atFirstGame('rivals');
-    const order = [...f.league.teams].filter((t) => t.id !== f.league.userTeamId);
-    const powers = order.map((t) => aiMascot(f.league, t.id).power);
-    expect(Math.max(...powers)).toBeGreaterThan(Math.min(...powers));
-    expect(aiMascot(f.league, order[0]!.id)).toEqual(aiMascot(f.league, order[0]!.id));
-    let seen = false;
-    for (let i = 0; i < 400 && !seen; i++) {
-      f.season.gamesPlayed = i;
-      const m = matchup(f)!;
-      if (!m.mascots.away) continue;
-      seen = true;
-      expect(m.away.players.filter((p) => p.id === MASCOT_ID)).toHaveLength(1);
-      expect(m.away.players[6]!.id).not.toBe(MASCOT_ID);
-    }
-    expect(seen).toBe(true);
   });
 
   it('bosses have mascots, stronger in each region', () => {
@@ -847,10 +732,8 @@ describe('talents on the ice', () => {
   });
 
   it('cannon shot: his fully charged shot is harder, and nobody else\'s is', () => {
-    const f = fresh();
-    const spec = { name: 'Boomer', power: 12, talents: ['cannonShot'] };
-    const team = withMascot(dressUser(f)!, spec, 0);
-    const world = createWorld(t, 'cannon', { human: false, teams: [team.setup, setup()] });
+    const cannon = info('cannonShot') as { modifiers?: Modifier[] };
+    const world = createWorld(t, 'cannon', { human: false, teams: [{ ...setup([['cannonShot']]), skaterModifiers: [cannon.modifiers ?? []] }, setup()] });
     expect(player(world, ID.home1).fx.chargedShotScale).toBeCloseTo(1.3);
     expect(player(world, ID.home2).fx.chargedShotScale).toBeCloseTo(1);
     expect(player(world, ID.home1).talents).toEqual(['cannonShot']);

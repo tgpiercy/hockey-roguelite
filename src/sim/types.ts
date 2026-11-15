@@ -1,3 +1,4 @@
+import type { MascotVisit } from './mascot';
 import type { Tactics } from './tactics';
 import type { Rng } from '../core/rng';
 import type { Boost, PowerupSpec } from './modifiers';
@@ -229,6 +230,7 @@ export type SimEvent =
   | { type: 'goal'; side: -1 | 1; team: 0 | 1; scorer: number | null; assists: number[] }
   | { type: 'faceoff'; winner: 0 | 1 | null }
   | { type: 'period'; period: number }
+  | { type: 'mascot'; team: 0 | 1; player: number; arrived: boolean }
   | { type: 'final' }
   | { type: 'change'; team: 0 | 1; off: number; on: number }
   | { type: 'powerup'; team: 0 | 1; slot: number; id: string }
@@ -317,6 +319,8 @@ export interface TeamState {
   heat: number;
   /** The period for which a hot start (a boss trick) has already been given. */
   heatedPeriod: number;
+  /** The team's mascot for this game, if it has one: see mascot.ts. */
+  mascot: MascotVisit | null;
   /** True while the goalie is off for an extra skater, and who that skater is. */
   pulled: boolean;
   extra: number | null;

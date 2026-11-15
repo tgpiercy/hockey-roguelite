@@ -4,7 +4,7 @@ import type { InputFrame, SimEvent, World } from './types';
 import { NO_INPUT } from './types';
 
 /** Re-works every player's abilities on a team from his base abilities plus the boosts now running. */
-function refresh(world: World, team: 0 | 1): void {
+export function refreshBoosts(world: World, team: 0 | 1): void {
   const running: Modifier[] = world.teams[team].boosts.flatMap((b) => b.modifiers);
   for (const p of world.players) {
     if (p.team !== team) continue;
@@ -17,7 +17,7 @@ function refresh(world: World, team: 0 | 1): void {
 export function startBoost(world: World, team: 0 | 1, boost: Boost): void {
   const state = world.teams[team];
   state.boosts = [...state.boosts.filter((b) => b.id !== boost.id), boost];
-  refresh(world, team);
+  refreshBoosts(world, team);
 }
 
 /** Uses the powerup in a slot: a timed one starts its boost, an instant one acts at once. */
@@ -44,7 +44,7 @@ export function usePowerup(world: World, team: 0 | 1, slot: number, events: SimE
   }
   if (spec.modifiers && spec.modifiers.length > 0 && (spec.seconds ?? 0) > 0) {
     state.boosts.push({ id: spec.id, name: spec.name, modifiers: spec.modifiers, secondsLeft: spec.seconds as number });
-    refresh(world, team);
+    refreshBoosts(world, team);
   }
   events.push({ type: 'powerup', team, slot, id: spec.id });
   return true;
@@ -73,7 +73,7 @@ export function stepPowerups(world: World, humanInput: InputFrame, events: SimEv
     for (const boost of state.boosts) boost.secondsLeft -= STEP_SECONDS;
     if (state.boosts.some((b) => b.secondsLeft <= 0)) {
       state.boosts = state.boosts.filter((b) => b.secondsLeft > 0);
-      refresh(world, team);
+      refreshBoosts(world, team);
     }
   }
 }

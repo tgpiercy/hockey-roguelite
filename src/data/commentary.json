@@ -1,7 +1,7 @@
 {
   "minGapSeconds": 2.2,
   "showSeconds": 2.6,
-  "priority": { "goal": 5, "final": 5, "fire": 4, "pull": 4, "bigHit": 3, "save": 3, "post": 3, "oneTimer": 3, "block": 2, "tip": 3, "fake": 2, "freeze": 1, "poke": 1, "period": 4 },
+  "priority": { "goal": 5, "final": 5, "fire": 4, "pull": 4, "bigHit": 3, "save": 3, "post": 3, "oneTimer": 3, "block": 2, "tip": 3, "fake": 2, "freeze": 1, "poke": 1, "period": 4, "mascotOn": 5, "mascotOff": 2 },
   "lines": {
     "goal": ["{name} scores! {score}", "Goal, {name}! {score}", "{name} finds the net. {score}", "He shoots, he scores! {name}. {score}", "{name} buries it! {score}"],
     "goalAssist": ["{name}, from {assist}! {score}", "{assist} sets up {name}! {score}", "{name} finishes the pass from {assist}. {score}"],
@@ -18,6 +18,8 @@
     "pullOn": ["{team} pull the goalie!", "Empty net for {team}!"],
     "pullOff": ["{team} send the goalie back."],
     "period": ["That is the end of the period. {score}"],
+    "mascotOn": ["{name} is in the building! The {team} mascot plays this period.", "Here comes {name}! The {team} send out their mascot.", "Look who it is: {name}, for the {team}!"],
+    "mascotOff": ["{name} heads back to the stands."],
     "final": ["That is the game! {score}", "The final horn! {score}"]
   }
 }
