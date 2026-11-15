@@ -47,6 +47,12 @@ export function stepMomentum(world: World, t: Tuning, events: SimEvent[], dt: nu
   }
   for (const team of [0, 1] as const) {
     const state = world.teams[team];
+    // A boss trick: the meter starts each period at a set level, once play begins.
+    if (world.phase === 'play' && state.heatedPeriod !== world.period) {
+      state.heatedPeriod = world.period;
+      const start = world.players.reduce((most, p) => (p.team === team && p.role === 'skater' && p.onIce ? Math.max(most, p.fx.periodStartHeat) : most), 0);
+      if (start > 0 && !onFire(world, team)) state.heat = Math.max(state.heat, Math.min(1, start));
+    }
     // Checked before the drain: a meter that has just filled must not be nudged back under full first.
     if (state.heat >= 1 && !onFire(world, team)) {
       state.heat = 0;

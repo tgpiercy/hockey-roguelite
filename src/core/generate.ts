@@ -62,7 +62,7 @@ export function generatePlayer(rng: Rng, names: NameMaker, id: string, position:
     level: 1,
     ...rated,
     // The better he is, the likelier he has the talent that goes with his kind.
-    ...(kind.talent !== null && rng.chance(talentChance(rated.grade)) ? { talent: kind.talent } : {}),
+    ...(kind.talents.length > 0 && rng.chance(talentChance(rated.grade)) ? { talent: rng.pick(kind.talents) } : {}),
   };
 }
 

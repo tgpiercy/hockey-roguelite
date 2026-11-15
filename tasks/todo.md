@@ -506,3 +506,20 @@ Built, deployed and checked with a simulated controller.
 - Changed from the plan: "the cap is tight from year one" became an owner's payroll limit, after measuring that the cap already binds the top teams and not you.
 - Risks left: the payroll limit holds a losing team below the league average, and nobody has measured whether a winning player keeps up; the automatic seasons do not show how far a real run now gets; human against AI is still too easy and the save percentage is still under target.
 - No save migration was needed: every new field is optional. A season in progress keeps its old map; elite games appear from the next season. Artifacts held now are cleared when the next season starts.
+
+# Deke, loose ends and new content
+
+- [x] The deke goes round the nearest defender and never refuses for stamina
+- [x] Line shifts; Hammers flash; full-press banner; goal banner moved; trades by position
+- [x] Three bosses, six powerups, five talents, eight events, six artifacts
+- [x] Elite games must be played
+- [ ] Play it (owner)
+
+## Review (deke, loose ends, content)
+
+- Type check, 991 tests (34 new) and the build pass. Balance and the 12-year league check are unchanged within noise.
+- The deke: measured headless, the old one already got past a lone AI defender 290 to 298 times in 300 when it fired. The new one is a little better (291 to 300) and clearly better with a second defender (300 against 288). The likelier cause of "does not beat anyone" was the old deke silently doing nothing when stamina was low or inside its wait; both are changed. That is a reading of the code, not something seen on the phone.
+- One commit went out with a failing test (the commit command did not stop on the failure) and blocked the deploy for a few minutes; it was fixed in the next commit, and commits are now gated on the test result.
+- Seen in the browser on a fresh franchise: the shift setting on the Lineup screen, the elite game card and the E marks on the map, the choice of two artifacts after an elite win, the shop with the scouting report and a new powerup, an event card naming a new event.
+- Not seen: the three new bosses' tells, the Hammers flash and the full-press banner in a live game, the goal banner's new position (all drawn in code that type-checks, none looked at in a picture); the skill-point screens, contract lengths, mascot choice and club report from the last round are still unseen.
+- Not measured: how hard the new bosses are.

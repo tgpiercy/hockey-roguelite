@@ -186,7 +186,7 @@ describe('content', () => {
   });
 
   const simStats = new Set([...Object.keys(skaterEffects(defaultSkaterRatings)), ...Object.keys(goalieEffects(defaultGoalieRatings))]);
-  const seasonStats = new Set(['currencyGain', 'shopPrice', 'trainingBonus', 'powerupDropChance']);
+  const seasonStats = new Set(['currencyGain', 'shopPrice', 'trainingBonus', 'powerupDropChance', 'eliteGain', 'eliteBump']);
   const validModifier = (m: { stat: string; op: string; value: number }, allowSeason: boolean): void => {
     expect(['add', 'mul']).toContain(m.op);
     expect(Number.isFinite(m.value)).toBe(true);
@@ -199,7 +199,7 @@ describe('content', () => {
       expect(p.description.length).toBeGreaterThan(10);
       expect(p.price).toBeGreaterThan(0);
       if (p.effect) {
-        expect(['restoreLineEnergy', 'restoreBenchEnergy', 'restoreAllEnergy']).toContain(p.effect);
+        expect(['restoreLineEnergy', 'restoreBenchEnergy', 'restoreAllEnergy', 'fillHeat']).toContain(p.effect);
       } else {
         expect(p.seconds).toBeGreaterThan(0);
         expect(p.modifiers!.length).toBeGreaterThan(0);
@@ -224,7 +224,7 @@ describe('content', () => {
         for (const outcome of choice.outcomes) {
           expect(outcome.result.length).toBeGreaterThan(5);
           for (const effect of outcome.effects as EventEffect[]) {
-            expect(['currency', 'powerup', 'losePowerup', 'strike', 'bump', 'temp', 'scout']).toContain(effect.type);
+            expect(['currency', 'powerup', 'losePowerup', 'strike', 'bump', 'temp', 'scout', 'skillPoint', 'artifact']).toContain(effect.type);
             if (effect.type === 'temp') {
               expect(effect.games).toBeGreaterThan(0);
               for (const m of effect.modifiers) validModifier(m, false);

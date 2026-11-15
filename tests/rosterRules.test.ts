@@ -65,6 +65,9 @@ describe('the payroll limit', () => {
     const hidden = hiddenFreeAgents(f);
     const pool = f.league.freeAgents.filter((id) => !hidden.has(id)).map((id) => playerOf(f.league, id)).filter((p) => p.position !== 'G');
     const star = pool.sort((a, b) => b.capHit - a.capHit)[0]!;
+    // A club with half a million of room.
+    f.cash = 0;
+    f.value = (payroll(f.league, team) + 500_000) / economy.payroll.shareOfValue;
     expect(star.capHit).toBeGreaterThan(payRoom(f));
     const refused = signPlayer(f, star.id);
     expect(refused.ok).toBe(false);

@@ -637,6 +637,28 @@ So against the AI the old deke already worked when it fired: the new one is a li
 
 AI against AI after the change (the AI dekes by the same rules), 200 games: 3.90 and 4.19 goals, save percentage .782.
 
+## Loose ends and new content (2026-11-15)
+
+**Line shifts** (`energy.heavyShift` 0.12 in `physics.json`): a line set to play more changes at energy 0.38, not 0.50; the other line then changes at 0.62. Even shifts are unchanged.
+
+**Trades by position** (`offseason.json` `trade`): a player at a position the other team has 3 or fewer of is worth 2 more to it; 5 or more, 2 less; no team will drop below 2 forwards or 2 defencemen.
+
+**Content added** (data only, apart from the small rules noted):
+
+| Kind | Before | Now | New |
+| --- | --- | --- | --- |
+| Bosses | 5 | 8 | Frostgate Trappers (passes that cannot be picked off), Saltmarsh Shadows (every skater has the spin move), Cinder Peak Furnace (on fire at the start of every period: new stat `periodStartHeat`) |
+| Powerups | 12 | 18 | One touch, Ghost passes, Afterburner, Sledgehammer, Sticky glove, Spark (fills the momentum meter: new effect `fillHeat`) |
+| Talents | 5 | 10 | Quick release, Threader, Jets, Crusher, Engine: each kind of skater now has two and a new player gets one of them |
+| Events | 19 | 27 | eight, two with new effects: skill points for Pucks, an artifact for a strike |
+| Artifacts | 24 | 30 | Showman, Shot blocker, Giant killers, All in, Trap game, Deep bench (new stats `fakeBiteScale`, `blockReachScale`, and the season stats `eliteGain`, `eliteBump`) |
+
+Elite games can no longer be simulated: like bosses, they have to be played.
+
+After the round, AI against AI at level 0.5, 200 games, equal teams: 4.08 and 4.20 goals, save percentage .778 (before: 3.88 and 3.90, .788). The small rise is within the noise of 200 games; the new talents do not apply to the harness's uniform teams. League health, 10 seeds and 12 years: no bail-outs; teams and cash as before.
+
+Not measured: how hard the three new bosses are to beat. The Furnace starts each period with the on-fire boost (about eight seconds of harder shots and faster skating), three times a game.
+
 ## Change log
 
 | Date | Value | From | To | Why |
@@ -654,6 +676,7 @@ AI against AI after the change (the AI dekes by the same rules), 200 games: 3.90
 | 2026-11-14 | ai.json: zone posts, longShotRange, longShotChance, longShotCharge, plantTilt | none | see "Spread-out attack" above | Attackers crowded the net |
 | 2026-11-14 | one-timer, deke, knock-down, rebound, goalie challenge, cover radius, AI styles | see "Deeper gameplay" above | | New moves and AI after the research report |
 | 2026-11-14 | momentum, tips, giveGo, pull, boss groups | none | see "Momentum, tips..." above | New mechanics |
+| 2026-11-15 | energy.heavyShift (new); trade position numbers (new) | none | 0.12; 3, 5, 2, 2 | Loose ends from earlier rounds |
 | 2026-11-15 | deke: direction, impulse, window, cooldown, stamina rule | see above | see above | The owner found the deke did not beat anyone |
 | 2026-11-14 | ratings.json ranges; quick.ratingPointsFor75Percent | see above; 20 | steeper through the same value at 70; 12 | Ratings barely changed play |
 | 2026-11-14 | fake, block (new groups), momentum.block | none | see above | New moves asked for by the owner |

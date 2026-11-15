@@ -14,7 +14,8 @@ export interface PlayerKind {
   /** The rating that marks him out, or null for the even kind. */
   rating: string | null;
   lean: Record<string, number>;
-  talent: string | null;
+  /** The talents a player of this kind may carry: a new player gets one of them, or none. */
+  talents: string[];
   description: string;
 }
 

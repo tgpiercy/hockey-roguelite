@@ -605,6 +605,18 @@ export class RinkScene extends Phaser.Scene {
         }
       }
 
+      // The spin move is ready: a thin ring at his feet. (Burn it with a poke before the real check.)
+      if (!goalie && p.talents.includes('spinMove') && (p.talentCooldown.spinMove ?? 0) <= 0) {
+        this.top.lineStyle(Math.max(1.5, unit * 0.12), colour(c.accent), 0.65);
+        this.top.strokeCircle(x, y, base * 1.5);
+      }
+      // A boss trick's tell: faint lanes from an opposing carrier whose passes cannot be picked off.
+      if (world.puck.carrier === p.id && p.fx.passThrough > 0 && world.human && p.team !== world.human.team) {
+        this.top.lineStyle(Math.max(1.5, unit * 0.1), colour(c.accent), 0.28);
+        for (const mate of world.players) {
+          if (mate.onIce && mate.team === p.team && mate.role === 'skater' && mate.id !== p.id) this.top.lineBetween(x, y, this.sx(mate.pos.x), this.sy(mate.pos.y));
+        }
+      }
       // A boss trick's tell: a skater whose every hit is a knock-down flashes while he is winding one up.
       if (!goalie && p.fx.alwaysKnockdown > 0 && p.checkCharge > 0) {
         const pulse = 0.55 + 0.45 * Math.sin(this.clock * 30);

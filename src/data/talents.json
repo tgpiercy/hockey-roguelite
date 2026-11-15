@@ -1,10 +1,121 @@
 {
   "zoneShare": 0.35,
   "talents": [
-    { "id": "crowdSurge", "name": "Crowd surge", "description": "After his team scores, the whole team skates faster for 10 seconds.", "seconds": 10, "modifiers": [{ "stat": "topSpeedScale", "op": "mul", "value": 1.1 }, { "stat": "accelerationScale", "op": "mul", "value": 1.1 }] },
-    { "id": "spinMove", "name": "Spin move", "description": "The first check that would strip him of the puck fails. Recharges in 12 seconds.", "cooldown": 12 },
-    { "id": "distraction", "name": "Distraction", "description": "When he carries the puck into the attacking zone, the opposing goalie reacts slower for 10 seconds. Recharges in 40 seconds.", "seconds": 10, "cooldown": 40, "modifiers": [{ "stat": "reactionSeconds", "op": "mul", "value": 1.5 }] },
-    { "id": "cannonShot", "name": "Cannon shot", "description": "His fully charged shot is 30% harder.", "modifiers": [{ "stat": "chargedShotScale", "op": "mul", "value": 1.3 }] },
-    { "id": "rallyCry", "name": "Rally cry", "description": "Once a period, when his linemates are tired, their energy is refilled.", "energyBelow": 0.45 }
+    {
+      "id": "crowdSurge",
+      "name": "Crowd surge",
+      "description": "After his team scores, the whole team skates faster for 10 seconds.",
+      "seconds": 10,
+      "modifiers": [
+        {
+          "stat": "topSpeedScale",
+          "op": "mul",
+          "value": 1.1
+        },
+        {
+          "stat": "accelerationScale",
+          "op": "mul",
+          "value": 1.1
+        }
+      ]
+    },
+    {
+      "id": "spinMove",
+      "name": "Spin move",
+      "description": "The first check that would strip him of the puck fails. Recharges in 12 seconds.",
+      "cooldown": 12
+    },
+    {
+      "id": "distraction",
+      "name": "Distraction",
+      "description": "When he carries the puck into the attacking zone, the opposing goalie reacts slower for 10 seconds. Recharges in 40 seconds.",
+      "seconds": 10,
+      "cooldown": 40,
+      "modifiers": [
+        {
+          "stat": "reactionSeconds",
+          "op": "mul",
+          "value": 1.5
+        }
+      ]
+    },
+    {
+      "id": "cannonShot",
+      "name": "Cannon shot",
+      "description": "His fully charged shot is 30% harder.",
+      "modifiers": [
+        {
+          "stat": "chargedShotScale",
+          "op": "mul",
+          "value": 1.3
+        }
+      ]
+    },
+    {
+      "id": "rallyCry",
+      "name": "Rally cry",
+      "description": "Once a period, when his linemates are tired, their energy is refilled.",
+      "energyBelow": 0.45
+    },
+    {
+      "id": "quickRelease",
+      "name": "Quick release",
+      "description": "His one-timers are 20% harder.",
+      "modifiers": [
+        {
+          "stat": "oneTimerScale",
+          "op": "mul",
+          "value": 1.2
+        }
+      ]
+    },
+    {
+      "id": "threader",
+      "name": "Threader",
+      "description": "His flat passes cannot be picked off in the lane.",
+      "modifiers": [
+        {
+          "stat": "passThrough",
+          "op": "add",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "jets",
+      "name": "Jets",
+      "description": "10% faster with the puck when nobody is between him and the net.",
+      "modifiers": [
+        {
+          "stat": "breakawaySpeedScale",
+          "op": "mul",
+          "value": 1.1
+        }
+      ]
+    },
+    {
+      "id": "crusher",
+      "name": "Crusher",
+      "description": "His body checks at speed always knock the puck loose.",
+      "modifiers": [
+        {
+          "stat": "bigHitKnock",
+          "op": "add",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "engine",
+      "name": "Engine",
+      "description": "He tires 15% more slowly.",
+      "modifiers": [
+        {
+          "stat": "drainScale",
+          "op": "mul",
+          "value": 0.85
+        }
+      ]
+    }
   ]
 }

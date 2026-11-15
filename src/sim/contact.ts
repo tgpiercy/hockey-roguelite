@@ -74,7 +74,7 @@ export function resolveLoosePuck(world: World, t: Tuning, events: SimEvent[]): v
 
     // A skater braced on one knee stops an opponent's shot dead, from further out than his body reaches.
     const shotFrom = puck.shotBy === null ? undefined : world.players[puck.shotBy];
-    if (shotFrom && shotFrom.team !== p.team && d > 0 && d <= t.block.reach && relSpeed > t.body.handleSpeed * p.fx.handleSpeedScale && braced(world, p, t)) {
+    if (shotFrom && shotFrom.team !== p.team && d > 0 && d <= t.block.reach * p.fx.blockReachScale && relSpeed > t.body.handleSpeed * p.fx.handleSpeedScale && braced(world, p, t)) {
       const nx = (puck.pos.x - p.pos.x) / d;
       const ny = (puck.pos.y - p.pos.y) / d;
       const left = Math.hypot(puck.vel.x, puck.vel.y) * t.block.keepSpeed;

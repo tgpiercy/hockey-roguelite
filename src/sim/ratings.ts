@@ -51,6 +51,12 @@ export interface SkaterEffects {
   fullPress: number;
   /** Above 0, a fully wound-up shot of his cannot be stopped by the goalie. 0 unless a modifier changes it. */
   unstoppableCharged: number;
+  /** How long a goalie bites on his shot fake, against the usual. 1 unless a modifier changes it. */
+  fakeBiteScale: number;
+  /** How far out he blocks a shot when braced, against the usual. 1 unless a modifier changes it. */
+  blockReachScale: number;
+  /** Above 0, his team's momentum meter starts every period at this level (1 is full). 0 unless a modifier changes it. */
+  periodStartHeat: number;
 }
 
 /** What a goalie's ratings do on the ice. */
@@ -106,6 +112,9 @@ export function skaterEffects(r: SkaterRatings): SkaterEffects {
     alwaysKnockdown: 0,
     fullPress: 0,
     unstoppableCharged: 0,
+    fakeBiteScale: 1,
+    blockReachScale: 1,
+    periodStartHeat: 0,
   };
 }
 

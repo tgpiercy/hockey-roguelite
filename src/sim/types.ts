@@ -307,6 +307,8 @@ export interface TeamState {
   heavyLine: 0 | 1 | null;
   /** Momentum, 0 to 1: full sets the team on fire. */
   heat: number;
+  /** The period for which a hot start (a boss trick) has already been given. */
+  heatedPeriod: number;
   /** True while the goalie is off for an extra skater, and who that skater is. */
   pulled: boolean;
   extra: number | null;

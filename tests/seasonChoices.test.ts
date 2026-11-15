@@ -4,6 +4,7 @@ import { generateLeague } from '../src/core/generate';
 import {
   availableStops,
   buyScouting,
+  canSimulate,
   chooseEvent,
   currentStop,
   dressUser,
@@ -103,6 +104,9 @@ describe('elite games', () => {
     travel(g, availableStops(g).find((s) => s.elite)!.id);
     const elite = matchup(g)!;
     expect(elite.elite).toBe(true);
+    // An elite game has to be played, not settled from the ratings.
+    expect(canSimulate(g)).toBe(false);
+    expect(canSimulate(f)).toBe(true);
     expect(elite.title).toMatch(/Elite/);
     expect(elite.level).toBeCloseTo(plain.level + rules.eliteLevelBonus);
   });

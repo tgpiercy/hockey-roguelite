@@ -28,7 +28,7 @@ export function stepFake(world: World, p: Player, hasPuck: boolean, input: Input
     const toNet = Math.atan2(net.y - p.pos.y, net.x - p.pos.x);
     const facingNet = Math.abs(wrapAngle(toNet - p.facing)) <= (f.facingDegrees * Math.PI) / 360;
     if (g && g.onIce && g.goalie && facingNet && dist(p.pos, net) <= f.range) {
-      g.goalie.bitten = f.biteSeconds * Math.min(f.maxBiteScale, goalieReaction(g, t) / f.fullBiteReaction);
+      g.goalie.bitten = f.biteSeconds * p.fx.fakeBiteScale * Math.min(f.maxBiteScale, goalieReaction(g, t) / f.fullBiteReaction);
     }
     for (const o of skatersOf(world, otherTeam(p.team))) {
       if (!o.onIce || dist(o.pos, p.pos) > f.defenderRange) continue;

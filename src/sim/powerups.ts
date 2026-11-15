@@ -27,7 +27,10 @@ export function usePowerup(world: World, team: 0 | 1, slot: number, events: SimE
   state.powerups[slot] = null;
   state.powerupsUsed.push(spec.id);
 
-  if (spec.effect) {
+  if (spec.effect === 'fillHeat') {
+    // The momentum meter is filled: the team catches fire on the next step.
+    state.heat = 1;
+  } else if (spec.effect) {
     for (const p of world.players) {
       if (p.team !== team || p.role !== 'skater') continue;
       const wanted =

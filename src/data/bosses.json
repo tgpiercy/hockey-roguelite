@@ -114,5 +114,68 @@
         "value": 1
       }
     ]
+  },
+  {
+    "id": "trappers",
+    "name": "Frostgate Trappers",
+    "trait": "Tic-tac-toe",
+    "description": "Faster passes, and they are hard to take the puck from.",
+    "modifiers": [
+      {
+        "stat": "passThrough",
+        "op": "add",
+        "value": 1
+      },
+      {
+        "stat": "passSpeedScale",
+        "op": "mul",
+        "value": 1.12
+      },
+      {
+        "stat": "puckSecurity",
+        "op": "add",
+        "value": 0.1
+      }
+    ],
+    "trick": "Threaded passes: their flat passes cannot be picked off in the lane. Cover the man in front of your net, not the pass.",
+    "star": []
+  },
+  {
+    "id": "shadows",
+    "name": "Saltmarsh Shadows",
+    "trait": "Slippery",
+    "description": "Hard to check off the puck.",
+    "modifiers": [
+      {
+        "stat": "puckSecurity",
+        "op": "add",
+        "value": 0.1
+      }
+    ],
+    "trick": "Spin move: the first check that would strip each of them fails, and it comes back every 12 seconds. Check twice, or poke first to burn it.",
+    "star": [],
+    "talents": [
+      "spinMove"
+    ]
+  },
+  {
+    "id": "furnace",
+    "name": "Cinder Peak Furnace",
+    "trait": "Fast starters",
+    "description": "Harder shots.",
+    "modifiers": [
+      {
+        "stat": "shotPower",
+        "op": "add",
+        "value": 0.05
+      },
+      {
+        "stat": "periodStartHeat",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    "trick": "Hot start: they are on fire from the opening faceoff of every period. Hold the puck and block shots until it burns out.",
+    "star": []
   }
 ]

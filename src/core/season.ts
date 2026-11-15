@@ -310,6 +310,8 @@ export type EventEffect =
   | { type: 'strike'; amount: number }
   | { type: 'bump'; who: 'random' | 'best' | 'worst' | 'all'; amount: number }
   | { type: 'scout' }
+  | { type: 'skillPoint'; who: 'best' | 'worst' | 'random'; amount: number }
+  | { type: 'artifact' }
   | { type: 'temp'; label: string; games: number; modifiers: Modifier[] };
 
 export interface EventInfo {
@@ -574,7 +576,7 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots' | 'mascotOffered'> 
   }
   if (stop.kind === 'game' && stop.opponentId) {
     const elite = stop.elite === true;
-    const away = dress(league, teamOf(league, stop.opponentId), { bumpAll: tougher + (elite ? rules.eliteRatingBump : 0) });
+    const away = dress(league, teamOf(league, stop.opponentId), { bumpAll: tougher + (elite ? stat(f, 'eliteBump', rules.eliteRatingBump) : 0) });
     if (!away) return null;
     if (elite) return { home, away, level: clampLevel(level + rules.eliteLevelBonus), kind: 'game', title: `Elite game against ${away.name}`, powerups: loaded, elite: true };
     return { home, away, level, kind: 'game', title: `Game against ${away.name}`, powerups: loaded };
@@ -678,7 +680,9 @@ export function recordGame(f: Franchise, result: GameResult): GameOutcome {
 
 /** True if the game waiting is an ordinary map game, which can be simulated instead of played. */
 export function canSimulate(f: Franchise): boolean {
-  return matchup(f)?.kind === 'game';
+  const game = matchup(f);
+  // An elite game, like a boss or a playoff game, has to be played: its prize is for beating it yourself.
+  return game?.kind === 'game' && !game.elite;
 }
 
 /**
@@ -768,7 +772,7 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
   }
   if (game.elite) {
     // An elite win pays more and offers an artifact in place of the chance of a powerup.
-    const prize = pay(rules.winCurrency + rules.eliteCurrency);
+    const prize = pay(rules.winCurrency + Math.round(stat(f, 'eliteGain', rules.eliteCurrency)));
     season.offer = artifactOffer(f, rules.eliteArtifactChoices);
     if (season.offer.length > 0) {
       season.stage = 'reward';
@@ -903,6 +907,14 @@ function applyEffects(f: Franchise, effects: EventEffect[]): void {
       for (const p of chosen) season.bumps[p.id] = (season.bumps[p.id] ?? 0) + effect.amount;
     } else if (effect.type === 'scout') {
       season.scouted = true;
+    } else if (effect.type === 'skillPoint') {
+      // Points to spend on one dressed player, banked like a level-up.
+      const players = season.dressed.map((id) => playerOf(league, id)).sort((a, b) => b.overall - a.overall || a.id.localeCompare(b.id));
+      const who = effect.who === 'best' ? players[0] : effect.who === 'worst' ? players[players.length - 1] : roll(season, 'skill').pick(players);
+      if (who) who.points = (who.points ?? 0) + effect.amount;
+    } else if (effect.type === 'artifact') {
+      const gift = artifactOffer(f, 1)[0];
+      if (gift) f.artifacts.push(gift);
     } else {
       season.temps.push({ label: effect.label, games: effect.games, modifiers: effect.modifiers });
     }

@@ -676,7 +676,12 @@ describe('the mascot', () => {
     expect(swapped.setup.skaterTalents?.[4]).toEqual(spec.talents);
     expect(swapped.setup.skaterTalents?.[0]).toEqual(team.setup.skaterTalents?.[0]);
     // The cannon shot is simply always on, so it travels as one of his own modifiers.
-    expect(swapped.setup.skaterModifiers?.[4]).toEqual(talentRules.talents.find((x) => x.id === 'cannonShot')!.modifiers);
+    const alwaysOn = spec.talents.flatMap((id) => {
+      const talent = talentRules.talents.find((x) => x.id === id)! as { seconds?: number; modifiers?: unknown[] };
+      return talent.seconds === undefined && talent.modifiers ? talent.modifiers : [];
+    });
+    expect(swapped.setup.skaterModifiers?.[4]).toEqual(alwaysOn);
+    expect(alwaysOn.length).toBeGreaterThan(0);
     expect(team.players[4]!.id).not.toBe(MASCOT_ID);
     expect(team.setup.skaterTalents?.[4]).not.toEqual(spec.talents);
   });

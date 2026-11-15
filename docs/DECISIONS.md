@@ -188,6 +188,10 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | The club on the ice | The arena gives home ice (speed and recovery in home games), the training centre makes your team shoot and pass straighter, the promoter earns half what he did, and each prestige level gives a bigger sponsorship share and one free facility level. The off-season report lists what the club did for you. | Choices-matter round |
 | 2026-11-14 | Mascot control | When your mascot turns up you see it before the game, choose who sits for him, or send him home. This answers the design doc's open question on declining the drop-in. | Choices-matter round |
 | 2026-11-15 | The deke picks its direction | With a defender within 5 m the deke goes round him, to the side you push the stick or else the open side, and leaves him wrong-footed. It is bigger, lasts longer, comes back sooner, and no longer refuses when stamina is low. Chosen by the owner. | Deke report |
+| 2026-11-15 | Line shifts | The Lineup screen lets one line play more: it stays on until it is more tired and the other line comes off sooner. | Loose ends |
+| 2026-11-15 | Trades by position | An AI team pays more for a position it is short of, less for one it has plenty of, and never trades away its last two forwards or defencemen. | Loose ends |
+| 2026-11-15 | Elite games must be played | Found while checking the screens: an elite game could be simulated, which took the risk out of it. | Loose ends |
+| 2026-11-15 | More content | Three bosses, six powerups, five talents (two per kind of skater), eight events and six artifacts. | New content |
 
 ## Open
 

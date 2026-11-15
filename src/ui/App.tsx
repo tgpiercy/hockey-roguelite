@@ -624,7 +624,7 @@ export function App() {
           }
           help="A select · left/right and up/down move"
           items={[
-            tile('play', 'Play', game.kind === 'game' ? 'Take the ice' : game.kind === 'boss' ? 'Bosses must be played' : 'Playoff games must be played', playSeasonGame, { primary: true, wide: true }),
+            tile('play', 'Play', game.elite ? 'Elite games must be played' : game.kind === 'game' ? 'Take the ice' : game.kind === 'boss' ? 'Bosses must be played' : 'Playoff games must be played', playSeasonGame, { primary: true, wide: true }),
             ...(game.mascotOffered
               ? [
                   tile(

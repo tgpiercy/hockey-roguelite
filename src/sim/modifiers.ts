@@ -23,7 +23,7 @@ export interface PowerupSpec {
   /** The boost, for a timed powerup. */
   modifiers?: Modifier[];
   /** What an instant powerup does. */
-  effect?: 'restoreLineEnergy' | 'restoreBenchEnergy' | 'restoreAllEnergy';
+  effect?: 'restoreLineEnergy' | 'restoreBenchEnergy' | 'restoreAllEnergy' | 'fillHeat';
 }
 
 /** A boost that is running for a team. */

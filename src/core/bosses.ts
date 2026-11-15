@@ -21,6 +21,8 @@ export interface BossInfo {
   modifiers: Modifier[];
   /** Modifiers for its best shooter alone. */
   star: Modifier[];
+  /** Talent ids every one of its skaters carries. */
+  talents?: string[];
 }
 
 export function bossInfo(id: string): BossInfo {
@@ -76,6 +78,7 @@ export function buildBoss(league: League, bossId: string, region: number, seed: 
       modifiers: boss.modifiers,
       // The star's own trick goes to the best shooter on the first line.
       ...(boss.star.length > 0 ? { skaterModifiers: skaters.map((_, i) => (i === star ? boss.star : [])) } : {}),
+      ...(boss.talents && boss.talents.length > 0 ? { skaterTalents: skaters.map(() => [...(boss.talents as string[])]) } : {}),
       style: playStyle(boss.name),
     },
   };

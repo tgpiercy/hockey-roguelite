@@ -884,5 +884,415 @@
         ]
       }
     ]
+  },
+  {
+    "id": "coachs-clinic",
+    "title": "A coach's clinic",
+    "text": "A famous old coach is running a two-day clinic nearby. There is room for one of yours, at a price.",
+    "choices": [
+      {
+        "label": "Send your best player (40 Pucks)",
+        "outcomes": [
+          {
+            "result": "He comes back with a notebook full of ideas: two skill points to spend on him after the season.",
+            "effects": [
+              {
+                "type": "currency",
+                "amount": -40
+              },
+              {
+                "type": "skillPoint",
+                "who": "best",
+                "amount": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Send your weakest (20 Pucks)",
+        "outcomes": [
+          {
+            "result": "The kid listens to every word: two skill points for him.",
+            "effects": [
+              {
+                "type": "currency",
+                "amount": -20
+              },
+              {
+                "type": "skillPoint",
+                "who": "worst",
+                "amount": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Keep everyone at practice",
+        "outcomes": [
+          {
+            "result": "Business as usual.",
+            "effects": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "collectors-offer",
+    "title": "The collector",
+    "text": "A collector of hockey oddities will part with something special, if your team will play a bruising exhibition against his.",
+    "choices": [
+      {
+        "label": "Play his game",
+        "outcomes": [
+          {
+            "result": "You leave with an artifact, and with bruises: that counts as a strike.",
+            "effects": [
+              {
+                "type": "artifact"
+              },
+              {
+                "type": "strike",
+                "amount": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Thank him and leave",
+        "outcomes": [
+          {
+            "result": "Nothing ventured.",
+            "effects": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "double-header",
+    "title": "A second game tonight",
+    "text": "A promoter offers good money for an extra game tonight, on top of the one already played.",
+    "choices": [
+      {
+        "label": "Play it",
+        "outcomes": [
+          {
+            "result": "The gate is good. Your skaters tire faster for two games.",
+            "effects": [
+              {
+                "type": "currency",
+                "amount": 45
+              },
+              {
+                "type": "temp",
+                "label": "Double-header legs",
+                "games": 2,
+                "modifiers": [
+                  {
+                    "stat": "drainScale",
+                    "op": "mul",
+                    "value": 1.3
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Rest",
+        "outcomes": [
+          {
+            "result": "An early night. The bench recovers faster next game.",
+            "effects": [
+              {
+                "type": "temp",
+                "label": "Well rested",
+                "games": 1,
+                "modifiers": [
+                  {
+                    "stat": "recoverScale",
+                    "op": "mul",
+                    "value": 1.25
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "equipment-truck",
+    "title": "The equipment truck",
+    "text": "A rival's equipment manager will pay well for one of your powerups, no questions asked.",
+    "choices": [
+      {
+        "label": "Sell one",
+        "outcomes": [
+          {
+            "result": "He picks one out of the bag and pays up.",
+            "effects": [
+              {
+                "type": "losePowerup"
+              },
+              {
+                "type": "currency",
+                "amount": 40
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Keep the bag closed",
+        "outcomes": [
+          {
+            "result": "He shrugs and moves on.",
+            "effects": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "rookie-callup",
+    "title": "The kid wants a chance",
+    "text": "A youngster on your team asks for a bigger part. Your best player would have to give up some of his.",
+    "choices": [
+      {
+        "label": "Give him the chance",
+        "outcomes": [
+          {
+            "result": "The kid grows into it; your star sulks a little.",
+            "effects": [
+              {
+                "type": "bump",
+                "who": "worst",
+                "amount": 5
+              },
+              {
+                "type": "bump",
+                "who": "best",
+                "amount": -2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Back your star",
+        "outcomes": [
+          {
+            "result": "Your star repays you; the kid goes quiet.",
+            "effects": [
+              {
+                "type": "bump",
+                "who": "best",
+                "amount": 2
+              },
+              {
+                "type": "bump",
+                "who": "worst",
+                "amount": -1
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fan-fest",
+    "title": "Fan fest",
+    "text": "The town wants the team at its winter festival.",
+    "choices": [
+      {
+        "label": "Put on a show (25 Pucks)",
+        "outcomes": [
+          {
+            "result": "The town falls in love with the team: a step quicker for three games.",
+            "effects": [
+              {
+                "type": "currency",
+                "amount": -25
+              },
+              {
+                "type": "temp",
+                "label": "Crowd lift",
+                "games": 3,
+                "modifiers": [
+                  {
+                    "stat": "topSpeedScale",
+                    "op": "mul",
+                    "value": 1.02
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Take the appearance fee",
+        "outcomes": [
+          {
+            "result": "Easy money and a long day on your feet: skaters tire faster next game.",
+            "effects": [
+              {
+                "type": "currency",
+                "amount": 20
+              },
+              {
+                "type": "temp",
+                "label": "Long day",
+                "games": 1,
+                "modifiers": [
+                  {
+                    "stat": "drainScale",
+                    "op": "mul",
+                    "value": 1.2
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "skate-sharpener",
+    "title": "The skate sharpener",
+    "text": "The best skate sharpener in the region has an hour free. Your own equipment man says he can do it just as well.",
+    "choices": [
+      {
+        "label": "Pay the expert (30 Pucks)",
+        "outcomes": [
+          {
+            "result": "Edges like razors: quicker off the mark for two games.",
+            "effects": [
+              {
+                "type": "currency",
+                "amount": -30
+              },
+              {
+                "type": "temp",
+                "label": "Fresh edges",
+                "games": 2,
+                "modifiers": [
+                  {
+                    "stat": "accelerationScale",
+                    "op": "mul",
+                    "value": 1.08
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Let your man do it",
+        "outcomes": [
+          {
+            "weight": 1,
+            "result": "He does a fine job.",
+            "effects": [
+              {
+                "type": "temp",
+                "label": "Fresh edges",
+                "games": 2,
+                "modifiers": [
+                  {
+                    "stat": "accelerationScale",
+                    "op": "mul",
+                    "value": 1.08
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "weight": 1,
+            "result": "He does not do a fine job: slow off the mark next game.",
+            "effects": [
+              {
+                "type": "temp",
+                "label": "Bad edges",
+                "games": 1,
+                "modifiers": [
+                  {
+                    "stat": "accelerationScale",
+                    "op": "mul",
+                    "value": 0.93
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "press-conference",
+    "title": "The press conference",
+    "text": "A reporter asks whether your team can really win it all.",
+    "choices": [
+      {
+        "label": "Guarantee it",
+        "outcomes": [
+          {
+            "result": "The quote sells papers and the sponsors love it. The other team pins it to the wall: your shots stray more next game under the pressure.",
+            "effects": [
+              {
+                "type": "currency",
+                "amount": 30
+              },
+              {
+                "type": "temp",
+                "label": "Under pressure",
+                "games": 1,
+                "modifiers": [
+                  {
+                    "stat": "accuracy",
+                    "op": "add",
+                    "value": -0.06
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "One game at a time",
+        "outcomes": [
+          {
+            "result": "Dull, and calming: tighter passing next game.",
+            "effects": [
+              {
+                "type": "temp",
+                "label": "Level heads",
+                "games": 1,
+                "modifiers": [
+                  {
+                    "stat": "passSpreadDegrees",
+                    "op": "mul",
+                    "value": 0.8
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
   }
 ]

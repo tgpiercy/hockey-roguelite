@@ -69,7 +69,8 @@ describe('player kinds', () => {
     for (const position of ['F', 'G'] as const) {
       for (const kind of kindsFor(position)) {
         if (kind.rating !== null) expect(Object.keys(position === 'G' ? { reflexes: 0, positioning: 0, reboundControl: 0, stamina: 0 } : even)).toContain(kind.rating);
-        if (kind.talent !== null) expect(talents.talents.map((x) => x.id)).toContain(kind.talent);
+        for (const id of kind.talents) expect(talents.talents.map((x) => x.id)).toContain(id);
+        expect(kind.talents.length).toBe(position === 'G' ? 0 : 2);
         expect(kind.tag.length).toBeLessThanOrEqual(3);
       }
     }
