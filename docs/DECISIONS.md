@@ -196,6 +196,8 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-15 | Rivals, news, awards, trophy room | Rivals come from the playoffs and from losing twice to a team; a news page, four league-wide awards, and a record of every season. Built with optional save fields in place of the planned save version 7: nothing in an old save needed changing. | League round |
 | 2026-11-15 | Commentary | A line of text for big plays, and the same line spoken by the device's voice if chosen. The default is text only. | League round |
 | 2026-11-15 | Music | A theme on the menus and short pieces for the opening, goals, the end of a period and of a game, pack openings and a championship. Nothing continuous during play. Composed without being heard. | League round |
+| 2026-11-15 | Two players | A second Bluetooth controller joins by pressing a button on the menus. Co-op (both on your team, each with his own skater, red ring and blue ring) in Exhibition and in any season game; versus (a team each) in Exhibition only. In co-op, switch takes the free skater and never your partner's; a pass to your partner stays with him. Either player can pause, change lines or pull the goalie; powerups and the on-screen buttons are player one's. Chosen by the owner. | Two-player round |
+| 2026-11-15 | Check-up findings | Playing a whole season in the test browser found the goal call hidden behind the goal banner, the League screens unreachable in the off-season, and small wording faults; all fixed. | Check-up round |
 
 ## Open
 

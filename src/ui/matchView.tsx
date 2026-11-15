@@ -65,13 +65,15 @@ export interface MatchOptions {
   userAtHome?: boolean;
   /** What giving the game up costs, shown before the player confirms. Left out for a game that does not count. */
   forfeitNote?: string;
+  /** A second player: 0 puts him on your team (co-op), 1 on the other team (versus). Left out, one player. */
+  second?: 0 | 1;
 }
 
 /**
  * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true }: MatchOptions, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
   const shift = tuningStore.tuning.game.opponentDifficulty - seasonRules.defaultDifficulty;
   const opponentLevel = level === undefined ? null : Math.max(0, Math.min(1, level + shift));
@@ -161,6 +163,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       seed: String(Date.now()),
       teams: [home.setup, away.setup],
       names: [home.name, away.name],
+      ...(second !== undefined ? { second } : {}),
       levels: [null, opponentLevel],
       powerups: powerups ?? [],
       ...(homeColour ? { homeColour } : {}),

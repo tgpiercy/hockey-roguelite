@@ -1,3 +1,4 @@
+import { dropSecond, openJoining, secondJoined } from '../game/gamepad';
 import { music } from '../game/music';
 import standingsRules from '../data/standings.json';
 import { clubRecords, leagueNews } from '../core/chronicle';
@@ -108,7 +109,7 @@ type Screen =
   | { name: 'jersey' }
   | { name: 'saves' }
   | { name: 'padTest' }
-  | { name: 'padSetup' }
+  | { name: 'padSetup'; player?: 0 | 1 }
   | { name: 'confirmAbandon' }
   | { name: 'confirmNew' };
 
@@ -179,6 +180,16 @@ export function App() {
   const [faPosition, setFaPosition] = useState<PositionFilter>('all');
   const [gearFilter, setGearFilter] = useState(0);
   const [playing, setPlaying] = useState(false);
+  /** Two players: whether a second controller has joined, and how the two will play. */
+  const [joined, setJoined] = useState(false);
+  const [together, setTogether] = useState<'coop' | 'versus'>('coop');
+  useEffect(() => {
+    // A second controller may join on the menus; during a game the seats are fixed.
+    openJoining(!playing);
+    if (playing) return;
+    const timer = setInterval(() => setJoined(secondJoined()), 300);
+    return () => clearInterval(timer);
+  }, [playing]);
   // The hub group the player came through, so B from a screen returns there and not to the top.
   const [group, setGroup] = useState<Group | null>(null);
   const [rewards, setRewards] = useState<GameRewards | null>(null);
@@ -348,7 +359,8 @@ export function App() {
     if (!game) return;
     setPlaying(true);
     const homeColour = jerseyColour(f);
-    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: homeGame(f, season.gamesPlayed + 1), forfeitNote: 'Giving the game up counts as a loss, whatever the score.' }, (result) => {
+    // A second player who has joined plays on your team in a season game.
+    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: homeGame(f, season.gamesPlayed + 1), forfeitNote: 'Giving the game up counts as a loss, whatever the score.', ...(joined ? { second: 0 as const } : {}) }, (result) => {
       showOutcome(recordGame(f, result));
       // The pause menu may have changed the sound or the controls.
       setPrefs(loadPrefs());
@@ -666,6 +678,14 @@ export function App() {
           }
           help="A select · left/right and up/down move"
           items={[
+            ...(joined
+              ? [
+                  tile('together', 'Two players: co-op', 'Player 2 is on your team for this game', () => {
+                    dropSecond();
+                    setJoined(false);
+                  }, { wide: true, icon: 'team', detail: 'A second controller has joined: both of you play for your team, each with his own skater (yours has the red ring, his the blue). Press here to send player 2 away and play alone.' }),
+                ]
+              : []),
             tile('play', 'Play', game.elite ? 'Elite games must be played' : game.kind === 'game' ? 'Take the ice' : game.kind === 'boss' ? 'Bosses must be played' : 'Playoff games must be played', playSeasonGame, { primary: true, wide: true }),
             ...(game.mascotOffered
               ? [
@@ -2116,6 +2136,11 @@ export function App() {
             icon: 'detail',
             detail: 'If a button does the wrong thing, press each one in turn and the game learns your controller. About 20 seconds.',
           }),
+          tile('padSetup2', 'Set up controller: player 2', !joined ? 'Press a button on the second controller' : hasCustomPadMap(1) ? 'Set up by him' : 'Standard layout', () => go({ name: 'padSetup', player: 1 }), {
+            icon: 'detail',
+            lock: joined ? undefined : 'Press any button on a second controller to join as player 2 first.',
+            detail: "If player 2's buttons do the wrong thing, press each one in turn on his controller.",
+          }),
           tile('padTest', 'Controller test', 'See what the game reads', () => go({ name: 'padTest' }), {
             icon: 'detail',
             detail: 'Shows which controller buttons and on-screen buttons the game sees as you press them.',
@@ -2536,9 +2561,29 @@ export function App() {
         key={screenKey}
         remember="exhibition"
         title="Exhibition game: choose an opponent"
-        header={`Your team averages ${mine} overall. Weakest opponents first. Exhibition games do not count.`}
+        header={`Your team averages ${mine} overall. Weakest opponents first. Exhibition games do not count. ${joined ? (together === 'coop' ? 'Two players, on the same team.' : 'Two players, head to head: player 2 takes the team you choose.') : 'For two players, press a button on a second controller.'}`}
         onBack={home}
-        items={opponents.map((opponent) => {
+        items={[
+          ...(joined
+            ? [
+                {
+                  key: 'together',
+                  label: `Two players: ${together === 'coop' ? 'Co-op (same team)' : 'Versus (head to head)'}`,
+                  detail: 'Press to change. Co-op: both of you play for your team. Versus: player 2 plays for the team you pick below.',
+                  onSelect: () => setTogether(together === 'coop' ? 'versus' : 'coop'),
+                },
+                {
+                  key: 'leave',
+                  label: 'Player 2: leave',
+                  detail: 'Back to one player. The second controller can join again by pressing a button.',
+                  onSelect: () => {
+                    dropSecond();
+                    setJoined(false);
+                  },
+                },
+              ]
+            : []),
+          ...opponents.map((opponent) => {
           const best = rosterOf(league, opponent)[0];
           return {
             key: opponent.id,
@@ -2560,7 +2605,7 @@ export function App() {
               if (!homeTeam || !away) return;
               setPlaying(true);
               const homeColour = jerseyColour(f);
-              playMatch({ home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour) }, (result) => {
+              playMatch({ home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), ...(joined ? { second: together === 'coop' ? (0 as const) : (1 as const) } : {}) }, (result) => {
                 const verdict = result.winner === 0 ? 'won' : result.winner === 1 ? 'lost' : 'tied';
                 setScreen({ name: 'home' });
                 setMessage(result.forfeit ? `Exhibition against ${opponent.name} ended early.` : `Exhibition: ${verdict} ${result.score[0]}-${result.score[1]} against ${opponent.name}.`);
@@ -2569,7 +2614,8 @@ export function App() {
               });
             },
           };
-        })}
+          }),
+        ]}
       />
     );
   }
@@ -2686,6 +2732,7 @@ export function App() {
   if (screen.name === 'padSetup') {
     return (
       <PadSetup
+        player={screen.player ?? 0}
         onDone={(text) => {
           go({ name: 'settings' });
           if (text) setMessage(text);

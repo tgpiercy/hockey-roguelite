@@ -89,6 +89,13 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - All randomness in a season comes from its seed and a roll counter, so a season replays exactly.
 - `tests/seasonRun.test.ts` plays whole seasons automatically with real simulated games; it prints how each ended.
 
+## How two players fit together
+
+- The world holds up to two humans: `world.human` (player one) and `world.human2` (co-op on team 0, or versus on team 1; `WorldOptions.second`). `step(world, input, tuning, input2)` takes one input each. Never ask "is this the human's skater" through `world.human` directly: use `humanOf(world, playerId)`, `humansOn(world, team)`, `partnerOf` and `teamInput` in `src/sim/team.ts`.
+- Playing alone, control follows the puck as it always has. With a co-op partner each keeps his own skater: `updateControl` never hands you your partner's, `givePuck` pulls nobody onto the free skater, and a pass moves only the passer (and only to the free skater). Either may call a line change or pull the goalie; powerups are player one's.
+- Controllers: `assignSeats` in `src/game/gamepad.ts` says who has which (`readGamepad(player)`). A second controller joins while joining is open (on the menus: `openJoining`), and then both seats are fixed. `padMap(player)` keeps a layout each (`hockey-padmap`, `hockey-padmap-2`). `InputReader(1)` is player two: controller only, no keyboard or touch.
+- `RinkScene` takes `second` and draws player two's ring in `reticle.colour2`; `playMatch({ second })`. In `App.tsx`, `joined` and `together` hold whether a second controller has joined and the mode; a season game with a second player is co-op and counts as any other game.
+
 ## How the league fits together
 
 - `src/core/standings.ts`: the table (`Standings`, `Row`, `points`, `ranked`), a round of AI games (`playRound`, settled from strength), `creditGoals` (who scored), `playoffField` and `settleSeries`. `season.leagueRound` runs after each of your map games: your result, your opponent's, then everyone else's. The table, the scoring and the last round's results live on the season (`standings`, `scoring`, `lastRound`: all optional, so a season begun earlier still loads and finishes by the old rule).

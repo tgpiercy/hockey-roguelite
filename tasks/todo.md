@@ -541,3 +541,20 @@ Built, deployed and checked with a simulated controller.
 - Changed from the plan: no save version 7; every new field is optional. AI trades and signings are not in the news page (the off-season report already lists them); there is no "player of the week" (the scoring leader is named instead); the map shows the standing on the League card, not as a strip.
 - Found and fixed while checking: "1 assists".
 - Risks: the music may simply not be to taste (one switch turns it off); the voice varies by phone; you will tend to top the table while winning stays this easy.
+
+# Check-up round, then two players
+
+- [x] Part A: a whole season played in the test browser; faults fixed
+- [x] The simulation takes a second human (co-op or versus)
+- [x] Two controllers, a layout each, the second ring
+- [x] Joining on the menus; co-op in Exhibition and the season; versus in Exhibition
+- [ ] Try it with two real controllers (owner)
+
+## Review (check-up and two players)
+
+- Type check, 1072 tests (19 new) and the build pass. One-player and AI games are identical to the digit before and after.
+- Part A, seen on a fresh franchise played through to a championship and into the off-season: the map with elite games, training choices, an artifact pick, the playoff screens with seeding, the season summary, the off-season report with awards and next season's rivals, contract lengths priced by age, the skill-point screens, the free-agent list, the trophy room, the release screen with its dead-cap warning, and on the ice a goal with the banner, the call and the goal music. Fixed: the goal call was hidden during the banner; the League card was missing in the off-season; "with 6 better overall"; "1 championships".
+- Part A, still not seen: the three new bosses' tells, the Hammers flash and the full-press banner (no way to stage them quickly), the mascot choice (he did not drop in), a trade refused for position, prestige's free facility level, a rival game card on the map, the club lines in a report (nothing was built).
+- Observation, not changed: by the time you reach the free agents in the off-season the AI teams have already signed the best of them, because the league moves as soon as your last contract is decided.
+- Two players, seen with two simulated controllers: the second controller joining on the Exhibition screen, the mode tile, a co-op game with both skaters moving independently under a red and a blue ring, a pause and resume from the second controller, and a versus game in which the second player won the faceoff for the other team.
+- Not checked: two real controllers on a phone; the pause menu can only be worked by player one (player two can pause and resume with his Menu button); hints and the stamina bars are player one's only.

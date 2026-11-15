@@ -41,7 +41,51 @@ export function pickPad(pads: SeenPad[], current: number | null): SeenPad | null
   return mine ?? pads.find((p) => p.pad.mapping === 'standard') ?? pads[0]!;
 }
 
-let current: number | null = null;
+/** Which controller each player has, by the slot the browser gave it. */
+export interface PadSeats {
+  first: number | null;
+  second: number | null;
+}
+
+/**
+ * Who has which controller. Player one is the controller in use, as `pickPad` chooses. A second player
+ * joins when another controller is used while joining is open and player one's is still connected; from
+ * then on both seats are fixed, so neither can take the other's. If a controller is unplugged its seat
+ * empties, and player two moves up if it was player one's.
+ */
+export function assignSeats(pads: SeenPad[], seats: PadSeats, joinOpen: boolean): PadSeats {
+  const has = (index: number | null): boolean => index !== null && pads.some((p) => p.index === index);
+  let { first, second } = seats;
+  if (!has(second)) second = null;
+  if (!has(first)) {
+    first = second;
+    second = null;
+  }
+  if (second !== null) return { first, second };
+  const other = pads.find((p) => p.index !== first && inUse(p.pad));
+  if (first !== null && other && joinOpen) return { first, second: other.index };
+  const picked = pickPad(pads, first);
+  return { first: picked ? picked.index : null, second: null };
+}
+
+let seats: PadSeats = { first: null, second: null };
+let joinOpen = false;
+
+/** Lets a second controller join as player two (on the menus), or stops it (during a one-player game). */
+export function openJoining(open: boolean): void {
+  joinOpen = open;
+}
+
+/** True while a second player has a controller. */
+export function secondJoined(): boolean {
+  seats = assignSeats(seenPads(), seats, joinOpen);
+  return seats.second !== null;
+}
+
+/** Player two leaves: his controller is free again. */
+export function dropSecond(): void {
+  seats = { first: seats.first, second: null };
+}
 
 /** Every connected controller, as the browser lists them. */
 export function seenPads(): SeenPad[] {
@@ -69,9 +113,10 @@ export function seenPads(): SeenPad[] {
   return seen;
 }
 
-/** Reads the controller in use, or null when there is none yet. */
-export function readGamepad(): GamepadSnapshot | null {
-  const picked = pickPad(seenPads(), current);
-  current = picked ? picked.index : null;
-  return picked ? picked.pad : null;
+/** Reads a player's controller (player one's by default), or null when he has none. */
+export function readGamepad(player: 0 | 1 = 0): GamepadSnapshot | null {
+  const pads = seenPads();
+  seats = assignSeats(pads, seats, joinOpen);
+  const index = player === 0 ? seats.first : seats.second;
+  return pads.find((p) => p.index === index)?.pad ?? null;
 }

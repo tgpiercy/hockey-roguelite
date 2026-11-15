@@ -671,6 +671,17 @@ AI games are settled from team strength by the same curve as Simulate. Over 40 r
 
 League health (6 seeds, 6 years) is unchanged: the table and bracket do not change who is strong, only whom you meet.
 
+## Two players (2026-11-15)
+
+No tuning numbers changed. The proof that a one-player game is untouched: the same series run before and after the change gave identical results.
+
+| Series (level 0.5, equal teams) | Before | After |
+| --- | --- | --- |
+| AI against AI, 200 games | 4.08 and 4.20 goals, save percentage .778 | the same |
+| Scripted player, 100 games | 84 wins, 7.59 to 3.81 goals | the same |
+
+Co-op is two people against the same AI, so it is easier than playing alone; nothing was retuned for it.
+
 ## Change log
 
 | Date | Value | From | To | Why |

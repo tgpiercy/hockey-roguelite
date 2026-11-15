@@ -281,6 +281,7 @@
   },
   "reticle": {
     "colour": "#ff2436",
+    "colour2": "#2f8bff",
     "edge": "#ffffff",
     "ringWidth": 0.3,
     "minRingPixels": 3,

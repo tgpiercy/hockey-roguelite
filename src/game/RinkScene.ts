@@ -14,6 +14,7 @@ import { goalLineX, nets } from '../sim/rink';
 import { chargeFraction } from '../sim/shot';
 import type { Tuning } from '../sim/tuning';
 import type { SimEvent, World } from '../sim/types';
+import { NO_INPUT } from '../sim/types';
 import { createGame, step, STEP_SECONDS, type TeamSetup } from '../sim/world';
 import { Crowd } from './drawArena';
 import { drawCrest } from './drawCrest';
@@ -42,6 +43,8 @@ export interface RinkSceneOptions {
   teams: [TeamSetup, TeamSetup];
   /** What to call each team on the scoreboard. */
   names: [string, string];
+  /** A second player with a controller of his own: on team 0 (co-op) or team 1 (versus). Left out, one player. */
+  second?: 0 | 1;
   /** Each team's dressed players' names, in order: six skaters, then the goalie. For the commentary. */
   playerNames?: [string[], string[]];
   /** Whether commentary lines are wanted now; left out, there is none. */
@@ -111,6 +114,7 @@ export class RinkScene extends Phaser.Scene {
   private reported = false;
   private done = false;
   private passWasDown = false;
+  private reader2: InputReader | null = null;
   /** The commentary: who makes the calls, the line on screen and when it comes down. */
   private commentator!: Commentator;
   private callText!: Phaser.GameObjects.Text;
@@ -177,7 +181,9 @@ export class RinkScene extends Phaser.Scene {
       teams: this.options.teams,
       levels: this.options.levels,
       powerups: this.options.powerups,
+      ...(this.options.second !== undefined ? { second: this.options.second } : {}),
     });
+    if (this.options.second !== undefined) this.reader2 = new InputReader(1);
     // Layers, bottom to top: the ice; shadows, rings and sticks; the players; the puck and sparks; labels; the scoreboard.
     this.g.setDepth(DEPTH.ground);
     this.sprites = this.world.players.map(() => this.add.image(0, 0, '__DEFAULT').setVisible(false).setDepth(DEPTH.players));
@@ -199,11 +205,21 @@ export class RinkScene extends Phaser.Scene {
     this.callText = this.add.text(0, 0, '', { ...heading, color: c.text }).setOrigin(0.5, 0).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
     this.commentator = new Commentator(this.options.seed);
     for (const item of [this.hud, ...this.nameTexts, ...this.scoreTexts, this.clockTextObject, ...this.barLabels, this.bigText, this.powerText]) item.setDepth(DEPTH.hud);
-    this.events.once('destroy', () => this.reader.dispose());
+    this.events.once('destroy', () => {
+      this.reader.dispose();
+      this.reader2?.dispose();
+    });
   }
 
   override update(time: number, deltaMs: number): void {
     const controls = this.reader.read(time);
+    // A second player: his controller's frame, and his pause button counts too. If his controller goes, the AI takes his skater.
+    const controls2 = this.reader2 ? this.reader2.read(time) : null;
+    if (controls2) {
+      if (controls2.menuPressed) controls.menuPressed = true;
+      if (!controls2.hasPad && this.world.human2) this.world.human2 = null;
+    }
+    const frame2 = controls2 && this.world.human2 ? controls2.frame : NO_INPUT;
     this.options.onControls(controls);
     if (this.done) return;
     if (controls.debugPressed) this.showDebug = !this.showDebug;
@@ -253,7 +269,7 @@ export class RinkScene extends Phaser.Scene {
         this.slow = Math.max(0, this.slow - real);
         while (this.leftover >= STEP_SECONDS) {
           const controlled = this.world.human ? this.world.human.controlled : -1;
-          const stepped = step(this.world, controls.frame, t);
+          const stepped = step(this.world, controls.frame, t, frame2);
           happened.push(...stepped);
           for (const e of stepped) {
             const id = hintDone(e, controlled);
@@ -651,14 +667,15 @@ export class RinkScene extends Phaser.Scene {
         this.top.strokeCircle(x, y - unit * 1.6, unit * 2.4);
       }
 
-      if (p === controlled) {
-        // The ring lies flat on the ice under him, with a tick pointing the way he truly faces.
+      const ringColour = p === controlled ? RET.colour : world.human2 && world.human2.controlled === p.id ? RET.colour2 : null;
+      if (ringColour !== null) {
+        // The ring lies flat on the ice under him, with a tick pointing the way he truly faces. Player two's is blue.
         const ring = base * look.controlRingScale;
         const width = Math.max(RET.minRingPixels, unit * RET.ringWidth);
         const tx = x + Math.cos(p.facing) * ring;
         const ty = y + Math.sin(p.facing) * ring * FIG.ringSquash;
         // A white edge first, then the bright ring on it, so it shows on the ice, on a red line and under a red team.
-        for (const [w, hex] of [[width + RET.edgePixels * 2, RET.edge], [width, RET.colour]] as const) {
+        for (const [w, hex] of [[width + RET.edgePixels * 2, RET.edge], [width, ringColour]] as const) {
           g.lineStyle(w, colour(hex));
           g.strokeEllipse(x, y, ring * 2, ring * 2 * FIG.ringSquash);
           g.lineBetween(tx, ty, tx + Math.cos(p.facing) * ring * FIG.ringTick, ty + Math.sin(p.facing) * ring * FIG.ringTick * FIG.ringSquash);

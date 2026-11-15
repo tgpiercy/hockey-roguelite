@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import controls from '../src/data/controls.json';
-import { inUse, pickPad, type GamepadSnapshot } from '../src/game/gamepad';
+import { assignSeats, inUse, pickPad, type GamepadSnapshot } from '../src/game/gamepad';
 import { bindingDown, defaultPadMap, describeBinding, detectPress, PAD_ACTIONS, parsePadMap, sameBinding, type Binding } from '../src/game/padMap';
 
 /** A controller with nothing pressed: 17 buttons and 6 axes, the last two resting at -1 like triggers sent as axes. */
@@ -106,6 +106,39 @@ describe('which controller the game listens to', () => {
 
   it('falls back when the one it had is unplugged', () => {
     expect(pickPad([{ index: 0, pad: pad() }], 3)?.index).toBe(0);
+  });
+});
+
+describe('two players, two controllers', () => {
+  const seen = (index: number, pressed: number[] = []) => ({ index, pad: pad(pressed) });
+
+  it('the first controller used is player one; a second joins when it is used and joining is open', () => {
+    let seats = assignSeats([seen(0, [0]), seen(1)], { first: null, second: null }, true);
+    expect(seats).toEqual({ first: 0, second: null });
+    seats = assignSeats([seen(0), seen(1, [2])], seats, true);
+    expect(seats).toEqual({ first: 0, second: 1 });
+  });
+
+  it('with joining closed a second controller does not join: it takes over as the one in use, as before', () => {
+    const seats = assignSeats([seen(0), seen(1, [2])], { first: 0, second: null }, false);
+    expect(seats).toEqual({ first: 1, second: null });
+  });
+
+  it('once both are seated neither can take the seat of the other, whoever is pressing', () => {
+    const both = { first: 0, second: 1 };
+    expect(assignSeats([seen(0), seen(1, [1, 2, 3])], both, true)).toEqual(both);
+    expect(assignSeats([seen(0, [0]), seen(1)], both, false)).toEqual(both);
+  });
+
+  it('unplugging player two empties his seat; unplugging player one moves player two up', () => {
+    expect(assignSeats([seen(0)], { first: 0, second: 1 }, true)).toEqual({ first: 0, second: null });
+    expect(assignSeats([seen(1)], { first: 0, second: 1 }, true)).toEqual({ first: 1, second: null });
+    expect(assignSeats([], { first: 0, second: 1 }, true)).toEqual({ first: null, second: null });
+  });
+
+  it('a device nobody touches never joins', () => {
+    const seats = assignSeats([seen(0, [0]), seen(1)], { first: 0, second: null }, true);
+    expect(seats.second).toBeNull();
   });
 });
 

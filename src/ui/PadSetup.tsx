@@ -26,7 +26,7 @@ const PROMPTS: Record<PadAction, { name: string; note: string }> = {
  * the controller itself and takes no menu input while it runs, because the layout it is fixing may be the
  * reason the menus cannot be worked. The buttons on screen can be tapped or clicked.
  */
-export function PadSetup({ onDone }: { onDone: (message: string) => void }) {
+export function PadSetup({ onDone, player = 0 }: { onDone: (message: string) => void; player?: 0 | 1 }) {
   const [step, setStep] = useState(0);
   const [note, setNote] = useState('');
   const [seen, setSeen] = useState(false);
@@ -39,14 +39,14 @@ export function PadSetup({ onDone }: { onDone: (message: string) => void }) {
 
   const finish = (): void => {
     const map: PadMap = { ...defaultPadMap(), ...chosen.current };
-    savePadMap(map);
-    onDone('Controller set up. You can redo it any time from Settings.');
+    savePadMap(map, player);
+    onDone(player === 0 ? 'Controller set up. You can redo it any time from Settings.' : "Player 2's controller is set up.");
   };
 
   useEffect(() => {
     menuInput.stop();
     const timer = setInterval(() => {
-      const pad = readGamepad();
+      const pad = readGamepad(player);
       setSeen(pad !== null);
       if (!pad) return;
       if (!baseline.current) baseline.current = pad;
@@ -122,7 +122,7 @@ export function PadSetup({ onDone }: { onDone: (message: string) => void }) {
         <button
           type="button"
           onClick={() => {
-            savePadMap(null);
+            savePadMap(null, player);
             onDone('Controller back to the standard layout.');
           }}
         >

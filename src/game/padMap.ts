@@ -121,37 +121,40 @@ export function parsePadMap(raw: string | null): PadMap | null {
   }
 }
 
-const KEY = 'hockey-padmap';
-let cached: PadMap | undefined;
-let custom = false;
+/** Each player's layout is stored on its own: player two's controller may be a different make. */
+const KEYS = ['hockey-padmap', 'hockey-padmap-2'] as const;
+const cached: (PadMap | undefined)[] = [undefined, undefined];
+const custom = [false, false];
 
-/** The layout in use on this device: the player's own if he has set one up, otherwise the standard one. */
-export function padMap(): PadMap {
-  if (cached) return cached;
+/** The layout a player uses on this device: his own if he has set one up, otherwise the standard one. */
+export function padMap(player: 0 | 1 = 0): PadMap {
+  const have = cached[player];
+  if (have) return have;
   let stored: PadMap | null = null;
   try {
-    stored = parsePadMap(localStorage.getItem(KEY));
+    stored = parsePadMap(localStorage.getItem(KEYS[player]));
   } catch {
     stored = null;
   }
-  custom = stored !== null;
-  cached = stored ?? defaultPadMap();
-  return cached;
+  custom[player] = stored !== null;
+  const map = stored ?? defaultPadMap();
+  cached[player] = map;
+  return map;
 }
 
 /** True if the player has set up his own layout on this device. */
-export function hasCustomPadMap(): boolean {
-  padMap();
-  return custom;
+export function hasCustomPadMap(player: 0 | 1 = 0): boolean {
+  padMap(player);
+  return custom[player] as boolean;
 }
 
-/** Stores the player's layout on this device and starts using it at once; null goes back to the standard one. */
-export function savePadMap(map: PadMap | null): void {
-  cached = map ?? defaultPadMap();
-  custom = map !== null;
+/** Stores a player's layout on this device and starts using it at once; null goes back to the standard one. */
+export function savePadMap(map: PadMap | null, player: 0 | 1 = 0): void {
+  cached[player] = map ?? defaultPadMap();
+  custom[player] = map !== null;
   try {
-    if (map) localStorage.setItem(KEY, JSON.stringify(map));
-    else localStorage.removeItem(KEY);
+    if (map) localStorage.setItem(KEYS[player], JSON.stringify(map));
+    else localStorage.removeItem(KEYS[player]);
   } catch {
     // Storage is unavailable: the layout lasts until the page is closed.
   }

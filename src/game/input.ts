@@ -43,7 +43,9 @@ export class InputReader {
   private readonly onKeyUp = (e: KeyboardEvent): void => void this.keysDown.delete(e.code);
   private readonly onBlur = (): void => this.keysDown.clear();
 
-  constructor() {
+  /** Player one (0) also has the keyboard and the on-screen buttons; player two (1) has his controller only. */
+  constructor(private readonly player: 0 | 1 = 0) {
+    if (player !== 0) return;
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
     window.addEventListener('blur', this.onBlur);
@@ -61,9 +63,9 @@ export class InputReader {
   }
 
   read(nowMs: number): Controls {
-    const pad = readGamepad();
+    const pad = readGamepad(this.player);
     // Each action is read through the layout in use: the standard one, or the player's own from the setup screen.
-    const map = padMap();
+    const map = padMap(this.player);
     const down = (action: PadAction): boolean => bindingDown(pad, map[action]);
 
     // Skating: the stick if it is tilted, otherwise the keyboard.
@@ -87,9 +89,8 @@ export class InputReader {
 
     const [navX, navY] = this.readNav(pad, nowMs);
 
-    // The on-screen controls count as well: whichever stick is tilted further, and any button held on either.
-    const frame = mergeFrames(
-      {
+    // The on-screen controls count as well (for player one): whichever stick is tilted further, and any button held on either.
+    const own: InputFrame = {
         moveX: move.x,
         moveY: move.y,
         sprint: down('sprint') || this.key(controls.keys.sprint),
@@ -101,9 +102,8 @@ export class InputReader {
         powerupA: down('powerupA') || this.key(controls.keys.powerupA),
         powerupB: down('powerupB') || this.key(controls.keys.powerupB),
         pullGoalie: down('pullGoalie') || this.key(controls.keys.pullGoalie),
-      },
-      touchFrame(touchState),
-    );
+      };
+    const frame = this.player === 0 ? mergeFrames(own, touchFrame(touchState)) : own;
 
     return {
       frame,
@@ -113,13 +113,13 @@ export class InputReader {
       navY,
       hasPad: pad !== null,
       hasKeyboard: this.hasKeyboard,
-      hasTouch: touchState.used,
+      hasTouch: this.player === 0 && touchState.used,
     };
   }
 
   /** One step when a d-pad direction goes down, then repeats while it is held. */
   private readNav(pad: GamepadSnapshot | null, nowMs: number): [-1 | 0 | 1, -1 | 0 | 1] {
-    const map = padMap();
+    const map = padMap(this.player);
     const down = (action: PadAction): boolean => bindingDown(pad, map[action]);
     const held = down('dpadUp') ? 'up' : down('dpadDown') ? 'down' : down('dpadLeft') ? 'left' : down('dpadRight') ? 'right' : '';
 
