@@ -20,6 +20,7 @@
   "startingDifficulty": "pro",
   "simPenalty": 4,
   "winCurrency": 20,
+  "cupCurrency": 10,
   "marginCurrency": 5,
   "maxMarginCurrency": 15,
   "bossCurrency": 40,

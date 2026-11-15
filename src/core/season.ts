@@ -1,3 +1,4 @@
+import { nextExpectation, type Expectation } from './expectation';
 import { cleanName, nicknameFor, NICKNAME_RULES } from './temperament';
 import { bountyFor, bountyMet, STICKERS, UNSEEN_WEIGHT, type BountyInfo } from './bounty';
 import { isGuest, ringerOffer, withRinger, type Ringer } from './ringer';
@@ -77,6 +78,12 @@ export interface SeasonState {
   /** Every stop finished this season, in order: the route walked, for the map. */
   visited: string[];
   strikes: number;
+  /** What the sponsor expects of this season (expectation.ts). Left out in a season begun before there was one. */
+  expectation?: Expectation;
+  /** The cup: ties won so far, and whether you are still in it. Won by winning a tie in every region. */
+  cup?: { won: number; alive: boolean };
+  /** True once any game of the season was played with a second player on your team. */
+  coop?: boolean;
   /** Wins in a row (positive) or losses in a row (negative), for the paper and the announcer. */
   streak?: number;
   /** How the season was set up: its charter and the handicap ranks taken (charter.ts). Left out, a standard season. */
@@ -184,6 +191,8 @@ export interface PrestigeState {
 
 /** Everything that is saved: the league, the record, where the season stands, and the artifacts owned. */
 export interface Franchise {
+  /** Each step up to a bigger league (a prestige): the season it came after, and the league's name. */
+  promotions?: { season: number; league: string }[];
   league: League;
   record: TeamRecord;
   season: SeasonState;
@@ -543,6 +552,11 @@ export function startSeason(f: Franchise, setup: SeasonSetup & { regions?: numbe
   if (regions !== undefined) season.regions = Math.max(1, Math.min(rules.regions, regions));
   if (setup.weekly) season.weekly = setup.weekly;
   season.map = generateMap(season.seed, aiTeamsByStrength(f.league), season.regions ?? rules.regions, f.seen?.events ?? []);
+  // The sponsor names its target, and the cup begins. (A weekly run has neither: it is not the club's season.)
+  if (!setup.weekly) {
+    season.expectation = nextExpectation(f);
+    season.cup = { won: 0, alive: true };
+  }
   season.dressed = [...dressedSkaters(team.lineup), team.lineup.goalie as string];
   season.standings = newStandings(f.league);
   season.scoring = {};
@@ -594,6 +608,8 @@ function finishStop(f: Franchise): void {
   season.current = null;
   season.stage = 'none';
   season.offer = [];
+  // Leaving a region without having won its cup tie (lost, or not on your road) is the cup gone for the season.
+  if (stop && stop.kind === 'boss' && season.cup && season.cup.alive && season.cup.won < stop.region + 1) season.cup.alive = false;
   // A weekly run is over when its last boss is beaten: there are no playoffs.
   if (stop && stop.kind === 'boss' && stop.region === seasonRegions(f) - 1 && season.weekly) {
     season.phase = 'ended';
@@ -993,6 +1009,7 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
   leagueRound(f, game, result);
 
   const won = result.winner === 0;
+  const wasCupTie = isCupTie(f, currentStop(f));
   if (won) season.gamesWon += 1;
   // The run of results: wins count up from one, losses down from minus one.
   const run = season.streak ?? 0;
@@ -1061,7 +1078,8 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
   if (!won) {
     if (strike(f)) return done('You lose. That is your third strike: the season is over.');
     finishStop(f);
-    return done(`You lose. Strike ${season.strikes} of ${maxStrikes(f)}.`);
+    const out = wasCupTie && season.cup ? ((season.cup.alive = false), ' You are out of the cup.') : '';
+    return done(`You lose. Strike ${season.strikes} of ${maxStrikes(f)}.${out}`);
   }
   if (game.elite) {
     // An elite win pays more and offers an artifact in place of the chance of a powerup.
@@ -1074,10 +1092,14 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
     finishStop(f);
     return done(`You win the elite game and earn ${prize} Pucks.`);
   }
+  // A cup tie won keeps you in the cup, and pays a little; see cupTie below for a loss.
+  const tie = currentStop(f)?.cup === true && season.cup?.alive === true;
+  if (tie && season.cup) season.cup.won += 1;
   // A game on a rink of its own pays a little more.
   const rinkBonus = isVariant(currentStop(f)?.rink) ? RINK_BONUS : 0;
-  const amount = pay(rules.winCurrency + rivalBonus + rinkBonus);
+  const amount = pay(rules.winCurrency + rivalBonus + rinkBonus + (tie ? rules.cupCurrency : 0));
   let message = rivalBonus > 0 ? `You beat your rivals and earn ${amount} Pucks.` : `You win and earn ${amount} Pucks.`;
+  if (tie && season.cup) message += cupHeld(f) ? ' The cup is yours.' : ` You are through in the cup (${season.cup.won} of ${seasonRegions(f)}).`;
   const luck = roll(season, 'drop');
   if (luck.chance(stat(f, 'powerupDropChance', rules.powerupDropChance))) {
     const found = luck.pick(powerups);
@@ -1172,6 +1194,17 @@ export function renamePlayer(f: Franchise, playerId: string, raw: string): Actio
   const before = player.name;
   player.name = name;
   return done(`${before} is now ${name}.`);
+}
+
+/** True once a cup tie has been won in every region of the season. */
+export function cupHeld(f: Franchise): boolean {
+  const cup = f.season.cup;
+  return cup !== undefined && cup.alive && cup.won >= seasonRegions(f);
+}
+
+/** True if the game at this stop is a cup tie that still counts: you are still in the cup. */
+export function isCupTie(f: Franchise, stop: Stop | null): boolean {
+  return stop?.cup === true && f.season.cup?.alive === true;
 }
 
 /** The bounty on the game waiting: one optional goal that pays extra Pucks if you play the game and meet it. */

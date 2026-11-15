@@ -79,13 +79,15 @@ export interface MatchOptions {
   rules?: MatchRules;
   /** The announcer's line as the game begins. */
   opening?: string;
+  /** True for a practice in place of a game: endless, nothing settled. */
+  practice?: boolean;
 }
 
 /**
  * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening }: MatchOptions, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening, practice }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
   // The rink's own numbers sit on top of whatever the tuning panel holds; worked out again only when that changes.
   const where = rinkInfo(shootout ? null : rink);
@@ -212,7 +214,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       onCall: (text, priority) => {
         if (commentary === 'voice' && voiceVolume > 0) speak(text, priority, voiceVolume);
       },
-      hints: () => (hintsOn ? hintCounts : null),
+      hints: () => (hintsOn || practice ? hintCounts : null),
       replays: () => loadPrefs().replays,
       holdSwitch: loadPrefs().holdSwitch,
       ...(opening ? { opening } : {}),
@@ -225,7 +227,8 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
         saveHintCounts(hintCounts);
       },
       tuning: rinkTuned,
-      rules: shootout ? { shootout: SHOOTOUT } : { ...where.rules, ...(rules ?? {}) },
+      rules: practice ? { practice: true } : shootout ? { shootout: SHOOTOUT } : { ...where.rules, ...(rules ?? {}) },
+      bigPuck: loadPrefs().bigPuck,
       onControls,
       paused: () => paused,
       onEvents: (events, world, t) => {

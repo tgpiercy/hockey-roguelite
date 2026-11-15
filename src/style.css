@@ -303,6 +303,9 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .season-map .badge.rink rect { fill: var(--ice); }
 .season-map .badge.rink path { stroke: var(--bg-deep); stroke-width: 1.5; }
 .key-badge { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 2px; }
+.season-map .badge.cup circle { fill: var(--good); }
+.season-map .badge.cup path { stroke: var(--bg-deep); stroke-width: 1.3; fill: none; }
+.key-badge.cup { background: var(--good); }
 .key-badge.elite { background: var(--accent); }
 .key-badge.rink { background: var(--ice); border-radius: 4px; width: 15px; height: 10px; }
 .season-map .stop.done + .mark, .season-map .stop.here + .mark { stroke: var(--bg-deep); }

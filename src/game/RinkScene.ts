@@ -55,6 +55,8 @@ export interface RinkSceneOptions {
   rules?: MatchRules;
   /** Player one keeps his skater until he presses switch. */
   holdSwitch?: boolean;
+  /** Draw the puck larger, with a bright edge. */
+  bigPuck?: boolean;
   /** The announcer's line as the game begins. Left out, he says nothing. */
   opening?: string;
   /** A second player with a controller of his own: on team 0 (co-op) or team 1 (versus). Left out, one player. */
@@ -1018,7 +1020,12 @@ export class RinkScene extends Phaser.Scene {
     const puck = world.puck;
     const x = this.sx(puck.pos.x);
     const y = this.sy(puck.pos.y);
-    const radius = Math.max(2.5, t.puck.radius * z * 1.25);
+    const radius = Math.max(2.5, t.puck.radius * z * 1.25) * (this.options.bigPuck ? look.bigPuckScale : 1);
+    // The easier-to-see puck: a bright edge round it, always.
+    if (this.options.bigPuck && !(world.phase === 'faceoff' && !world.faceoff?.dropped)) {
+      g.lineStyle(Math.max(2, radius * 0.45), colour(c.charge), 0.95);
+      g.strokeCircle(x, y, radius * 1.35);
+    }
     if (world.phase === 'faceoff' && !world.faceoff?.dropped) {
       g.lineStyle(Math.max(2, look.lineWidth * z), colour(c.puck));
       g.strokeCircle(x, y, radius * 2.5);
@@ -1238,7 +1245,8 @@ export class RinkScene extends Phaser.Scene {
       this.callText.setPosition(width / 2, world.phase === 'goal' ? height * 0.74 : y0 + boardH + 6);
       this.callText.setAlpha(Math.min(1, callLeft / 0.4));
     }
-    this.clockTextObject.setText(`${period}  ${clockText(world.clock)}`);
+    // A practice has no clock to show.
+    this.clockTextObject.setText(world.match.practice ? look.practiceWord : `${period}  ${clockText(world.clock)}`);
     this.clockTextObject.setPosition(left + nameW + scoreW + midW / 2, !world.shootout && !world.match.firstTo ? midY - boardH * 0.1 : midY);
 
     // Bottom left: sprint bar of the controlled skater, then the energy of each line (the one on the ice is ringed).

@@ -21,6 +21,8 @@ export interface Stop {
   opponentId?: string;
   /** Game and boss stops: the rink it is played on (rinks.json). Left out, the standard rink. */
   rink?: string;
+  /** Game stops: a cup tie. Win one in every region and the cup is yours. */
+  cup?: boolean;
   /** Game stops: an elite game, against a team from the next tier up playing above itself, for a better prize. */
   elite?: boolean;
   /** Event stops: which event. */
@@ -126,6 +128,15 @@ export function generateMap(seed: string, teamsByStrength: string[], regions: nu
     } else if (stop.kind === 'game' && !stop.elite && variants.length > 0 && rinks.chance(RINK_CHANCE)) {
       stop.rink = rinks.pick(variants);
     }
+  }
+  // One ordinary game in each region is a cup tie. (Its own stream again.)
+  const cup = createRng(`${seed}/cup`);
+  for (let region = 0; region < regions; region++) {
+    const plain = Object.keys(stops)
+      .sort()
+      .map((id) => stops[id] as Stop)
+      .filter((s) => s.region === region && s.kind === 'game' && !s.elite);
+    if (plain.length > 0) cup.pick(plain).cup = true;
   }
   return { stops, regionStarts };
 }

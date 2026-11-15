@@ -287,6 +287,8 @@
     "cheerHandY": 4.25,
     "cheerSpread": 0.55
   },
+  "bigPuckScale": 1.6,
+  "practiceWord": "PRACTICE",
   "replay": {
     "beforeSeconds": 3.2,
     "afterSeconds": 0.7,

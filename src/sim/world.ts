@@ -255,6 +255,8 @@ export function createWorld(t: Tuning, seed: number | string, options: WorldOpti
 /** A full game: three periods, faceoffs, line changes, fatigue and overtime. Starts lined up for the opening faceoff. */
 export function createGame(t: Tuning, seed: number | string, options: WorldOptions = {}): World {
   const world = createWorld(t, seed, { ...options, lineup: 'full' });
+  // A practice is the scrimmage as it stands: it never ends and settles nothing.
+  if (world.match.practice) return world;
   if (world.match.shootout) {
     world.rules = 'shootout';
     world.shootout = newShootout();

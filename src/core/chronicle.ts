@@ -1,3 +1,4 @@
+import seasonRules from '../data/season.json';
 import { nicknameFor, NICKNAME_RULES } from './temperament';
 import { vowPoints } from './charter';
 import data from '../data/standings.json';
@@ -33,6 +34,9 @@ export interface SeasonRecord {
   topScorer: { name: string; goals: number } | null;
   /** Titles of the awards your players won. */
   awards: string[];
+  /** True if the cup was won that season, and if any of it was played with a second player. */
+  cup?: boolean;
+  coop?: boolean;
   /** Handicap points the season was played with, and its charter, if any. */
   handicap?: number;
   charter?: string;
@@ -187,6 +191,8 @@ export function closeChronicle(f: Franchise, before: Map<string, number>): strin
       awards: awards.filter((a) => a.mine).map((a) => a.title),
       ...(vowPoints(season.vows) > 0 ? { handicap: vowPoints(season.vows) } : {}),
       ...(season.charter ? { charter: season.charter } : {}),
+      ...(season.cup && season.cup.alive && season.cup.won >= (season.regions ?? seasonRules.regions) ? { cup: true } : {}),
+      ...(season.coop ? { coop: true } : {}),
     });
   }
 
@@ -209,6 +215,10 @@ export function clubRecords(f: Franchise): { label: string; value: string }[] {
   const out: { label: string; value: string }[] = [];
   const titles = history.filter((s) => s.outcome === 'champion').length;
   out.push({ label: 'Championships', value: String(titles) });
+  const cups = history.filter((s) => s.cup).length;
+  if (cups > 0) out.push({ label: 'Cups', value: String(cups) });
+  const together = history.filter((s) => s.outcome === 'champion' && s.coop).length;
+  if (together > 0) out.push({ label: 'Titles won with a second player', value: String(together) });
   const hardest = history.filter((s) => s.outcome === 'champion' && (s.handicap ?? 0) > 0).sort((a, b) => (b.handicap ?? 0) - (a.handicap ?? 0))[0];
   if (hardest) out.push({ label: 'Hardest title', value: `${hardest.handicap} handicap ${hardest.handicap === 1 ? 'point' : 'points'} (season ${hardest.season})` });
   if (history.length > 0) {

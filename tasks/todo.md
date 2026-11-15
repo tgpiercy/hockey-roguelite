@@ -651,3 +651,21 @@ Built, deployed and checked with a simulated controller.
 - Not seen: the artifact pick and artifact list with real artifacts (seen on the art sheet only), a boss or rival screen in his colours, the weekly run's colours, the season set-up screen with its new cards, confetti clear of the goal banner, and any of the motion (the test browser gives stills).
 - The review said screens swapped instantly. They did not: a slide-in and counting numbers were already there. I could not see motion in still pictures and said so only in the plan's risks.
 - The home-screen icon picture is unchanged: it is an image file, and the rule is no new image files.
+
+# The theme round: the small club that must stay open
+
+- [x] 1. Test the hockey against the five complaints; hold switching; both goalies on the summary; what difficulty changes, stated; boss answers
+- [x] 1b. After the numbers: Rookie eased, poke settled by position, a linemate to the net
+- [x] 2. A voice: the paper, the announcer, lines that notice the season, the tagline, boss clubs, the boss's man as a ringer
+- [x] 3. Players as people: temperament, earned nicknames, renaming, legacies; Found so far
+- [x] 4. Town, league and onboarding: the sponsor's target, named leagues, the cup, practice rink, puck setting, co-op marked
+- [ ] Play a season on the phone, and listen to the voice (owner)
+
+## Review (theme round)
+
+- Five commits, each gated on the type check and tests (1309 pass at the end).
+- Seen in the test browser at phone size: the paper under its masthead with lines about the season; the radio line on a game screen; a boss screen in the boss's colours with his club line, person and answer; a player's details with his temperament and the rename row; Found so far; the sponsor's target on the hub and the map; a cup tie's badge on the map; the practice rink with its powerups loaded and PRACTICE on the scoreboard; the large puck.
+- Not seen, tests only: a nickname being earned; a legacy in the off-season report; a mark on Found so far (needs a title); the cup being won or lost on screen; the trophy room's cup, co-op and promotion lines; the season-over screen's sponsor line; the summary with both goalies in this round (a forfeit shows a short summary).
+- Measured: the five-complaints tables, Rookie and Pro season win rates, and the health check with the sponsor's target (no bail-outs). Not measured: temperament in season games, how often a person meets the target.
+- Changed from the plan, and recorded in DECISIONS: the temperaments are six that use conditions the game already had; "hundredth game" became long service; the sponsor's target is one rule (wins, or the playoffs again); temperament is on the details screen, not every list row.
+- Three older tests assumed a win's pay and the sponsorship exactly; they now set the cup aside or apply the sponsor's factor.

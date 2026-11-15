@@ -17,6 +17,18 @@ A mobile arcade hockey roguelite where the team is the star: build a roster unde
 3. Two progression layers: runs reset, the franchise and gear persist
 4. Every season tells a story: rookies rise, veterans fade
 
+## Theme
+
+Third Line is about a small-town club of players nobody else wanted, staying open one season at a time. The third line is where they play: below the stars, on the ice when it matters less, until it matters.
+
+- **Tone.** Plain and warm. No farce, no gore, no crooked owners. The jokes are dry and belong to the people of the town.
+- **Who speaks.** The town's paper (the News screen) and its radio announcer (a line before every game and at the opening faceoff). They notice your season: a streak, the last strike, a rival, a veteran's last year, the books.
+- **Players are people.** Each has a temperament, may earn a nickname, can be renamed, and leaves something behind when he retires after long service.
+- **The town.** The sponsor asks something fair of each season and pays by whether it was met. Nobody is ever sacked: what is at stake is keeping the club open. A cup runs alongside the season, and each prestige level is a bigger league with a name.
+- **Opponents.** Every boss club has a character and a named person; its trick has a stated answer.
+
+Decisions under this theme are recorded in `docs/DECISIONS.md` ("Theme round").
+
 ## On-ice gameplay
 
 Games are 3-on-3: three skaters and a goalie per side, viewed top-down, with the user controlling whichever skater is nearest the puck.

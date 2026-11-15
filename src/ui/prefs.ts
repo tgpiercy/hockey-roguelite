@@ -15,6 +15,8 @@ export interface Prefs {
   hints: boolean;
   /** Whether a goal is shown again in slow motion. */
   replays: boolean;
+  /** True: the puck is drawn larger, with a bright edge. */
+  bigPuck: boolean;
   /** True: you keep your skater until you press switch. False: control follows the puck to whoever of yours has it. */
   holdSwitch: boolean;
   /** Commentary during a game: none, a line of text, or the text read aloud as well. */
@@ -24,7 +26,7 @@ export interface Prefs {
   musicVolume: number;
 }
 
-export const DEFAULT_PREFS: Prefs = { sound: true, volume: 0.7, detail: 'full', touch: 'auto', hints: true, replays: true, holdSwitch: false, commentary: 'text', music: true, musicVolume: 0.5 };
+export const DEFAULT_PREFS: Prefs = { sound: true, volume: 0.7, detail: 'full', touch: 'auto', hints: true, replays: true, holdSwitch: false, bigPuck: false, commentary: 'text', music: true, musicVolume: 0.5 };
 export const COMMENTARY_MODES: Prefs['commentary'][] = ['off', 'text', 'voice'];
 export const COMMENTARY_NAMES: Record<Prefs['commentary'], string> = { off: 'Off', text: 'Text', voice: 'Text and voice' };
 export const VOLUME_STEPS = [0.2, 0.4, 0.7, 1];
@@ -57,6 +59,7 @@ export function parsePrefs(raw: string | null): Prefs {
       hints: typeof v.hints === 'boolean' ? v.hints : DEFAULT_PREFS.hints,
       replays: typeof v.replays === 'boolean' ? v.replays : DEFAULT_PREFS.replays,
       holdSwitch: typeof v.holdSwitch === 'boolean' ? v.holdSwitch : DEFAULT_PREFS.holdSwitch,
+      bigPuck: typeof v.bigPuck === 'boolean' ? v.bigPuck : DEFAULT_PREFS.bigPuck,
       commentary: v.commentary === 'off' || v.commentary === 'text' || v.commentary === 'voice' ? v.commentary : DEFAULT_PREFS.commentary,
       music: typeof v.music === 'boolean' ? v.music : DEFAULT_PREFS.music,
       musicVolume: typeof v.musicVolume === 'number' && Number.isFinite(v.musicVolume) ? Math.max(0, Math.min(1, v.musicVolume)) : DEFAULT_PREFS.musicVolume,

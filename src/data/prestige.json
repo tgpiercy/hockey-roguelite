@@ -7,12 +7,42 @@
   "sponsorSharePerLevel": 0.01,
   "freeBuildsPerLevel": 1,
   "jerseys": [
-    { "name": "Navy", "colour": "#1d3557" },
-    { "name": "Forest", "colour": "#2d6a4f" },
-    { "name": "Maroon", "colour": "#7b2d26" },
-    { "name": "Violet", "colour": "#5a3d8a" },
-    { "name": "Black", "colour": "#222222" },
-    { "name": "Teal", "colour": "#0f7173" },
-    { "name": "Gold", "colour": "#b8860b" }
+    {
+      "name": "Navy",
+      "colour": "#1d3557"
+    },
+    {
+      "name": "Forest",
+      "colour": "#2d6a4f"
+    },
+    {
+      "name": "Maroon",
+      "colour": "#7b2d26"
+    },
+    {
+      "name": "Violet",
+      "colour": "#5a3d8a"
+    },
+    {
+      "name": "Black",
+      "colour": "#222222"
+    },
+    {
+      "name": "Teal",
+      "colour": "#0f7173"
+    },
+    {
+      "name": "Gold",
+      "colour": "#b8860b"
+    }
+  ],
+  "leagues": [
+    "the Northern Senior League",
+    "the Border League",
+    "the Provincial League",
+    "the Lakes League",
+    "the Dominion League",
+    "the Continental League",
+    "the Grand League"
   ]
 }

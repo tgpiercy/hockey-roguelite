@@ -197,6 +197,8 @@ describe('simulating a game', () => {
 describe('what a game earned', () => {
   it('a recorded game reports cash, Pucks, XP for every player, the pack and the milestones, and they match what was added', () => {
     const f = atFirstGame('rewards');
+    // Not a cup tie: the cup pays a little of its own (tests/town.test.ts).
+    delete f.season.cup;
     f.season.gamesWon = 3;
     f.season.gamesPlayed = 4;
     const cash = f.cash;

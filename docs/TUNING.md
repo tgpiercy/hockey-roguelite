@@ -845,6 +845,28 @@ The first region is at the benchmark on Pro. The title is far below it: a first-
 
 ## Change log
 
+## The sponsor's target and the cup (2026-11-15)
+
+| Number | Value | Where |
+| --- | --- | --- |
+| Sponsorship when the target is met | 15% more | `economy.json` `expectation.bonus` |
+| Sponsorship when it is missed | 10% less | `expectation.penalty` |
+| Wins asked for | 0.8 of last season's, plus one, between 3 and 9 | `expectation.shareOfLastWins`, `minWins`, `maxWins` |
+| A cup tie won | 10 more Pucks | `season.json` `cupCurrency` |
+| Large puck | 1.6 times the size, with a ring | `rinkLook.json` `bigPuckScale` |
+
+`npm run seasons -- --seeds 20 --years 20` with the target in force (the automatic managers' seasons are settled from strength, so they meet the target in some seasons and miss it in others):
+
+| Manager | Cash at year 20 | Lowest cash | Club value | Facility levels | Your team | League | Fire sales in year 20 | Bail-outs, all years |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Cautious | $9.1M | $1.7M | $116.5M | 3.6 | 69.3 | 73.2 | 1 of 20 | 0 |
+| Balanced | $4.6M | $0.3M | $116.9M | 4.3 | 69.4 | 73.1 | 2 of 20 | 0 |
+| Spender | $1.7M | $0.0M | $120.8M | 8.3 | 69.3 | 73.2 | 10 of 20 | 0 |
+
+No bail-outs under any style. I did not keep a run from just before this change to set beside it, so this table is the new baseline and not a before-and-after; the spender living in the fire sale is as the earlier tables had it.
+
+Not measured: how often a person meets the target, or how often the cup tie lies on the road a person would choose anyway.
+
 | Date | Value | From | To | Why |
 | --- | --- | --- | --- | --- |
 | 2026-11-13 | goalie positioning cover radius (ratings.json) | 0.5 to 0.9 | 0.3 to 0.6 | All-AI games averaged under 1 goal per 5 minutes; now about 3 |

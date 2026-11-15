@@ -1,5 +1,8 @@
 {
-  "payroll": { "shareOfValue": 0.17, "shareOfCash": 0.5 },
+  "payroll": {
+    "shareOfValue": 0.17,
+    "shareOfCash": 0.5
+  },
   "startingCash": 10000000,
   "startingValue": 100000000,
   "ticketsPerHomeGame": 1200000,
@@ -13,6 +16,23 @@
   "playoffGate": 2000000,
   "milestoneBonus": 500000,
   "travelPerRoadGame": 150000,
-  "value": { "profitShare": 0.5, "perWin": 400000, "title": 8000000, "perFacilityLevel": 1500000, "floor": 20000000, "bailoutLoss": 0.1 },
-  "fireSale": { "playerShare": 0.5, "staffShare": 0.5 }
+  "value": {
+    "profitShare": 0.5,
+    "perWin": 400000,
+    "title": 8000000,
+    "perFacilityLevel": 1500000,
+    "floor": 20000000,
+    "bailoutLoss": 0.1
+  },
+  "fireSale": {
+    "playerShare": 0.5,
+    "staffShare": 0.5
+  },
+  "expectation": {
+    "bonus": 0.15,
+    "penalty": 0.1,
+    "minWins": 3,
+    "maxWins": 9,
+    "shareOfLastWins": 0.8
+  }
 }

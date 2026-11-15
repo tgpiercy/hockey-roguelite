@@ -15,6 +15,8 @@ interface Props {
   walked: string[];
   /** The region to draw, large. The others are shown as a row of progress pips above it. */
   region: number;
+  /** True while you are still in the cup: its ties are marked. */
+  cup?: boolean;
 }
 
 /** The icon drawn on each kind of stop, and what the kind is called. */
@@ -41,7 +43,7 @@ const laneOf = (stop: Stop): number => Number(stop.id.split('n')[1] ?? 0);
  * Finished stops are filled, the ones you can reach next are ringed, and the one you are pointing at
  * in the list is lit. A row of pips above says which region this is and how far the season has got.
  */
-export function SeasonMapView({ map, last, current, open, focus, walked, region }: Props) {
+export function SeasonMapView({ map, last, current, open, focus, walked, region, cup }: Props) {
   const all = Object.values(map.stops);
   const regions = Math.max(...all.map((s) => s.region)) + 1;
   const stops = all.filter((s) => s.region === region);
@@ -118,6 +120,13 @@ export function SeasonMapView({ map, last, current, open, focus, walked, region 
                 <path d="M0 -4.200l1.200 2.600 2.800.300-2.100 1.900.600 2.800L0 2.200l-2.500 1.400.600-2.800-2.100-1.900 2.800-.300z" />
               </g>
             )}
+            {cup && stop.cup && (
+              <g class="badge cup" transform={`translate(${x(stop) - 12} ${y(stop) - 14})`}>
+                <title>Cup tie</title>
+                <circle r={7} />
+                <path d="M-3 -3.500h6v2.500a3 3 0 0 1-6 0zM0 2v2M-2.500 4.200h5" />
+              </g>
+            )}
             {stop.kind !== 'boss' && isVariant(stop.rink) && (
               <g class="badge rink" transform={`translate(${x(stop) + 12} ${y(stop) - 14})`}>
                 <title>{rinkInfo(stop.rink).name}</title>
@@ -134,7 +143,7 @@ export function SeasonMapView({ map, last, current, open, focus, walked, region 
 }
 
 /** What the marks on the map mean: the two badges, which a picture alone does not explain. */
-export function MapKey() {
+export function MapKey({ cup = false }: { cup?: boolean }) {
   return (
     <div class="map-key">
       <span>
@@ -143,6 +152,11 @@ export function MapKey() {
       <span>
         <i class="key-badge rink" /> A rink of its own
       </span>
+      {cup && (
+        <span>
+          <i class="key-badge cup" /> Cup tie
+        </span>
+      )}
     </div>
   );
 }

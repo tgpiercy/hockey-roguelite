@@ -1,3 +1,6 @@
+import powerupData from '../data/powerups.json';
+import type { PowerupSpec } from '../sim/modifiers';
+import { EXPECTATION_RULES, expectationLine, expectationShort, nextExpectation } from '../core/expectation';
 import artifactData from '../data/artifacts.json';
 import eventData from '../data/events.json';
 import { temperamentOf } from '../core/temperament';
@@ -35,12 +38,12 @@ import { costumeCost, dropInChance, mascotPower, mascotRating, nextTalentAt, tal
 import { dress } from '../core/matchup';
 import { decideContract, finishSeason, resignCapHit, beginSeason } from '../core/offseason';
 import { openPack, packName } from '../core/packs';
-import { canPrestige, jerseyColour, prestige, prestigeEffects, setJersey, unlockedJerseys } from '../core/prestige';
+import { canPrestige, jerseyColour, leagueName, prestige, prestigeEffects, setJersey, unlockedJerseys } from '../core/prestige';
 import { canPlay, canSign, type MoveResult, deadCapFor } from '../core/roster';
 import { hiddenFreeAgents, potentialText, scoutingPoints, signPlayer } from '../core/scouting';
 import { gradePower, hire, kindName, letGo, roleOf, slotsFor, STAFF_KINDS, staffOfKind, staffSalePrice, type StaffMember } from '../core/staff';
 import { franchiseOf, fromSave, parseSave, toSave } from '../core/save';
-import { artifactInfo, artifactModifiers, bargainGames, renamePlayer, type ArtifactInfo, gameBounty, maxStrikes, pickRinger, recipeFor, seasonRegions, setupOf, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
+import { artifactInfo, artifactModifiers, bargainGames, cupHeld, isCupTie, renamePlayer, type ArtifactInfo, gameBounty, maxStrikes, pickRinger, recipeFor, seasonRegions, setupOf, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
 import type { Stop } from '../core/seasonMap';
 import { seasonSummary } from '../core/seasonSummary';
 import { teamColour } from '../core/teamColours';
@@ -186,6 +189,9 @@ const GEAR_FILTERS: { label: string; test: (item: GearItem) => boolean }[] = [
   ...gearData.rarities.map((r) => ({ label: r.name.toLowerCase(), test: (item: GearItem) => item.rarity === r.id })),
 ];
 const RARITY_ORDER = gearData.rarities.map((r) => r.id as string);
+
+/** The two powerups loaded on the practice rink, free. */
+const practicePowerups = (powerupData as unknown as PowerupSpec[]).filter((p) => (p.seconds ?? 0) > 0).slice(0, 2);
 
 /** Every artifact there is, and every event, for the page of what has been found. */
 const everyArtifact = artifactData as unknown as ArtifactInfo[];
@@ -480,6 +486,8 @@ export function App() {
     const homeColour = jerseyColour(f);
     // A second player who has joined plays on your team in a season game.
     playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: homeGame(f, season.gamesPlayed + 1), ...(game.rink ? { rink: game.rink } : {}), ...(game.rules ? { rules: game.rules } : {}), opening: pregameLine(f), forfeitNote: 'Giving the game up counts as a loss, whatever the score.', ...(joined ? { second: 0 as const } : {}) }, (result) => {
+      // A game with a second player on your team marks the season as one played together.
+      if (joined) f.season.coop = true;
       showOutcome(recordGame(f, result));
       // The pause menu may have changed the sound or the controls.
       setPrefs(loadPrefs());
@@ -642,6 +650,8 @@ export function App() {
                   staff go now pays half a season of what they earn.
                 </div>
               )}
+              <div>You play in {leagueName(f.prestige.level)}.</div>
+              <div>The sponsor's target for the coming season: {nextExpectation(f).text} Meeting it pays {Math.round(EXPECTATION_RULES.bonus * 100)}% more sponsorship; missing it, {Math.round(EXPECTATION_RULES.penalty * 100)}% less.</div>
               {f.prestige.level > 0 && <div>Prestige level {f.prestige.level}: {prestigeEffects(f.prestige.level).slice(0, 2).join(' ')}</div>}
               {!ready.ok && <div class="warn">Cannot play yet: {ready.reason}</div>}
             </>
@@ -710,7 +720,9 @@ export function App() {
           header={
             <>
               <SeasonSummaryCard summary={seasonSummary(f)} crest={myCrest} season={league.season} artifacts={f.artifacts.length} />
-              {season.outcome === 'champion' && f.prestige.level < prestigeRules.maxLevel && <div class="warn">As champions you can prestige in the off-season.</div>}
+              {season.expectation && <div>{expectationLine(f)}</div>}
+              {cupHeld(f) && <div class="good">You won the cup.</div>}
+              {season.outcome === 'champion' && f.prestige.level < prestigeRules.maxLevel && <div class="warn">As champions you can prestige and go up to {leagueName(f.prestige.level + 1)}.</div>}
             </>
           }
           help="A continue"
@@ -835,6 +847,11 @@ export function App() {
               <div class="note radio">
                 <b>{announcerName(team.name)}, on the radio:</b> {pregameLine(f)}
               </div>
+              {isCupTie(f, currentStop(f)) && (
+                <div class="note">
+                  A cup tie ({season.cup?.won ?? 0} of {seasonRegions(f)} won). Win and you stay in the cup, with {rules.cupCurrency} more Pucks; lose and the cup is over for this season, at no other cost.
+                </div>
+              )}
               {gameBounty(f) && (
                 <div class="note">
                   Bounty: {gameBounty(f)!.text.toLowerCase()} for {gameBounty(f)!.pucks} more Pucks. Only if you play the game; missing it costs nothing.
@@ -1081,11 +1098,11 @@ export function App() {
               mine={myStrength}
             />
           ),
-          detail: s.elite
+          detail: (isCupTie(f, s) ? `A cup tie: win and you stay in the cup, with ${rules.cupCurrency} more Pucks; lose and the cup is over for the season, at no other cost. ` : '') + (s.elite
             ? `A stronger team playing above itself. Win: ${rules.eliteCurrency} more Pucks and a choice of ${rules.eliteArtifactChoices} artifacts. Lose: a strike.`
             : isRival(f, s.opponentId)
               ? `Your rivals. A win pays ${standingsRules.rivalCurrency} more Pucks and a pack; a loss is a strike.${rinkLine(s.rink, true)}`
-              : `A win pays Pucks and a pack; a loss is a strike.${rinkLine(s.rink, true)}`,
+              : `A win pays Pucks and a pack; a loss is a strike.${rinkLine(s.rink, true)}`),
         };
       }
       if (s.kind === 'boss' && s.bossId) {
@@ -1120,10 +1137,15 @@ export function App() {
         onFocus={setMapFocus}
         header={
           <>
-            {season.map && (
-              <SeasonMapView map={season.map} last={season.last} current={season.current} open={options.map((o) => o.id)} focus={mapFocus} walked={season.visited} region={region} />
+            {(season.expectation || season.cup) && (
+              <div class="note">
+                {[expectationShort(f), season.cup ? (season.cup.alive ? `Cup: ${season.cup.won} of ${seasonRegions(f)} ties won` : 'Cup: out this season') : ''].filter(Boolean).join(' · ')}
+              </div>
             )}
-            <MapKey />
+            {season.map && (
+              <SeasonMapView map={season.map} last={season.last} current={season.current} open={options.map((o) => o.id)} focus={mapFocus} walked={season.visited} region={region} cup={season.cup?.alive === true} />
+            )}
+            <MapKey cup={season.cup?.alive === true} />
             <div class="poster-foot">
               <StrikeLights strikes={season.strikes} of={maxStrikes(f)} />
               <span>Powerups {season.powerups.length}</span>
@@ -1705,7 +1727,7 @@ export function App() {
         items={[
           tile('yes', allowed.ok ? `Climb to level ${next}` : 'Cannot climb yet', allowed.ok ? 'Give up your artifacts' : allowed.reason, () => {
             const result = prestige(f);
-            after(result.ok ? { ok: true, message: `Prestige level ${next}. A new jersey colour is unlocked.` } : result, { name: 'jersey' });
+            after(result.ok ? { ok: true, message: `You go up to ${leagueName(next)}. Prestige level ${next}; a new jersey colour is unlocked.` } : result, { name: 'jersey' });
           }, { icon: 'prestige', primary: allowed.ok, disabled: !allowed.ok, detail: allowed.ok ? prestigeEffects(next).join(' ') : allowed.reason }),
           tile('no', 'Not now', 'Back', home, { icon: 'play' }),
         ]}
@@ -2057,6 +2079,11 @@ export function App() {
                 {line.label}: <b>{line.value}</b>
               </div>
             ))}
+            {(f.promotions ?? []).map((p) => (
+              <div key={p.season}>
+                After season {p.season}: up to <b>{p.league}</b>
+              </div>
+            ))}
             {(f.greats ?? []).length > 0 && (
               <div class="news">
                 <i>Retired greats</i>
@@ -2075,7 +2102,7 @@ export function App() {
             ? [{ key: 'none', label: 'No season finished yet', onSelect: () => go({ name: 'league' }) }]
             : past.map((s) => ({
                 key: `s${s.season}`,
-                label: `Season ${s.season}: ${finish(s)} · ${s.wins}-${s.losses}${s.place !== null ? ` · ${ordinal(s.place)} in the table` : ''}`,
+                label: `Season ${s.season}: ${finish(s)} · ${s.wins}-${s.losses}${s.place !== null ? ` · ${ordinal(s.place)} in the table` : ''}${s.cup ? ' · Cup winners' : ''}${s.coop ? ' · two players' : ''}`,
                 detail: `${s.topScorer ? `Top scorer: ${s.topScorer.name}, ${s.topScorer.goals} goals. ` : ''}${s.awards.length > 0 ? `Awards: ${s.awards.join(', ')}.` : 'No awards.'}`,
                 onSelect: () => undefined,
               }))
@@ -2385,6 +2412,10 @@ export function App() {
           }),
           tile('switching', 'Player switching', prefs.holdSwitch ? 'Hold' : 'Automatic', () => changePrefs({ ...prefs, holdSwitch: !prefs.holdSwitch }), {
             detail: 'Automatic: you always control whoever of yours has the puck. Hold: you keep your skater until you press switch, and a team-mate who gets the puck plays it himself.',
+          }),
+          tile('puck', 'Puck', prefs.bigPuck ? 'Large, bright edge' : 'Standard', () => changePrefs({ ...prefs, bigPuck: !prefs.bigPuck }), {
+            icon: 'target',
+            detail: 'Large draws the puck bigger with a bright ring round it, for a small screen or a busy rink. Nothing about the play changes.',
           }),
           tile('replays', 'Goal replays', prefs.replays ? 'On' : 'Off', () => changePrefs({ ...prefs, replays: !prefs.replays }), {
             detail: 'After each goal the last few seconds are shown again at half speed. Any button skips it.',
@@ -2939,6 +2970,30 @@ export function App() {
                   },
                 },
               ]),
+          tile(
+            'practice',
+            'Practice rink',
+            'No clock, nothing at stake',
+            () => {
+              const opponent = opponents[0];
+              const homeTeam = dress(league, team);
+              const away = opponent ? dress(league, opponent) : null;
+              if (!opponent || !homeTeam || !away) return;
+              setPlaying(true);
+              const homeColour = jerseyColour(f);
+              playMatch({ home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, practice: true, powerups: practicePowerups, forfeitNote: 'Leave the practice rink?', ...(joined ? { second: 0 as const } : {}) }, () => {
+                setScreen({ name: 'home' });
+                setMessage('Back from the practice rink.');
+                setPrefs(loadPrefs());
+                setPlaying(false);
+              });
+            },
+            {
+              icon: 'training',
+              wide: true,
+              detail: `Skate, shoot, pass and check against ${opponents[0]?.name ?? 'the weakest team'} for as long as you like: no clock, no periods, nothing recorded. ${practicePowerups.map((p) => p.name).join(' and ')} are loaded on the powerup buttons, and the hints run whatever your setting. Leave from the pause menu.`,
+            },
+          ),
           {
             key: 'mode',
             label: <OptionCard icon={exShootout ? 'target' : 'game'} name="Play" value={exShootout ? 'A shootout' : 'A game'} chip="Change" />,

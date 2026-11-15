@@ -1,3 +1,4 @@
+import { expectationFactor } from './expectation';
 import prestigeRules from '../data/prestige.json';
 import data from '../data/economy.json';
 import { clubStat } from './club';
@@ -110,7 +111,8 @@ export function bookMilestones(f: Franchise, count: number): number {
 /** What will be booked when the season ends, as things stand: one income line and four bills. */
 export function seasonEndBills(f: Franchise): { sponsorship: number; salaries: number; staff: number; upkeep: number; mascot: number } {
   return {
-    sponsorship: sponsorshipMoney(f),
+    // The sponsor pays more for a target met and less for one missed.
+    sponsorship: Math.round(sponsorshipMoney(f) * expectationFactor(f)),
     salaries: payroll(f.league, userTeam(f.league)),
     staff: staffSalaries(f),
     upkeep: facilityUpkeep(f),

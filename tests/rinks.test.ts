@@ -223,6 +223,7 @@ describe('rinks in a season', () => {
 
   it('the game at a marked stop is on its rink, and a win there pays more', () => {
     const marked = started();
+    delete marked.season.cup;
     const stop = availableStops(marked).find((s) => s.kind === 'game' && !s.elite)!;
     stop.rink = 'heavyPuck';
     travel(marked, stop.id);
@@ -230,6 +231,7 @@ describe('rinks in a season', () => {
     recordGame(marked, won);
 
     const plain = started();
+    delete plain.season.cup;
     const other = availableStops(plain).find((s) => s.kind === 'game' && !s.elite)!;
     delete other.rink;
     travel(plain, other.id);

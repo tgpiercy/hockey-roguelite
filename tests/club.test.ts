@@ -1,3 +1,4 @@
+import { expectationFactor } from '../src/core/expectation';
 import { describe, expect, it } from 'vitest';
 import { ageOneYear } from '../src/core/aging';
 import { clubStat } from '../src/core/club';
@@ -199,7 +200,8 @@ describe('operating cash', () => {
     expect(bills.staff).toBe(600000);
     expect(bills.upkeep).toBe(2 * facilityRules.upkeepPerLevel);
     expect(bills.mascot).toBe(mascotRules.salary);
-    expect(bills.sponsorship).toBe(sponsorshipMoney(f));
+    // The sponsor pays by whether its target was met (expectation.ts).
+    expect(bills.sponsorship).toBe(Math.round(sponsorshipMoney(f) * expectationFactor(f)));
     const before = f.cash;
     finishSeason(f);
     const books = f.books[0]!;

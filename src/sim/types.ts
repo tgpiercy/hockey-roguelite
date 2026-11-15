@@ -324,6 +324,8 @@ export interface MatchRules {
   oneLine?: boolean;
   /** Not a game at all but a shootout. */
   shootout?: ShootoutRules;
+  /** Not a game at all but a practice: endless play, no clock, no faceoffs, nothing to settle. */
+  practice?: boolean;
 }
 
 export interface TeamState {

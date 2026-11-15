@@ -45,12 +45,19 @@ export function prestige(f: Franchise): MoveResult {
   if (!allowed.ok) return allowed;
   f.prestige.level += 1;
   f.prestige.championAt = false;
+  // Going up is a line in the club's history.
+  (f.promotions ??= []).push({ season: f.league.season, league: leagueName(f.prestige.level) });
   // The club gets something back: a facility level to build for nothing (and a bigger share of sponsorship, see economy).
   f.prestige.freeBuilds = (f.prestige.freeBuilds ?? 0) + rules.freeBuildsPerLevel;
   f.artifacts = [];
   f.season.powerups = [];
   f.season.loadout = f.season.loadout.map(() => null);
   return { ok: true };
+}
+
+/** The league a club plays in at a prestige level: each level is a step up to a bigger league. */
+export function leagueName(level: number): string {
+  return rules.leagues[Math.min(Math.max(0, level), rules.leagues.length - 1)] as string;
 }
 
 /** What a prestige level changes, in words, for the screen. */
