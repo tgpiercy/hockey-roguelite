@@ -558,3 +558,20 @@ Built, deployed and checked with a simulated controller.
 - Observation, not changed: by the time you reach the free agents in the off-season the AI teams have already signed the best of them, because the league moves as soon as your last contract is decided.
 - Two players, seen with two simulated controllers: the second controller joining on the Exhibition screen, the mode tile, a co-op game with both skaters moving independently under a red and a blue ring, a pause and resume from the second controller, and a versus game in which the second player won the faceoff for the other team.
 - Not checked: two real controllers on a phone; the pause menu can only be worked by player one (player two can pause and resume with his Menu button); hints and the stamina bars are player one's only.
+
+# Three small jobs, then team tactics
+
+- [x] First pick of free agents: the league moves when you start the season
+- [x] Team tactics: forecheck, attack, defence; Lineup screen and pause menu
+- [x] Two-player polish: pause menu, hints, sprint bar, powerups, join notice
+- [x] The rest of the check-up: boss tells seen in live games
+- [ ] Play it (owner)
+
+## Review (small jobs and tactics)
+
+- Four commits, each gated on the tests. Type check, 1094 tests (22 new) and the build pass. Balanced play is identical to before.
+- Tactics were tuned over three passes of 200-game series; the table in `docs/TUNING.md` has every setting. Press is sensitive to one number.
+- Seen in the test browser: the three tactic rows on the Lineup screen changing and being remembered, the tactics reaching a game, the Tactics row in the pause menu; a second controller's join message; a co-op game with player two's sprint bar; and all five checked boss tells in live games (Trappers' passing lanes, Shadows' rings, the Furnace on fire from the opening faceoff, the Hammers' flash, the full-press prompt).
+- The boss games were started from the test browser by calling the game's own code, so no test-only link was added to the game (the plan had proposed one).
+- Not seen: player two's hint line on screen (every hint on the test browser had already been done three times; its logic is tested); the pause menu being worked by a controller (the hidden test browser does not run the menu's controller polling at all, for either player); the mascot choice, a refused trade, prestige's free facility level and a rival game card (still only tested).
+- Risk: first pick of free agents plus a growing payroll limit makes team-building easier than it was.

@@ -682,6 +682,27 @@ No tuning numbers changed. The proof that a one-player game is untouched: the sa
 
 Co-op is two people against the same AI, so it is easier than playing alone; nothing was retuned for it.
 
+## Team tactics and first pick of free agents (2026-11-15)
+
+**Tactics** (`ai.json` `tactics`). Each row is 200 games, all AI, equal teams rated 70 at level 0.5, with team A on the setting shown and team B on Balanced. Win rates on 200 games move about 7 points by chance.
+
+| Team A's setting | A wins | A's goals | B's goals | Shots A / B |
+| --- | --- | --- | --- | --- |
+| Balanced (no tactics) | 55% | 3.88 | 3.73 | 34.5 / 33.5 |
+| Forecheck: Press | 45% | 4.05 | 4.21 | 37.7 / 33.0 |
+| Forecheck: Sit back | 59% | 4.16 | 3.73 | 32.5 / 34.6 |
+| Attack: Rush | 52% | 4.20 | 4.05 | 37.0 / 32.9 |
+| Attack: Cycle | 47% | 3.81 | 3.98 | 33.2 / 33.8 |
+| Attack: Crash | 57% | 4.57 | 3.83 | 35.6 / 34.0 |
+| Defence: Collapse | 47% | 3.93 | 4.08 | 33.4 / 35.2 |
+| Defence: Man-to-man | 50% | 4.13 | 4.24 | 37.6 / 33.1 |
+
+How it got there. The first versions of Press, Cycle and Man-to-man were simply worse (43%, 39% and 35%). Press then swung to 63% when its two chasers were made to check every time, and came back to 45% with `pressCheck` at 0.6: it is sensitive to that one number. Cycle uses its own gentler style (`cycleStyle`: pass 1.15, long shots 1.0) because the league's cycle style was too weak. Man-to-man's presser now sprints and always checks, and its markers stand in the passing lane.
+
+What the table does and does not show. Every setting changes goals for and against by a few tenths, so the choices are real, and none is far ahead. Crash and Sit back come out a little better than Balanced and Press, Cycle and Collapse a little worse; the differences are inside or near the noise. These are all-AI games: with a person on the ice a setting can be worth more or less than this (Cycle feeds the puck to you; Press leaves you to cover behind it). Balanced is identical to having no tactics: the standard series (4.08 and 4.20 goals, save percentage .778) is unchanged.
+
+**First pick of free agents.** The pool opens when a season ends, with the new rookies; AI teams make their moves when you start the next season. League health, 10 seeds and 12 years: no bail-outs; the automatic managers' teams finish at 70.3, 69.2 and 68.4 against a league at about 74.8 (before: 69.6, 68.6, 67.0): first pick helps a little, and the payroll limit still decides most of it.
+
 ## Change log
 
 | Date | Value | From | To | Why |
