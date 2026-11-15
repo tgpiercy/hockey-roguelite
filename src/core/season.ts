@@ -1,3 +1,4 @@
+import gearRules from '../data/gear.json';
 import artifacts from '../data/artifacts.json';
 import events from '../data/events.json';
 import powerups from '../data/powerups.json';
@@ -58,6 +59,10 @@ export interface SeasonState {
   /** Every stop finished this season, in order: the route walked, for the map. */
   visited: string[];
   strikes: number;
+  /** True once the next boss has been scouted: he plays below himself when you meet. Cleared when he is beaten. */
+  scouted?: boolean;
+  /** What training has given each player this season beyond the all-round bump: a rating boost or a trait, as modifiers. */
+  training?: Record<string, Modifier[]>;
   /** Run currency: spent in shops, wiped at season end. */
   currency: number;
   /** Powerup ids in the bag. The same id can appear more than once. */
@@ -300,6 +305,7 @@ export type EventEffect =
   | { type: 'losePowerup' }
   | { type: 'strike'; amount: number }
   | { type: 'bump'; who: 'random' | 'best' | 'worst' | 'all'; amount: number }
+  | { type: 'scout' }
   | { type: 'temp'; label: string; games: number; modifiers: Modifier[] };
 
 export interface EventInfo {
@@ -376,6 +382,8 @@ export function startSeason(f: Franchise): ActionResult {
   season.map = generateMap(season.seed, aiTeamsByStrength(f.league));
   season.dressed = [...dressedSkaters(team.lineup), team.lineup.goalie as string];
   f.season = season;
+  // Each season is its own build: last season's artifacts are gone.
+  f.artifacts = [];
   const gift = roll(season, 'start');
   for (let i = 0; i < rules.startingPowerups; i++) season.powerups.push(gift.pick(powerups).id);
   return done('The season begins.');
@@ -446,6 +454,8 @@ export interface Matchup {
   title: string;
   /** The boss's trait, if it is a boss. */
   trait?: string;
+  /** True for an elite game: a tougher opponent and a better prize. */
+  elite?: boolean;
   powerups: (PowerupSpec | null)[];
   /** A mascot that has dropped in for this game, for either side: who he is and which skater sits. */
   mascots: { home: DropIn | null; away: DropIn | null };
@@ -462,7 +472,8 @@ export function dressUser(f: Franchise): DressedTeam | null {
   return dress(f.league, userTeam(f.league), {
     bumps: f.season.bumps,
     modifiers: teamModifiers(f),
-    gear: (playerId) => playerGearModifiers(f, playerId),
+    // What a player trained this season travels with his gear: rating boosts change his ratings, traits go to the ice.
+    gear: (playerId) => [...playerGearModifiers(f, playerId), ...(f.season.training?.[playerId] ?? [])],
   });
 }
 
@@ -522,17 +533,20 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
     const boss = bossInfo(stop.bossId);
     return {
       home,
-      away: buildBoss(league, stop.bossId, stop.region, season.seed, tougher),
-      level: clampLevel(level + rules.bossLevelBonus),
+      // A scouted boss plays below himself.
+      away: buildBoss(league, stop.bossId, stop.region, season.seed, tougher - (season.scouted ? rules.scoutRatingCut : 0)),
+      level: clampLevel(level + rules.bossLevelBonus - (season.scouted ? rules.scoutLevelCut : 0)),
       kind: 'boss',
       title: `Boss: ${boss.name}`,
-      trait: `${boss.trait}: ${boss.description} ${boss.trick}`,
+      trait: `${boss.trait}: ${boss.description} ${boss.trick}${season.scouted ? ' Scouted: his team is weaker and slower to react today.' : ''}`,
       powerups: loaded,
     };
   }
   if (stop.kind === 'game' && stop.opponentId) {
-    const away = dress(league, teamOf(league, stop.opponentId), { bumpAll: tougher });
+    const elite = stop.elite === true;
+    const away = dress(league, teamOf(league, stop.opponentId), { bumpAll: tougher + (elite ? rules.eliteRatingBump : 0) });
     if (!away) return null;
+    if (elite) return { home, away, level: clampLevel(level + rules.eliteLevelBonus), kind: 'game', title: `Elite game against ${away.name}`, powerups: loaded, elite: true };
     return { home, away, level, kind: 'game', title: `Game against ${away.name}`, powerups: loaded };
   }
   return null;
@@ -688,9 +702,7 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
       season.phase = 'ended';
       season.outcome = 'champion';
       f.prestige.championAt = true;
-      const prize = artifactOffer(f, 1)[0];
-      if (prize) f.artifacts.push(prize);
-      return done(prize ? `Champions! You are awarded an artifact: ${artifactInfo(prize).name}.` : 'Champions!');
+      return done('Champions!');
     }
     series.losses += 1;
     if (series.losses < rules.seriesWins) return done(`You lose the game. The series stands ${series.wins}-${series.losses}.`);
@@ -705,19 +717,35 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
       return done(`The boss beats you. Strike ${season.strikes} of ${rules.maxStrikes}. You must play the boss again.`);
     }
     const amount = pay(rules.bossCurrency);
+    delete season.scouted;
+    // Beating a boss wipes a strike.
+    const healed = Math.min(season.strikes, rules.bossHealsStrikes);
+    season.strikes -= healed;
+    const relief = healed > 0 ? ' The win wipes a strike.' : '';
     season.offer = artifactOffer(f, rules.artifactChoices);
     if (season.offer.length === 0) {
       finishStop(f);
-      return done(`You beat the boss and win ${amount} Pucks.`);
+      return done(`You beat the boss and win ${amount} Pucks.${relief}`);
     }
     season.stage = 'reward';
-    return done(`You beat the boss and win ${amount} Pucks. Choose an artifact.`);
+    return done(`You beat the boss and win ${amount} Pucks.${relief} Choose an artifact.`);
   }
 
   if (!won) {
     if (strike(f)) return done('You lose. That is your third strike: the season is over.');
     finishStop(f);
     return done(`You lose. Strike ${season.strikes} of ${rules.maxStrikes}.`);
+  }
+  if (game.elite) {
+    // An elite win pays more and offers an artifact in place of the chance of a powerup.
+    const prize = pay(rules.winCurrency + rules.eliteCurrency);
+    season.offer = artifactOffer(f, rules.eliteArtifactChoices);
+    if (season.offer.length > 0) {
+      season.stage = 'reward';
+      return done(`You win the elite game and earn ${prize} Pucks. Choose an artifact.`);
+    }
+    finishStop(f);
+    return done(`You win the elite game and earn ${prize} Pucks.`);
   }
   const amount = pay(rules.winCurrency);
   let message = `You win and earn ${amount} Pucks.`;
@@ -768,14 +796,51 @@ export function setLoadout(f: Franchise, slot: number, powerupId: string | null)
 
 // ---------- training ----------
 
-export function train(f: Franchise, playerId: string): ActionResult {
+export interface TrainingChoice {
+  /** "all", a rating's name, or a trait's id. */
+  id: string;
+  name: string;
+  description: string;
+}
+
+/** How much one focused rating gains from training: the all-round gain scaled up. */
+export function trainingFocus(f: Franchise): number {
+  return Math.round(stat(f, 'trainingBonus', rules.trainingFocus));
+}
+
+/** What a player may take from a training stop: a little of everything, a lot of one rating, or (skaters) a trait. */
+export function trainingChoices(f: Franchise, playerId: string): TrainingChoice[] {
+  const player = playerOf(f.league, playerId);
+  const all = Math.round(stat(f, 'trainingBonus', rules.trainingBump));
+  const focus = trainingFocus(f);
+  const names = gearRules.ratingNames as Record<string, string>;
+  const taken = new Set((f.season.training?.[playerId] ?? []).map((m) => m.stat));
+  return [
+    { id: 'all', name: 'All-round', description: `+${all} to every rating.` },
+    ...Object.keys(player.ratings).map((key) => ({ id: key, name: names[key] ?? key, description: `+${focus} ${(names[key] ?? key).toLowerCase()}.` })),
+    ...(player.position === 'G' ? [] : rules.trainingTraits.filter((trait) => !trait.modifiers.some((m) => taken.has(m.stat))).map((trait) => ({ id: trait.id, name: trait.name, description: trait.description }))),
+  ];
+}
+
+/** Trains one dressed player for the rest of the season: `choice` is one of his `trainingChoices` (all-round if left out). */
+export function train(f: Franchise, playerId: string, choice = 'all'): ActionResult {
   const stop = currentStop(f);
   if (!stop || stop.kind !== 'training' || f.season.stage !== 'arrived') return refuse('You are not at a training stop.');
   if (!f.season.dressed.includes(playerId)) return refuse('Only a dressed player can train.');
-  const amount = Math.round(stat(f, 'trainingBonus', rules.trainingBump));
-  f.season.bumps[playerId] = (f.season.bumps[playerId] ?? 0) + amount;
+  const picked = trainingChoices(f, playerId).find((c) => c.id === choice);
+  if (!picked) return refuse('He cannot train that.');
+  const name = playerOf(f.league, playerId).name;
+  if (choice === 'all') {
+    const amount = Math.round(stat(f, 'trainingBonus', rules.trainingBump));
+    f.season.bumps[playerId] = (f.season.bumps[playerId] ?? 0) + amount;
+    finishStop(f);
+    return done(`${name} gains ${amount} points in every rating for the rest of the season.`);
+  }
+  const trait = rules.trainingTraits.find((x) => x.id === choice);
+  const gained: Modifier[] = trait ? (trait.modifiers as Modifier[]) : [{ stat: `rating.${choice}`, op: 'add', value: trainingFocus(f) }];
+  f.season.training = { ...(f.season.training ?? {}), [playerId]: [...(f.season.training?.[playerId] ?? []), ...gained] };
   finishStop(f);
-  return done(`${playerOf(f.league, playerId).name} gains ${amount} points in every rating for the rest of the season.`);
+  return done(trait ? `${name} learns ${trait.name.toLowerCase()} for the rest of the season.` : `${name} gains ${trainingFocus(f)} ${picked.name.toLowerCase()} for the rest of the season.`);
 }
 
 // ---------- events ----------
@@ -806,6 +871,8 @@ function applyEffects(f: Franchise, effects: EventEffect[]): void {
               ? players.slice(-1)
               : [roll(season, 'bump').pick(players)];
       for (const p of chosen) season.bumps[p.id] = (season.bumps[p.id] ?? 0) + effect.amount;
+    } else if (effect.type === 'scout') {
+      season.scouted = true;
     } else {
       season.temps.push({ label: effect.label, games: effect.games, modifiers: effect.modifiers });
     }
@@ -872,6 +939,22 @@ export function healStrike(f: Franchise): ActionResult {
   f.season.currency -= price;
   f.season.strikes -= 1;
   return done('One strike is wiped away.');
+}
+
+/** What a scouting report on the next boss costs. */
+export function scoutPrice(f: Franchise): number {
+  return Math.max(1, Math.round(stat(f, 'shopPrice', rules.scoutPrice)));
+}
+
+/** Buys a scouting report: the next boss you meet plays below himself. */
+export function buyScouting(f: Franchise): ActionResult {
+  if (!shopStop(f)) return refuse('You are not in a shop.');
+  if (f.season.scouted) return refuse('You already have a report on the next boss.');
+  const price = scoutPrice(f);
+  if (f.season.currency < price) return refuse(`You need ${price} Pucks and have ${f.season.currency}.`);
+  f.season.currency -= price;
+  f.season.scouted = true;
+  return done('You have a report on the next boss: his team will be weaker and slower to react.');
 }
 
 export function leaveShop(f: Franchise): ActionResult {

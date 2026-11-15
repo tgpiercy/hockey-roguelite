@@ -93,7 +93,7 @@ export function SeasonMapView({ map, last, current, open, focus, walked, region 
               <circle class={`stop${state}`} cx={x(stop)} cy={y(stop)} r={size} />
             )}
             <text class="mark" x={x(stop)} y={y(stop)}>
-              {STOP_MARKS[stop.kind].mark}
+              {stop.elite ? 'E' : STOP_MARKS[stop.kind].mark}
             </text>
           </g>
         );
@@ -112,6 +112,9 @@ export function MapKey() {
           <b>{entry.mark}</b> {entry.name}
         </span>
       ))}
+      <span>
+        <b>E</b> Elite game
+      </span>
     </div>
   );
 }

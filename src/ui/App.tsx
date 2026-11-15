@@ -21,39 +21,7 @@ import { canPlay, canSign, type MoveResult, deadCapFor } from '../core/roster';
 import { hiddenFreeAgents, potentialText, scoutingPoints, signPlayer } from '../core/scouting';
 import { gradePower, hire, kindName, letGo, roleOf, slotsFor, STAFF_KINDS, staffOfKind, staffSalePrice, type StaffMember } from '../core/staff';
 import { franchiseOf, fromSave, parseSave, toSave } from '../core/save';
-import {
-  artifactInfo,
-  artifactModifiers,
-  availableStops,
-  buy,
-  canSimulate,
-  chooseEvent,
-  currentStop,
-  DIFFICULTIES,
-  difficultyInfo,
-  eventInfo,
-  healPrice,
-  healStrike,
-  leaveShop,
-  matchup,
-  newFranchise,
-  pickArtifact,
-  powerupInfo,
-  recordGame,
-  rosterLocked,
-  setDifficulty,
-  setLoadout,
-  abandonSeason,
-  setSeasonLineupSlot,
-  shopPrice,
-  simulateGame,
-  startSeason,
-  train,
-  travel,
-  type ActionResult,
-  type Franchise,
-  type GameRewards,
-} from '../core/season';
+import { artifactInfo, artifactModifiers, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus } from '../core/season';
 import type { Stop } from '../core/seasonMap';
 import { seasonSummary } from '../core/seasonSummary';
 import { teamColour } from '../core/teamColours';
@@ -197,6 +165,8 @@ export function App() {
   const [group, setGroup] = useState<Group | null>(null);
   const [rewards, setRewards] = useState<GameRewards | null>(null);
   const [mapFocus, setMapFocus] = useState<string | null>(null);
+  /** At a training stop: the player chosen, while what he trains is being picked. */
+  const [trainee, setTrainee] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
   // Sound follows the device's preferences from the first moment.
   useEffect(() => gameAudio.configure(prefs.sound, prefs.volume), [prefs]);
@@ -674,16 +644,46 @@ export function App() {
     // Training.
     if (stop && stop.kind === 'training') {
       const gain = Math.round(modified(rules.trainingBump, 'trainingBonus', artifactModifiers(f)));
+      if (trainee !== null && season.dressed.includes(trainee)) {
+        const p = playerOf(league, trainee);
+        return (
+          <Menu
+            key={`${screenKey}-train-${trainee}`}
+            title={`Training: ${p.name}`}
+            message={message}
+            header={
+              <>
+                <div>
+                  <PlayerRow player={p} bump={bump(trainee)} />
+                </div>
+                <div>Choose what he works on. It lasts for the rest of this season.</div>
+                <Ratings player={p} />
+              </>
+            }
+            onBack={() => setTrainee(null)}
+            help="A choose · B another player"
+            items={trainingChoices(f, trainee).map((choice) => ({
+              key: choice.id,
+              label: `${choice.name} · ${choice.description}`,
+              onSelect: () => {
+                const id = trainee;
+                setTrainee(null);
+                after(train(f, id, choice.id));
+              },
+            }))}
+          />
+        );
+      }
       return (
         <Menu
           key={screenKey}
           title="Training"
           message={message}
-          header={`Pick one dressed player. Every rating of his goes up by ${gain} for the rest of this season.`}
-          help="A train him"
+          header={`Pick one dressed player, then what he works on: +${gain} to everything, +${trainingFocus(f)} to one rating, or a trait.`}
+          help="A pick him"
           items={season.dressed.map((id) => {
             const p = playerOf(league, id);
-            return { key: id, label: <PlayerRow player={p} bump={bump(id)} />, detail: <TrainingGain player={p} gain={gain} />, onSelect: () => after(train(f, id)) };
+            return { key: id, label: <PlayerRow player={p} bump={bump(id)} />, detail: <TrainingGain player={p} gain={gain} />, onSelect: () => setTrainee(id) };
           })}
         />
       );
@@ -762,6 +762,20 @@ export function App() {
               disabled: season.strikes === 0 || season.currency < healPrice(f),
               onSelect: () => after(healStrike(f)),
             },
+            {
+              key: 'scout',
+              wide: true,
+              label: (
+                <span class="shop-card">
+                  <Icon name="detail" size={26} />
+                  <span class="shop-name">Scouting report on the boss</span>
+                  <span class={`price-tag${season.currency >= scoutPrice(f) ? '' : ' short'}`}>{scoutPrice(f)}</span>
+                </span>
+              ),
+              detail: season.scouted ? 'You already have a report on the next boss.' : 'The next boss you meet has a weaker team that reacts slower.',
+              disabled: Boolean(season.scouted) || season.currency < scoutPrice(f),
+              onSelect: () => after(buyScouting(f)),
+            },
             tile('leave', 'Leave the shop', 'Back to the map', () => after(leaveShop(f)), { wide: true, icon: 'play' }),
           ]}
         />
@@ -776,20 +790,38 @@ export function App() {
       if (s.kind === 'game' && s.opponentId) {
         const opponent = league.teams.find((x) => x.id === s.opponentId) as Team;
         return {
-          label: <StopCard icon="game" kind="Game" title={opponent.name} crest={teamCrest(opponent.name)} theirs={Math.round(teamStrength(league, opponent.id))} mine={myStrength} />,
-          detail: 'A win pays Pucks and a pack; a loss is a strike.',
+          label: (
+            <StopCard
+              icon="game"
+              kind={s.elite ? 'Elite game' : 'Game'}
+              title={opponent.name}
+              crest={teamCrest(opponent.name)}
+              theirs={Math.round(teamStrength(league, opponent.id)) + (s.elite ? rules.eliteRatingBump : 0)}
+              mine={myStrength}
+            />
+          ),
+          detail: s.elite
+            ? `A stronger team playing above itself. Win: ${rules.eliteCurrency} more Pucks and a choice of ${rules.eliteArtifactChoices} artifacts. Lose: a strike.`
+            : 'A win pays Pucks and a pack; a loss is a strike.',
         };
       }
       if (s.kind === 'boss' && s.bossId) {
         const boss = bossInfo(s.bossId);
         return {
           label: <StopCard icon="boss" kind="Boss" title={boss.name} />,
-          detail: `${boss.trait}: ${boss.description} Beat him to choose an artifact; lose and it is a strike and a rematch.`,
+          detail: `${boss.trait}: ${boss.description} Beat him to choose an artifact and wipe a strike; lose and it is a strike and a rematch.${season.scouted ? ' You have a scouting report on him.' : ''}`,
         };
       }
-      if (s.kind === 'training') return { label: <StopCard icon="training" kind="Training" title="One player improves" />, detail: 'One dressed player improves every rating for the rest of the season.' };
-      if (s.kind === 'shop') return { label: <StopCard icon="shop" kind="Shop" title="Powerups for Pucks" />, detail: 'Spend Pucks on powerups, or wipe a strike.' };
-      return { label: <StopCard icon="event" kind="Event" title="Something happens" />, detail: 'Something happens on the road, and you choose how to handle it.' };
+      if (s.kind === 'training') return { label: <StopCard icon="training" kind="Training" title="One player improves" />, detail: 'One dressed player gains a little of everything, a lot of one rating, or a trait, for the rest of the season.' };
+      if (s.kind === 'shop') {
+        const shelf = (s.stock ?? []).map((id) => powerupInfo(id).name);
+        return {
+          label: <StopCard icon="shop" kind="Shop" title={shelf.length > 0 ? shelf.join(', ') : 'Powerups for Pucks'} />,
+          detail: `On the shelf: ${shelf.join(', ') || 'nothing'}. Also: wipe a strike for ${healPrice(f)} Pucks, or a scouting report on the boss for ${scoutPrice(f)}.`,
+        };
+      }
+      const happening = s.eventId ? eventInfo(s.eventId) : null;
+      return { label: <StopCard icon="event" kind="Event" title={happening ? happening.title : 'Something happens'} />, detail: happening ? happening.text : 'Something happens on the road, and you choose how to handle it.' };
     };
     const ahead = (s: Stop): string => {
       const next = [...new Set(s.next.map((id) => season.map?.stops[id]?.kind).filter(Boolean))];

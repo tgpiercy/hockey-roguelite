@@ -17,6 +17,8 @@ export interface Stop {
   next: string[];
   /** Game stops: the league team to play. */
   opponentId?: string;
+  /** Game stops: an elite game, against a team from the next tier up playing above itself, for a better prize. */
+  elite?: boolean;
   /** Event stops: which event. */
   eventId?: string;
   /** Boss stops: which boss. */
@@ -51,6 +53,8 @@ export function generateMap(seed: string, teamsByStrength: string[]): SeasonMap 
   for (let region = 0; region < rules.regions; region++) {
     const tier = teamsByStrength.slice(region * tierSize, region === rules.regions - 1 ? undefined : (region + 1) * tierSize);
     let opponents = rng.shuffle(tier);
+    const above = region === rules.regions - 1 ? [] : teamsByStrength.slice((region + 1) * tierSize, region === rules.regions - 2 ? undefined : (region + 2) * tierSize);
+    const harder = above.length > 0 ? above : tier.slice(-Math.max(1, Math.ceil(tier.length / 2)));
     const rows: Stop[][] = [];
 
     rules.steps.forEach((pattern, step) => {
@@ -61,6 +65,14 @@ export function generateMap(seed: string, teamsByStrength: string[]): SeasonMap 
         row.push({ ...make('boss', 0), bossId: bossOrder[region % bossOrder.length] as string });
       } else if (pattern === 'game') {
         for (let i = 0; i < rules.choicesPerStep; i++) {
+          // The last choice on a game step is the elite game: a team from the next tier up (or, in the
+          // last region, the strongest of this one).
+          if (i > 0 && i === rules.choicesPerStep - 1) {
+            const taken = row.map((s) => s.opponentId);
+            const pool = harder.filter((id) => !taken.includes(id));
+            row.push({ ...make('game', i), opponentId: rng.pick(pool.length > 0 ? pool : harder), elite: true });
+            continue;
+          }
           if (opponents.length === 0) opponents = rng.shuffle(tier);
           row.push({ ...make('game', i), opponentId: opponents.shift() as string });
         }

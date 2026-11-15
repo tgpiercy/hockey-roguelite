@@ -181,6 +181,10 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Skill points | Your players' level-ups give points you place yourself (Team, Skill points), or automatically. A player's kind follows his ratings, so you can turn one kind into another. | Choices-matter round |
 | 2026-11-14 | Roster of 8, balanced lines | A roster holds 8 skaters, 6 dress. A line with both a forward and a defenceman gets a small bonus. Choosing which line takes longer shifts was planned and not built. | Choices-matter round |
 | 2026-11-14 | Gear | A piece's perk grows 10% a level; the 2-piece set bonuses are real effects, not +5 to a rating. | Choices-matter round |
+| 2026-11-14 | Elite games | Every game step offers a plain game and an elite one against a stronger team. An elite win pays more and offers an artifact; a loss is a strike like any other. Every stop now leads to every stop on the next step. | Choices-matter round |
+| 2026-11-14 | Artifacts reset each season | Artifacts are cleared when a season starts, so each run is a different build, and ten new ones pair a strength with a cost. Prestige no longer takes anything extra away. | Choices-matter round |
+| 2026-11-14 | Strikes | Beating a boss wipes a strike; wiping one in a shop costs 70 Pucks, not 120. | Choices-matter round |
+| 2026-11-14 | Training and scouting | A training stop gives one player a little of everything, a lot of one rating, or a trait. A scouting report (a shop, or an event) makes the next boss easier. | Choices-matter round |
 
 ## Open
 

@@ -559,6 +559,25 @@ A new club has a limit of $22.0M against a payroll of $18.3M, so the best free a
 
 League health, automatic managers, 10 seeds and 12 years: no bail-outs under any style; cash and value follow the earlier paths. The automatic managers' teams finish near 70 against a league average of 74.5 (before this stage, about 72 at year eight): the limit holds back a manager who does not win. A player who wins raises the club's value and so the limit; that has not been measured, because the automatic manager cannot do it.
 
+## The season run: paths, strikes, artifacts, training (2026-11-14)
+
+Third stage of the "choices matter" round. All in `season.json` unless said.
+
+| Rule | Before | Now |
+| --- | --- | --- |
+| Links between steps (`branchChance`) | each stop led straight on, and across half the time | every stop leads to every stop on the next step |
+| Game steps | two teams from the same tier, same pay | one plain game, one elite game: a team from the next tier up (the strongest of this tier in the last region), +3 ratings, AI level +0.1 |
+| Elite win | none | 20 more Pucks and a choice of 2 artifacts, in place of the chance of a powerup |
+| Beating a boss | Pucks and an artifact | also wipes a strike |
+| Wiping a strike in a shop | 120 Pucks | 70 |
+| Artifacts | kept until prestige; 14, all flat bonuses | cleared when a season starts; 24, ten of them a strength with a cost |
+| Champion's prize artifact | one | none (it would be cleared at once) |
+| Training | +3 to every rating of one player | that, or +10 to one rating, or (skaters) a trait: big hits, breakaway speed, one-timer |
+| Scouting report | none | 35 Pucks in any shop, or the "scout's notebook" event: the next boss's team is 4 ratings weaker and its AI level 0.15 lower |
+| Events | five had an option that was always better | charity donation buys two games of speed; the veteran lifts everyone by 1 or the worst by 4; returning the wallet pays off three times in five; the two wagers are near even |
+
+Not measured: how far a real player's run gets now. The automatic seasons use random legal choices and games settled from strength; the league check over 8 seeds and 8 years runs clean with no illegal rosters.
+
 ## Change log
 
 | Date | Value | From | To | Why |

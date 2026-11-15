@@ -224,7 +224,7 @@ describe('content', () => {
         for (const outcome of choice.outcomes) {
           expect(outcome.result.length).toBeGreaterThan(5);
           for (const effect of outcome.effects as EventEffect[]) {
-            expect(['currency', 'powerup', 'losePowerup', 'strike', 'bump', 'temp']).toContain(effect.type);
+            expect(['currency', 'powerup', 'losePowerup', 'strike', 'bump', 'temp', 'scout']).toContain(effect.type);
             if (effect.type === 'temp') {
               expect(effect.games).toBeGreaterThan(0);
               for (const m of effect.modifiers) validModifier(m, false);
@@ -615,9 +615,12 @@ describe('bosses and artifacts', () => {
     expect(f.season.offer).toHaveLength(2);
     for (const id of f.season.offer) expect(f.artifacts).not.toContain(id);
 
+    // A season starts with none: each run is its own build.
     const g = fresh();
-    g.artifacts = ['sharpened-skates'];
+    g.artifacts = ['heavy-sticks'];
     startSeason(g);
+    expect(g.artifacts).toEqual([]);
+    g.artifacts = ['sharpened-skates'];
     expect(teamModifiers(g)).toContainEqual({ stat: 'topSpeedScale', op: 'mul', value: 1.03 });
     expect(dressUser(g)!.setup.modifiers).toContainEqual({ stat: 'topSpeedScale', op: 'mul', value: 1.03 });
   });
@@ -686,13 +689,13 @@ describe('playoffs and the end of the season', () => {
     expect(recordGame(f, result(true)).ok).toBe(false);
   });
 
-  it('winning the final makes you champion and awards an artifact', () => {
+  it('winning the final makes you champion', () => {
     const f = started();
     winTheMap(f);
     for (let i = 0; i < 4; i++) recordGame(f, result(true));
     expect(f.season.phase).toBe('ended');
     expect(f.season.outcome).toBe('champion');
-    expect(f.artifacts).toHaveLength(rules.regions + 1);
+    expect(f.artifacts).toHaveLength(rules.regions);
     expect(new Set(f.artifacts).size).toBe(f.artifacts.length);
     expect(f.season.gamesPlayed).toBe(13);
   });

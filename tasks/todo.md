@@ -491,6 +491,6 @@ Built, deployed and checked with a simulated controller.
 
 - [x] Stage 1: ratings matter more; player kinds; talents; quick games retuned
 - [x] Stage 2: skill points, payroll limit, contract lengths, dead cap, trade value, roster of 8, balanced lines, gear perks (not built: choosing which line takes longer shifts; AI teams weighing positional need in trades)
-- [ ] Stage 3: season run (paths, strikes, artifacts, training, events, boss preparation)
+- [x] Stage 3: season run (elite games and free paths, strikes, artifacts with costs that reset, training picks, events, scouting the boss)
 - [ ] Stage 4: club (report, home ice, promoter, prestige, mascot control)
 - [ ] Stage 5: balance, pictures, docs
