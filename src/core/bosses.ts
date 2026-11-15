@@ -23,6 +23,10 @@ export interface BossInfo {
   star: Modifier[];
   /** Talent ids every one of its skaters carries. */
   talents?: string[];
+  /** What kind of club it is, in a sentence. */
+  club: string;
+  /** The one of its players everybody knows: the paper and the announcer talk about him, and he may be hired once beaten. */
+  person: { role: string; name: string };
 }
 
 export function bossInfo(id: string): BossInfo {

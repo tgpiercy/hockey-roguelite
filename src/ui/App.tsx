@@ -1,3 +1,4 @@
+import { announcerName, paperLines, paperName, pregameLine } from '../core/voice';
 import { defaultTuning } from '../sim/tuning';
 import { ArtifactCard, type ArtChip } from './screens/season';
 import { menuColours } from '../core/teamColours';
@@ -470,7 +471,7 @@ export function App() {
     setPlaying(true);
     const homeColour = jerseyColour(f);
     // A second player who has joined plays on your team in a season game.
-    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: homeGame(f, season.gamesPlayed + 1), ...(game.rink ? { rink: game.rink } : {}), ...(game.rules ? { rules: game.rules } : {}), forfeitNote: 'Giving the game up counts as a loss, whatever the score.', ...(joined ? { second: 0 as const } : {}) }, (result) => {
+    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: homeGame(f, season.gamesPlayed + 1), ...(game.rink ? { rink: game.rink } : {}), ...(game.rules ? { rules: game.rules } : {}), opening: pregameLine(f), forfeitNote: 'Giving the game up counts as a loss, whatever the score.', ...(joined ? { second: 0 as const } : {}) }, (result) => {
       showOutcome(recordGame(f, result));
       // The pause menu may have changed the sound or the controls.
       setPrefs(loadPrefs());
@@ -823,6 +824,9 @@ export function App() {
                   {game.away.name} play {theirStyle.name.toLowerCase()}. {theirStyle.describe}
                 </div>
               )}
+              <div class="note radio">
+                <b>{announcerName(team.name)}, on the radio:</b> {pregameLine(f)}
+              </div>
               {gameBounty(f) && (
                 <div class="note">
                   Bounty: {gameBounty(f)!.text.toLowerCase()} for {gameBounty(f)!.pucks} more Pucks. Only if you play the game; missing it costs nothing.
@@ -1989,11 +1993,17 @@ export function App() {
     return (
       <Menu
         key={screenKey}
-        title="League news"
+        title="The paper"
         message={message}
         header={
           <div class="news">
-            {lines.length === 0 ? <div class="news-item">No news yet.</div> : lines.map((text, i) => (
+            <div class="masthead">{paperName(team.name)}</div>
+            {paperLines(f).map((text) => (
+              <div key={text} class="news-item lead">
+                {text}
+              </div>
+            ))}
+            {lines.length === 0 ? <div class="news-item">Nothing more from round the league yet.</div> : lines.map((text, i) => (
               <div key={i} class="news-item">
                 {text}
               </div>

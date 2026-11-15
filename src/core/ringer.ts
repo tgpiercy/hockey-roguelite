@@ -31,7 +31,7 @@ export function isGuest(playerId: string): boolean {
  * The ringers on offer: fixed by the label (the season's seed and the boss beaten), each a skater with
  * a talent, a few points better than your team's average. The last is the best and the one that costs.
  */
-export function ringerOffer(label: string, teamAverage: number): Ringer[] {
+export function ringerOffer(label: string, teamAverage: number, star?: { name: string; talent?: string }): Ringer[] {
   const rng = createRng(`${label}/ringers`);
   const names = createNameMaker(rng.fork('names'));
   const out: Ringer[] = [];
@@ -42,7 +42,9 @@ export function ringerOffer(label: string, teamAverage: number): Ringer[] {
     // Every ringer has the talent of his kind: that is what you are hiring.
     const talents = kindOf(made.position, made.ratings).talents;
     const player: PlayerRecord = { ...made, capHit: 0, contractYears: 0, ...(made.talent || talents.length === 0 ? {} : { talent: rng.pick(talents) }) };
-    out.push({ player, fee: pricey ? RINGER.fee : 0 });
+    // The last, the one that costs, is the beaten boss's own man: his name, and his club's talent if it has one.
+    const named: PlayerRecord = pricey && star ? { ...player, name: star.name, ...(star.talent ? { talent: star.talent } : {}) } : player;
+    out.push({ player: named, fee: pricey ? RINGER.fee : 0 });
   }
   return out;
 }

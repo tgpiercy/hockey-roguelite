@@ -77,13 +77,15 @@ export interface MatchOptions {
   shootout?: boolean;
   /** Rules changed on top of the rink's (a season's charter). */
   rules?: MatchRules;
+  /** The announcer's line as the game begins. */
+  opening?: string;
 }
 
 /**
  * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules }: MatchOptions, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
   // The rink's own numbers sit on top of whatever the tuning panel holds; worked out again only when that changes.
   const where = rinkInfo(shootout ? null : rink);
@@ -213,6 +215,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       hints: () => (hintsOn ? hintCounts : null),
       replays: () => loadPrefs().replays,
       holdSwitch: loadPrefs().holdSwitch,
+      ...(opening ? { opening } : {}),
       // The summary steps aside while the goal of the game is shown again.
       onReplay: (on) => {
         summary.style.visibility = on ? 'hidden' : '';

@@ -55,6 +55,8 @@ export interface RinkSceneOptions {
   rules?: MatchRules;
   /** Player one keeps his skater until he presses switch. */
   holdSwitch?: boolean;
+  /** The announcer's line as the game begins. Left out, he says nothing. */
+  opening?: string;
   /** A second player with a controller of his own: on team 0 (co-op) or team 1 (versus). Left out, one player. */
   second?: 0 | 1;
   /** Each team's dressed players' names, in order: six skaters, then the goalie. For the commentary. */
@@ -302,6 +304,13 @@ export class RinkScene extends Phaser.Scene {
     this.passWasDown = controls.frame.pass;
 
     this.clock += real;
+    // The announcer opens the broadcast, once, as the game begins.
+    if (!this.opened && this.options.opening && this.options.commentary?.()) {
+      this.opened = true;
+      this.callText.setText(this.options.opening.toUpperCase());
+      this.callUntil = this.clock + COMMENTARY_SHOW_SECONDS * 1.6;
+      this.options.onCall?.(this.options.opening, 1);
+    }
     // A replay takes over the screen until it ends or a button skips it; the game itself waits.
     if (this.replay) {
       const skipping = controls.frame.pass || controls.frame.shoot || controls.frame.check;
@@ -428,6 +437,7 @@ export class RinkScene extends Phaser.Scene {
     this.drawFloats(real);
   }
 
+  private opened = false;
   private replaySkipHeld = false;
   private shootWasDown = false;
 

@@ -23,7 +23,12 @@
     ],
     "trick": "Shields: their goalie stops the first three shots on goal of every period, whatever they are. Burn them with quick shots.",
     "star": [],
-    "rink": "bigNets"
+    "rink": "bigNets",
+    "club": "A harbour club built around one goalie. The skaters change every year; the result does not.",
+    "person": {
+      "role": "captain",
+      "name": "Anders Holm"
+    }
   },
   {
     "id": "speed-demons",
@@ -49,7 +54,12 @@
     ],
     "trick": "Fast break: whoever of theirs wins the puck in their own end gets a burst of speed. Keep it out of their end.",
     "star": [],
-    "rink": "livelyPuck"
+    "rink": "livelyPuck",
+    "club": "A college-town club of prodigies. Every one of them will be gone to a bigger league by spring.",
+    "person": {
+      "role": "centre",
+      "name": "Teddy Vance"
+    }
   },
   {
     "id": "bruisers",
@@ -70,7 +80,12 @@
     ],
     "trick": "Flatteners: every body check of theirs that lands puts you on the ice. Deke, or move the puck early.",
     "star": [],
-    "rink": "pond"
+    "rink": "pond",
+    "club": "The foundry's company team. Half of them have worked the night shift before the puck drops.",
+    "person": {
+      "role": "captain",
+      "name": "Bull Kowalski"
+    }
   },
   {
     "id": "iron-lungs",
@@ -91,7 +106,12 @@
     ],
     "trick": "Full press: all three come after you in your own end. Pass through them.",
     "star": [],
-    "rink": "pond"
+    "rink": "pond",
+    "club": "Old-timers who will not retire. They have been skating the same shifts for twenty years and never seem to tire.",
+    "person": {
+      "role": "captain",
+      "name": "Sven Aldersson"
+    }
   },
   {
     "id": "snipers",
@@ -118,7 +138,12 @@
         "value": 1
       }
     ],
-    "rink": "heavyPuck"
+    "rink": "heavyPuck",
+    "club": "A club with deep pockets and one bought star. Everything they do ends on his stick.",
+    "person": {
+      "role": "winger",
+      "name": "Lucien Marchetti"
+    }
   },
   {
     "id": "trappers",
@@ -144,7 +169,12 @@
     ],
     "trick": "Threaded passes: their flat passes cannot be picked off in the lane. Cover the man in front of your net, not the pass.",
     "star": [],
-    "rink": "heavyPuck"
+    "rink": "heavyPuck",
+    "club": "A patient northern club that has run the same system for thirty years and sees no reason to change.",
+    "person": {
+      "role": "centre",
+      "name": "Olav Trygg"
+    }
   },
   {
     "id": "shadows",
@@ -163,7 +193,12 @@
     "talents": [
       "spinMove"
     ],
-    "rink": "livelyPuck"
+    "rink": "livelyPuck",
+    "club": "Nobody can say who their best player is. Nobody can catch any of them to find out.",
+    "person": {
+      "role": "winger",
+      "name": "Mika Sorrel"
+    }
   },
   {
     "id": "furnace",
@@ -184,6 +219,11 @@
     ],
     "trick": "Hot start: they are on fire from the opening faceoff of every period. Hold the puck and block shots until it burns out.",
     "star": [],
-    "rink": "firstToThree"
+    "rink": "firstToThree",
+    "club": "The dynasty: five banners, a full barn, and a habit of ending games in the first ten minutes.",
+    "person": {
+      "role": "captain",
+      "name": "Jack Calloway"
+    }
   }
 ]

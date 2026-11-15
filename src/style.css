@@ -438,6 +438,14 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .menu-item { transition: background-color 0.1s ease-out, border-color 0.1s ease-out, box-shadow 0.1s ease-out; }
 .meter-fill, .ratings .rfill { transform-origin: left center; animation: bar-fill 0.35s ease-out; transition: width 0.25s ease-out; }
 .menu-message { animation: screen-in 0.2s ease-out; }
+/* The paper: a masthead and its own lines above the league's news. The radio: the announcer's line before a game. */
+.masthead {
+  font: 800 22px/1.1 Georgia, 'Times New Roman', serif; letter-spacing: 0.02em; text-align: center; color: var(--text);
+  border-top: 3px double var(--ice); border-bottom: 3px double var(--ice); padding: 5px 0; margin-bottom: 4px;
+}
+.news-item.lead { font: 600 16px/1.35 Georgia, 'Times New Roman', serif; color: var(--text); }
+.note.radio { font-style: normal; border-left: 3px solid var(--accent); padding-left: 8px; }
+.note.radio b { color: var(--accent); font-weight: 700; }
 /* A choice as a card: icon, name, what it is set to, pips for ranks (parts.tsx OptionCard). */
 .opt-card { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; }
 .opt-card.off { opacity: 0.6; }

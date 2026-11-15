@@ -1,4 +1,8 @@
 import data from '../data/voice.json';
+import { bossInfo } from './bosses';
+import { teamOf, userTeam } from './league';
+import type { PlayerRecord } from './player';
+import { currentStop, isRival, maxStrikes, type Franchise } from './season';
 import { createRng } from './rng';
 
 /**
@@ -80,4 +84,73 @@ export function blanksOf(id: ContextId): string[] {
   const found = new Set<string>();
   for (const line of data.contexts[id]) for (const m of line.matchAll(/\{(\w+)\}/g)) found.add(m[1] as string);
   return [...found];
+}
+
+/**
+ * What the season has to say right now, most pressing first. Each is something the game already knows:
+ * who is next, the strikes, the streak, the books, last year's banner, and who is in the lineup.
+ * There is always at least one (the plain night).
+ */
+export function seasonContexts(f: Franchise): Context[] {
+  const { season, league } = f;
+  const team = userTeam(league);
+  const base: VoiceFacts = { team: team.name, town: townOf(team.name) };
+  const out: Context[] = [];
+  const stop = currentStop(f);
+  const waiting = season.stage === 'arrived' && stop ? stop : null;
+
+  if (waiting?.kind === 'boss' && waiting.bossId) {
+    const boss = bossInfo(waiting.bossId);
+    out.push({ id: 'boss', facts: { ...base, boss: boss.name, person: boss.person.name, role: boss.person.role } });
+  }
+  if (waiting?.kind === 'game' && waiting.opponentId && isRival(f, waiting.opponentId)) {
+    out.push({ id: 'rival', facts: { ...base, rival: teamOf(league, waiting.opponentId).name } });
+  }
+  if (season.phase === 'playoffs') out.push({ id: 'playoffs', facts: base });
+  if (season.phase === 'map' && season.strikes >= maxStrikes(f) - 1 && season.strikes > 0) out.push({ id: 'lastStrike', facts: base });
+  if (f.cash < THRESHOLDS.lowCash) out.push({ id: 'broke', facts: base });
+  const streak = season.streak ?? 0;
+  if (streak <= -THRESHOLDS.loseStreak) out.push({ id: 'loseStreak', facts: { ...base, n: -streak } });
+  if (streak >= THRESHOLDS.winStreak) out.push({ id: 'winStreak', facts: { ...base, n: streak } });
+  if (season.phase === 'map' && season.gamesPlayed === 0) out.push({ id: 'opener', facts: base });
+  const last = (f.history ?? [])[(f.history ?? []).length - 1];
+  if (last?.outcome === 'champion' && season.gamesPlayed < 3) out.push({ id: 'champions', facts: base });
+
+  // People: the scorer who is running hot, a rookie finding his feet, the oldest man still dressing.
+  const dressed = season.dressed.map((id) => league.players[id]).filter((p): p is PlayerRecord => p !== undefined && p.position !== 'G');
+  const goalsOf = (id: string): number => season.scoring?.[id]?.goals ?? 0;
+  const hot = [...dressed].sort((a, b) => goalsOf(b.id) - goalsOf(a.id) || a.id.localeCompare(b.id))[0];
+  if (hot && goalsOf(hot.id) >= THRESHOLDS.hotGoals) out.push({ id: 'hot', facts: { ...base, player: hot.name, goals: goalsOf(hot.id) } });
+  const rookie = [...dressed].filter((p) => p.age <= THRESHOLDS.rookieAge && goalsOf(p.id) > 0).sort((a, b) => a.age - b.age || a.id.localeCompare(b.id))[0];
+  if (rookie) out.push({ id: 'rookie', facts: { ...base, player: rookie.name, age: rookie.age, goals: goalsOf(rookie.id) } });
+  const veteran = [...dressed].filter((p) => p.age >= THRESHOLDS.veteranAge).sort((a, b) => b.age - a.age || a.id.localeCompare(b.id))[0];
+  if (veteran) out.push({ id: 'veteran', facts: { ...base, player: veteran.name, age: veteran.age } });
+
+  out.push({ id: 'plain', facts: base });
+  return out;
+}
+
+/** The announcer's line before the game waiting (or for the night in general): the most pressing thing, in his words. */
+export function pregameLine(f: Franchise): string {
+  const label = `${f.season.seed}/${f.season.gamesPlayed}`;
+  return announcerLine(leadContext(f, label), label);
+}
+
+/** The quiet things, which are true most nights: they take turns, so the same one is not said every game. */
+const QUIET: ContextId[] = ['hot', 'rookie', 'veteran', 'plain'];
+
+/** The thing to lead with: whatever is pressing, or on a quiet night one of the quiet things, by turns. */
+export function leadContext(f: Franchise, label: string): Context {
+  const all = seasonContexts(f);
+  const pressing = all.find((c) => !QUIET.includes(c.id));
+  if (pressing) return pressing;
+  return createRng(`voice/${label}/quiet`).pick(all);
+}
+
+/** The paper's own lines for the news page: the two most pressing things, most pressing first. */
+export function paperLines(f: Franchise): string[] {
+  const label = `${f.season.seed}/${f.season.gamesPlayed}/paper`;
+  const lead = leadContext(f, label);
+  const second = seasonContexts(f).find((c) => c.id !== lead.id);
+  return [lead, ...(second ? [second] : [])].map((context) => lineFor(context, label));
 }

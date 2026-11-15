@@ -76,6 +76,8 @@ export interface SeasonState {
   /** Every stop finished this season, in order: the route walked, for the map. */
   visited: string[];
   strikes: number;
+  /** Wins in a row (positive) or losses in a row (negative), for the paper and the announcer. */
+  streak?: number;
   /** How the season was set up: its charter and the handicap ranks taken (charter.ts). Left out, a standard season. */
   charter?: string;
   vows?: Record<string, number>;
@@ -790,7 +792,7 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
       level: clampLevel(level + rules.bossLevelBonus - (season.scouted ? rules.scoutLevelCut : 0)),
       kind: 'boss',
       title: `Boss: ${boss.name}`,
-      trait: `${boss.trait}: ${boss.description} ${boss.trick}${season.scouted ? ' Scouted: his team is weaker and slower to react today.' : ''}`,
+      trait: `${boss.club} ${boss.trait}: ${boss.description} ${boss.trick}${season.scouted ? ' Scouted: his team is weaker and slower to react today.' : ''}`,
       powerups: loaded,
       ...(stop.rink ? { rink: stop.rink } : {}),
     };
@@ -986,6 +988,9 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
 
   const won = result.winner === 0;
   if (won) season.gamesWon += 1;
+  // The run of results: wins count up from one, losses down from minus one.
+  const run = season.streak ?? 0;
+  season.streak = won ? (run > 0 ? run + 1 : 1) : run < 0 ? run - 1 : -1;
   const margin = Math.abs(result.score[0] - result.score[1]);
   const pay = (base: number): number => {
     const amount = Math.round(stat(f, 'currencyGain', base + Math.min(rules.maxMarginCurrency, margin * rules.marginCurrency)));
@@ -1106,7 +1111,8 @@ export function pickArtifact(f: Franchise, artifactId: string): ActionResult {
   const stop = currentStop(f);
   const lastOfWeekly = season.weekly !== undefined && stop?.region === seasonRegions(f) - 1;
   if (stop?.kind === 'boss' && !lastOfWeekly) {
-    season.ringerOffer = ringerOffer(`${season.seed}/${stop.id}`, teamStrength(f.league, f.league.userTeamId));
+    const beaten = stop.bossId ? bossInfo(stop.bossId) : null;
+    season.ringerOffer = ringerOffer(`${season.seed}/${stop.id}`, teamStrength(f.league, f.league.userTeamId), beaten ? { name: beaten.person.name, ...(beaten.talents?.[0] ? { talent: beaten.talents[0] } : {}) } : undefined);
     season.offer = [];
     season.stage = 'ringer';
     return done(`${words} A ringer is on offer.`);
