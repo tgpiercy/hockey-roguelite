@@ -1,3 +1,4 @@
+import type { Tactics } from '../sim/tactics';
 import { Commentator, COMMENTARY_SHOW_SECONDS } from './commentary';
 import * as Phaser from 'phaser';
 import { teamCrest, type Crest } from '../core/crest';
@@ -798,6 +799,11 @@ export class RinkScene extends Phaser.Scene {
     if (!carrier || carrier.team !== humanTeam) return false;
     const ownEnd = humanTeam === 0 ? world.puck.pos.x < 0 : world.puck.pos.x > 0;
     return ownEnd && world.players.some((p) => p.onIce && p.team !== humanTeam && p.role === 'skater' && p.fx.fullPress > 0);
+  }
+
+  /** Changes how the first team's AI skaters are told to play, from now on (the pause menu does this). */
+  setTactics(tactics: Tactics): void {
+    this.world.teams[0].tactics = tactics;
   }
 
   /** The player has just done a move: count it, and take its hint down. */

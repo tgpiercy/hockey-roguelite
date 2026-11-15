@@ -1,3 +1,4 @@
+import type { Tactics } from '../sim/tactics';
 import type { PlayerRecord } from './player';
 
 /** Who is dressed: two lines of three skaters and a goalie. A slot is null until someone is put in it. */
@@ -7,6 +8,8 @@ export interface Lineup {
   goalie: string | null;
   /** The line (0 or 1) that takes longer shifts. Left out, even shifts. */
   heavy?: 0 | 1;
+  /** How your linemates are told to play. Left out, no leaning. */
+  tactics?: Tactics;
 }
 
 export interface Team {

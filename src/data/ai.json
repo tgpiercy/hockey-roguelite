@@ -114,5 +114,76 @@
       "longShot": 1,
       "dump": 0.5
     }
+  },
+  "tactics": {
+    "kinds": {
+      "forecheck": "Forecheck",
+      "attack": "Attack",
+      "defence": "Defence"
+    },
+    "pressChasers": 2,
+    "crashStyle": {
+      "name": "Crash",
+      "describe": "",
+      "pass": 0.9,
+      "longShot": 0.7,
+      "dump": 0
+    },
+    "forecheck": {
+      "balanced": {
+        "name": "Balanced",
+        "describe": "One of yours goes after the puck in their end; the others drop back."
+      },
+      "press": {
+        "name": "Press",
+        "describe": "Two of yours chase the carrier deep in their end. Wins pucks high up the ice, but tires your line faster and leaves room behind them."
+      },
+      "sit": {
+        "name": "Sit back",
+        "describe": "All three wait at your blue line. Hard to get a breakaway against, but they get the neutral zone for nothing."
+      }
+    },
+    "attack": {
+      "balanced": {
+        "name": "Balanced",
+        "describe": "Your linemates shoot and pass as each sees fit."
+      },
+      "rush": {
+        "name": "Rush",
+        "describe": "Carry it in and shoot early. More shots, from further out."
+      },
+      "cycle": {
+        "name": "Cycle",
+        "describe": "Pass it round the zone until a lane opens. Better chances, but more passes to pick off."
+      },
+      "crash": {
+        "name": "Crash",
+        "describe": "Both your linemates go to the front of the net for screens, tips and rebounds. Nobody is left at the point if the puck comes out."
+      }
+    },
+    "defence": {
+      "balanced": {
+        "name": "Balanced",
+        "describe": "One presses the carrier, one guards the slot, one takes a man."
+      },
+      "collapse": {
+        "name": "Collapse",
+        "describe": "Pack the slot in front of your net. Hard to score on from in close, but they get their shots from the point."
+      },
+      "man": {
+        "name": "Man-to-man",
+        "describe": "Everyone takes a man and nobody guards the slot. More pressure on the puck, but one good pass leaves the middle open."
+      }
+    },
+    "cycleStyle": {
+      "name": "Cycle",
+      "describe": "",
+      "pass": 1.15,
+      "longShot": 1.0,
+      "dump": 0
+    },
+    "pressCheck": 0.6,
+    "manCheck": 1,
+    "manCoverGoalSide": 0.12
   }
 }

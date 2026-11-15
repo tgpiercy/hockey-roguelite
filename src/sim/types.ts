@@ -1,3 +1,4 @@
+import type { Tactics } from './tactics';
 import type { Rng } from '../core/rng';
 import type { Boost, PowerupSpec } from './modifiers';
 import type { GoalieEffects, SkaterEffects } from './ratings';
@@ -310,6 +311,8 @@ export interface TeamState {
   style: string | null;
   /** The line given longer shifts, or null for even shifts. */
   heavyLine: 0 | 1 | null;
+  /** How this team's AI skaters are told to play, or null for no leaning. It may be changed during a game. */
+  tactics: Tactics | null;
   /** Momentum, 0 to 1: full sets the team on fire. */
   heat: number;
   /** The period for which a hot start (a boss trick) has already been given. */

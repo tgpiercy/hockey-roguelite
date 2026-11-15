@@ -1,3 +1,4 @@
+import { BALANCED, kindName, nextTactic, TACTIC_KINDS, tacticInfo, tacticsLine, type Tactics } from '../sim/tactics';
 import { music } from '../game/music';
 import { useState } from 'preact/hooks';
 import controls from '../data/controls.json';
@@ -83,6 +84,9 @@ function Layout() {
 }
 
 interface Props {
+  /** How your linemates are told to play, and what to call when a setting is changed. */
+  tactics?: Tactics;
+  onTactics?: (tactics: Tactics) => void;
   /** Shown when asking whether to end the game, such as what a forfeit costs. Left out for a game that does not count. */
   endNote?: string;
   onResume: () => void;
@@ -95,8 +99,9 @@ interface Props {
 }
 
 /** The pause menu over the rink: resume, sound, the controls, the tuning panel and ending the game. */
-export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs }: Props) {
-  const [page, setPage] = useState<'main' | 'controls' | 'end'>('main');
+export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs, tactics, onTactics }: Props) {
+  const [page, setPage] = useState<'main' | 'controls' | 'end' | 'tactics'>('main');
+  const [plan, setPlan] = useState<Tactics>(tactics ?? BALANCED);
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
   const change = (next: Prefs): void => {
     savePrefs(next);
@@ -125,6 +130,30 @@ export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs }: Props
             detail: TOUCH_NOTES[prefs.touch],
             onSelect: () => change({ ...prefs, touch: TOUCH_MODES[(TOUCH_MODES.indexOf(prefs.touch) + 1) % TOUCH_MODES.length] as Prefs['touch'] }),
           },
+          { key: 'back', label: 'Back', onSelect: () => setPage('main') },
+        ]}
+      />
+    );
+  }
+
+  if (page === 'tactics') {
+    return (
+      <Menu
+        key="tactics"
+        title="Tactics"
+        header="How your linemates play, from now until the end of this game. Each choice gives something and costs something."
+        onBack={() => setPage('main')}
+        items={[
+          ...TACTIC_KINDS.map((kind) => ({
+            key: kind,
+            label: `${kindName(kind)}: ${tacticInfo(kind, plan[kind]).name}`,
+            detail: tacticInfo(kind, plan[kind]).describe,
+            onSelect: () => {
+              const next = nextTactic(plan, kind);
+              setPlan(next);
+              onTactics?.(next);
+            },
+          })),
           { key: 'back', label: 'Back', onSelect: () => setPage('main') },
         ]}
       />
@@ -175,6 +204,7 @@ export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs }: Props
           onSelect: () => change({ ...prefs, commentary: COMMENTARY_MODES[(COMMENTARY_MODES.indexOf(prefs.commentary) + 1) % COMMENTARY_MODES.length] as Prefs['commentary'] }),
         },
         { key: 'hints', label: `Hints: ${prefs.hints ? 'On' : 'Off'}`, detail: 'Reminders of the moves, shown when one is on. Each stops once you have done it a few times.', onSelect: () => change({ ...prefs, hints: !prefs.hints }) },
+        ...(onTactics ? [{ key: 'tactics', label: `Tactics: ${tacticsLine(plan)}`, detail: 'Change how your linemates forecheck, attack and defend for the rest of this game.', onSelect: () => setPage('tactics') }] : []),
         { key: 'controls', label: 'Controls', detail: 'What every button does, and the on-screen controls.', onSelect: () => setPage('controls') },
         { key: 'tuning', label: 'Tuning', detail: 'Open the tuning panel to change the physics numbers. The game runs on while it is open.', onSelect: onTuning },
         {

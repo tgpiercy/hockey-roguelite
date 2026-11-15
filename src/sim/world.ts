@@ -1,3 +1,4 @@
+import type { Tactics } from './tactics';
 import { chargeFraction } from './shot';
 import { stepMomentum } from './momentum';
 import { stepPulls } from './lines';
@@ -53,6 +54,8 @@ export interface TeamSetup {
   style?: string;
   /** The line (0 or 1) that takes longer shifts: it stays on until it is more tired, and the other comes off sooner. Left out, even shifts. */
   heavyLine?: 0 | 1;
+  /** How its AI skaters are told to play. Left out, no leaning. */
+  tactics?: Tactics;
 }
 
 export interface WorldOptions {
@@ -156,9 +159,10 @@ function createPlayers(t: Tuning, options: WorldOptions): Player[] {
   return players;
 }
 
-function newTeamState(powerups: (PowerupSpec | null)[], style: string | null, heavyLine: 0 | 1 | null = null): World['teams'][number] {
+function newTeamState(powerups: (PowerupSpec | null)[], style: string | null, heavyLine: 0 | 1 | null = null, tactics: Tactics | null = null): World['teams'][number] {
   return {
     heavyLine,
+    tactics,
     line: 0,
     changeCooldown: 0,
     changeHeld: false,
@@ -215,7 +219,7 @@ export function createWorld(t: Tuning, seed: number | string, options: WorldOpti
     overtime: false,
     overtimeLimit: options.overtimeLimit ?? 0,
     faceoff: null,
-    teams: [newTeamState(options.human === false ? [] : (options.powerups ?? []), options.teams?.[0].style ?? null, options.teams?.[0].heavyLine ?? null), newTeamState([], options.teams?.[1].style ?? null, options.teams?.[1].heavyLine ?? null)],
+    teams: [newTeamState(options.human === false ? [] : (options.powerups ?? []), options.teams?.[0].style ?? null, options.teams?.[0].heavyLine ?? null, options.teams?.[0].tactics ?? null), newTeamState([], options.teams?.[1].style ?? null, options.teams?.[1].heavyLine ?? null, options.teams?.[1].tactics ?? null)],
   };
   lineUp(world, t);
   return world;

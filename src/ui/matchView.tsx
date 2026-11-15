@@ -1,3 +1,4 @@
+import { BALANCED, type Tactics } from '../sim/tactics';
 import { music } from '../game/music';
 import { resultPiece, stingFor } from '../game/musicScore';
 import { hush, speak } from '../game/voice';
@@ -88,6 +89,8 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
   let touchMode = loadPrefs().touch;
   // Hints: on or off, and how often each move has been done on this device.
   let hintsOn = loadPrefs().hints;
+  // How your linemates are told to play: from the lineup, and changeable in the pause menu for this game.
+  let tactics: Tactics = home.setup.tactics ?? BALANCED;
   // Commentary: off, text, or text read aloud.
   let commentary = loadPrefs().commentary;
   let voiceVolume = loadPrefs().sound ? loadPrefs().volume : 0;
@@ -117,6 +120,11 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
             if (!tuningStore.open) tuningStore.toggle();
           }}
           onEnd={() => scene.forfeit()}
+          tactics={tactics}
+          onTactics={(next) => {
+            tactics = next;
+            scene.setTactics(next);
+          }}
           onPrefs={(prefs) => {
             touchMode = prefs.touch;
             hintsOn = prefs.hints;

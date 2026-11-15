@@ -4,7 +4,7 @@ import { STEP_SECONDS, STEPS_PER_SECOND } from './clock';
 import { leadPoint } from './pass';
 import { goalLineX } from './rink';
 import { benchDoor } from './lines';
-import { attackDir, availableSkaters, carrierOf, dist, distToSegment, goalieOf, otherTeam, ownNet, skatersOf, targetNet, humansOn } from './team';
+import { attackDir, availableSkaters, carrierOf, dist, distToSegment, goalieOf, otherTeam, ownNet, skatersOf, targetNet, humansOn, humanOf } from './team';
 import type { Tuning } from './tuning';
 import { NO_INPUT, type AiMemory, type AiState, type InputFrame, type Player, type Vec, type World } from './types';
 
@@ -81,6 +81,11 @@ const NO_STYLE: Style = { name: '', describe: '', pass: 1, longShot: 1, dump: 0 
 
 /** The style a team's AI skaters play, or no leaning at all. */
 export function styleOf(world: World, team: 0 | 1): Style {
+  // A team told how to attack plays that way, whatever its own leaning.
+  const attack = world.teams[team].tactics?.attack;
+  if (attack === 'crash') return data.tactics.crashStyle as Style;
+  if (attack === 'cycle') return data.tactics.cycleStyle as Style;
+  if (attack === 'rush') return (data.styles as Record<string, Style>).rush ?? NO_STYLE;
   const id = world.teams[team].style;
   return (id !== null ? (data.styles as Record<string, Style>)[id] : undefined) ?? NO_STYLE;
 }
@@ -321,7 +326,10 @@ function planSupport(world: World, p: Player, t: Tuning): void {
   if (inZone(p.team, ref.x)) {
     const post = postsFor(p.team, ref, helpers).get(p.id);
     if (post) {
-      let spot = postSpot(post, p.team, ref, t);
+      // Crash the net: both helpers go to the front of it, one at each post; nobody takes the point.
+      const crash = world.teams[p.team].tactics?.attack === 'crash';
+      let spot = postSpot(crash ? 'netFront' : post, p.team, ref, t);
+      if (crash && helpers[1]?.id === p.id) spot = { x: spot.x, y: spot.y === 0 ? P.farPostY : -spot.y };
       // Get open: if a defender is on the spot, or stands in the lane from the puck, slide to one side where the pass is on.
       const opponents = skatersOf(world, otherTeam(p.team));
       const covered = (s: Vec): boolean => !laneClear(world, p.team, ref, s) || opponents.some((o) => dist(o.pos, s) < P.openRadius);
@@ -375,11 +383,24 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
     m.follow = 'carrier';
     m.sprint = danger || dist(p.pos, carrier.pos) > P.pressureRadius;
     m.wantCheck = world.rng.chance(Math.min(1, lv.checkEagerness * (danger ? P.slotCheckBoost : 1)));
+    // Man-to-man: the man on the puck never lets him settle.
+    if (world.teams[p.team].tactics?.defence === 'man') {
+      m.sprint = true;
+      m.wantCheck = world.rng.chance(Math.max(lv.checkEagerness, data.tactics.manCheck));
+    }
     return;
   }
   const free = mates.filter((s) => s.id !== presser?.id);
+  const defence = world.teams[p.team].tactics?.defence ?? 'balanced';
+  // Collapse: everyone but the presser packs the slot in front of the net.
+  if (defence === 'collapse' && inZone(carrier.team, carrier.pos.x)) {
+    goTo(m, slot.x, slot.y);
+    m.wantCheck = world.rng.chance(lv.checkEagerness);
+    return;
+  }
   // With the puck in our zone, one of the others guards the slot: he stands between the carrier and the net.
-  if (inZone(carrier.team, carrier.pos.x)) {
+  // (Man-to-man leaves the slot unguarded: everyone takes a man.)
+  if (inZone(carrier.team, carrier.pos.x) && defence !== 'man') {
     const away = dist(carrier.pos, net) || 1;
     const k = Math.min(P.guardDepth, away * 0.6) / away;
     const spot: Vec = { x: net.x + (carrier.pos.x - net.x) * k, y: net.y + (carrier.pos.y - net.y) * k };
@@ -399,7 +420,9 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
     const marker = nearestTo(free, threat.pos);
     if (!marker) break;
     if (marker.id === p.id) {
-      goTo(m, threat.pos.x + (net.x - threat.pos.x) * P.coverGoalSide, threat.pos.y + (net.y - threat.pos.y) * P.coverGoalSide);
+      // Man-to-man stands tight on his man, in the passing lane; otherwise a step back toward the net.
+      const side = defence === 'man' ? data.tactics.manCoverGoalSide : P.coverGoalSide;
+      goTo(m, threat.pos.x + (net.x - threat.pos.x) * side, threat.pos.y + (net.y - threat.pos.y) * side);
       return;
     }
     free.splice(free.indexOf(marker), 1);
@@ -420,6 +443,26 @@ export function think(world: World, p: Player, t: Tuning, lv: AiLevel): void {
     m.sprint = true;
     m.wantCheck = world.rng.chance(lv.checkEagerness);
     return;
+  }
+  // Forecheck, as the team is told: with the other team carrying in its own end, press with two or sit back at the blue line.
+  const forecheck = world.teams[p.team].tactics?.forecheck ?? 'balanced';
+  if (forecheck !== 'balanced' && pressed && pressed.team !== p.team && pressed.role === 'skater' && attackDir(p.team) * pressed.pos.x > 0 && (m.state === 'defend' || m.state === 'backcheck')) {
+    if (forecheck === 'press') {
+      const chasers = availableSkaters(world, p.team)
+        .filter((s) => humanOf(world, s.id) === null)
+        .sort((a, b) => dist(a.pos, pressed.pos) - dist(b.pos, pressed.pos) || a.id - b.id)
+        .slice(0, data.tactics.pressChasers);
+      if (chasers.some((s) => s.id === p.id)) {
+        m.follow = 'carrier';
+        m.sprint = true;
+        // The pressers go for the puck every time: that is what the press is for.
+        m.wantCheck = world.rng.chance(Math.max(lv.checkEagerness, data.tactics.pressCheck));
+        return;
+      }
+    } else {
+      goTo(m, -attackDir(p.team) * P.zoneLineX, spread(world, p) * P.retreatY);
+      return;
+    }
   }
   switch (m.state) {
     case 'attack':

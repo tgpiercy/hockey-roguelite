@@ -1,3 +1,4 @@
+import { readTactics } from '../sim/tactics';
 import leagueRules from '../data/league.json';
 import { alwaysOnModifiers, talentOf } from './playerKind';
 import { playStyle } from './playStyle';
@@ -73,6 +74,7 @@ export function dress(league: League, team: Team, options: DressOptions = {}): D
       // Every team but yours attacks in its own way; your linemates have no leaning.
       ...(team.id !== league.userTeamId ? { style: playStyle(team.name) } : {}),
       ...(team.lineup.heavy !== undefined ? { heavyLine: team.lineup.heavy } : {}),
+      ...(team.lineup.tactics ? { tactics: readTactics(team.lineup.tactics) } : {}),
     },
   };
 }

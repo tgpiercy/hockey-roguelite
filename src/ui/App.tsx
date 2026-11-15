@@ -1,3 +1,4 @@
+import { kindName as tacticKindName, nextTactic, readTactics, TACTIC_KINDS, tacticInfo, tacticsLine } from '../sim/tactics';
 import { dropSecond, openJoining, secondJoined } from '../game/gamepad';
 import { music } from '../game/music';
 import standingsRules from '../data/standings.json';
@@ -624,6 +625,7 @@ export function App() {
                   {game.away.name} play {theirStyle.name.toLowerCase()}. {theirStyle.describe}
                 </div>
               )}
+              {team.lineup.tactics && <div class="note">Your tactics: {tacticsLine(readTactics(team.lineup.tactics))}. Change them under Team, Lineup, or in the pause menu.</div>}
               {game.kind === 'playoff' && season.bracket && (
                 <div class="note">
                   Seeds: {season.bracket.seeds.map((id, i) => `${i + 1} ${teamOf(league, id).name}`).join(' · ')}.{' '}
@@ -2496,6 +2498,18 @@ export function App() {
           slot(1, 1),
           slot(1, 0),
           slot(1, 2),
+          ...TACTIC_KINDS.map((kind): MenuItem => {
+            const plan = readTactics(team.lineup.tactics);
+            return {
+              key: `tactic-${kind}`,
+              label: `${tacticKindName(kind)}: ${tacticInfo(kind, plan[kind]).name}`,
+              detail: `${tacticInfo(kind, plan[kind]).describe} Press to change. This tells your linemates how to play; the skater you control does what you tell him.`,
+              onSelect: () => {
+                team.lineup.tactics = nextTactic(plan, kind);
+                after({ ok: true, message: `${tacticKindName(kind)}: ${tacticInfo(kind, team.lineup.tactics[kind]).name}.` });
+              },
+            };
+          }),
           {
             key: 'shift',
             wide: true,
