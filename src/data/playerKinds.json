@@ -1,0 +1,21 @@
+{
+  "standout": 6,
+  "skater": [
+    { "id": "sniper", "name": "Sniper", "tag": "SNP", "rating": "shooting", "lean": { "shooting": 12, "checking": -8, "passing": -4 }, "talent": "cannonShot", "description": "Shoots harder and straighter than he does anything else." },
+    { "id": "playmaker", "name": "Playmaker", "tag": "PLY", "rating": "passing", "lean": { "passing": 12, "puckControl": 4, "shooting": -8, "checking": -6 }, "talent": "distraction", "description": "Quick, accurate passes; hard to take the puck from." },
+    { "id": "speedster", "name": "Speedster", "tag": "SPD", "rating": "speed", "lean": { "speed": 12, "checking": -6, "shooting": -4 }, "talent": "spinMove", "description": "The fastest skater on the ice." },
+    { "id": "enforcer", "name": "Enforcer", "tag": "ENF", "rating": "checking", "lean": { "checking": 14, "stamina": 4, "speed": -6, "shooting": -6 }, "talent": "rallyCry", "description": "Wins the puck with his body and never tires." },
+    { "id": "twoWay", "name": "Two-way", "tag": "2W", "rating": null, "lean": {}, "talent": "crowdSurge", "description": "No weakness and no one great strength." }
+  ],
+  "goalie": [
+    { "id": "reflex", "name": "Reflex goalie", "tag": "RFX", "rating": "reflexes", "lean": { "reflexes": 8, "positioning": -8 }, "talent": null, "description": "Reacts and moves across fast; covers less net standing still." },
+    { "id": "positional", "name": "Positional goalie", "tag": "POS", "rating": "positioning", "lean": { "positioning": 8, "reflexes": -8 }, "talent": null, "description": "Fills the net and cuts the angle; slower to react." },
+    { "id": "steady", "name": "Steady goalie", "tag": "STD", "rating": null, "lean": {}, "talent": null, "description": "Even in everything." }
+  ],
+  "weights": {
+    "F": { "sniper": 3, "playmaker": 3, "speedster": 2, "enforcer": 1, "twoWay": 2 },
+    "D": { "sniper": 1, "playmaker": 2, "speedster": 1, "enforcer": 4, "twoWay": 3 },
+    "G": { "reflex": 2, "positional": 2, "steady": 1 }
+  },
+  "talentChance": { "S": 1, "A+": 0.8, "A": 0.6, "B+": 0.4, "B": 0.25, "C+": 0.12, "C": 0.05, "D": 0 }
+}

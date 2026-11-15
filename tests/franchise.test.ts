@@ -702,10 +702,14 @@ describe('blocked shots', () => {
 });
 
 describe('quick games', () => {
-  it('equal teams are a coin flip, and a 20-point edge wins about three times in four', () => {
+  it('equal teams are a coin flip, and the edge in the table wins three times in four', () => {
+    const edge = offseasonRules.quick.ratingPointsFor75Percent;
     expect(winChance(0)).toBeCloseTo(0.5);
-    expect(winChance(20)).toBeCloseTo(0.75);
-    expect(winChance(-20)).toBeCloseTo(0.25);
+    expect(winChance(edge)).toBeCloseTo(0.75);
+    expect(winChance(-edge)).toBeCloseTo(0.25);
+    // It matches the games played on the ice, where 20 points win nearly nine in ten.
+    expect(winChance(20)).toBeGreaterThan(0.82);
+    expect(winChance(20)).toBeLessThan(0.92);
   });
 
   it('gives a finished game with believable stats that add up', () => {

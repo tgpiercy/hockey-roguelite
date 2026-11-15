@@ -181,6 +181,8 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .player-row .pos {
   font: 800 11px/1 var(--heading); color: var(--ice); border: 1px solid var(--line); border-radius: 4px; padding: 3px 5px;
 }
+.player-row .kind { font: 800 10px/1 var(--heading); color: var(--dim); white-space: nowrap; min-width: 2.4em; }
+.player-row .kind.gifted { color: var(--accent); }
 .player-row .cap { font-size: 13px; white-space: nowrap; }
 .player-row .note { font-size: 12px; white-space: nowrap; }
 .player-row .bump { color: var(--accent); font-weight: 700; font-size: 12px; white-space: nowrap; }
@@ -196,6 +198,9 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 
 /* Ratings as bars. */
 .ratings { display: grid; grid-template-columns: max-content 1fr max-content; gap: 3px 8px; align-items: center; font-variant-numeric: tabular-nums; }
+.ratings .kind-line { grid-column: 1 / -1; font-size: 12px; color: var(--dim); }
+.ratings .kind-line b { color: var(--ice); font-weight: 700; }
+.ratings .kind-line.talent b { color: var(--accent); }
 .ratings .rname { color: var(--dim); font-size: 13px; }
 .ratings .rbar { height: 7px; border-radius: 4px; background: rgba(207, 232, 247, 0.12); overflow: hidden; min-width: 60px; }
 .ratings .rfill { height: 100%; border-radius: 4px; background: var(--ice); }

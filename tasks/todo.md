@@ -486,3 +486,11 @@ Built, deployed and checked with a simulated controller.
 - The hint text was hard to read on the ice in the first picture; it now has a dark edge.
 - Not checked: the feel of either move on a controller; whether 0.4 s of bite is too generous; whether the hints nag; the one-timer, deke, saucer, give-and-go and body-check hints on screen (their conditions are tested, only fake and poke were looked at in a picture); the pause menu's Hints row (built the same way as Sound, not opened).
 - Both moves help the player and the player already wins too often against the default AI. The balance tune-up is still open.
+
+# Choices matter: team, season run, club (one round, five stages)
+
+- [x] Stage 1: ratings matter more; player kinds; talents; quick games retuned
+- [ ] Stage 2: skill points, cap, contracts, dead cap, trades, lineup, gear
+- [ ] Stage 3: season run (paths, strikes, artifacts, training, events, boss preparation)
+- [ ] Stage 4: club (report, home ice, promoter, prestige, mascot control)
+- [ ] Stage 5: balance, pictures, docs

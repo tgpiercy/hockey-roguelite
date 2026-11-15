@@ -500,6 +500,42 @@ Asked for by the owner: new moves for the player, and on-screen reminders of the
 
 Measured: AI against AI is unchanged to the digit (200 games: 3.92 and 3.79 goals, save percentage .791), because the AI neither fakes nor braces. In a live game by keyboard: a fake left the puck with the shooter and the goalie bitten for 0.33 s; five shots at a braced player were all blocked. How many more goals a fake is worth to a real player is not measured: the scripted player does not use it.
 
+## Ratings matter more; player kinds and talents (2026-11-14)
+
+First stage of the "choices matter" round. A review found ten rating points changed play by about 1%.
+
+**What each rating does** (`ratings.json`). Every range is steeper and passes through the same value at 70, so an average player is untouched.
+
+| Effect | Per 10 points before | Per 10 points now |
+| --- | --- | --- |
+| Top speed and acceleration | 1% | 2.1% |
+| Shot power (shot speed) | 0.03 (1.4%) | 0.058 (2.6%) |
+| Accuracy | 0.03 | 0.051 |
+| Pass speed | 2% | 3.7% |
+| Check strength, puck security (check odds) | 0.03 (1.2 points) | 0.08 (3.2 points) |
+| Energy drain and recovery | 2% | 3.7% |
+| Goalie reaction | 7 ms | 9.7 ms |
+| Goalie cover | 1.9% | 2.9% |
+| Goalie stamina: how fast he tires | nothing | 6.9% |
+
+Full widening (about twice these steps) made a 90 team beat a 70 team 96.5% of the time, so it was set at just over half of that.
+
+AI against AI, level 0.5, 200 games each:
+
+| Series | Before | Now |
+| --- | --- | --- |
+| 70 against 70 | 3.92 and 3.79 goals, save % .791 | 4.01 and 4.17 goals, save % .782 (the same within noise: equal teams are untouched) |
+| 80 against 70 | not measured | 80 wins 69.5%, 4.80 to 3.10 goals |
+| 90 against 70 | 90 wins 78% | 90 wins 89%, 5.59 to 2.27 goals |
+
+Save percentage is still under the .850 target for equal teams; the better team's goalie is at .858.
+
+`offseason.json` `quick.ratingPointsFor75Percent` goes from 20 to 12, so a simulated game gives 20 points 86%, in line with the ice.
+
+**Player kinds** (`playerKinds.json`): sniper, playmaker, speedster, enforcer, two-way; reflex, positional and steady goalies. A new player's ratings lean by about 12 points toward his kind. The kind shown is worked out from the ratings, so it follows how he develops. **Talents**: a new player may carry his kind's talent; the chance runs from 0 for a D grade to 1 for an S.
+
+League health (6 seeds, 8 years, three manager styles): no bail-outs, team strength and cash follow the same paths as before.
+
 ## Change log
 
 | Date | Value | From | To | Why |
@@ -517,6 +553,7 @@ Measured: AI against AI is unchanged to the digit (200 games: 3.92 and 3.79 goal
 | 2026-11-14 | ai.json: zone posts, longShotRange, longShotChance, longShotCharge, plantTilt | none | see "Spread-out attack" above | Attackers crowded the net |
 | 2026-11-14 | one-timer, deke, knock-down, rebound, goalie challenge, cover radius, AI styles | see "Deeper gameplay" above | | New moves and AI after the research report |
 | 2026-11-14 | momentum, tips, giveGo, pull, boss groups | none | see "Momentum, tips..." above | New mechanics |
+| 2026-11-14 | ratings.json ranges; quick.ratingPointsFor75Percent | see above; 20 | steeper through the same value at 70; 12 | Ratings barely changed play |
 | 2026-11-14 | fake, block (new groups), momentum.block | none | see above | New moves asked for by the owner |
 | 2026-11-14 | checkAssist (new group) | none | see above | The owner found checking ineffective; help the player only |
 | 2026-11-14 | aimAssist cone, inset, spreadScale | 100, 0.35, none | 150, 0.25, 0.5 | The owner asked for more shoot assist |

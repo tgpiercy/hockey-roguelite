@@ -1,3 +1,4 @@
+import { kindOf, talentOf } from '../core/playerKind';
 import { createContext, type ComponentChildren } from 'preact';
 import { useContext, useEffect, useState } from 'preact/hooks';
 import { goaliesOn, skatersOn, userTeam, type League, type Team } from '../core/league';
@@ -75,6 +76,7 @@ export function PlayerRow({ player, note, bump = 0 }: { player: PlayerRecord; no
       <span class="ovr">{player.overall}</span>
       <span class="pname">{player.name}</span>
       <span class="pos">{player.position}</span>
+      <span class={`kind${player.talent ? ' gifted' : ''}`}>{kindOf(player.position, player.ratings).tag}</span>
       <span class="age">{player.age}y</span>
       <span class="cap">{money(player.capHit)}</span>
       <span class="years">{player.contractYears}y</span>
@@ -105,8 +107,18 @@ export function RatingBar({ name, value, extra }: { name: string; value: number;
 /** A player's individual ratings as bars, shown in the side panel for whoever is focused. */
 export function Ratings({ player }: { player: PlayerRecord }) {
   const ratings = player.ratings as unknown as Record<string, number>;
+  const kind = kindOf(player.position, player.ratings);
+  const talent = talentOf(player);
   return (
     <div class="ratings">
+      <span class="kind-line">
+        <b>{kind.name}</b> {kind.description}
+      </span>
+      {talent && (
+        <span class="kind-line talent">
+          <b>{talent.name}</b> {talent.description}
+        </span>
+      )}
       {Object.keys(ratings).map((key) => (
         <RatingBar key={key} name={ratingNames[key] ?? key} value={ratings[key] as number} />
       ))}

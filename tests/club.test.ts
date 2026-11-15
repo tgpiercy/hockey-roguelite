@@ -674,11 +674,11 @@ describe('the mascot', () => {
     expect(swapped.players.filter((p) => p.id === MASCOT_ID)).toHaveLength(1);
     expect(swapped.setup.skaters[4]!.shooting).toBe(mascotRating(12));
     expect(swapped.setup.skaterTalents?.[4]).toEqual(spec.talents);
-    expect(swapped.setup.skaterTalents?.[0]).toEqual([]);
+    expect(swapped.setup.skaterTalents?.[0]).toEqual(team.setup.skaterTalents?.[0]);
     // The cannon shot is simply always on, so it travels as one of his own modifiers.
     expect(swapped.setup.skaterModifiers?.[4]).toEqual(talentRules.talents.find((x) => x.id === 'cannonShot')!.modifiers);
     expect(team.players[4]!.id).not.toBe(MASCOT_ID);
-    expect(team.setup.skaterTalents).toBeUndefined();
+    expect(team.setup.skaterTalents?.[4]).not.toEqual(spec.talents);
   });
 
   /** Moves the game counter on until your mascot drops in (or, with `want` false, stays away). */

@@ -23,6 +23,8 @@ export interface PlayerRecord {
   /** XP toward the next level, and the level reached. */
   xp: number;
   level: number;
+  /** The id of the talent he carries (see talents.json), if any. Left out for most players. */
+  talent?: string;
 }
 
 export function isGoalie(p: PlayerRecord): boolean {

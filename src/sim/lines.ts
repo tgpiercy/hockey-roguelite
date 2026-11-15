@@ -48,7 +48,7 @@ export function stepEnergy(world: World, t: Tuning): void {
     p.stats.timeOnIce += dt;
     if (world.rules !== 'game') continue;
     if (p.role === 'goalie') {
-      p.energy = Math.max(0, p.energy - e.goalieDrainPerSecond * dt);
+      p.energy = Math.max(0, p.energy - e.goalieDrainPerSecond * p.goalie!.fx.drainScale * dt);
     } else {
       const rate = e.drainPerSecond + (p.sprinting ? e.sprintDrainPerSecond : 0);
       p.energy = Math.max(0, p.energy - rate * p.fx.drainScale * dt);

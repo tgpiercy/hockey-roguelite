@@ -174,6 +174,8 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-14 | Shot fake | Pass pressed during a wind-up is a fake: the shot is cancelled, nothing is passed, the goalie is stuck for a moment and nearby defenders cannot check. The owner chose Pass for it over Check, so you can no longer pass in the middle of a wind-up. The human only; the AI does not fake. | Gameplay round |
 | 2026-11-14 | Shot block | Holding Check without the puck, with their carrier more than 3 m away, braces your player on one knee: slow, but an opponent's shot near him stops dead. Letting go still throws the check. With the carrier close the hold is for a hit and does not slow you. | Gameplay round |
 | 2026-11-14 | Hints | A line on the rink names a move when it is on (by action, not by button letter, since controllers differ). Each stops after it has been done three times on this device. Settings and the pause menu switch hints off; Settings can bring them all back. The saucer pass (hold Pass) already existed and now has a hint. | Gameplay round |
+| 2026-11-14 | Ratings matter more | What each rating does on the ice is about twice as steep, through the same value at 70. A 90 team beats a 70 team about 89% of the time (was 78%). | Choices-matter round |
+| 2026-11-14 | Player kinds and talents | Every player is a kind (sniper, playmaker, speedster, enforcer, two-way; goalies reflex, positional, steady), worked out from his ratings and shown on his row. New players lean about 12 points toward their kind. Better players may carry a talent of the sort only the mascot had. Existing saves: players keep their ratings and are shown as whatever kind those make them; they have no talents. | Choices-matter round |
 
 ## Open
 
