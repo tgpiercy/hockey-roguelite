@@ -45,6 +45,8 @@ interface Props {
 
 /** Something every menu screen shows in its top bar: the strip of cap space, cash, tape and Pucks. */
 export const MenuChrome = createContext<ComponentChildren>(null);
+/** The crest that stands at the left of every screen's top bar: the team whose screens these are. */
+export const MenuCrest = createContext<ComponentChildren>(null);
 
 const remembered = new Map<string, number>();
 
@@ -84,6 +86,7 @@ function Help({ text }: { text: string }) {
  */
 export function Menu({ title, header, items, onBack, help, message, initialFocus = 0, remember, onFocus, stack = false, columns }: Props) {
   const chrome = useContext(MenuChrome);
+  const crest = useContext(MenuCrest);
   const [focus, setFocus] = useState((remember !== undefined ? remembered.get(remember) : undefined) ?? initialFocus);
   const current = Math.min(focus, Math.max(0, items.length - 1));
   if (remember !== undefined) remembered.set(remember, current);
@@ -151,6 +154,7 @@ export function Menu({ title, header, items, onBack, help, message, initialFocus
               ‹
             </button>
           )}
+          {crest && <span class="menu-crest">{crest}</span>}
           <h1>{title}</h1>
         </div>
         {chrome}

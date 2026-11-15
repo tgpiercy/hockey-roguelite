@@ -15,6 +15,10 @@
   --good: #5ee08a;
   --bad: #ff7b8a;
   --ice: #cfe8f7;
+  /* The team whose screens these are: set by the app from its colour (teamColours.ts). */
+  --team: #1d3557;
+  --team-deep: #12213a;
+  --team-ink: #ffffff;
   --rare: #6cc4ff;
   --epic: #c79bff;
   --size-small: 12px;
@@ -109,17 +113,27 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 
 /* ------------------------------------------------------------------ menus */
 #menu { display: none; }
-.mode-menu #menu { display: block; position: fixed; inset: 0; z-index: 2; background: linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%); }
+.mode-menu #menu {
+  display: block; position: fixed; inset: 0; z-index: 2;
+  background:
+    radial-gradient(90% 70% at 0% 0%, color-mix(in srgb, var(--team) 34%, transparent), transparent 62%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+}
 .mode-menu #app, .mode-menu #tune, .mode-menu #hint { display: none; }
 .menu {
   height: 100%; display: flex; flex-direction: column; gap: 6px;
   padding: max(8px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
 }
-.menu-top { display: flex; align-items: center; gap: 10px; min-height: 34px; border-bottom: 2px solid var(--accent); padding-bottom: 5px; }
+.menu-top {
+  display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 4px 6px 4px 8px; border-radius: var(--radius);
+  background: linear-gradient(100deg, var(--team) 0%, var(--team) 34%, var(--team-deep) 78%); color: var(--team-ink);
+  border-bottom: 3px solid var(--accent); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.menu-crest { flex: none; display: flex; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45)); }
 .menu-title { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
 .menu-title h1 {
   font: 800 var(--size-title)/1.1 var(--heading); letter-spacing: 0.07em; text-transform: uppercase;
-  margin: 0; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin: 0; color: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .menu-back {
   font: 800 16px/1 var(--heading); color: var(--text); background: var(--panel);
@@ -148,7 +162,10 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
   min-height: 36px; padding: 6px 10px; border-radius: var(--radius); border: 1px solid transparent;
   background: rgba(14, 42, 79, 0.55); cursor: pointer; display: flex; align-items: center; flex: none;
 }
-.menu-item.focused { background: var(--panel-hi); border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+.menu-item.focused {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--team) 62%, var(--panel-hi)) 0%, var(--panel-hi) 72%);
+  border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent), 0 3px 10px rgba(0, 0, 0, 0.3);
+}
 .menu-item.disabled { color: var(--dim); background: rgba(14, 42, 79, 0.25); }
 .menu-item.disabled.focused { background: rgba(23, 64, 122, 0.55); }
 .menu-item b { font-weight: 700; }
@@ -163,7 +180,7 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .glyph-pad { background: var(--ice); border-radius: 4px; width: auto; padding: 0 5px; }
 
 /* The strip of what you have to spend, on every screen. */
-.wallet { display: flex; gap: 6px; flex: none; }
+.wallet { display: flex; gap: 6px; flex: none; color: var(--text); }
 .chip {
   display: inline-flex; align-items: baseline; gap: 5px; padding: 3px 8px; border-radius: 999px;
   background: var(--panel); border: 1px solid var(--line); font-variant-numeric: tabular-nums; white-space: nowrap;

@@ -1,3 +1,5 @@
+import { userTeam } from './league';
+import { teamColour } from './teamColours';
 import rules from '../data/prestige.json';
 import type { MoveResult } from './roster';
 import type { Franchise } from './season';
@@ -9,12 +11,15 @@ export interface Jersey {
 
 /** The jersey colours unlocked so far: one to start with, and one more for each prestige level. */
 export function unlockedJerseys(f: Franchise): Jersey[] {
-  return rules.jerseys.slice(0, Math.min(rules.jerseys.length, f.prestige.level + 1));
+  // The first is the club's own colour, worked out from its name as every other team's is.
+  const club: Jersey = { name: 'Club colours', colour: teamColour(userTeam(f.league).name) };
+  return [club, ...rules.jerseys.slice(1, Math.min(rules.jerseys.length, f.prestige.level + 1))];
 }
 
 /** The colour the team wears on the ice. */
 export function jerseyColour(f: Franchise): string {
-  return (unlockedJerseys(f)[f.prestige.jersey] ?? rules.jerseys[0]!).colour;
+  const open = unlockedJerseys(f);
+  return (open[f.prestige.jersey] ?? open[0]!).colour;
 }
 
 export function setJersey(f: Franchise, index: number): MoveResult {

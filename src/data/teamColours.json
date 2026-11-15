@@ -15,5 +15,9 @@
     "#b5179e",
     "#00897b",
     "#8d5524"
-  ]
+  ],
+  "inkLight": "#ffffff",
+  "inkDark": "#10161d",
+  "menuDeepen": 0.38,
+  "menuContrast": 4.5
 }

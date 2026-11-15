@@ -34,3 +34,49 @@ export function lighten(hex: string, amount: number): string {
   const mixed = parts(hex).map((c) => Math.round(c + (255 - c) * amount));
   return `#${mixed.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
 }
+
+/** The same toward black: `amount` 0 leaves it alone, 1 is black. */
+export function darken(hex: string, amount: number): string {
+  const mixed = parts(hex).map((c) => Math.round(c * (1 - amount)));
+  return `#${mixed.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+}
+
+/** How bright a colour looks, 0 (black) to 1 (white): the relative luminance used for contrast. */
+export function luminance(hex: string): number {
+  const [r, g, b] = parts(hex).map((c) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  }) as [number, number, number];
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** The contrast between two colours, 1 (none) to 21 (black on white). Text wants 4.5 or more. */
+export function contrast(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** The ink to write with on a colour: white or near-black, whichever reads better. */
+export const INK_LIGHT = data.inkLight;
+export const INK_DARK = data.inkDark;
+export function inkOn(hex: string): string {
+  return contrast(hex, INK_LIGHT) >= contrast(hex, INK_DARK) ? INK_LIGHT : INK_DARK;
+}
+
+/**
+ * The colours a menu takes from a team: its colour, a deeper shade of it for the far end of a band,
+ * and the ink that reads on both.
+ */
+export function menuColours(hex: string): { team: string; deep: string; ink: string } {
+  // The ink has to read on the whole band, so it is judged at whichever end is harder. A colour neither
+  // ink reads on (a mid orange, say) is deepened a little at a time, for the menus only, until white does.
+  let team = hex;
+  for (let step = 0; step < 12; step++) {
+    const deep = darken(team, data.menuDeepen);
+    const light = Math.min(contrast(team, INK_LIGHT), contrast(deep, INK_LIGHT));
+    const dark = Math.min(contrast(team, INK_DARK), contrast(deep, INK_DARK));
+    if (Math.max(light, dark) >= data.menuContrast) return { team, deep, ink: light >= dark ? INK_LIGHT : INK_DARK };
+    team = darken(team, 0.06);
+  }
+  return { team, deep: darken(team, data.menuDeepen), ink: INK_LIGHT };
+}

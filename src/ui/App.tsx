@@ -1,3 +1,4 @@
+import { menuColours } from '../core/teamColours';
 import { STICKERS } from '../core/bounty';
 import { afterTournamentGame, newTournament, tournamentOpponent, type Tournament } from '../core/tournament';
 import { CHARTERS, charterInfo, cleanVows, nextRank, setupLine, vowPackLuck, vowPay, vowPoints, VOWS, type SeasonSetup } from '../core/charter';
@@ -54,7 +55,7 @@ import { Icon, type IconName } from './Icon';
 import { BarRow, LineChart, sharesOf } from './Charts';
 import { Compare, FacilityCard, MascotPanel, OpenDesk, PrestigeLadder, StaffCard, TalentBadge, TradeOffer } from './screens/club';
 import { ChangeRow, EventHeader, MatchupPoster, powerupIcon, SeasonSummaryCard, ShopCard, StopCard, StrikeLights, TrainingGain } from './screens/season';
-import { Menu, MenuChrome, type MenuItem } from './Menu';
+import { Menu, MenuChrome, MenuCrest, type MenuItem } from './Menu';
 import { hasCustomPadMap } from '../game/padMap';
 import { PadReadout } from './PadReadout';
 import { PadSetup } from './PadSetup';
@@ -178,6 +179,17 @@ const GEAR_FILTERS: { label: string; test: (item: GearItem) => boolean }[] = [
 ];
 const RARITY_ORDER = gearData.rarities.map((r) => r.id as string);
 
+/** The colours the menus wear for a franchise on a screen: its own, or those of the boss or rival about to be played. */
+function menuTint(f: Franchise, screen: { name: string }): { team: string; deep: string; ink: string } {
+  const mine = jerseyColour(f);
+  if (screen.name === 'home' && f.season.stage === 'arrived') {
+    const stop = currentStop(f);
+    const opponent = stop && (stop.kind === 'boss' || (stop.kind === 'game' && isRival(f, stop.opponentId))) ? matchup(f) : null;
+    if (opponent) return menuColours(teamColour(opponent.away.name, mine));
+  }
+  return menuColours(mine);
+}
+
 /** The whole menu side of the game: the off-season hub, the season map and its stops, and the team screens. */
 export function App() {
   const [, redraw] = useReducer((n: number) => n + 1, 0);
@@ -263,6 +275,18 @@ export function App() {
     else menuInput.start();
   }, [playing]);
 
+  // The team colours reach every screen as CSS variables.
+  const shown = ref.current;
+  const shownColour = shown && !playing ? JSON.stringify(menuTint(shown, screen)) : '';
+  useEffect(() => {
+    if (shownColour === '') return;
+    const c = JSON.parse(shownColour) as { team: string; deep: string; ink: string };
+    const root = document.documentElement.style;
+    root.setProperty('--team', c.team);
+    root.setProperty('--team-deep', c.deep);
+    root.setProperty('--team-ink', c.ink);
+  }, [shownColour]);
+
   const f = ref.current;
   if (!f || playing) return null;
   const { league, season } = f;
@@ -270,6 +294,14 @@ export function App() {
   const locked = rosterLocked(f);
   // Your crest wears the jersey colour you chose; every other team's comes from its name.
   const myCrest = teamCrest(team.name, jerseyColour(f));
+  // The menus wear the colours of the team whose screens these are: yours, or the boss or rival you are about to play.
+  const foe = ((): { name: string; colour: string } | null => {
+    if (screen.name !== 'home' || season.stage !== 'arrived') return null;
+    const stop = currentStop(f);
+    const waiting = stop && (stop.kind === 'boss' || (stop.kind === 'game' && isRival(f, stop.opponentId))) ? matchup(f) : null;
+    return waiting ? { name: waiting.away.name, colour: teamColour(waiting.away.name, jerseyColour(f)) } : null;
+  })();
+  const barCrest = foe ? teamCrest(foe.name, foe.colour) : myCrest;
   // A new screen is a new list: its focus starts afresh.
   const screenKey = `${JSON.stringify(screen)}|${season.phase}|${season.current}|${season.stage}`;
 
@@ -3058,7 +3090,9 @@ export function App() {
   })();
   return (
     <WearingContext.Provider value={wearing}>
-      <MenuChrome.Provider value={<Wallet f={f} />}>{view}</MenuChrome.Provider>
+      <MenuCrest.Provider value={<CrestBadge crest={barCrest} size={26} />}>
+        <MenuChrome.Provider value={<Wallet f={f} />}>{view}</MenuChrome.Provider>
+      </MenuCrest.Provider>
     </WearingContext.Provider>
   );
 }
