@@ -89,7 +89,7 @@ export function seasonAwards(league: League, table: Standings, scoring: Scoring,
       if (gain > 0 && (!improved || gain > improved.gain || (gain === improved.gain && id < improved.player.id))) improved = { player, teamId: team.id, gain };
     }
   }
-  if (improved) make('improved', 'Most improved', improved.player, improved.teamId, `${improved.gain} better overall`);
+  if (improved) make('improved', 'Most improved', improved.player, improved.teamId, `a gain of ${improved.gain} overall`);
 
   const rookie = leaders.find((line) => line.player.age - (agedThisSeason ? 1 : 0) <= data.rookieMaxAge && pointsOf(line) > 0);
   if (rookie) make('rookie', 'Rookie of the year', rookie.player, rookie.teamId, tally(rookie));

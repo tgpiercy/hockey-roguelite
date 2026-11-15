@@ -49,7 +49,7 @@ describe('awards', () => {
   });
 
   it('most improved is whoever gained most overall', () => {
-    expect(by('improved')).toMatchObject({ playerId: riser, detail: '6 better overall' });
+    expect(by('improved')).toMatchObject({ playerId: riser, detail: 'a gain of 6 overall' });
   });
 
   it('rookie of the year is the best scorer young enough, and can be yours', () => {

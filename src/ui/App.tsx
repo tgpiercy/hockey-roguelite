@@ -154,6 +154,9 @@ const TILE_ICONS: Record<string, IconName> = {
 };
 const BUTTONS = ['LT', 'RB'];
 
+/** "1 season", "2 seasons". */
+const count = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`;
+
 /** 1st, 2nd, 3rd, 4th ... */
 const ordinal = (n: number): string => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : n % 10 === 1 ? 'st' : n % 10 === 2 ? 'nd' : n % 10 === 3 ? 'rd' : 'th'}`;
 
@@ -506,6 +509,7 @@ export function App() {
               badge: f.packs.length,
               detail: 'Packs, gear, artifacts and your jersey.',
             }),
+            card('league', 'League', `Trophy room · ${count((f.history ?? []).filter((x) => x.outcome === 'champion').length, 'championship')}`, () => openGroup('league')),
             card('settings', 'Settings', `${difficultyInfo(f.difficulty).name} · sound ${prefs.sound ? 'on' : 'off'}`, () => openGroup('settings'), {
               detail: 'Difficulty, sound, rink detail, save and load.',
             }),
@@ -1762,7 +1766,7 @@ export function App() {
         items={[
           tile('standings', 'Standings', table ? 'The table, and who is in the playoff places' : 'Starts with the season', () => go({ name: 'standings' }), { lock: table ? undefined : 'The table starts when the season does.' }),
           tile('news', 'News', table ? (leagueNews(f)[0] ?? 'Nothing yet') : 'Starts with the season', () => go({ name: 'news' }), { lock: table ? undefined : 'The news starts when the season does.' }),
-          tile('trophies', 'Trophy room', `${(f.history ?? []).filter((x) => x.outcome === 'champion').length} championships · ${(f.history ?? []).length} seasons`, () => go({ name: 'trophies' })),
+          tile('trophies', 'Trophy room', `${count((f.history ?? []).filter((x) => x.outcome === 'champion').length, 'championship')} · ${count((f.history ?? []).length, 'season')}`, () => go({ name: 'trophies' })),
         ]}
       />
     );

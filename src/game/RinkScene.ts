@@ -907,10 +907,11 @@ export class RinkScene extends Phaser.Scene {
     }
     // The commentary line sits just under the scoreboard and fades out at the end of its time.
     const callLeft = this.callUntil - this.clock;
-    this.callText.setVisible(callLeft > 0 && world.phase !== 'goal');
+    this.callText.setVisible(callLeft > 0);
     if (callLeft > 0) {
       this.callText.setFontSize(Math.max(10, height * 0.04));
-      this.callText.setPosition(width / 2, y0 + boardH + 6);
+      // During the goal banner the call moves to the lower part of the rink, so both can be read.
+      this.callText.setPosition(width / 2, world.phase === 'goal' ? height * 0.74 : y0 + boardH + 6);
       this.callText.setAlpha(Math.min(1, callLeft / 0.4));
     }
     this.clockTextObject.setText(`${period}  ${clockText(world.clock)}`);
