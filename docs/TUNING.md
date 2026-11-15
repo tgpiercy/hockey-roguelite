@@ -468,6 +468,26 @@ Scripted slot-and-shoot player, 150 games each:
 
 So the "wins about half at the default level" target from the earlier round is no longer met: the stronger assist was asked for and it makes a player who simply drives the net and shoots win two games in three. AI against AI is unchanged by the assist: 3.92 and 3.79 goals, save percentage .791, the 90 team winning 78%.
 
+## Check assist for the player (2026-11-14)
+
+The owner reported that checking seemed ineffective: often nothing happened at all, and body checks rarely came off. The fix chosen was to help the player only, the way aim assist does; the AI's checking is unchanged. The numbers are the `checkAssist` group in `physics.json`, and apply to the skater the human controls.
+
+| Value | AI | Player |
+| --- | --- | --- |
+| How far round his front a poke reaches | 80 degrees | 220 degrees |
+| Chance a poke works, before ratings | 0.30 | 0.50 |
+| Chance a body check works, before ratings | 0.60 | 0.75 |
+| Hold needed for a body check | 0.25 s | 0.15 s |
+| Reach of a body check | 1.5 m | 1.9 m |
+| Closing speed a body check needs | 2.5 m/s | 1.2 m/s |
+| Wait after a check that reached nobody | 0.9 s | 0.3 s |
+
+`checkAssist.strength` at 0 switches all of it off.
+
+By keyboard in a live game, 15 tries each against a carrier placed beside the player: a tap from behind, from the side and from in front reached him every time and freed the puck 8, 8 and 9 times (with the old 80 degree arc the taps from behind and the side reached nobody). Hold and release coming in from behind: 12 thrown, 12 loose pucks, 9 staggers. Hold and release while skating away from a carrier who is also leaving reaches nobody, as it should: the puck is over 3 m away by the time the button comes up.
+
+AI against AI is unchanged (3.92 and 3.79 goals). The scripted player never checks, so its figures do not move either; how much the assist helps a real player win is not measured.
+
 ## Change log
 
 | Date | Value | From | To | Why |
@@ -485,6 +505,7 @@ So the "wins about half at the default level" target from the earlier round is n
 | 2026-11-14 | ai.json: zone posts, longShotRange, longShotChance, longShotCharge, plantTilt | none | see "Spread-out attack" above | Attackers crowded the net |
 | 2026-11-14 | one-timer, deke, knock-down, rebound, goalie challenge, cover radius, AI styles | see "Deeper gameplay" above | | New moves and AI after the research report |
 | 2026-11-14 | momentum, tips, giveGo, pull, boss groups | none | see "Momentum, tips..." above | New mechanics |
+| 2026-11-14 | checkAssist (new group) | none | see above | The owner found checking ineffective; help the player only |
 | 2026-11-14 | aimAssist cone, inset, spreadScale | 100, 0.35, none | 150, 0.25, 0.5 | The owner asked for more shoot assist |
 | 2026-11-14 | check.bodyHoldSeconds (new) | none | 0.25 | A body check needs the button held; a tap is a poke |
 | 2026-11-14 | check.pokeRange | 1.9 | 2.8 | The owner wanted a poke check that works from a stick length away |

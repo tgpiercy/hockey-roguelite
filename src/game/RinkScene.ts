@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { teamCrest, type Crest } from '../core/crest';
 import { lighten } from '../core/teamColours';
 import look from '../data/rinkLook.json';
+import { checkRules } from '../sim/check';
 import { benchDoor, lineEnergy, mayPull } from '../sim/lines';
 import { onFire } from '../sim/momentum';
 import { forfeitResult, gameResult, type GameResult } from '../sim/match';
@@ -668,7 +669,7 @@ export class RinkScene extends Phaser.Scene {
             ? chargeFraction(controlled.charge, t)
             : controlled.passCharge > 0
               ? Math.min(1, controlled.passCharge / t.pass.saucerHoldTime)
-              : Math.min(1, controlled.checkCharge / t.check.bodyHoldSeconds);
+              : Math.min(1, controlled.checkCharge / checkRules(world, controlled, t).bodyHoldSeconds);
         const w = t.skater.radius * 4 * z;
         const h = Math.max(4, 0.3 * z);
         const bx = this.sx(controlled.pos.x) - w / 2;

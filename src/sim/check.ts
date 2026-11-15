@@ -20,13 +20,38 @@ export function closingSpeed(checker: Player, target: Player): number {
  * Anything else is a poke, if the puck is within a stick's reach and in front.
  */
 export function checkKind(checker: Player, carrier: Player, world: World, t: Tuning, charged = true, closing = closingSpeed(checker, carrier)): 'body' | 'poke' | null {
-  if (charged && dist(checker.pos, carrier.pos) <= t.check.bodyRange && closing >= t.check.minClosingSpeed) {
+  const rules = checkRules(world, checker, t);
+  if (charged && dist(checker.pos, carrier.pos) <= rules.bodyRange && closing >= rules.minClosingSpeed) {
     return 'body';
   }
   const puck = world.puck.pos;
   const toPuck = Math.atan2(puck.y - checker.pos.y, puck.x - checker.pos.x);
-  const inCone = Math.abs(wrapAngle(toPuck - checker.facing)) <= (t.check.pokeConeDegrees * Math.PI) / 360;
+  const inCone = Math.abs(wrapAngle(toPuck - checker.facing)) <= (rules.pokeConeDegrees * Math.PI) / 360;
   return dist(checker.pos, puck) <= t.check.pokeRange && inCone ? 'poke' : null;
+}
+
+/** The limits a check is judged by. The skater the human controls gets easier ones: check assist, like aim assist. */
+export interface CheckRules {
+  /** How far round his front a poke reaches, in degrees. */
+  pokeConeDegrees: number;
+  /** How close the carrier must be, and how fast the checker must have closed on him, for a body check. */
+  bodyRange: number;
+  minClosingSpeed: number;
+  /** How long the button must be held for a body check. */
+  bodyHoldSeconds: number;
+  /** Added to the chance a poke or a body check works. */
+  pokeBonus: number;
+  bodyBonus: number;
+  /** The wait after a check that reached nobody. */
+  missCooldownSeconds: number;
+}
+
+export function checkRules(world: World, p: Player, t: Tuning): CheckRules {
+  const a = t.checkAssist;
+  const helped = a.strength > 0 && world.human !== null && world.human.controlled === p.id;
+  return helped
+    ? { pokeConeDegrees: a.pokeConeDegrees, bodyRange: a.bodyRange, minClosingSpeed: a.minClosingSpeed, bodyHoldSeconds: a.bodyHoldSeconds, pokeBonus: a.pokeChanceBonus, bodyBonus: a.bodyChanceBonus, missCooldownSeconds: a.missCooldownSeconds }
+    : { pokeConeDegrees: t.check.pokeConeDegrees, bodyRange: t.check.bodyRange, minClosingSpeed: t.check.minClosingSpeed, bodyHoldSeconds: t.check.bodyHoldSeconds, pokeBonus: 0, bodyBonus: 0, missCooldownSeconds: t.check.cooldownSeconds };
 }
 
 /**
@@ -49,7 +74,7 @@ export function stepChecking(world: World, p: Player, input: InputFrame, t: Tuni
   p.checkCharge = 0;
   p.checkClosing = 0;
   if (!wasHeld) return;
-  resolveCheck(world, p, held >= t.check.bodyHoldSeconds, t, events, closing);
+  resolveCheck(world, p, held >= checkRules(world, p, t).bodyHoldSeconds, t, events, closing);
 }
 
 /**
@@ -61,15 +86,23 @@ export function resolveCheck(world: World, p: Player, charged: boolean, t: Tunin
   if (p.checkCooldown > 0 || world.puck.carrier === p.id) return;
   p.checkCooldown = t.check.cooldownSeconds;
 
+  const rules = checkRules(world, p, t);
   const carrier = carrierOf(world);
-  if (!carrier || carrier.team === p.team || carrier.role !== 'skater') return;
+  // A check at nobody costs only the short wait (for the human; for the AI the two are the same).
+  if (!carrier || carrier.team === p.team || carrier.role !== 'skater') {
+    p.checkCooldown = rules.missCooldownSeconds;
+    return;
+  }
   const speed = closing ?? closingSpeed(p, carrier);
   const kind = checkKind(p, carrier, world, t, charged, speed);
-  if (!kind) return;
+  if (!kind) {
+    p.checkCooldown = rules.missCooldownSeconds;
+    return;
+  }
 
   const strength = p.fx.checkStrength * energyScale(p, t.energy.minCheckScale, t);
   const swing = (strength - carrier.fx.puckSecurity) * t.check.ratingSwing;
-  const base = kind === 'body' ? t.check.bodyBaseChance : t.check.pokeBaseChance;
+  const base = kind === 'body' ? t.check.bodyBaseChance + rules.bodyBonus : t.check.pokeBaseChance + rules.pokeBonus;
   const rolled = world.rng.chance(base + swing);
   // Some gear makes a body check at high closing speed a big hit, which always frees the puck.
   const bigHit = kind === 'body' && p.fx.bigHitKnock > 0 && speed >= t.check.bigHitClosingSpeed;

@@ -195,5 +195,15 @@
   },
   "boss": {
     "burstSpeedScale": 1.25
+  },
+  "checkAssist": {
+    "strength": 1,
+    "pokeConeDegrees": 220,
+    "pokeChanceBonus": 0.2,
+    "bodyChanceBonus": 0.15,
+    "missCooldownSeconds": 0.3,
+    "bodyHoldSeconds": 0.15,
+    "bodyRange": 1.9,
+    "minClosingSpeed": 1.2
   }
 }

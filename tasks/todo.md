@@ -444,3 +444,17 @@ Built, deployed and checked with a simulated controller.
 - Two things found by measuring, not by reading the code. First, a held check never counted as a body check, for the AI or a player, because the two players had bumped and stopped closing before the button came up; the hit is now judged by the fastest closing speed during the hold. Second, my first "more assist" setting cut the scripted player's scoring by three quarters; the final one raises it by about a third.
 - With the stronger assist the scripted player wins 101 of 150 at the default level (was 79). That target from the gameplay round is no longer met, by the owner's choice.
 - Not checked: the feel of the hold on a controller; whether a quarter of a second is the right length; the bar over the player while holding (not looked at in a picture).
+
+# Check assist for the player
+
+- [x] `checkAssist` numbers and `checkRules`; the AI unchanged
+- [x] Tests; measured by keyboard in a live game
+- [ ] Commit, push
+- [ ] Play it (owner)
+
+## Review (check assist)
+
+- Type check and 855 tests (5 new) pass; AI against AI unchanged.
+- Measured in a live game: taps from behind and the side now reach the carrier (they reached nobody before); about half free the puck. Held checks from behind freed the puck 12 times in 12.
+- One staged case reached nobody (holding while drifting away from a carrier who skated off). Looked at step by step: the puck was 3.2 m away at release, beyond the poke's 2.8 m. Not a fault.
+- Not checked: the feel on a controller; whether the player now wins the puck too easily; the effect on win rate (the scripted player never checks).

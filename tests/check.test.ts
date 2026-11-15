@@ -223,6 +223,88 @@ describe('tap or hold', () => {
   });
 });
 
+describe('check assist for the human', () => {
+  const a = sure.checkAssist;
+  /** The same check thrown by the human's skater and by an AI skater in the same spot. */
+  const both = (setup: (world: World) => void, charged: boolean, t = sure): { human: SimEvent[]; ai: SimEvent[]; humanWorld: World; aiWorld: World } => {
+    const run = (human: boolean): { events: SimEvent[]; world: World } => {
+      const world = createWorld(t, 'assist', { human });
+      clearIce(world, [ID.home1, ID.away1]);
+      place(world, ID.away1, 0, 0, 0);
+      giveTo(world, ID.away1);
+      setup(world);
+      if (world.human) world.human.controlled = ID.home1;
+      const events: SimEvent[] = [];
+      resolveCheck(world, player(world, ID.home1), charged, t, events);
+      return { events, world };
+    };
+    const h = run(true);
+    const ai = run(false);
+    return { human: h.events, ai: ai.events, humanWorld: h.world, aiWorld: ai.world };
+  };
+
+  it('his poke reaches a puck out to the side that an AI skater facing the same way cannot', () => {
+    expect(a.pokeConeDegrees).toBeGreaterThan(sure.check.pokeConeDegrees);
+    // The puck is square to his side: outside the ordinary arc, inside the assisted one.
+    const result = both((world) => place(world, ID.home1, world.puck.pos.x, -1.4, 0), false);
+    expect(result.human[0]).toMatchObject({ kind: 'poke' });
+    expect(result.ai).toEqual([]);
+  });
+
+  it('a check that reaches nobody costs him only a short wait', () => {
+    expect(a.missCooldownSeconds).toBeLessThan(sure.check.cooldownSeconds);
+    const result = both((world) => place(world, ID.home1, -8, 0, 0), false);
+    expect(result.human).toEqual([]);
+    expect(player(result.humanWorld, ID.home1).checkCooldown).toBeCloseTo(a.missCooldownSeconds);
+    expect(player(result.aiWorld, ID.home1).checkCooldown).toBeCloseTo(sure.check.cooldownSeconds);
+  });
+
+  it('his body check needs a shorter hold, a little less speed, and reaches a little further', () => {
+    expect(a.bodyHoldSeconds).toBeLessThan(sure.check.bodyHoldSeconds);
+    expect(a.bodyRange).toBeGreaterThan(sure.check.bodyRange);
+    expect(a.minClosingSpeed).toBeLessThan(sure.check.minClosingSpeed);
+    const gap = (a.bodyRange + sure.check.bodyRange) / 2;
+    const speed = (a.minClosingSpeed + sure.check.minClosingSpeed) / 2;
+    const result = both((world) => {
+      place(world, ID.home1, -gap, 0, 0).vel = { x: speed, y: 0 };
+    }, true);
+    expect(result.human[0]).toMatchObject({ kind: 'body' });
+    expect(result.ai[0]?.type === 'check' ? result.ai[0].kind : 'none').not.toBe('body');
+  });
+
+  it('a hold too short for the AI is long enough for him', () => {
+    const world = setUp(1.2, sure.check.minClosingSpeed + 1);
+    world.human!.controlled = ID.home1;
+    const events = holdAndRelease(world, (a.bodyHoldSeconds + sure.check.bodyHoldSeconds) / 2);
+    expect(events[0]).toMatchObject({ kind: 'body' });
+  });
+
+  it('his checks work more often, and switching the assist off takes all of it away', () => {
+    expect(a.pokeChanceBonus).toBeGreaterThan(0);
+    expect(a.bodyChanceBonus).toBeGreaterThan(0);
+    const wins = (t: typeof sure, human: boolean): number => {
+      let count = 0;
+      for (let i = 0; i < 300; i++) {
+        const world = createWorld(t, `odds-${i}`, { human });
+        clearIce(world, [ID.home1, ID.away1]);
+        place(world, ID.away1, 0, 0, 0);
+        giveTo(world, ID.away1);
+        place(world, ID.home1, world.puck.pos.x, -1.4, Math.PI / 2);
+        if (world.human) world.human.controlled = ID.home1;
+        const events: SimEvent[] = [];
+        resolveCheck(world, player(world, ID.home1), false, t, events);
+        if (events[0]?.type === 'check' && events[0].success) count++;
+      }
+      return count;
+    };
+    const real = cloneTuning();
+    expect(wins(real, true)).toBeGreaterThan(wins(real, false) + 20);
+    const off = cloneTuning();
+    off.checkAssist.strength = 0;
+    expect(Math.abs(wins(off, true) - wins(off, false))).toBeLessThan(40);
+  });
+});
+
 describe('poke check', () => {
   /** The checker stands still beside the puck, stick side on, facing it (or facing away). */
   const beside = (facing: number): World => {
@@ -275,11 +357,11 @@ describe('poke check', () => {
 });
 
 describe('check limits', () => {
-  it('out of range it does nothing, but still costs the cooldown', () => {
+  it('out of range it does nothing, but still costs a wait: the short one for the human', () => {
     const world = setUp(6, 8);
     expect(check(world)).toEqual([]);
     expect(world.puck.carrier).toBe(ID.away1);
-    expect(player(world, ID.home1).checkCooldown).toBeCloseTo(sure.check.cooldownSeconds);
+    expect(player(world, ID.home1).checkCooldown).toBeCloseTo(sure.checkAssist.missCooldownSeconds);
   });
 
   it('is thrown when the button comes up, and cannot be thrown again during the cooldown', () => {
