@@ -43,7 +43,19 @@ export function evaluateTrade(f: Franchise, minePlayerId: string, theirTeamId: s
   const theirPayroll = payroll(league, theirTeam) - theirs.capHit + mine.capHit;
   if (theirPayroll > leagueRules.cap) return { ok: false, reason: `${theirTeam.name} cannot fit him under their cap.` };
 
-  if (tradeValue(mine) < tradeValue(theirs) + rules.trade.acceptMargin) {
+  // What the other team needs: a player at a position it is short of is worth more to it, one it has plenty of less.
+  let need = 0;
+  if (mine.position !== 'G') {
+    const t = rules.trade;
+    const theirSkaters = theirTeam.roster.map((id) => playerOf(league, id)).filter((p) => p.position !== 'G');
+    const count = (position: string): number => theirSkaters.filter((p) => p.position === position).length;
+    const leftAt = count(theirs.position) - 1 + (mine.position === theirs.position ? 1 : 0);
+    if (leftAt < t.positionMin) {
+      return { ok: false, reason: `${theirTeam.name} say no: it would leave them short of ${theirs.position === 'F' ? 'forwards' : 'defencemen'}.` };
+    }
+    if (mine.position !== theirs.position) need = count(mine.position) <= t.positionShort ? t.positionNeed : count(mine.position) >= t.positionPlenty ? -t.positionNeed : 0;
+  }
+  if (tradeValue(mine) + need < tradeValue(theirs) + rules.trade.acceptMargin) {
     return { ok: false, reason: `${theirTeam.name} say no: they value ${theirs.name} more than ${mine.name}.` };
   }
   return overLimit(f, theirs.capHit - mine.capHit, 0);

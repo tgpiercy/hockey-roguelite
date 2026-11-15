@@ -140,7 +140,8 @@
     "changeBelow": 0.5,
     "changeMargin": 0.15,
     "goalieDrainPerSecond": 0.0008,
-    "goalieReactionPenalty": 0.4
+    "goalieReactionPenalty": 0.4,
+    "heavyShift": 0.12
   },
   "aimAssist": {
     "strength": 1,

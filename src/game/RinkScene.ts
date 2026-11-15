@@ -605,6 +605,13 @@ export class RinkScene extends Phaser.Scene {
         }
       }
 
+      // A boss trick's tell: a skater whose every hit is a knock-down flashes while he is winding one up.
+      if (!goalie && p.fx.alwaysKnockdown > 0 && p.checkCharge > 0) {
+        const pulse = 0.55 + 0.45 * Math.sin(this.clock * 30);
+        this.top.lineStyle(Math.max(2, unit * 0.22), colour(c.fire), pulse);
+        this.top.strokeCircle(x, y - unit * 1.6, unit * 2.4);
+      }
+
       if (p === controlled) {
         // The ring lies flat on the ice under him, with a tick pointing the way he truly faces.
         const ring = base * look.controlRingScale;
@@ -727,6 +734,16 @@ export class RinkScene extends Phaser.Scene {
   }
 
   /** The scoreboard, the bars at the bottom, the powerups, and any banner across the ice. */
+  /** A boss trick's tell: the other team presses with everyone while you have the puck in your own end. */
+  private fullPressOn(humanTeam: 0 | 1): boolean {
+    const world = this.world;
+    if (world.phase !== 'play') return false;
+    const carrier = world.puck.carrier === null ? null : world.players[world.puck.carrier];
+    if (!carrier || carrier.team !== humanTeam) return false;
+    const ownEnd = humanTeam === 0 ? world.puck.pos.x < 0 : world.puck.pos.x > 0;
+    return ownEnd && world.players.some((p) => p.onIce && p.team !== humanTeam && p.role === 'skater' && p.fx.fullPress > 0);
+  }
+
   /** The player has just done a move: count it, and take its hint down. */
   private countHint(id: HintId): void {
     if (!this.options.hints?.()) return;
@@ -838,7 +855,9 @@ export class RinkScene extends Phaser.Scene {
             ? 'EMPTY NET  ·  VIEW: GOALIE BACK'
             : mayPull(world, humanTeam, t)
               ? 'VIEW: PULL THE GOALIE'
-              : this.hint
+              : this.fullPressOn(humanTeam)
+                ? 'FULL PRESS  ·  PASS THROUGH IT'
+                : this.hint
                 ? hintText(this.hint)
                 : '';
     this.pullText.setVisible(prompt !== '');
@@ -936,7 +955,8 @@ export class RinkScene extends Phaser.Scene {
       const size = Math.max(18, height * (goal ? 0.17 : 0.07));
       this.bigText.setFontSize(size);
       this.bigText.setText(message);
-      const cy = this.originY - (goal ? 0 : t.rink.width * this.zoom * 0.3);
+      // The goal banner sits in the upper part of the rink, clear of the scorer and the net-front.
+      const cy = this.originY - t.rink.width * this.zoom * (goal ? look.goalBannerLift : 0.3);
       if (goal) {
         // The band and the word slide in from the left and settle.
         const k = this.full ? Math.min(1, this.bannerAge / look.bannerSlideSeconds) : 1;

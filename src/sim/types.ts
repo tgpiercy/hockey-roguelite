@@ -303,6 +303,8 @@ export interface TeamState {
   boosts: Boost[];
   /** How this team's AI skaters like to attack: a style id from ai.json, or null. */
   style: string | null;
+  /** The line given longer shifts, or null for even shifts. */
+  heavyLine: 0 | 1 | null;
   /** Momentum, 0 to 1: full sets the team on fire. */
   heat: number;
   /** True while the goalie is off for an extra skater, and who that skater is. */

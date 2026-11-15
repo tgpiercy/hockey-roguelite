@@ -5,6 +5,8 @@ export interface Lineup {
   line1: (string | null)[];
   line2: (string | null)[];
   goalie: string | null;
+  /** The line (0 or 1) that takes longer shifts. Left out, even shifts. */
+  heavy?: 0 | 1;
 }
 
 export interface Team {

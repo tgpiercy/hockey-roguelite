@@ -2268,6 +2268,18 @@ export function App() {
           slot(1, 0),
           slot(1, 2),
           {
+            key: 'shift',
+            wide: true,
+            label: `Shifts: ${team.lineup.heavy === undefined ? 'Even' : `Line ${team.lineup.heavy + 1} plays more`}`,
+            detail: 'Press to change. The line that plays more stays on until it is more tired, and the other line comes off sooner. Put your best three on it.',
+            onSelect: () => {
+              if (team.lineup.heavy === undefined) team.lineup.heavy = 0;
+              else if (team.lineup.heavy === 0) team.lineup.heavy = 1;
+              else delete team.lineup.heavy;
+              after({ ok: true, message: team.lineup.heavy === undefined ? 'Even shifts.' : `Line ${team.lineup.heavy + 1} will play more.` });
+            },
+          },
+          {
             key: 'goalie',
             wide: true,
             label: chip(goalie, 'Goalie'),

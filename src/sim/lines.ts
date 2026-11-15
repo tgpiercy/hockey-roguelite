@@ -136,7 +136,9 @@ export function autoChange(world: World, team: 0 | 1, t: Tuning): boolean {
   if (state.changeCooldown > 0 || changing(world, team)) return false;
   const benchLine = state.line === 0 ? 1 : 0;
   const onIceEnergy = lineEnergy(world, team, state.line);
-  if (onIceEnergy >= t.energy.changeBelow) return false;
+  // A line given longer shifts stays on until it is more tired; the other line comes off sooner.
+  const lean = state.heavyLine === null ? 0 : state.heavyLine === state.line ? -t.energy.heavyShift : t.energy.heavyShift;
+  if (onIceEnergy >= t.energy.changeBelow + lean) return false;
   if (lineEnergy(world, team, benchLine) < onIceEnergy + t.energy.changeMargin) return false;
   const carrier = carrierOf(world);
   const safe = carrier ? carrier.team === team : attackDir(team) * world.puck.pos.x > 0;

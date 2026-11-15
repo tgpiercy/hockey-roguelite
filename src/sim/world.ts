@@ -51,6 +51,8 @@ export interface TeamSetup {
   skaterTalents?: string[][];
   /** How its AI skaters like to attack: an id from the styles in ai.json. Left out, no leaning. */
   style?: string;
+  /** The line (0 or 1) that takes longer shifts: it stays on until it is more tired, and the other comes off sooner. Left out, even shifts. */
+  heavyLine?: 0 | 1;
 }
 
 export interface WorldOptions {
@@ -152,8 +154,9 @@ function createPlayers(t: Tuning, options: WorldOptions): Player[] {
   return players;
 }
 
-function newTeamState(powerups: (PowerupSpec | null)[], style: string | null): World['teams'][number] {
+function newTeamState(powerups: (PowerupSpec | null)[], style: string | null, heavyLine: 0 | 1 | null = null): World['teams'][number] {
   return {
+    heavyLine,
     line: 0,
     changeCooldown: 0,
     changeHeld: false,
@@ -211,7 +214,7 @@ export function createWorld(t: Tuning, seed: number | string, options: WorldOpti
     overtime: false,
     overtimeLimit: options.overtimeLimit ?? 0,
     faceoff: null,
-    teams: [newTeamState(options.human === false ? [] : (options.powerups ?? []), options.teams?.[0].style ?? null), newTeamState([], options.teams?.[1].style ?? null)],
+    teams: [newTeamState(options.human === false ? [] : (options.powerups ?? []), options.teams?.[0].style ?? null, options.teams?.[0].heavyLine ?? null), newTeamState([], options.teams?.[1].style ?? null, options.teams?.[1].heavyLine ?? null)],
   };
   lineUp(world, t);
   return world;

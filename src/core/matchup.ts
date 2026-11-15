@@ -72,6 +72,7 @@ export function dress(league: League, team: Team, options: DressOptions = {}): D
       goalieModifiers: abilityModifiers(gear(goalie)),
       // Every team but yours attacks in its own way; your linemates have no leaning.
       ...(team.id !== league.userTeamId ? { style: playStyle(team.name) } : {}),
+      ...(team.lineup.heavy !== undefined ? { heavyLine: team.lineup.heavy } : {}),
     },
   };
 }

@@ -62,6 +62,7 @@
   "centreCrestSize": 5.2,
   "centreCrestAlpha": 0.5,
   "bannerSlideSeconds": 0.35,
+  "goalBannerLift": 0.33,
   "effects": {
     "goalLightSeconds": 2.4,
     "goalShake": 0.006,
