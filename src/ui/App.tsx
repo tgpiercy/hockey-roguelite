@@ -191,6 +191,10 @@ export function App() {
     const timer = setInterval(() => setJoined(secondJoined()), 300);
     return () => clearInterval(timer);
   }, [playing]);
+  // Say so when a second controller joins, so one that joins by accident is noticed.
+  useEffect(() => {
+    if (joined) setMessage('Player 2 has joined with a second controller. Send him away under Settings, or on the Exhibition screen.');
+  }, [joined]);
   // The hub group the player came through, so B from a screen returns there and not to the top.
   const [group, setGroup] = useState<Group | null>(null);
   const [rewards, setRewards] = useState<GameRewards | null>(null);
@@ -2143,6 +2147,15 @@ export function App() {
             lock: joined ? undefined : 'Press any button on a second controller to join as player 2 first.',
             detail: "If player 2's buttons do the wrong thing, press each one in turn on his controller.",
           }),
+          ...(joined
+            ? [
+                tile('p2leave', 'Player 2: leave', 'Back to one player', () => {
+                  dropSecond();
+                  setJoined(false);
+                  setMessage('Player 2 has left.');
+                }, { icon: 'team', detail: 'The second controller stops being player 2. It can join again by pressing a button.' }),
+              ]
+            : []),
           tile('padTest', 'Controller test', 'See what the game reads', () => go({ name: 'padTest' }), {
             icon: 'detail',
             detail: 'Shows which controller buttons and on-screen buttons the game sees as you press them.',

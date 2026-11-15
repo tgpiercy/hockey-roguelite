@@ -114,7 +114,10 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       render(
         <PauseMenu
           {...(forfeitNote ? { endNote: forfeitNote } : {})}
-          onResume={() => setPaused(false)}
+          onResume={() => {
+            menuInput.setPlayer(0);
+            setPaused(false);
+          }}
           onTuning={() => {
             setPaused(false);
             if (!tuningStore.open) tuningStore.toggle();
@@ -141,12 +144,16 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
     }
   };
   /** The pause button or key: closes the tuning panel if that is open, otherwise pauses or resumes. */
-  const pausePressed = (): void => {
+  const pausePressed = (by: 0 | 1 = 0): void => {
     if (performance.now() - toggledAt < PAUSE_DEBOUNCE_MS) return;
     if (tuningStore.open) tuningStore.toggle();
-    else setPaused(!paused);
+    else {
+      // Whoever pauses works the pause menu with his own controller.
+      menuInput.setPlayer(paused ? 0 : by);
+      setPaused(!paused);
+    }
   };
-  onPauseButton = pausePressed;
+  onPauseButton = () => pausePressed(0);
   // A locked phone or a switch to another app pauses the game.
   const onHidden = (): void => {
     if (document.hidden) setPaused(true);
@@ -160,7 +167,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       touchHidden = hide;
       showTouch();
     }
-    if (controls.menuPressed) pausePressed();
+    if (controls.menuPressed) pausePressed(controls.menuPlayer ?? 0);
     if (!tuningStore.open) return;
     if (controls.navY !== 0) tuningStore.select(tuningStore.selected + controls.navY);
     if (controls.navX !== 0) tuningStore.adjust(tuningStore.selected, controls.navX);
@@ -217,6 +224,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
         render(null, summary);
         render(null, touch);
         gameAudio.stopBeds();
+        menuInput.setPlayer(0);
         hush();
         music.loop('theme');
         if (tuningStore.open) tuningStore.toggle();

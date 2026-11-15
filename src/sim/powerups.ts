@@ -1,6 +1,7 @@
 import { STEP_SECONDS } from './clock';
 import { applyModifiers, type Boost, type Modifier, type PowerupSpec } from './modifiers';
 import type { InputFrame, SimEvent, World } from './types';
+import { NO_INPUT } from './types';
 
 /** Re-works every player's abilities on a team from his base abilities plus the boosts now running. */
 function refresh(world: World, team: 0 | 1): void {
@@ -53,11 +54,14 @@ export function usePowerup(world: World, team: 0 | 1, slot: number, events: SimE
  * One step of powerups: the human's two buttons each use the powerup loaded on them (once per press),
  * and running boosts count down on the game clock and end.
  */
-export function stepPowerups(world: World, humanInput: InputFrame, events: SimEvent[]): void {
+export function stepPowerups(world: World, humanInput: InputFrame, events: SimEvent[], input2: InputFrame = NO_INPUT): void {
   if (world.human) {
     const team = world.human.team;
     const state = world.teams[team];
-    const pressed = [humanInput.powerupA, humanInput.powerupB];
+    // Playing alone, the two buttons fire the two powerups. With a partner on your team each of you has one:
+    // either of your powerup buttons fires yours.
+    const coop = world.human2 !== null && world.human2.team === team;
+    const pressed = coop ? [humanInput.powerupA || humanInput.powerupB, input2.powerupA || input2.powerupB] : [humanInput.powerupA, humanInput.powerupB];
     pressed.forEach((down, slot) => {
       if (down && !state.powerupHeld[slot]) usePowerup(world, team, slot, events);
       state.powerupHeld[slot] = down;

@@ -1,7 +1,7 @@
 import data from '../data/hints.json';
 import { attackDir, availableSkaters, carrierOf, dist, distToSegment, otherTeam, ownNet, targetNet } from '../sim/team';
 import type { Tuning } from '../sim/tuning';
-import type { SimEvent, World } from '../sim/types';
+import type { Human, SimEvent, World } from '../sim/types';
 
 /** A move the game can remind the player of. */
 export type HintId = keyof typeof data.hints;
@@ -22,9 +22,9 @@ export function retired(id: HintId, done: HintCounts): boolean {
 }
 
 /** Every move that is on for the human's skater right now. */
-export function hintsThatApply(world: World, t: Tuning): HintId[] {
-  if (!world.human || world.phase !== 'play') return [];
-  const me = world.players[world.human.controlled];
+export function hintsThatApply(world: World, t: Tuning, human: Human | null = world.human): HintId[] {
+  if (!human || world.phase !== 'play') return [];
+  const me = world.players[human.controlled];
   if (!me || !me.onIce || me.stagger > 0) return [];
   const puck = world.puck;
   const mates = availableSkaters(world, me.team).filter((p) => p.id !== me.id);
@@ -59,9 +59,9 @@ export function hintsThatApply(world: World, t: Tuning): HintId[] {
  * The hint to show now, or null: of the moves that are on and not yet retired, the one done least often
  * (so the player is told about what he has not tried), in list order between equals.
  */
-export function hintFor(world: World, t: Tuning, done: HintCounts): HintId | null {
+export function hintFor(world: World, t: Tuning, done: HintCounts, human: Human | null = world.human): HintId | null {
   let best: HintId | null = null;
-  for (const id of hintsThatApply(world, t)) {
+  for (const id of hintsThatApply(world, t, human)) {
     if (retired(id, done)) continue;
     if (best === null || (done[id] ?? 0) < (done[best] ?? 0)) best = id;
   }

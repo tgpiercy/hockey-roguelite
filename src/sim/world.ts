@@ -367,7 +367,7 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
   }
 
   // Powerups, line changes, who is in control, and what everyone wants to do.
-  stepPowerups(world, humanInput, events);
+  stepPowerups(world, humanInput, events, input2);
   if (game) {
     stepLineChanges(world, humanInput, t, events, input2);
     stepPulls(world, humanInput, t, events, input2);

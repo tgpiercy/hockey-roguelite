@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { hintFor, hintsThatApply } from '../src/game/hints';
 import { checkRules } from '../src/sim/check';
+import type { PowerupSpec } from '../src/sim/modifiers';
 import { humanOf, humans, humansOn, partnerOf, teamInput } from '../src/sim/team';
 import { cloneTuning } from '../src/sim/tuning';
 import { NO_INPUT, type InputFrame, type SimEvent, type World } from '../src/sim/types';
@@ -214,5 +216,39 @@ describe('whole games with two humans', () => {
     const world = createGame(t, 'versus-game', { second: 1 });
     play(world, 6000);
     expect(world.tick).toBeGreaterThan(5000);
+  });
+});
+
+describe('co-op: powerups and hints', () => {
+  const spec = (id: string): PowerupSpec => ({ id, name: id, seconds: 5, modifiers: [{ stat: 'topSpeedScale', op: 'mul', value: 1.1 }] });
+
+  it('each player fires one powerup: player one the first, player two the second', () => {
+    const world = createWorld(t, 'coop-power', { second: 0, powerups: [spec('one'), spec('two')] });
+    // Player two's button does not touch the first powerup.
+    let events = step(world, NO_INPUT, t, press({ powerupA: true }));
+    expect(events.filter((e) => e.type === 'powerup')).toEqual([{ type: 'powerup', team: 0, slot: 1, id: 'two' }]);
+    // Either of player one's buttons fires his.
+    events = step(world, press({ powerupB: true }), t, NO_INPUT);
+    expect(events.filter((e) => e.type === 'powerup')).toEqual([{ type: 'powerup', team: 0, slot: 0, id: 'one' }]);
+  });
+
+  it('playing alone, the two buttons fire the two powerups as before', () => {
+    const world = createWorld(t, 'solo-power', { powerups: [spec('one'), spec('two')] });
+    const events = step(world, press({ powerupB: true }), t);
+    expect(events.filter((e) => e.type === 'powerup')).toEqual([{ type: 'powerup', team: 0, slot: 1, id: 'two' }]);
+  });
+
+  it('hints are worked out for each player from his own skater', () => {
+    const world = coop();
+    const one = world.human!.controlled;
+    const two = world.human2!.controlled;
+    clearIce(world, [one, two, ID.away1]);
+    place(world, ID.away1, 0, 0, Math.PI);
+    giveTo(world, ID.away1);
+    place(world, one, -2.5, 0, 0);
+    place(world, two, -20, 9, 0);
+    expect(hintsThatApply(world, t, world.human)).toContain('poke');
+    expect(hintsThatApply(world, t, world.human2)).toEqual([]);
+    expect(hintFor(world, t, {}, world.human2)).toBeNull();
   });
 });

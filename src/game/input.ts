@@ -10,6 +10,8 @@ export interface Controls {
   frame: InputFrame;
   /** True on the frame the menu button (or key) goes down. */
   menuPressed: boolean;
+  /** Which player pressed it: 0 or 1. Left out when it was player one. */
+  menuPlayer?: 0 | 1;
   /** True on the frame the debug key goes down: toggles the AI debug overlay. Keyboard only. */
   debugPressed: boolean;
   /** D-pad presses for the tuning panel, with hold-to-repeat: -1, 0 or 1 on each axis. */

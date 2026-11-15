@@ -125,6 +125,11 @@ export class RinkScene extends Phaser.Scene {
   private hintShown = 0;
   private hintGap = 0;
   private wasGiveGo = false;
+  /** Player two's hint, kept the same way, and the line it is shown on. */
+  private hint2: HintId | null = null;
+  private hintShown2 = 0;
+  private hintGap2 = 0;
+  private hintText2!: Phaser.GameObjects.Text;
   /** Drawn above the players: the puck, sparks and the wind-up bar. */
   private top!: Phaser.GameObjects.Graphics;
   /** One picture per player, showing the texture of the pose he is in. */
@@ -205,6 +210,7 @@ export class RinkScene extends Phaser.Scene {
     this.pullText = this.add.text(0, 0, '', { ...heading, color: c.accent }).setOrigin(0.5, 1).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
     this.callText = this.add.text(0, 0, '', { ...heading, color: c.text }).setOrigin(0.5, 0).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
     this.commentator = new Commentator(this.options.seed);
+    this.hintText2 = this.add.text(0, 0, '', { ...heading, color: RET.colour2 }).setOrigin(0.5, 1).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
     for (const item of [this.hud, ...this.nameTexts, ...this.scoreTexts, this.clockTextObject, ...this.barLabels, this.bigText, this.powerText]) item.setDepth(DEPTH.hud);
     this.events.once('destroy', () => {
       this.reader.dispose();
@@ -217,7 +223,10 @@ export class RinkScene extends Phaser.Scene {
     // A second player: his controller's frame, and his pause button counts too. If his controller goes, the AI takes his skater.
     const controls2 = this.reader2 ? this.reader2.read(time) : null;
     if (controls2) {
-      if (controls2.menuPressed) controls.menuPressed = true;
+      if (controls2.menuPressed && !controls.menuPressed) {
+        controls.menuPressed = true;
+        controls.menuPlayer = 1;
+      }
       if (!controls2.hasPad && this.world.human2) this.world.human2 = null;
     }
     const frame2 = controls2 && this.world.human2 ? controls2.frame : NO_INPUT;
@@ -270,10 +279,12 @@ export class RinkScene extends Phaser.Scene {
         this.slow = Math.max(0, this.slow - real);
         while (this.leftover >= STEP_SECONDS) {
           const controlled = this.world.human ? this.world.human.controlled : -1;
+          const controlled2 = this.world.human2 ? this.world.human2.controlled : -1;
           const stepped = step(this.world, controls.frame, t, frame2);
           happened.push(...stepped);
           for (const e of stepped) {
-            const id = hintDone(e, controlled);
+            // A move by either player counts toward the same tallies.
+            const id = hintDone(e, controlled) ?? (controlled2 >= 0 ? hintDone(e, controlled2) : null);
             if (id) this.countHint(id);
           }
           this.leftover -= STEP_SECONDS;
@@ -313,6 +324,7 @@ export class RinkScene extends Phaser.Scene {
     if (giveGo && !this.wasGiveGo) this.countHint('giveGo');
     this.wasGiveGo = giveGo;
     this.updateHint(real, t);
+    this.updateHint2(real, t);
 
     // Effects and sound only watch: they are told what happened and never touch the simulation.
     this.effects.update(this.world, happened, t, played);
@@ -814,6 +826,10 @@ export class RinkScene extends Phaser.Scene {
       this.hint = null;
       this.hintGap = HINT_TIMING.gapSeconds;
     }
+    if (this.hint2 === id) {
+      this.hint2 = null;
+      this.hintGap2 = HINT_TIMING.gapSeconds;
+    }
   }
 
   /** One hint at a time: up for at least a moment, down when its move is no longer on, then a pause. */
@@ -837,6 +853,31 @@ export class RinkScene extends Phaser.Scene {
     if (id) {
       this.hint = id;
       this.hintShown = 0;
+    }
+  }
+
+  /** The same for player two, on his own line. */
+  private updateHint2(real: number, t: Tuning): void {
+    const counts = this.options.hints?.() ?? null;
+    const human = this.world.human2;
+    if (!counts || !human || this.world.phase === 'final') {
+      this.hint2 = null;
+      return;
+    }
+    if (this.hint2) {
+      this.hintShown2 += real;
+      if (this.hintShown2 >= HINT_TIMING.minSeconds && hintFor(this.world, t, counts, human) !== this.hint2) {
+        this.hint2 = null;
+        this.hintGap2 = HINT_TIMING.gapSeconds;
+      }
+      return;
+    }
+    this.hintGap2 -= real;
+    if (this.hintGap2 > 0) return;
+    const id = hintFor(this.world, t, counts, human);
+    if (id) {
+      this.hint2 = id;
+      this.hintShown2 = 0;
     }
   }
 
@@ -928,6 +969,13 @@ export class RinkScene extends Phaser.Scene {
       this.pullText.setFontSize(Math.max(10, height * 0.034));
       this.pullText.setPosition(width / 2, height - look.marginPixels - 44);
     }
+    // Player two's hint, in his ring's colour, on the line above player one's.
+    this.hintText2.setVisible(this.hint2 !== null && world.phase === 'play');
+    if (this.hint2 !== null) {
+      this.hintText2.setText(`P2  ${hintText(this.hint2)}`);
+      this.hintText2.setFontSize(Math.max(10, height * 0.034));
+      this.hintText2.setPosition(width / 2, height - look.marginPixels - 44 - Math.max(14, height * 0.05));
+    }
     // The commentary line sits just under the scoreboard and fades out at the end of its time.
     const callLeft = this.callUntil - this.clock;
     this.callText.setVisible(callLeft > 0);
@@ -943,6 +991,21 @@ export class RinkScene extends Phaser.Scene {
     // Bottom left: sprint bar of the controlled skater, then the energy of each line (the one on the ice is ringed).
     const barH = Math.max(7, height * 0.022);
     const barY = height - look.marginPixels - barH - 4;
+    // Player two's sprint bar sits just above player one's, with a tick in his ring's colour.
+    const second = world.human2 ? world.players[world.human2.controlled] : undefined;
+    if (second) {
+      const w2 = Math.min(width * 0.15, 140);
+      const x2 = look.marginPixels + 8;
+      const y2 = barY - barH - 8;
+      g.fillStyle(colour(c.barBack));
+      g.fillRoundedRect(x2, y2, w2, barH, barH / 2);
+      g.fillStyle(colour(second.sprintLocked ? c.staminaLocked : c.stamina));
+      g.fillRoundedRect(x2, y2, Math.max(barH, w2 * second.stamina), barH, barH / 2);
+      g.fillStyle(colour(RET.colour2));
+      g.fillRect(x2 - 6, y2, 3, barH);
+      g.fillStyle(colour(RET.colour));
+      g.fillRect(x2 - 6, barY, 3, barH);
+    }
     const fontSize = Math.max(9, height * 0.03);
     if (controlled) {
       const bars: { label: string; width: number; fill: number; colour: string; ringed: boolean }[] = [

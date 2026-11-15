@@ -29,6 +29,7 @@ const STICK_THRESHOLD = 0.6;
  */
 class MenuInput {
   private running = false;
+  private player: 0 | 1 = 0;
   private held: MenuAction | null = null;
   private nextRepeatAt = 0;
   private confirmWasDown = true;
@@ -60,12 +61,20 @@ class MenuInput {
     this.running = false;
   }
 
+  /** Whose controller works the menus: player one's, unless player two paused the game. */
+  setPlayer(player: 0 | 1): void {
+    this.player = player;
+    this.confirmWasDown = true;
+    this.backWasDown = true;
+    this.held = null;
+  }
+
   private readonly poll = (now: number): void => {
     if (!this.running) return;
-    const pad = readGamepad();
+    const pad = readGamepad(this.player);
     if (pad) {
       // Read through the layout in use, so a controller set up by the player works the menus the same way.
-      const map = padMap();
+      const map = padMap(this.player);
       const down = (action: PadAction): boolean => bindingDown(pad, map[action]);
       const x = pad.axes[controls.axes.moveX] ?? 0;
       const y = pad.axes[controls.axes.moveY] ?? 0;
