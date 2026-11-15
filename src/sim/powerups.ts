@@ -5,7 +5,8 @@ import { NO_INPUT } from './types';
 
 /** Re-works every player's abilities on a team from his base abilities plus the boosts now running. */
 export function refreshBoosts(world: World, team: 0 | 1): void {
-  const running: Modifier[] = world.teams[team].boosts.flatMap((b) => b.modifiers);
+  // Timed boosts, and the team's conditional modifiers that hold right now.
+  const running: Modifier[] = [...world.teams[team].boosts.flatMap((b) => b.modifiers), ...world.teams[team].active];
   for (const p of world.players) {
     if (p.team !== team) continue;
     p.fx = applyModifiers(p.baseFx, running);

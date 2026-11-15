@@ -721,6 +721,43 @@ What the table does and does not show. Every setting changes goals for and again
 
 What it shows. He turns up in about half of all games for one side or the other. On the ice he scores about 0.27 to 0.31 goals a minute, against about 0.22 for an ordinary skater in these games: better, not overwhelming. In all-AI play he does not measurably change how often a two-goal deficit is recovered: the differences above are a handful of games either way. So the fear that he would swing games too far is not borne out here; if anything he is a small help. With a person controlling him it may be more. These rows were measured before his line was made to take the faceoff on arrival, which gives him a little more ice time.
 
+## A stronger mascot, defence that pays, conditional artifacts (2026-11-15)
+
+**The mascot's visit boosts** (`mascot.json` `visit`): speed x1.18, acceleration x1.3, shot power +0.3, accuracy x1.5, check strength x1.6, puck security x1.6, for him alone. Measured over 200 all-AI games by sending him on every time a team was two or more behind at a period start, against no mascots at all:
+
+| | Two-behind moments | Did not lose | His goals a minute |
+| --- | --- | --- | --- |
+| No mascots | 167 | 8% (13) | |
+| First try (speed x1.12, shot +0.2, accuracy x1.3, checks x1.4) | 175 | 13% (23) | 0.50 |
+| As shipped | 161 | 15% (24) | 0.45 |
+
+So when he comes, a two-goal deficit is recovered about twice as often as without him, which was the target. The samples are small (a dozen or two games each way), so "about twice" is the most that can be said. An ordinary skater scores about 0.22 a minute in these games.
+
+**Momentum from defending** (`physics.json` `momentum`): `steal` 0.08, `evade` 0.06, `windUpSteal` 0.2. The standard series after the change: 4.03 and 4.28 goals a game, save percentage .780, overtime in 11% (before: 4.08, 4.20, .778). No measurable change to scoring.
+
+**The new artifacts**, each over 100 all-AI games between equal teams with team A holding it. Win rates on 100 games move about 10 points by chance; with none, A won 50%.
+
+| Artifact | A wins | Note |
+| --- | --- | --- |
+| Comeback kings | 50% | |
+| Lockdown | 58% | |
+| Closers | 52% | |
+| Sudden death | 50% | Only matters in overtime |
+| Deadlock breakers | 46% | |
+| Home cooking | 65% | Measured as if always at home. Cut from 20% to 12% afterwards; not re-measured |
+| Answer back | 64% | Cut from 8% for 12 s to 5% for 10 s afterwards; not re-measured |
+| Killer instinct | 51% | |
+| Feed off the hit | 52% | |
+| Springboard | 54% | |
+| Pickpockets | 45% | |
+| Tic-tac-toe | 47% | |
+| Goalie project: reward / handicap | 61% / 38% | Reward cut from 12% to 8% afterwards |
+| Two-a-days: reward / handicap | 56% / 27% | Handicap cut from 25% to 15% afterwards |
+| New system: reward / handicap | 51% / 56% | The handicap (wider passes) does not hurt the AI measurably |
+| Sponsor's demands: handicap | 57% | The reward is Pucks. The handicap (weaker shots) does not hurt the AI measurably |
+
+What it shows. Most are within noise of even, as intended: they change when a team is strong, not how strong. Four were out of line and were cut; the cuts are not re-measured. Two bargain handicaps do not show as handicaps in all-AI play; they may for a person.
+
 ## Change log
 
 | Date | Value | From | To | Why |

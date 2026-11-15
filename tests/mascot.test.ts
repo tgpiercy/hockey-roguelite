@@ -286,6 +286,19 @@ describe('the mascot in a season', () => {
     expect(setup).toMatchObject({ name: f.mascot.name, slot, misses: 3 });
   });
 
+  it('while he visits he plays above any rating: the boosts are his own modifiers', () => {
+    const f = fresh();
+    const setup = mascotSetup(userMascot(f), dressUser(f)!, 0);
+    expect(rules.visit.length).toBeGreaterThan(0);
+    expect(setup.modifiers).toEqual(expect.arrayContaining(rules.visit));
+    // On the ice only he has them.
+    const world = createGame(t, 'visit', { human: false, teams: [{ ...uniformTeam(70), mascot: { ...setup, misses: CERTAIN } }, uniformTeam(70)] });
+    const him = mascotPlayer(world, 0)!;
+    const mate = world.players.find((p) => p.team === 0 && p.role === 'skater' && p.id !== him.id)!;
+    expect(him.fx.topSpeedScale).toBeGreaterThan(mate.fx.topSpeedScale * 1.1);
+    expect(him.fx.checkStrength).toBeGreaterThan(mate.fx.checkStrength * 1.3);
+  });
+
   it('both sides bring one to a game, each with his own chance', () => {
     const f = atFirstGame();
     f.mascot.misses = 4;

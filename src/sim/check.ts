@@ -117,7 +117,10 @@ export function resolveCheck(world: World, p: Player, charged: boolean, t: Tunin
   // Some gear makes a body check at high closing speed a big hit, which always frees the puck.
   const bigHit = kind === 'body' && p.fx.bigHitKnock > 0 && speed >= t.check.bigHitClosingSpeed;
   // A deke in progress slips the check. A spin move turns one that would have worked into one that does not.
-  const success = (rolled || bigHit) && carrier.deke <= 0 && !spinEscape(carrier, events);
+  // Caught winding up a shot that could not be saved: the check always takes the puck. (The answer to that trick.)
+  const windUp = carrier.fx.unstoppableCharged > 0 && carrier.charge > 0;
+  const evaded = carrier.deke > 0;
+  const success = (rolled || bigHit || windUp) && !evaded && !spinEscape(carrier, events);
   // Thrown while closing fast, a body check that lands puts him on the ice.
   const big = kind === 'body' && success && (p.fx.alwaysKnockdown > 0 || speed >= t.check.bigHitClosingSpeed);
 
@@ -140,5 +143,5 @@ export function resolveCheck(world: World, p: Player, charged: boolean, t: Tunin
       p.stats.hits += 1;
     }
   }
-  events.push({ type: 'check', player: p.id, target: carrier.id, kind, success, ...(big ? { big } : {}) });
+  events.push({ type: 'check', player: p.id, target: carrier.id, kind, success, ...(big ? { big } : {}), ...(evaded ? { evaded } : {}), ...(success && windUp ? { windUp } : {}) });
 }

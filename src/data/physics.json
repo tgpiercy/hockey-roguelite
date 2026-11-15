@@ -112,7 +112,9 @@
   "period": {
     "seconds": 120,
     "count": 3,
-    "breakSeconds": 2
+    "breakSeconds": 2,
+    "shotGraceSeconds": 1.5,
+    "shotGraceSpeed": 8
   },
   "faceoff": {
     "minWaitSeconds": 0.8,
@@ -179,7 +181,10 @@
     "fireSeconds": 8,
     "fireShotPower": 0.12,
     "fireSpeedScale": 1.06,
-    "block": 0.08
+    "block": 0.08,
+    "steal": 0.08,
+    "evade": 0.06,
+    "windUpSteal": 0.2
   },
   "tips": {
     "screenRange": 3,

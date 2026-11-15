@@ -168,10 +168,14 @@ export function mascotSetup(spec: MascotSpec, team: DressedTeam, misses: number)
     name: spec.name,
     ratings: mascotRecord(spec).ratings as SkaterRatings,
     // A talent that is simply always on (such as the cannon shot) goes in as his own modifiers.
-    modifiers: spec.talents.flatMap((id) => {
-      const talent = talentInfo(id);
-      return talent.seconds === undefined && talent.modifiers ? talent.modifiers : [];
-    }),
+    modifiers: [
+      // While he visits he plays above anything a rating allows: these are his alone.
+      ...(data.visit as Modifier[]),
+      ...spec.talents.flatMap((id) => {
+        const talent = talentInfo(id);
+        return talent.seconds === undefined && talent.modifiers ? talent.modifiers : [];
+      }),
+    ],
     talents: [...spec.talents],
     slot: sitsFor(team),
     misses,

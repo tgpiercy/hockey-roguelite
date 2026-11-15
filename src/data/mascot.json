@@ -5,6 +5,38 @@
   "baseRating": 88,
   "ratingPerPower": 0.75,
   "maxRating": 99,
+  "visit": [
+    {
+      "stat": "topSpeedScale",
+      "op": "mul",
+      "value": 1.18
+    },
+    {
+      "stat": "accelerationScale",
+      "op": "mul",
+      "value": 1.3
+    },
+    {
+      "stat": "shotPower",
+      "op": "add",
+      "value": 0.3
+    },
+    {
+      "stat": "accuracy",
+      "op": "mul",
+      "value": 1.5
+    },
+    {
+      "stat": "checkStrength",
+      "op": "mul",
+      "value": 1.6
+    },
+    {
+      "stat": "puckSecurity",
+      "op": "mul",
+      "value": 1.6
+    }
+  ],
   "salary": 500000,
   "costume": {
     "maxLevel": 5,

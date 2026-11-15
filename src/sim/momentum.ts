@@ -20,7 +20,7 @@ function add(world: World, team: 0 | 1, amount: number): void {
 }
 
 /**
- * Momentum: each team's meter fills from its goals, big hits, one-timers and saves, drains slowly, and is
+ * Momentum: each team's meter fills from its goals, big hits, steals, blocks, dekes that slip a check, one-timers and saves, drains slowly, and is
  * cut when the other team scores. A full meter sets the team on fire for a few seconds (a timed boost,
  * like a powerup) and empties.
  */
@@ -31,9 +31,14 @@ export function stepMomentum(world: World, t: Tuning, events: SimEvent[], dt: nu
       add(world, e.team, m.goal);
       const other = world.teams[otherTeam(e.team)];
       other.heat *= 1 - m.concedeLoss;
-    } else if (e.type === 'check' && e.success && e.big) {
+    } else if (e.type === 'check') {
       const p = world.players[e.player];
-      if (p) add(world, p.team, m.bigHit);
+      const target = world.players[e.target];
+      // Defending pays: a big hit, a poke that takes the puck, a steal at the wind-up. So does slipping a check with a deke.
+      if (p && e.success && e.big) add(world, p.team, m.bigHit);
+      else if (p && e.success && e.kind === 'poke') add(world, p.team, m.steal);
+      if (p && e.success && e.windUp) add(world, p.team, m.windUpSteal);
+      if (target && e.evaded) add(world, target.team, m.evade);
     } else if (e.type === 'shot' && e.oneTimer) {
       const p = world.players[e.player];
       if (p) add(world, p.team, m.oneTimer);

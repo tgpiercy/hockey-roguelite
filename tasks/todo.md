@@ -592,3 +592,11 @@ Built, deployed and checked with a simulated controller.
 - Fixed on the way: the Mascot screen listed ten talents, five of them "at power undefined" (he can only ever learn five); and he started his period on the bench with line two, so now his line takes the faceoff.
 - Not heard: the fanfare. Not seen: a full real game at the true 10% chance. When both arrive at once only one banner shows (the commentary line names the other).
 - Balance: in all-AI games he does not measurably change comebacks (table in `docs/TUNING.md`).
+
+# The research round: five parts
+
+- [x] 1. A stronger mascot (his own play)
+- [x] 2. Defence pays: momentum from steals and dekes, the steal at the wind-up, the horn waits
+- [x] 3. Conditional artifacts (12) and bargains (4)
+- [ ] 4. Rink and rule variants, and a shootout
+- [ ] 5. Charters, handicaps and a weekly run

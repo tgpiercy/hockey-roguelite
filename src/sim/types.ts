@@ -1,3 +1,4 @@
+import type { Modifier } from './modifiers';
 import type { MascotVisit } from './mascot';
 import type { Tactics } from './tactics';
 import type { Rng } from '../core/rng';
@@ -244,9 +245,9 @@ export type SimEvent =
   | { type: 'pull'; team: 0 | 1; on: boolean }
   | { type: 'pass'; player: number; target: number | null; saucer: boolean }
   | { type: 'post' }
-  | { type: 'pickup'; player: number }
+  | { type: 'pickup'; player: number; /** He was the one the pass was meant for. */ pass?: boolean }
   | { type: 'save'; goalie: number; frozen: boolean }
-  | { type: 'check'; player: number; target: number; kind: 'body' | 'poke'; success: boolean; big?: boolean };
+  | { type: 'check'; player: number; target: number; kind: 'body' | 'poke'; success: boolean; big?: boolean; /** The carrier's deke slipped it. */ evaded?: boolean; /** It caught him winding up a shot that could not have been saved. */ windUp?: boolean };
 
 /** A person playing: his team, the skater he controls, and what his buttons were doing. */
 export interface Human {
@@ -290,6 +291,8 @@ export interface World {
   overtime: boolean;
   /** Overtime ends in a tie after this many seconds; 0 means it runs until someone scores. */
   overtimeLimit: number;
+  /** Seconds the horn has waited, at the end of a period, for a shot already on its way. */
+  hornWait: number;
   faceoff: FaceoffState | null;
   teams: [TeamState, TeamState];
 }
@@ -309,6 +312,9 @@ export interface TeamState {
   powerupHeld: boolean[];
   /** Timed boosts that are running. */
   boosts: Boost[];
+  /** The team's modifiers that only count some of the time (see conditions.ts), and the ones in force now. */
+  conditional: Modifier[];
+  active: Modifier[];
   /** How this team's AI skaters like to attack: a style id from ai.json, or null. */
   style: string | null;
   /** The line given longer shifts, or null for even shifts. */

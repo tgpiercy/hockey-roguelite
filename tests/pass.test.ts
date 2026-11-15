@@ -87,7 +87,7 @@ describe('pass completion', () => {
     const world = setUp();
     pass(world, 1, 1, 0.6);
     const events = flyPuck(world, t, 120);
-    expect(events).toEqual([{ type: 'pickup', player: ID.home2 }]);
+    expect(events).toEqual([{ type: 'pickup', player: ID.home2, pass: true }]);
     expect(world.puck.carrier).toBe(ID.home2);
   });
 

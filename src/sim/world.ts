@@ -1,3 +1,4 @@
+import { isPlain, plainOf, stepConditions } from './conditions';
 import { newVisit, rollMascots, type MascotSetup, type MascotVisit } from './mascot';
 import type { Tactics } from './tactics';
 import { chargeFraction } from './shot';
@@ -91,7 +92,8 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index:
   const goalie = options.teams?.[team].goalie ?? options.goalieRatings?.[team] ?? defaultGoalieRatings;
   const setup = options.teams?.[team];
   const own = role === 'skater' ? (setup?.skaterModifiers?.[index] ?? []) : (setup?.goalieModifiers ?? []);
-  const modifiers = [...(setup?.modifiers ?? []), ...own];
+  // Only what is always on goes into his abilities; the rest comes and goes during the game (conditions.ts).
+  const modifiers = plainOf([...(setup?.modifiers ?? []), ...own]);
   const fx = applyModifiers(skaterEffects(role === 'skater' ? skater : defaultSkaterRatings), modifiers);
   const goalieFx = applyModifiers(goalieEffects(goalie), modifiers);
   return {
@@ -164,12 +166,14 @@ function createPlayers(t: Tuning, options: WorldOptions): Player[] {
 
 function visitOf(options: WorldOptions, team: 0 | 1): MascotVisit | null {
   const setup = options.teams?.[team];
-  return setup?.mascot ? newVisit(setup.mascot, setup.modifiers ?? []) : null;
+  return setup?.mascot ? newVisit(setup.mascot, plainOf(setup.modifiers ?? [])) : null;
 }
 
-function newTeamState(powerups: (PowerupSpec | null)[], style: string | null, heavyLine: 0 | 1 | null = null, tactics: Tactics | null = null, mascot: MascotVisit | null = null): World['teams'][number] {
+function newTeamState(powerups: (PowerupSpec | null)[], style: string | null, heavyLine: 0 | 1 | null = null, tactics: Tactics | null = null, mascot: MascotVisit | null = null, modifiers: readonly Modifier[] = []): World['teams'][number] {
   return {
     mascot,
+    conditional: modifiers.filter((m) => !isPlain(m)),
+    active: [],
     heavyLine,
     tactics,
     line: 0,
@@ -227,10 +231,12 @@ export function createWorld(t: Tuning, seed: number | string, options: WorldOpti
     clock: t.period.seconds,
     overtime: false,
     overtimeLimit: options.overtimeLimit ?? 0,
+    hornWait: 0,
     faceoff: null,
-    teams: [newTeamState(options.human === false ? [] : (options.powerups ?? []), options.teams?.[0].style ?? null, options.teams?.[0].heavyLine ?? null, options.teams?.[0].tactics ?? null, visitOf(options, 0)), newTeamState([], options.teams?.[1].style ?? null, options.teams?.[1].heavyLine ?? null, options.teams?.[1].tactics ?? null, visitOf(options, 1))],
+    teams: [newTeamState(options.human === false ? [] : (options.powerups ?? []), options.teams?.[0].style ?? null, options.teams?.[0].heavyLine ?? null, options.teams?.[0].tactics ?? null, visitOf(options, 0), options.teams?.[0].modifiers), newTeamState([], options.teams?.[1].style ?? null, options.teams?.[1].heavyLine ?? null, options.teams?.[1].tactics ?? null, visitOf(options, 1), options.teams?.[1].modifiers)],
   };
   lineUp(world, t);
+  stepConditions(world, [], t.period.count);
   return world;
 }
 
@@ -484,5 +490,6 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
   if (game && world.phase === 'play') tickClock(world, t, events);
   stepTalents(world, t, events, dt);
   stepMomentum(world, t, events, dt);
+  stepConditions(world, events, t.period.count);
   return events;
 }

@@ -27,7 +27,7 @@ import { canPlay, canSign, type MoveResult, deadCapFor } from '../core/roster';
 import { hiddenFreeAgents, potentialText, scoutingPoints, signPlayer } from '../core/scouting';
 import { gradePower, hire, kindName, letGo, roleOf, slotsFor, STAFF_KINDS, staffOfKind, staffSalePrice, type StaffMember } from '../core/staff';
 import { franchiseOf, fromSave, parseSave, toSave } from '../core/save';
-import { artifactInfo, artifactModifiers, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
+import { artifactInfo, artifactModifiers, bargainGames, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
 import type { Stop } from '../core/seasonMap';
 import { seasonSummary } from '../core/seasonSummary';
 import { teamColour } from '../core/teamColours';
@@ -571,10 +571,10 @@ export function App() {
           key={screenKey}
           title="Choose an artifact"
           message={message}
-          header="You beat the boss. Take one: artifacts are always on, and you keep them from season to season until you prestige."
+          header="Take one. You keep it for the rest of this season. Some only count at certain moments; a bargain costs you first and pays after."
           items={season.offer.map((id) => {
             const a = artifactInfo(id);
-            return tile(id, a.name, '', () => after(pickArtifact(f, id)), { icon: 'artifacts', primary: true, detail: a.description });
+            return tile(id, a.name, a.bargain ? `Bargain: ${a.bargain.games} games` : '', () => after(pickArtifact(f, id)), { icon: 'artifacts', primary: true, detail: a.description });
           })}
         />
       );
@@ -2681,12 +2681,13 @@ export function App() {
       <Menu
         key={screenKey}
         title="Artifacts"
-        header={f.artifacts.length === 0 ? 'None yet. Beat a boss to earn one.' : 'Always on, and kept from season to season.'}
+        header={f.artifacts.length === 0 ? 'None yet. Beat a boss or win an elite game to earn one.' : 'Yours for this season.'}
         onBack={home}
         help="B back"
         items={f.artifacts.map((id) => {
           const a = artifactInfo(id);
-          return { key: id, label: a.name, detail: a.description, disabled: true };
+          const left = bargainGames(f, id);
+          return { key: id, label: left > 0 ? `${a.name} (handicap: ${left} ${left === 1 ? 'game' : 'games'} to go)` : a.name, detail: a.description, disabled: true };
         })}
       />
     );

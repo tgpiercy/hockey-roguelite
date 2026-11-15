@@ -12,6 +12,13 @@ export interface Modifier {
   /** "add" adds the value; "mul" multiplies by it. All adds are applied before any multiplies. */
   op: 'add' | 'mul';
   value: number;
+  /** Only while this is true for the team: "leading", "trailing", "tied", "lastPeriod", "overtime" (see conditions.ts). Left out, always. */
+  when?: string;
+  /** Only for `seconds` after this happens for the team: "goalFor", "goalAgainst", "bigHit", "save", "steal", "pass". */
+  on?: string;
+  seconds?: number;
+  /** What to call it on the screen while it is in force. */
+  label?: string;
 }
 
 /** A powerup loaded for a game: a timed boost, or something that happens at once. */

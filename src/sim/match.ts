@@ -114,6 +114,15 @@ export function stepFaceoff(world: World, humanInput: InputFrame, t: Tuning, eve
   }
 }
 
+/** True while a shot is loose and still travelling toward the net its shooter attacks. */
+export function shotInFlight(world: World, t: Tuning): boolean {
+  const puck = world.puck;
+  if (puck.shotBy === null || puck.carrier !== null) return false;
+  const shooter = world.players[puck.shotBy];
+  if (!shooter) return false;
+  return attackDir(shooter.team) * puck.vel.x > 0 && Math.hypot(puck.vel.x, puck.vel.y) >= t.period.shotGraceSpeed;
+}
+
 /** Runs the period clock during play. Returns true if the period (or the game) just ended. */
 export function tickClock(world: World, t: Tuning, events: SimEvent[]): boolean {
   const dt = STEP_SECONDS;
@@ -129,6 +138,12 @@ export function tickClock(world: World, t: Tuning, events: SimEvent[]): boolean 
   world.clock -= dt;
   if (world.clock > 1e-9) return false;
   world.clock = 0;
+  // The horn waits for a shot already on its way to the net: it sounds when the shot is saved, scores or misses.
+  if (shotInFlight(world, t) && world.hornWait < t.period.shotGraceSeconds) {
+    world.hornWait += dt;
+    return false;
+  }
+  world.hornWait = 0;
 
   if (world.period < t.period.count) {
     world.phase = 'break';

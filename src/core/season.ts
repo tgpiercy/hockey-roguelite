@@ -62,6 +62,8 @@ export interface SeasonState {
   /** Every stop finished this season, in order: the route walked, for the map. */
   visited: string[];
   strikes: number;
+  /** Bargain artifacts whose handicap is still running: games left, by artifact id. */
+  bargains?: Record<string, number>;
   /** Rolls in a row that have missed for each opponent's mascot this season, by team id (a boss: "boss/" and its id). */
   mascotMisses?: Record<string, number>;
   /** True once the next boss has been scouted: he plays below himself when you meet. Cleared when he is beaten. */
@@ -317,6 +319,8 @@ export interface ArtifactInfo {
   name: string;
   description: string;
   modifiers: Modifier[];
+  /** A bargain: for this many games after it is taken the handicap counts in place of the modifiers. */
+  bargain?: { games: number; handicap: Modifier[] };
 }
 
 export function artifactInfo(id: string): ArtifactInfo {
@@ -358,14 +362,42 @@ function roll(season: SeasonState, label: string): Rng {
 
 /** Modifiers from the artifacts owned. */
 export function artifactModifiers(f: Franchise): Modifier[] {
-  return f.artifacts.flatMap((id) => artifactInfo(id).modifiers);
+  return f.artifacts.flatMap((id) => {
+    const info = artifactInfo(id);
+    const list = info.bargain && bargainGames(f, id) > 0 ? info.bargain.handicap : info.modifiers;
+    // A modifier that only counts some of the time carries the artifact's name, to show while it is in force.
+    return list.map((m) => (m.when !== undefined || m.on !== undefined ? { ...m, label: info.name } : m));
+  });
+}
+
+/** How many more games a bargain's handicap has to run (0 when it has turned into its reward, or is no bargain). */
+export function bargainGames(f: Franchise, artifactId: string): number {
+  return f.season.bargains?.[artifactId] ?? 0;
+}
+
+/** Adds an artifact to the ones you hold. A bargain starts its handicap. */
+function gainArtifact(f: Franchise, artifactId: string): void {
+  f.artifacts.push(artifactId);
+  const bargain = artifactInfo(artifactId).bargain;
+  if (bargain) f.season.bargains = { ...(f.season.bargains ?? {}), [artifactId]: bargain.games };
+}
+
+/** A "home" modifier is settled before the game: on in your own rink, dropped on the road. */
+function settleHome(modifiers: Modifier[], home: boolean): Modifier[] {
+  return modifiers.flatMap((m) => {
+    if (m.when !== 'home') return [m];
+    if (!home) return [];
+    const { when: _when, label: _label, ...plain } = m;
+    return [plain];
+  });
 }
 
 /** Every lasting modifier on the player's team for the next game: artifacts, temporary effects, and what facilities and staff give. */
 export function teamModifiers(f: Franchise): Modifier[] {
   // At home the arena adds its home-ice edge.
-  const home = homeGame(f, f.season.gamesPlayed + 1) ? homeIceModifiers(f) : [];
-  return [...artifactModifiers(f), ...f.season.temps.flatMap((t) => t.modifiers), ...clubModifiers(f), ...home];
+  const atHome = homeGame(f, f.season.gamesPlayed + 1);
+  const home = atHome ? homeIceModifiers(f) : [];
+  return [...settleHome(artifactModifiers(f), atHome), ...f.season.temps.flatMap((t) => t.modifiers), ...clubModifiers(f), ...home];
 }
 
 /** A season-level number (such as currency gain) after the artifacts owned. */
@@ -796,6 +828,8 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
   }
   season.loadout = tidyLoadout(season.loadout, season.powerups);
   season.temps = season.temps.map((t) => ({ ...t, games: t.games - 1 })).filter((t) => t.games > 0);
+  // A bargain's handicap runs down the same way; at nothing it turns into its reward.
+  if (season.bargains) season.bargains = Object.fromEntries(Object.entries(season.bargains).map(([id, games]) => [id, games - 1] as [string, number]).filter(([, games]) => games > 0));
   season.gamesPlayed += 1;
   f.record = applyResult(f.record, result);
   leagueRound(f, game, result);
@@ -894,7 +928,7 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
 /** After beating a boss: take one of the artifacts on offer. */
 export function pickArtifact(f: Franchise, artifactId: string): ActionResult {
   if (f.season.stage !== 'reward' || !f.season.offer.includes(artifactId)) return refuse('That artifact is not on offer.');
-  f.artifacts.push(artifactId);
+  gainArtifact(f, artifactId);
   finishStop(f);
   // Beating the last boss puts you in the playoffs, which is a milestone.
   return done(`You take ${artifactInfo(artifactId).name}.${milestoneWords(awardMilestones(f))}`);
@@ -1012,7 +1046,7 @@ function applyEffects(f: Franchise, effects: EventEffect[]): void {
       if (who) who.points = (who.points ?? 0) + effect.amount;
     } else if (effect.type === 'artifact') {
       const gift = artifactOffer(f, 1)[0];
-      if (gift) f.artifacts.push(gift);
+      if (gift) gainArtifact(f, gift);
     } else {
       season.temps.push({ label: effect.label, games: effect.games, modifiers: effect.modifiers });
     }
