@@ -867,6 +867,50 @@ No bail-outs under any style. I did not keep a run from just before this change 
 
 Not measured: how often a person meets the target, or how often the cup tie lies on the road a person would choose anyway.
 
+## The balance round (2026-11-15)
+
+**Save percentage.** The .850 to .920 target is retired by the owner's decision. About 4 goals a side from about 35 shots is .78, and that is the figure to hold. Earlier sections that call .78 a miss are history.
+
+**Pro.** 100 seasons each, the scripted player, a new franchise, plain choices (`measureSeasons`):
+
+| Pro's shift in regions 2 and 3, and the playoffs | Extra strikes | First region cleared | Title | Seasons |
+| --- | --- | --- | --- | --- |
+| none (before) | 0 | 70% | 8% | 40 |
+| -0.10, -0.15, -0.15 | 0 | 70% | 10% | 40 |
+| -0.15, -0.20, -0.20 | 0 | 70% | 13% | 40 |
+| -0.15, -0.20, -0.20 | 1 | 83% | 15% | 40 |
+| -0.25, -0.35, -0.35 | 0 | 70% | 15% | 40 |
+| -0.25, -0.35, -0.35 | 1 | 83% | 20% | 40 |
+| -0.30, -0.40, -0.40 | 0 | 70% | 27% at 40, 18% at 100 | 40 and 100 |
+| **-0.33, -0.43, -0.43 (shipped)** | 0 | 70% | **27%** | 100 |
+| -0.35, -0.45, -0.45 | 0 | 70% | 40% | 40 |
+
+An extra strike lifts the first region to 83% and was left out, so the first region stays at the benchmark. The title rate is steep in the shift: 0.05 either way is ten points or more, and 40 seasons swing by about seven points, so read the shipped line as "between 20 and 35%". With the shift, a Pro opponent in region two thinks at 0.32 and in region three at 0.37, below the first region's 0.5: later teams are stronger, not sharper. All-Star, 40 seasons after the style change below: first region 70%, title 0 of 40 (before: 68% and 2 of 40).
+
+**AI styles** (`ai.json` `styles`), 120 games a pairing, equal teams at 70:
+
+| | Before | After |
+| --- | --- | --- |
+| Numbers (pass, long shot, dump) | rush 0.7, 0.6, 0 · cycle 1.5, 1.5, 0 · dump 1, 1, 0.5 | rush 0.85, 0.85, 0 · cycle 1.1, 0.9, 0 · dump 0.9, 0.85, 0.15 |
+| Rush against cycle | 70% wins, 4.72 to 3.36 goals | 59%, 4.13 to 3.52 |
+| Rush against dump | 75%, 4.54 to 2.68 | 52%, 4.08 to 3.92 |
+| Cycle against dump | 55%, 3.63 to 3.20 | 59%, 4.20 to 3.69 |
+
+What the first pass showed: fewer passes and fewer long shots simply win, so a style that leans far toward either is weaker. The three now lean a little each way. 120 games swing by about nine points, so 59% is not proof of an edge. The Rush attack tactic uses the rush numbers: against Balanced over 200 games it now wins 50% (4.38 to 4.35 goals; it was 52%).
+
+**Pucks in a season.** 40 seasons each with the scripted player (`measureSeasons` now counts them). The script buys one thing it can afford at each shop and nothing else, so "spent" is its habit, not a limit:
+
+| | Rookie | Pro |
+| --- | --- | --- |
+| Games won of games played | 10.5 of 13.5 | 7.5 of 10.4 |
+| Pucks earned | 536 | 386 |
+| Shops reached | 1.9 | 1.6 |
+| Shops where something could be afforded | 1.9 | 1.5 |
+| Pucks spent (one item a shop) | 83 | 66 |
+| Pucks left at the end | 453 | 321 |
+
+A powerup costs 40 to 55 and a strike repair 70, so emptying a shop is about 200 Pucks. A Pro season's 386 Pucks would empty nearly every shop it reaches: price is rarely the thing that stops a purchase. Not changed: whether shops should bite harder is the owner's call. (These first 40 Pro seasons won 37% of titles; the same seeds are the lucky end of the 100 above, which is the figure to trust.)
+
 | Date | Value | From | To | Why |
 | --- | --- | --- | --- | --- |
 | 2026-11-13 | goalie positioning cover radius (ratings.json) | 0.5 to 0.9 | 0.3 to 0.6 | All-AI games averaged under 1 goal per 5 minutes; now about 3 |

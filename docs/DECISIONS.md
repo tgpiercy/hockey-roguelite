@@ -241,6 +241,9 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-15 | Practice rink | From Exhibition: endless play against the weakest team, no clock or score to settle, two powerups loaded free, hints running whatever the setting. Nothing is recorded. | Theme round |
 | 2026-11-15 | Puck setting | Settings, Puck: Standard, or Large with a bright ring. Drawing only. | Theme round |
 | 2026-11-15 | Co-op is marked | The weekly run and the tournament already took a second player. A season in which any game was played with a second player is marked, and a title won that way is counted in the club records. | Theme round |
+| 2026-11-15 | Pro wins a title about one time in four | Chosen by the owner. On Pro, opponents in regions two and three and the playoffs think more slowly than their region would have them (0.33, 0.43 and 0.43 lower), which offsets their being stronger teams. The first region is unchanged, and Pro has no extra strikes. Pro is still harder than Rookie and easier than All-Star in every region; a test says so. | Balance round |
+| 2026-11-15 | The save-percentage target is retired | The first targets asked for .850 to .920, real hockey's figure. Chosen by the owner: scoring stays at about 4 goals a side, and in a short game with about 35 shots a team that means about .78. That is now the design figure, not a miss. | Balance round |
+| 2026-11-15 | AI styles are evened out | Rush, cycle and dump-and-chase teams of equal rating now score within about half a goal of each other. The styles lean less far apart than before: that is the price. | Balance round |
 
 ## Open
 

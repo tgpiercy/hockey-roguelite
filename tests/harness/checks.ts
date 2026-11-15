@@ -134,6 +134,12 @@ export interface SeasonReport {
   /** Average games won and played. */
   wins: number;
   played: number;
+  /** Pucks earned, spent and left over in an average season; shops reached, and those where something could be afforded. */
+  pucksEarned: number;
+  pucksSpent: number;
+  pucksLeft: number;
+  shops: number;
+  shopsBoughtAt: number;
 }
 
 /**
@@ -142,7 +148,7 @@ export interface SeasonReport {
  */
 export function measureSeasons(n: number, difficulty: string, seed: string): SeasonReport {
   const t = cloneTuning();
-  const report: SeasonReport = { seasons: n, clearedFirstRegion: 0, champions: 0, wins: 0, played: 0 };
+  const report: SeasonReport = { seasons: n, clearedFirstRegion: 0, champions: 0, wins: 0, played: 0, pucksEarned: 0, pucksSpent: 0, pucksLeft: 0, shops: 0, shopsBoughtAt: 0 };
   for (let i = 0; i < n; i++) {
     const f = newFranchise(generateLeague(`${seed}-${i}`), difficulty);
     setDifficulty(f, difficulty);
@@ -151,6 +157,7 @@ export function measureSeasons(n: number, difficulty: string, seed: string): Sea
     let cleared = false;
     for (let guard = 0; guard < 400 && f.season.phase !== 'ended'; guard++) {
       const game = matchup(f);
+      const pucks = f.season.currency;
       if (f.season.stage === 'ringer') pickRinger(f, 0);
       else if (f.season.stage === 'reward') pickArtifact(f, f.season.offer[0] as string);
       else if (game) {
@@ -176,11 +183,17 @@ export function measureSeasons(n: number, difficulty: string, seed: string): Sea
         else if (stop.kind === 'event') chooseEvent(f, choose.int(0, eventInfo(stop.eventId!).choices.length - 1));
         else {
           const affordable = (stop.stock ?? []).filter((id) => shopPrice(f, id) <= f.season.currency);
+          report.shops += 1 / n;
+          if (affordable.length > 0) report.shopsBoughtAt += 1 / n;
           if (affordable.length > 0) buy(f, choose.pick(affordable));
           leaveShop(f);
         }
       }
+      const moved = f.season.currency - pucks;
+      if (moved > 0) report.pucksEarned += moved / n;
+      else report.pucksSpent -= moved / n;
     }
+    report.pucksLeft += f.season.currency / n;
     if (cleared) report.clearedFirstRegion += 1 / n;
     if (f.season.outcome === 'champion') report.champions += 1 / n;
     report.wins += f.season.gamesWon / n;

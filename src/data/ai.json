@@ -97,23 +97,23 @@
     "rush": {
       "name": "Rush",
       "describe": "They carry the puck straight at the net.",
-      "pass": 0.7,
-      "longShot": 0.6,
+      "pass": 0.85,
+      "longShot": 0.85,
       "dump": 0
     },
     "cycle": {
       "name": "Cycle",
       "describe": "They work the puck round the zone to the point and the wing.",
-      "pass": 1.5,
-      "longShot": 1.5,
+      "pass": 1.1,
+      "longShot": 0.9,
       "dump": 0
     },
     "dump": {
       "name": "Dump and chase",
       "describe": "They shoot the puck into the corner under pressure and go after it.",
-      "pass": 1,
-      "longShot": 1,
-      "dump": 0.5
+      "pass": 0.9,
+      "longShot": 0.85,
+      "dump": 0.15
     }
   },
   "tactics": {

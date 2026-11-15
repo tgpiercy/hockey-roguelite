@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decideContract, finishSeason } from '../src/core/offseason';
-import { abandonSeason, pickRinger } from '../src/core/season';
+import { DIFFICULTIES, difficultyInfo, abandonSeason, pickRinger } from '../src/core/season';
 import { seasonSummary } from '../src/core/seasonSummary';
 import { aiTeamsByStrength, buildBoss, teamStrength } from '../src/core/bosses';
 import { generateLeague } from '../src/core/generate';
@@ -681,7 +681,8 @@ describe('playoffs and the end of the season', () => {
     expect(f.season.playoffs).toEqual({ round: 0, wins: 0, losses: 0, opponentId: seeds[3] });
     const game = matchup(f)!;
     expect(game.kind).toBe('playoff');
-    expect(game.level).toBe(rules.playoffLevel);
+    // Pro eases the playoffs by its own shift (season.json).
+    expect(game.level).toBeCloseTo(rules.playoffLevel + (difficultyInfo(f.difficulty).playoffShift ?? 0));
     expect(f.season.gamesPlayed).toBe(9);
   });
 
@@ -802,5 +803,37 @@ describe('saving a season', () => {
     const save = JSON.parse(JSON.stringify(toSave(fresh(), 'now')));
     delete save.season;
     expect(fromSave(save).ok).toBe(false);
+  });
+});
+
+describe('difficulty by region', () => {
+  const shiftAt = (id: string, region: number): number => {
+    const d = difficultyInfo(id);
+    const eased = d.regionShift ?? [];
+    return d.levelShift + (eased[region] ?? eased[eased.length - 1] ?? 0);
+  };
+
+  it('no setting changes the first region beyond its own level, and none gets sharper later by its shift', () => {
+    for (const d of DIFFICULTIES) {
+      expect((d.regionShift ?? [0])[0]).toBe(0);
+      for (const x of d.regionShift ?? []) expect(x).toBeLessThanOrEqual(0);
+      expect(d.playoffShift ?? 0).toBeLessThanOrEqual(0);
+    }
+  });
+
+  it('Rookie is easier than Pro and Pro easier than All-Star in every region and the playoffs', () => {
+    for (let region = 0; region < rules.regions; region++) {
+      expect(shiftAt('rookie', region)).toBeLessThan(shiftAt('pro', region));
+      expect(shiftAt('pro', region)).toBeLessThan(shiftAt('allstar', region));
+    }
+    const playoff = (id: string): number => difficultyInfo(id).levelShift + (difficultyInfo(id).playoffShift ?? 0);
+    expect(playoff('rookie')).toBeLessThan(playoff('pro'));
+    expect(playoff('pro')).toBeLessThan(playoff('allstar'));
+  });
+
+  it('only Rookie gives more strikes', () => {
+    expect(difficultyInfo('pro').extraStrikes ?? 0).toBe(0);
+    expect(difficultyInfo('allstar').extraStrikes ?? 0).toBe(0);
+    expect(difficultyInfo('rookie').extraStrikes ?? 0).toBeGreaterThan(0);
   });
 });
