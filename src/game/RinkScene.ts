@@ -25,6 +25,7 @@ import type { SimEvent, World, MatchRules, InputFrame } from '../sim/types';
 import { NO_INPUT } from '../sim/types';
 import { createGame, step, STEP_SECONDS, type TeamSetup } from '../sim/world';
 import { Crowd } from './drawArena';
+import { venueLook, type Venue } from './venue';
 import { drawCrest } from './drawCrest';
 import { FIGURE_BOX, paintFigure } from './drawFigure';
 import { Effects, type View } from './effects';
@@ -58,6 +59,8 @@ export interface RinkSceneOptions {
   holdSwitch?: boolean;
   /** Draw the puck larger, with a bright edge. */
   bigPuck?: boolean;
+  /** The building the game is played in (`venues` in `rinkLook.json`); the standard look when not given. */
+  venue?: string;
   /** The announcer's line as the game begins. Left out, he says nothing. */
   opening?: string;
   /** A second player with a controller of his own: on team 0 (co-op) or team 1 (versus). Left out, one player. */
@@ -130,6 +133,7 @@ export class RinkScene extends Phaser.Scene {
   private powerText!: Phaser.GameObjects.Text;
   private labels: Phaser.GameObjects.Text[] = [];
   private effects!: Effects;
+  private venue: Venue = venueLook();
   private crowd = new Crowd();
   private crests!: [Crest, Crest];
   private showDebug = false;
@@ -219,8 +223,10 @@ export class RinkScene extends Phaser.Scene {
     this.crests = [teamCrest(this.options.names[0], this.teamColour(0)), teamCrest(this.options.names[1], this.teamColour(1))];
     const heading = { fontFamily: look.font, fontStyle: 'bold' };
 
+    this.venue = venueLook(this.options.venue);
+    this.crowd = new Crowd(this.venue);
     this.ice = this.add.graphics();
-    this.adverts = arena.iceAdverts.map((text) =>
+    this.adverts = this.venue.iceAdverts.map((text) =>
       this.add
         .text(0, 0, text, { ...heading, color: c.iceShade })
         .setOrigin(0.5, 0.5)
@@ -614,11 +620,25 @@ export class RinkScene extends Phaser.Scene {
     const h = t.rink.width * z;
 
     // Tiers of seating as bands that get lighter toward the ice.
-    g.fillStyle(colour(c.stands));
-    g.fillRect(0, look.topBarPixels, width, height - look.topBarPixels);
+    const v = this.venue;
     const tier = arena.rowGap * 3;
-    for (let i = 3; i >= 1; i--) {
-      g.lineStyle(tier, colour(c.standsEdge), 0.35);
+    if (v.wall) {
+      // A smaller building: the wall behind the seats, planked or plain, and the seating only as deep as its rows.
+      g.fillStyle(colour(v.wall));
+      g.fillRect(0, look.topBarPixels, width, height - look.topBarPixels);
+      if (v.plankGap > 0) {
+        g.lineStyle(1, colour(v.standsEdge), v.plankAlpha);
+        for (let x = v.plankGap / 2; x < width; x += v.plankGap) g.lineBetween(x, look.topBarPixels, x, height);
+      }
+      const deep = arena.firstRowOffset + v.rows * arena.rowGap;
+      g.fillStyle(colour(v.stands));
+      g.fillRoundedRect(left - deep, topEdge - deep, w + deep * 2, h + deep * 2, corner + deep);
+    } else {
+      g.fillStyle(colour(v.stands));
+      g.fillRect(0, look.topBarPixels, width, height - look.topBarPixels);
+    }
+    for (let i = Math.min(3, Math.ceil(v.rows / 3)); i >= 1; i--) {
+      g.lineStyle(tier, colour(v.standsEdge), 0.35);
       const d = tier * i - tier / 2 + arena.firstRowOffset * 0.5;
       g.strokeRoundedRect(left - d, topEdge - d, w + d * 2, h + d * 2, corner + d);
     }
@@ -640,15 +660,24 @@ export class RinkScene extends Phaser.Scene {
     const dot = Math.max(2, look.dotRadius * z);
 
     // Ice, with the neutral zone a shade darker so the zones read at a glance.
-    g.fillStyle(colour(c.ice));
+    g.fillStyle(colour(this.venue.ice));
     g.fillRoundedRect(this.sx(-hx), this.sy(-hy), t.rink.length * z, t.rink.width * z, corner);
-    g.fillStyle(colour(c.iceZone));
+    g.fillStyle(colour(this.venue.iceZone));
     g.fillRect(this.sx(-blue), this.sy(-hy), blue * 2 * z, t.rink.width * z);
 
     // Lighting: soft pools of light over the middle of the sheet.
-    for (const [share, alpha] of arena.lightPools) {
-      g.fillStyle(colour(c.light), alpha as number);
-      g.fillEllipse(this.sx(0), this.sy(0), t.rink.length * z * (share as number), t.rink.width * z * (share as number) * 0.92);
+    for (const [share, alpha] of this.venue.lightPools) {
+      if (alpha <= 0) continue;
+      g.fillStyle(colour(c.light), alpha);
+      g.fillEllipse(this.sx(0), this.sy(0), t.rink.length * z * share, t.rink.width * z * share * 0.92);
+    }
+    // Hanging lamps down the middle of a small rink: a pool of light under each, the ice duller between them.
+    for (let k = 0; k < this.venue.lamps; k++) {
+      const x = -hx + ((k + 0.5) / this.venue.lamps) * t.rink.length;
+      const size = t.rink.width * z * this.venue.lampSize;
+      g.fillStyle(colour(c.light), this.venue.lampAlpha);
+      g.fillEllipse(this.sx(x), this.sy(0), size, size * 1.25);
+      g.fillEllipse(this.sx(x), this.sy(0), size * 0.55, size * 0.7);
     }
 
     // The home team's crest at centre ice, under the lines.
@@ -719,7 +748,7 @@ export class RinkScene extends Phaser.Scene {
     const panel = arena.boardPanel;
     const straight = hx - t.rink.cornerRadius;
     // The boards carry the home team's colour between the white panels, and the visitors' here and there.
-    const panels = [look.colours.boards, this.teamColour(0), look.colours.boards, this.teamColour(0), look.colours.boards, this.teamColour(1)];
+    const panels = this.venue.teamPanels ? [look.colours.boards, this.teamColour(0), look.colours.boards, this.teamColour(0), look.colours.boards, this.teamColour(1)] : [look.colours.boards];
     let n = 0;
     for (let x = -straight; x < straight - 0.01; x += panel) {
       const hex = panels[n++ % panels.length] as string;

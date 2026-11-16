@@ -1,3 +1,4 @@
+import { venueFor } from '../game/venue';
 import { readGamepad } from '../game/gamepad';
 import { MatchIntro, type IntroWords } from './MatchIntro';
 import { rumble } from '../game/rumble';
@@ -77,6 +78,8 @@ export interface MatchOptions {
   second?: 0 | 1;
   /** The rink to play on (rinks.json). Left out, the standard rink. */
   rink?: string;
+  /** How far into the season the game is (the region, or past the last one for the playoffs), which decides the building it is played in. Not given: the standard arena. */
+  stage?: number;
   /** True for a shootout in place of a game. */
   shootout?: boolean;
   /** Rules changed on top of the rink's (a season's charter). */
@@ -95,7 +98,7 @@ export interface MatchOptions {
  * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening, practice, periodSeconds, intro }: MatchOptions, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening, practice, periodSeconds, intro, stage }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
   // The rink's own numbers sit on top of whatever the tuning panel holds; worked out again only when that changes.
   const where = rinkInfo(shootout ? null : rink);
@@ -276,6 +279,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       tuning: rinkTuned,
       rules: practice ? { practice: true } : shootout ? { shootout: SHOOTOUT } : { ...where.rules, ...(rules ?? {}) },
       bigPuck: loadPrefs().bigPuck,
+      ...(stage !== undefined ? { venue: venueFor(stage) } : {}),
       onControls,
       paused: () => paused || introOn,
       onEvents: (events, world, t) => {

@@ -173,7 +173,8 @@
         0.06
       ]
     ],
-    "homeFanShare": 0.62
+    "homeFanShare": 0.62,
+    "flashesPerSecond": 9
   },
   "figure": {
     "height": 4.0,
@@ -403,5 +404,74 @@
   "glassAlpha": 0.16,
   "glassGlints": 9,
   "openingLightSeconds": 1.8,
-  "openingDark": 0.6
+  "openingDark": 0.6,
+  "venueByStage": [
+    "barn",
+    "arena",
+    "bowl"
+  ],
+  "venues": {
+    "barn": {
+      "name": "The barn",
+      "rows": 3,
+      "emptySeatChance": 0.3,
+      "stands": "#3a2a1c",
+      "standsEdge": "#5a4128",
+      "wall": "#20160e",
+      "plankGap": 18,
+      "plankAlpha": 0.35,
+      "ice": "#e6eef0",
+      "iceZone": "#d8e3e6",
+      "lightPools": [
+        [
+          1.0,
+          0.0
+        ]
+      ],
+      "lamps": 5,
+      "lampSize": 0.62,
+      "lampAlpha": 0.14,
+      "iceAdverts": [
+        "HARDWARE",
+        "FEED & SEED",
+        "LEGION HALL",
+        "THE BAKERY"
+      ],
+      "teamPanels": false
+    },
+    "arena": {
+      "name": "The city arena",
+      "rows": 8,
+      "emptySeatChance": 0.14,
+      "stands": "#1b2733",
+      "standsEdge": "#2c3d4f",
+      "wall": "#0b1118",
+      "iceAdverts": [
+        "CITY TRANSIT",
+        "PINE & PUCK",
+        "GLACIER FIZZ",
+        "RADIO 98"
+      ]
+    },
+    "bowl": {
+      "name": "The big-league bowl",
+      "rows": 14,
+      "emptySeatChance": 0.03,
+      "lightPools": [
+        [
+          1.0,
+          0.07
+        ],
+        [
+          0.72,
+          0.06
+        ],
+        [
+          0.45,
+          0.07
+        ]
+      ],
+      "flashShare": 0.05
+    }
+  }
 }
