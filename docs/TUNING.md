@@ -959,6 +959,18 @@ Rookie with twelve bosses, 40 seasons: first region 93%, title 60% (unchanged). 
 
 League health after the round (10 seeds, 12 years): no bail-outs under any manager style.
 
+## The players round (2026-11-15)
+
+Frame time in the test pane at 844 x 390, full detail, about 2,600 frames of an exhibition game stepped by hand each time (a desktop pane, not a phone):
+
+| | Mean frame | Pictures kept after 45 seconds | Pixels to a body radius |
+| --- | --- | --- | --- |
+| Before (one shape for all, measured in the replay check) | 5.3 ms | not counted | 17 |
+| New figure, a look for each player, same sharpness | 6.6 ms | 363 | 17 |
+| New figure, sharper (`textureScale` 3, shipped) | 7.8 ms | 289, capped at 320 | 26 |
+
+Each player now has his own pictures, so there are several times as many; each is about 135 by 150 pixels (some 80 KB), so the cap of 320 is about 25 MB. Past the cap the longest unused are dropped. The single frames of over half a second in each run came at the start of a batch of stepping, as in earlier measurements.
+
 | Date | Value | From | To | Why |
 | --- | --- | --- | --- | --- |
 | 2026-11-13 | goalie positioning cover radius (ratings.json) | 0.5 to 0.9 | 0.3 to 0.6 | All-AI games averaged under 1 goal per 5 minutes; now about 3 |

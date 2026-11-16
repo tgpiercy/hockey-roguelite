@@ -1,3 +1,4 @@
+import { teamLooks } from '../core/playerLook';
 import { rinkInfo, rinkTuning, SHOOTOUT } from '../core/rinks';
 import type { Tuning } from '../sim/tuning';
 import type { MatchRules } from '../sim/types';
@@ -210,6 +211,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       whiteTeam: userAtHome ? 1 : 0,
       detail: loadPrefs().detail,
       playerNames: [home.players.map((p) => lastName(p.name)), away.players.map((p) => lastName(p.name))],
+      looks: [teamLooks(home.players), teamLooks(away.players)],
       commentary: () => commentary !== 'off',
       onCall: (text, priority) => {
         if (commentary === 'voice' && voiceVolume > 0) speak(text, priority, voiceVolume);

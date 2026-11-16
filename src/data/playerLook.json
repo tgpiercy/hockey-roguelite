@@ -1,0 +1,21 @@
+{
+  "builds": [
+    "slight",
+    "regular",
+    "heavy",
+    "tall"
+  ],
+  "byKind": {
+    "sniper": "slight",
+    "playmaker": "regular",
+    "speedster": "slight",
+    "enforcer": "heavy",
+    "twoWay": "regular"
+  },
+  "defenceBuild": "heavy",
+  "defenceKinds": [
+    "twoWay"
+  ],
+  "goalie": "tall",
+  "fallback": "regular"
+}

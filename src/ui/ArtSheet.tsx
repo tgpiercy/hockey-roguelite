@@ -8,7 +8,8 @@ import { generateLeague } from '../core/generate';
 import { portraitOf } from '../core/portrait';
 import crestRules from '../data/crests.json';
 import gearData from '../data/gear.json';
-import { FIGURE_STYLES, skinTone, STANDING, type FigureStyle, type PoseInput } from '../game/figure';
+import { skinTone, STANDING, type PoseInput } from '../game/figure';
+import { BUILDS, lookOf } from '../core/playerLook';
 import { CrestBadge } from './Crest';
 import { FigureArt } from './FigureArt';
 import { GEAR_ART_SLOTS, GearArt } from './GearArt';
@@ -19,8 +20,6 @@ import { PortraitFace } from './Portrait';
  * Every piece of drawn art on one page, opened with ?sheet. It exists so the art can be checked together:
  * that no icon is missing or unreadable at the size it is used, and that faces and crests vary.
  */
-const STYLE_NAMES: Record<FigureStyle, string> = { classic: 'Now', bigHead: 'A. Big heads', chunky: 'B. Chunky pros', above: 'C. From above' };
-
 /** The on-ice figure in each pose worth checking. */
 const POSES: [string, PoseInput][] = [
   ['standing', STANDING],
@@ -33,6 +32,15 @@ const POSES: [string, PoseInput][] = [
   ['goalie', { ...STANDING, goalie: true }],
   ['goalie down', { ...STANDING, goalie: true, down: true }],
   ['goalie left', { ...STANDING, goalie: true, side: -1, pattern: 'sash' }],
+  ['goalie glove', { ...STANDING, goalie: true, action: 'glove' }],
+  ['goal', { ...STANDING, cheer: true }],
+  ['his mate scored', { ...STANDING, mateCheer: true }],
+  ['kneeling', { ...STANDING, kneel: true }],
+  ['pass', { ...STANDING, stride: 1, speed: 0.6, action: 'pass' }],
+  ['poke', { ...STANDING, stride: 1, speed: 0.6, action: 'poke' }],
+  ['hit', { ...STANDING, stride: 1, speed: 1, action: 'hit' }],
+  ['deke', { ...STANDING, stride: 2, speed: 0.6, action: 'deke' }],
+  ['tired', { ...STANDING, action: 'tired' }],
 ];
 
 export function ArtSheet() {
@@ -94,27 +102,6 @@ export function ArtSheet() {
           ))}
         </div>
       ))}
-      <h2>Three candidate styles for the players (and the one in the game now)</h2>
-      {FIGURE_STYLES.map((style) => (
-        <div key={style} class="art-row figure-row">
-          <span class="figure-cell">
-            <b>{STYLE_NAMES[style]}</b>
-          </span>
-          {POSES.map(([name, pose], i) => (
-            <span key={name} class="figure-cell">
-              <FigureArt style={style} pose={pose} crest={teamCrest(league.teams[i % league.teams.length]?.name ?? 'sheet')} skin={skinTone(i)} size={110} kit={i % 3 === 2 ? 'away' : 'home'} />
-              <small>{name}</small>
-            </span>
-          ))}
-          <span class="figure-cell">
-            <FigureArt style={style} pose={{ ...STANDING, cheer: true }} crest={teamCrest(league.teams[3]?.name ?? 'sheet')} skin={skinTone(3)} size={110} />
-            <small>goal</small>
-          </span>
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <FigureArt key={i} style={style} pose={{ ...STANDING, stride: i, speed: 0.8, side: i % 2 === 0 ? 1 : -1 }} crest={teamCrest(league.teams[i + 4]?.name ?? 'sheet')} skin={skinTone(i)} size={34} kit={i % 2 === 0 ? 'home' : 'away'} />
-          ))}
-        </div>
-      ))}
       <h2>Players on the ice</h2>
       <div class="art-row figure-row">
         {POSES.map(([name, pose], i) => (
@@ -128,6 +115,40 @@ export function ArtSheet() {
         {league.teams.slice(0, 12).map((team, i) => (
           <FigureArt key={team.id} pose={{ ...STANDING, stride: i, speed: 0.6, side: i % 2 === 0 ? 1 : -1, pattern: teamCrest(team.name).pattern }} crest={teamCrest(team.name)} skin={skinTone(i)} size={40} />
         ))}
+      </div>
+      <h2>Builds, and a captain and a mascot</h2>
+      <div class="art-row figure-row">
+        {BUILDS.map((build, i) => (
+          <span key={build} class="figure-cell">
+            <FigureArt pose={{ ...STANDING, stride: 1, speed: 0.5 }} who={{ hair: 'short', beard: 'none', build }} crest={teamCrest(league.teams[i]?.name ?? 'sheet')} skin={skinTone(i)} size={110} />
+            <small>{build}</small>
+          </span>
+        ))}
+        <span class="figure-cell">
+          <FigureArt pose={{ ...STANDING, goalie: true }} who={{ hair: 'short', beard: 'none', build: 'tall' }} crest={teamCrest(league.teams[5]?.name ?? 'sheet')} skin={skinTone(1)} size={110} />
+          <small>tall goalie</small>
+        </span>
+        <span class="figure-cell">
+          <FigureArt pose={STANDING} who={{ hair: 'short', beard: 'none', build: 'regular', mark: 'captain' }} crest={teamCrest(league.teams[6]?.name ?? 'sheet')} skin={skinTone(2)} size={110} />
+          <small>captain</small>
+        </span>
+        <span class="figure-cell">
+          <FigureArt pose={{ ...STANDING, stride: 1, speed: 0.6 }} who={{ hair: 'short', beard: 'none', build: 'heavy', mark: 'mascot' }} crest={teamCrest(league.teams[7]?.name ?? 'sheet')} skin={skinTone(3)} size={110} />
+          <small>mascot</small>
+        </span>
+      </div>
+      <h2>A league's players as they look on the ice (and at phone size)</h2>
+      <div class="art-row figure-row">
+        {players.slice(0, 18).map((p, i) => {
+          const who = lookOf(p);
+          return <FigureArt key={p.id} pose={{ ...STANDING, stride: i, speed: 0.5, goalie: p.position === 'G' }} who={who} hair={who.hairColour} crest={teamCrest(league.teams[i % league.teams.length]!.name)} skin={who.skin} size={84} />;
+        })}
+      </div>
+      <div class="art-row figure-row">
+        {players.slice(0, 18).map((p, i) => {
+          const who = lookOf(p);
+          return <FigureArt key={p.id} pose={{ ...STANDING, stride: i, speed: 0.5, goalie: p.position === 'G', side: i % 2 === 0 ? 1 : -1 }} who={who} hair={who.hairColour} crest={teamCrest(league.teams[i % league.teams.length]!.name)} skin={who.skin} size={34} kit={i % 2 === 0 ? 'home' : 'away'} />;
+        })}
       </div>
       <h2>Home and away kits</h2>
       <div class="art-row figure-row">

@@ -48,4 +48,15 @@ export function paintFigure(canvas: HTMLCanvasElement, shapes: readonly Shape[],
   ctx.lineJoin = 'round';
   for (const s of shapes) if (!s.bare) piece(ctx, s, F.colours.outline, F.outline);
   for (const s of shapes) piece(ctx, s, colours[s.tag], 0);
+  // Light from above: lighter at the top of the picture and darker toward the ice, laid over what is painted.
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = 'source-atop';
+  const shade = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  shade.addColorStop(0, `rgba(255, 255, 255, ${F.shade.light})`);
+  shade.addColorStop(0.45, 'rgba(255, 255, 255, 0)');
+  shade.addColorStop(0.55, 'rgba(8, 20, 44, 0)');
+  shade.addColorStop(1, `rgba(8, 20, 44, ${F.shade.dark})`);
+  ctx.fillStyle = shade;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.globalCompositeOperation = 'source-over';
 }

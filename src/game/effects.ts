@@ -59,6 +59,8 @@ export class Effects {
   private lastPos = new Map<number, { x: number; y: number; speed: number }>();
   /** How far through his stride each player is, in radians. */
   readonly stride = new Map<number, number>();
+  /** What each player has just done (a pass, a poke, a hit; a goalie's glove save), and the seconds it is still shown for. */
+  readonly action = new Map<number, { kind: 'pass' | 'poke' | 'hit' | 'glove'; left: number }>();
   /** Seconds left of each goalie's pads being down after a save, by player id. */
   readonly padsDown = new Map<number, number>();
   /** Seconds left of the red light behind each net: index 0 is the left net. */
@@ -94,7 +96,12 @@ export class Effects {
             this.confetti.push({ x: netX, y: 0, vx: Math.cos(angle) * speed - Math.sign(netX) * fx.confettiSpeed * 0.35, vy: Math.sin(angle) * speed - fx.confettiSpeed * 0.3, age: 0, life: this.rng.range(fx.confettiSeconds * 0.5, fx.confettiSeconds), hex: colours[i % colours.length] as string });
           }
         }
+      } else if (e.type === 'pass') {
+        this.action.set(e.player, { kind: 'pass', left: look.figure.actionSeconds.pass });
+      } else if (e.type === 'check' && !e.success) {
+        this.action.set(e.player, { kind: e.kind === 'body' ? 'hit' : 'poke', left: e.kind === 'body' ? look.figure.actionSeconds.hit : look.figure.actionSeconds.poke });
       } else if (e.type === 'check' && e.success) {
+        this.action.set(e.player, { kind: e.kind === 'body' ? 'hit' : 'poke', left: e.kind === 'body' ? look.figure.actionSeconds.hit : look.figure.actionSeconds.poke });
         const target = players[e.target];
         if (target) {
           this.addRing(target.pos.x, target.pos.y, e.kind === 'body' ? fx.hitRingSize : fx.hitRingSize * 0.6, look.colours.accent);
@@ -107,6 +114,8 @@ export class Effects {
         this.addRing(world.puck.pos.x, world.puck.pos.y, fx.postRingSize, look.colours.redLine);
       } else if (e.type === 'save') {
         this.padsDown.set(e.goalie, fx.padsDownSeconds);
+        // A puck he holds is a glove save; one he kicks out, a pad save.
+        if (e.frozen) this.action.set(e.goalie, { kind: 'glove', left: look.figure.actionSeconds.glove });
         this.excitement = Math.max(this.excitement, 0.5);
       } else if (e.type === 'shot') {
         this.excitement = Math.max(this.excitement, Math.min(0.6, e.speed / t.shot.maxSpeed));
@@ -117,6 +126,10 @@ export class Effects {
     this.excitement = Math.max(fx.crowdRest, this.excitement - dt * fx.crowdCalmPerSecond);
     if (this.excitement <= fx.crowdRest + 0.01) this.cheering = null;
     for (const side of [0, 1] as const) this.goalLight[side] = Math.max(0, this.goalLight[side] - dt);
+    for (const [id, act] of this.action) {
+      if (act.left - dt <= 0) this.action.delete(id);
+      else act.left -= dt;
+    }
     for (const [id, left] of this.padsDown) {
       if (left - dt <= 0) this.padsDown.delete(id);
       else this.padsDown.set(id, left - dt);

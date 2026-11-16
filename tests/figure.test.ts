@@ -121,7 +121,7 @@ describe('the on-ice figure', () => {
     const shapes = withStick(fig, end, 1);
     expect(shapes).toHaveLength(fig.shapes.length + 2);
     const at = shapes.findIndex((s) => s.tag === 'stick');
-    expect(at).toBe(fig.shapes.length - 2);
+    expect(at).toBe(fig.shapes.length - 3);
     const shaft = shapes[at] as Limb;
     expect(shaft.x2).toBe(end.x);
     expect(shaft.y2).toBe(end.y);

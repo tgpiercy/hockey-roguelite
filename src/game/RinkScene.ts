@@ -1,5 +1,3 @@
-import { ABOVE_CENTRE } from './figureStyles/above';
-import { figureStyle } from './figure';
 import type { Tactics } from '../sim/tactics';
 import { Commentator, COMMENTARY_SHOW_SECONDS } from './commentary';
 import * as Phaser from 'phaser';
@@ -30,7 +28,8 @@ import { Crowd } from './drawArena';
 import { drawCrest } from './drawCrest';
 import { FIGURE_BOX, paintFigure } from './drawFigure';
 import { Effects, type View } from './effects';
-import { facingSide, figure, figureColours, skinTone, withStick, type PoseInput } from './figure';
+import type { PlayerLook } from '../core/playerLook';
+import { facingSide, figure, figureColours, lookKey, PLAIN_LOOK, skinTone, withStick, type Action, type FigureLook, type PoseInput } from './figure';
 import { InputReader, type Controls } from './input';
 
 const colour = (hex: string): number => Number.parseInt(hex.slice(1), 16);
@@ -65,6 +64,8 @@ export interface RinkSceneOptions {
   second?: 0 | 1;
   /** Each team's dressed players' names, in order: six skaters, then the goalie. For the commentary. */
   playerNames?: [string[], string[]];
+  /** What each dressed player looks like, by team and then in the order they are dressed. Left out, everyone is plain. */
+  looks?: [PlayerLook[], PlayerLook[]];
   /** Whether commentary lines are wanted now; left out, there is none. */
   commentary?: () => boolean;
   /** Called with each commentary line as it is shown, for the spoken voice. */
@@ -156,7 +157,9 @@ export class RinkScene extends Phaser.Scene {
   /** One picture per player, showing the texture of the pose he is in. */
   private sprites: Phaser.GameObjects.Image[] = [];
   /** Every pose painted so far, and the size they were painted at; repainted when the rink is resized. */
-  private readonly figureKeys = new Set<string>();
+  /** Each figure picture kept, with the frame it was last shown on: the ones longest unused go when there are too many. */
+  private readonly figureKeys = new Map<string, number>();
+  private figureFrame = 0;
   private figurePixels = 0;
   /** Seconds left with everything frozen (a big hit, a goal), and seconds left of slow motion after a goal. */
   private freeze = 0;
@@ -772,9 +775,18 @@ export class RinkScene extends Phaser.Scene {
     // Each pose is painted once, at this many pixels to a footprint radius, and kept. A resized rink repaints them.
     const pixels = Math.min(FIG.maxTexturePixels, t.skater.radius * z * look.playerScale * FIG.textureScale);
     if (Math.abs(pixels - this.figurePixels) > 0.05) {
-      for (const key of this.figureKeys) this.textures.remove(key);
+      for (const key of this.figureKeys.keys()) this.textures.remove(key);
       this.figureKeys.clear();
       this.figurePixels = pixels;
+    }
+    // Every player has his own pictures now, so they add up: past the limit, the ones not shown for longest are let go.
+    this.figureFrame += 1;
+    if (this.figureKeys.size > FIG.maxTextures) {
+      const oldest = [...this.figureKeys.entries()].filter(([, used]) => used < this.figureFrame - 1).sort((a, b) => a[1] - b[1]);
+      for (const [key] of oldest.slice(0, this.figureKeys.size - Math.round(FIG.maxTextures * 0.8))) {
+        this.textures.remove(key);
+        this.figureKeys.delete(key);
+      }
     }
     // Where each human's pass would go right now.
     const passMarks = new Map<number, string>();
@@ -804,7 +816,9 @@ export class RinkScene extends Phaser.Scene {
       const crest = this.crests[p.team];
       const side = facingSide(p.facing, this.sides.get(p.id));
       this.sides.set(p.id, side);
-      const down = goalie && (this.effects.padsDown.get(p.id) ?? 0) > 0;
+      const acting = this.effects.action.get(p.id)?.kind;
+      // A glove save keeps him on his feet with the glove up; any other save puts the pads down.
+      const down = goalie && acting !== 'glove' && (this.effects.padsDown.get(p.id) ?? 0) > 0;
       const speed = Math.min(1, Math.hypot(p.vel.x, p.vel.y) / FIG.fullSpeed);
       const stride = this.effects.stride.get(p.id) ?? 0;
       // The pose is rounded to one of a few steps, so the same few pictures are reused instead of painting him every frame.
@@ -815,6 +829,25 @@ export class RinkScene extends Phaser.Scene {
       const kneel = !goalie && braced(world, p, t);
       // The scorer throws his arms up while the goal is celebrated.
       const cheer = !goalie && world.phase === 'goal' && this.scorer === p.id;
+      const scorer = this.scorer === null ? undefined : world.players[this.scorer];
+      const mateCheer = !goalie && !cheer && world.phase === 'goal' && scorer !== undefined && scorer.team === p.team;
+      // What he is doing this moment, most telling first: a hit or a poke thrown, a pass made, a deke, a tired glide.
+      const action: Action | undefined = goalie
+        ? acting === 'glove'
+          ? 'glove'
+          : undefined
+        : cheer || mateCheer || kneel || wound
+          ? undefined
+          : acting === 'hit' || acting === 'poke' || acting === 'pass'
+            ? acting
+            : p.deke > 0
+              ? 'deke'
+              : p.energy < FIG.tiredBelow && speed < FIG.tiredSpeed
+                ? 'tired'
+                : undefined;
+      // Who he is: his own look, or the mascot's while the mascot has his place.
+      const own = this.options.looks?.[p.team]?.[p.id - p.team * 7];
+      const who: FigureLook = !goalie && isMascot(world, p) ? { hair: 'bald', beard: 'none', build: 'heavy', mark: 'mascot' } : (own ?? PLAIN_LOOK);
       const pose: PoseInput = {
         side: 1,
         stride: (strideStep / FIG.poseSteps) * TAU,
@@ -825,18 +858,19 @@ export class RinkScene extends Phaser.Scene {
         tilt: 0,
         pattern: crest.pattern,
         cheer,
+        mateCheer,
         kneel,
+        ...(action ? { action } : {}),
       };
-      const skin = skinTone(p.id);
-      const above = figureStyle() === 'above';
-      const key = `figure-${figureStyle()}-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}${kneel ? '-kneel' : ''}`;
+      const skin = own?.skin ?? skinTone(p.id);
+      const key = `figure-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${own?.hairColour ?? ''}-${lookKey(who)}-${strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}${mateCheer ? '-mate' : ''}${kneel ? '-kneel' : ''}${action ? `-${action}` : ''}`;
       if (!this.textures.exists(key)) {
         const canvas = document.createElement('canvas');
-        paintFigure(canvas, figure(pose).shapes, figureColours(crest, goalie, skin, this.options.whiteTeam === p.team ? 'away' : 'home'), pixels);
+        paintFigure(canvas, figure(pose, who).shapes, figureColours(crest, goalie, skin, this.options.whiteTeam === p.team ? 'away' : 'home', own?.hairColour), pixels);
         this.textures.addCanvas(key, canvas);
-        this.figureKeys.add(key);
       }
-      const fig = figure({ ...pose, side });
+      this.figureKeys.set(key, this.figureFrame);
+      const fig = figure({ ...pose, side }, who);
 
       // His shadow on the ice marks where he really is, and how big.
       g.fillStyle(colour(c.shadow), 0.22 * alpha);
@@ -965,7 +999,7 @@ export class RinkScene extends Phaser.Scene {
         const sweep = this.full && world.puck.carrier !== p.id ? Math.sin(stride * 0.5) * fx.stickSweep : 0;
         end = { x: (this.sx(blade.x) - x) / unit + sweep * side, y: (this.sy(blade.y) - y) / unit };
       }
-      for (const piece of above ? [] : withStick(fig, end, side)) {
+      for (const piece of withStick(fig, end, side)) {
         if (piece.tag !== 'stick' || piece.kind !== 'limb') continue;
         g.lineStyle(Math.max(1.5, piece.w * unit), colour(c.stick), alpha);
         g.lineBetween(x + piece.x1 * unit, y + piece.y1 * unit, x + piece.x2 * unit, y + piece.y2 * unit);
@@ -974,11 +1008,11 @@ export class RinkScene extends Phaser.Scene {
       const sprite = this.sprites[i];
       sprite
         ?.setTexture(key)
-        .setOrigin(0.5, (FIGURE_BOX.feetY - (above ? ABOVE_CENTRE : 0)) / FIGURE_BOX.height)
+        .setOrigin(0.5, FIGURE_BOX.feetY / FIGURE_BOX.height)
         .setPosition(x, y)
         .setScale(unit / pixels)
-        .setFlipX(!above && side === -1)
-        .setRotation(above ? p.facing : p.knockedDown ? FIG.knockdownTilt * side : p.stagger > 0 ? FIG.staggerTilt * side : 0)
+        .setFlipX(side === -1)
+        .setRotation(p.knockedDown ? FIG.knockdownTilt * side : p.stagger > 0 ? FIG.staggerTilt * side : 0)
         .setAlpha(alpha)
         .setDepth(DEPTH.players + (p.pos.y + t.rink.width) / (t.rink.width * 4))
         .setVisible(true);
