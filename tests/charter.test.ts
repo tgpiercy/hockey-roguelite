@@ -34,7 +34,7 @@ const toGame = (f: Franchise): void => {
 
 describe('the data', () => {
   const simStats = new Set([...Object.keys(skaterEffects(defaultSkaterRatings)), ...Object.keys(goalieEffects(defaultGoalieRatings))]);
-  const seasonStats = new Set(['currencyGain', 'shopPrice', 'opponentRating', 'opponentLevel', 'maxStrikes', 'noSimulate', 'artifactChoices', 'noRepairs', 'startingPowerups']);
+  const seasonStats = new Set(['currencyGain', 'shopPrice', 'opponentRating', 'opponentLevel', 'maxStrikes', 'noSimulate', 'artifactChoices', 'noRepairs', 'startingPowerups', 'bossLossEnds']);
 
   it('there is a standard charter and at least four others, and about eight handicaps', () => {
     expect(charterInfo(STANDARD_CHARTER).id).toBe(STANDARD_CHARTER);
@@ -154,11 +154,11 @@ describe('charters', () => {
   it('iron line: one line in every game, and your skaters tire more slowly', () => {
     const f = started({ charter: 'ironLine' });
     toGame(f);
-    expect(matchup(f)!.rules).toEqual({ oneLine: true });
+    expect(matchup(f)!.rules).toMatchObject({ oneLine: true });
     expect(teamModifiers(f)).toContainEqual({ stat: 'drainScale', op: 'mul', value: 0.65 });
     const plain = started();
     toGame(plain);
-    expect(matchup(plain)!.rules).toBeUndefined();
+    expect(matchup(plain)!.rules?.oneLine).toBeUndefined();
   });
 
   it('bruisers: both sides knock down with every body check', () => {

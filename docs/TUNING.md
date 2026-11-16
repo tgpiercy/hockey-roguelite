@@ -1132,3 +1132,19 @@ The owner chose to ease Rookie only: the newcomer should clear the first region 
 
 -0.35 is the nearer of the two to the target and on the careful side of it, since a real beginner plays better than the newcomer does. -0.4 and -0.45 are the same within the sample's swing (later regions are already at the lowest level the AI has). The script's title rate did not move between -0.2 and -0.4 (78% and 75%): for a player who already beats the AI, Rookie is no easier than it was. Pro and All-Star are unchanged.
 
+## After the first-contact round (2026-11-16)
+
+Three rule changes that move the season numbers: a boss loss ends the season only under the "One meeting" handicap; the Wall and the Marathon never guard the first region; momentum is not cut by a goal against. Forty seasons each, as before; a sample this size swings 7 to 10 points.
+
+| Difficulty | Player | First region cleared | Title | Wins of games | Before this round (first region, title) |
+| --- | --- | --- | --- | --- | --- |
+| Pro | script | 100% | 60% | 10.0 of 12.2 | 80%, 35% |
+| Pro | newcomer | 25% | 0% | 1.0 of 4.3 | 13%, 0% |
+| All-Star | script | 98% | 5% | 6.0 of 9.8 | 63%, 5% |
+
+What it says:
+- Pro is now a good deal easier for a player who already beats the AI: the script clears the first region every time and wins three titles in five. Most of that is the two walls leaving the first region and a boss loss no longer ending the run; which of the two counts for more was not measured apart.
+- For the newcomer Pro is still hard: one season in four gets past the first region.
+- The owner's earlier aim for Pro was a title about one season in four for the script. That aim is no longer met. Re-setting it belongs to the next round (the difficulties are to be re-set against both players and the owner's own results), and with the "One meeting" handicap as the way to ask for the old rule.
+- Rookie was not re-measured after this round; its changes are the same two, both in the player's favour.
+

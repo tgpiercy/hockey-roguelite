@@ -598,9 +598,9 @@ describe('bosses and artifacts', () => {
     expect(buildBoss(f.league, currentStop(f)!.bossId!, 0, f.season.seed)).toEqual({ ...game.away, setup: bossSetup });
   });
 
-  it('on Rookie, losing to a boss is a strike and he must be played again', () => {
+  it('without the handicap, losing to a boss is a strike and he must be played again, on any difficulty', () => {
     const f = atBoss();
-    f.difficulty = 'rookie';
+    f.difficulty = 'allstar';
     expect(bossLossEnds(f)).toBe(false);
     const boss = currentStop(f)!.id;
     const outcome = recordGame(f, result(false));
@@ -610,10 +610,11 @@ describe('bosses and artifacts', () => {
     expect(matchup(f)?.kind).toBe('boss');
   });
 
-  it('on Pro and All-Star, losing to a boss ends the season at once, whatever strikes were left', () => {
-    for (const difficulty of ['pro', 'allstar']) {
+  it('under the One meeting handicap, losing to a boss ends the season at once, whatever strikes were left', () => {
+    for (const difficulty of ['rookie', 'pro', 'allstar']) {
       const f = atBoss();
       f.difficulty = difficulty;
+      f.season.vows = { oneMeeting: 1 };
       expect(bossLossEnds(f)).toBe(true);
       expect(f.season.strikes).toBe(0);
       const outcome = recordGame(f, result(false));

@@ -340,14 +340,14 @@ export interface DifficultyInfo {
   name: string;
   /** Added to every opponent's AI level. */
   levelShift: number;
+  /** A few words for a list; the description says it in full. */
+  short?: string;
   description: string;
   /** Added to the opponents' AI level in each region, and in the playoffs, on top of `levelShift`. Left out, nothing. */
   regionShift?: number[];
   playoffShift?: number;
   /** Strikes added to the season's limit. Left out, none. */
   extraStrikes?: number;
-  /** True where a loss to a boss ends the season at once, whatever strikes were left. */
-  bossLossEnds?: boolean;
 }
 
 export const DIFFICULTIES = rules.difficulties as DifficultyInfo[];
@@ -807,7 +807,10 @@ export function matchup(f: Franchise): Matchup | null {
   const extra = opponentModifiers(setupOf(f));
   const awayTeam = extra.length > 0 ? { ...away.team, setup: { ...away.team.setup, modifiers: [...(away.team.setup.modifiers ?? []), ...extra] } } : away.team;
   const charterRules = charterInfo(season.charter).rules;
-  return { ...game, home: home.team, away: awayTeam, mascots: { home: home.odds, away: away.odds }, ...(charterRules ? { rules: charterRules } : {}) };
+  // An ordinary game is called off at a lead nobody comes back from; a boss and a playoff game are played out.
+  const mercy = game.kind === 'game' && rules.mercyLead > 0 ? { mercy: rules.mercyLead } : {};
+  const gameRules = { ...mercy, ...(charterRules ?? {}) };
+  return { ...game, home: home.team, away: awayTeam, mascots: { home: home.odds, away: away.odds }, ...(Object.keys(gameRules).length > 0 ? { rules: gameRules } : {}) };
 }
 
 /** After a game that was played: each mascot's run of misses is remembered. A simulated game has no rolls and changes nothing. */
@@ -1108,7 +1111,7 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
 
   if (game.kind === 'boss') {
     if (!won) {
-      // On the harder settings a boss is met once: lose, and the season is over, whatever strikes were left.
+      // Under the One meeting handicap a boss is met once: lose, and the season is over, whatever strikes were left.
       if (bossLossEnds(f) && insuranceLeft(f) > 0) {
         // Insured: the shop's second chance goes first, then an artifact's.
         if (season.secondChance) delete season.secondChance;
@@ -1278,7 +1281,7 @@ export function secondChancePrice(f: Franchise): number {
 /** Buys a second chance: one loss to a boss forgiven. Only where such a loss would end the season, and one at a time. */
 export function buySecondChance(f: Franchise): ActionResult {
   if (!shopStop(f)) return refuse('You are not in a shop.');
-  if (!bossLossEnds(f)) return refuse('On this difficulty a boss you lose to can be played again anyway.');
+  if (!bossLossEnds(f)) return refuse('A boss you lose to can be played again anyway: there is nothing to insure.');
   if (f.season.secondChance) return refuse('You already hold a second chance.');
   const price = secondChancePrice(f);
   if (f.season.currency < price) return refuse(`You need ${price} Pucks and have ${f.season.currency}.`);
@@ -1364,9 +1367,9 @@ export function setPeriodSeconds(f: Franchise, seconds: number): ActionResult {
   return done();
 }
 
-/** True where losing to a boss ends the season: the difficulty says. */
+/** True where losing to a boss ends the season: a handicap taken at the season's start ("One meeting"), on any difficulty. */
 export function bossLossEnds(f: Franchise): boolean {
-  return difficultyInfo(f.difficulty).bossLossEnds === true;
+  return stat(f, 'bossLossEnds', 0) > 0;
 }
 
 /** True once a cup tie has been won in every region of the season. */

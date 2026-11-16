@@ -62,7 +62,9 @@ export type Screen =
   | { name: 'office' }
   | { name: 'collection' }
   | { name: 'settings' }
-  | { name: 'difficulty'; fresh: boolean }
+  | { name: 'difficulty'; fresh: boolean; first?: boolean }
+  | { name: 'switching' }
+  | { name: 'assists' }
   | { name: 'rewards'; shown: number }
   | { name: 'jersey' }
   | { name: 'saves' }

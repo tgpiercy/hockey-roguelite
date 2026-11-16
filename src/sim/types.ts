@@ -310,6 +310,10 @@ export interface World {
   overtimeLimit: number;
   /** The score at the end of each period played so far. */
   periodScores: [number, number][];
+  /** The last shot taken: who by, whether his path to the net was clear, and from how far. A goal reads it. */
+  lastShot: { team: 0 | 1; clear: boolean; oneTimer: boolean; metres: number } | null;
+  /** How each goal so far was scored, in order. */
+  goalNotes: { team: 0 | 1; clear: boolean; oneTimer: boolean; metres: number | null }[];
   /** Seconds the horn has waited, at the end of a period, for a shot already on its way. */
   hornWait: number;
   faceoff: FaceoffState | null;
@@ -320,6 +324,8 @@ export interface World {
 export interface MatchRules {
   /** No clock: the first team to this many goals wins. */
   firstTo?: number;
+  /** The game is called off when a team leads by this many after a goal. */
+  mercy?: number;
   /** One line each and no changes: the second line never comes on. */
   oneLine?: boolean;
   /** Not a game at all but a shootout. */

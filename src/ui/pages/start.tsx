@@ -14,7 +14,7 @@ import { type Screen } from './shared';
 /** A finished weekly run, and the title screen. */
 export function startPages(app: AppCtx): ComponentChildren | undefined {
   const {
-    screen, message, mainRef, f, league, season, team, locked, myCrest, go,
+    firstRun, screen, message, mainRef, f, league, season, team, locked, myCrest, go,
     weeklyOn, enterWeekly, leaveWeekly, home,
   } = app;
 
@@ -90,7 +90,7 @@ export function startPages(app: AppCtx): ComponentChildren | undefined {
           </div>
         }
         help="A continue"
-        items={[{ key: 'continue', label: <b>Continue</b>, onSelect: () => go({ name: 'home' }) }]}
+        items={[{ key: 'continue', label: <b>{firstRun ? 'Start' : 'Continue'}</b>, onSelect: () => go(firstRun ? { name: 'difficulty', fresh: true, first: true } : { name: 'home' }) }]}
       />
     );
   }

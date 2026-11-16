@@ -245,6 +245,8 @@ export function createWorld(t: Tuning, seed: number | string, options: WorldOpti
     overtimeLimit: options.overtimeLimit ?? 0,
     hornWait: 0,
     periodScores: [],
+    lastShot: null,
+    goalNotes: [],
     faceoff: null,
     teams: [newTeamState(options.human === false ? [] : (options.powerups ?? []), options.teams?.[0].style ?? null, options.teams?.[0].heavyLine ?? null, options.teams?.[0].tactics ?? null, visitOf(options, 0), options.teams?.[0].modifiers), newTeamState([], options.teams?.[1].style ?? null, options.teams?.[1].heavyLine ?? null, options.teams?.[1].tactics ?? null, visitOf(options, 1), options.teams?.[1].modifiers)],
   };
@@ -316,6 +318,10 @@ function goal(world: World, side: -1 | 1, t: Tuning, events: SimEvent[]): void {
   world.phaseTime = t.game.goalPauseSeconds;
   loosePuck(world);
   puck.shotBy = null;
+  // How it was scored: from the last shot, if it was the scoring team's; otherwise it went in off something.
+  const shot = world.lastShot && world.lastShot.team === team ? world.lastShot : null;
+  world.goalNotes.push({ team, clear: shot?.clear ?? false, oneTimer: shot?.oneTimer ?? false, metres: shot?.metres ?? null });
+  world.lastShot = null;
   events.push({ type: 'goal', side, team, scorer, assists });
 }
 
@@ -485,6 +491,8 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
       p.pickupLock = t.puck.pickupCooldown;
       p.stats.shots += 1;
       p.oneTimer = 0;
+      const net = ownNet(otherTeam(p.team), t);
+      world.lastShot = { team: p.team, clear: clearAhead(world, p), oneTimer: Boolean(oneTimer), metres: Math.hypot(net.x - p.pos.x, net.y - p.pos.y) };
       events.push({ type: 'shot', speed, player: p.id, ...(oneTimer ? { oneTimer } : {}) });
     }
     stepPassing(world, p, input, t, dt, events);

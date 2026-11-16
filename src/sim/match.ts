@@ -181,7 +181,8 @@ export function stepBreak(world: World, t: Tuning, events: SimEvent[]): void {
 /** After the goal celebration: overtime goals end the game, otherwise back to centre for a faceoff. */
 export function afterGoal(world: World, t: Tuning, events: SimEvent[]): void {
   const target = world.match.firstTo ?? 0;
-  if (world.overtime || (target > 0 && Math.max(world.score[0], world.score[1]) >= target)) {
+  const mercy = world.match.mercy ?? 0;
+  if (world.overtime || (target > 0 && Math.max(world.score[0], world.score[1]) >= target) || (mercy > 0 && Math.abs(world.score[0] - world.score[1]) >= mercy)) {
     world.phase = 'final';
     events.push({ type: 'final' });
     return;
@@ -203,6 +204,14 @@ export interface MascotLine extends PlayerStats {
   misses: number;
 }
 
+/** How one goal was scored: by which team, whether no skater of the other team was between the shooter and the net, whether it was a one-timer, and from how far (null when it went in off something). */
+export interface GoalNote {
+  team: 0 | 1;
+  clear: boolean;
+  oneTimer: boolean;
+  metres: number | null;
+}
+
 export interface GameResult {
   score: [number, number];
   /** The winning team, or null for a tie (only possible when overtime has a time limit) or an unfinished game. */
@@ -215,6 +224,8 @@ export interface GameResult {
   powerupsUsed: string[];
   /** The score at the end of each period, and last of all the final score. */
   periodScores?: [number, number][];
+  /** How each goal was scored, in order. */
+  goals?: GoalNote[];
   /** Each team's mascot, if it brought one: his own stat line, how often he came, and the misses in a row after the game. */
   mascots?: [MascotLine | null, MascotLine | null];
   /** True when the game was given up before the end: the winner is the other team, whatever the score. */
@@ -237,6 +248,7 @@ export function gameResult(world: World): GameResult {
     periods: world.period,
     players: world.players.map((p: Player) => ({ id: p.id, team: p.team, role: p.role, line: p.line, slot: p.slot, ...ownStats(world, p) })),
     powerupsUsed: [...world.teams[0].powerupsUsed],
+    goals: world.goalNotes.map((g) => ({ ...g })),
     periodScores: [...world.periodScores.map(([a, b]) => [a, b] as [number, number]), ...(finished ? [[home, away] as [number, number]] : [])],
     ...(world.teams.some((team) => team.mascot)
       ? { mascots: world.teams.map((team) => (team.mascot ? { ...team.mascot.stats, arrivals: team.mascot.arrivals, misses: team.mascot.misses } : null)) as [MascotLine | null, MascotLine | null] }

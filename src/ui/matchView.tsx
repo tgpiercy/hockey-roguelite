@@ -182,6 +182,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       menuInput.start();
       render(
         <PauseMenu
+          frames={scene.frameStats()}
           {...(forfeitNote ? { endNote: forfeitNote } : {})}
           onResume={() => {
             menuInput.setPlayer(0);
@@ -200,6 +201,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
           onPrefs={(prefs) => {
             touchMode = prefs.touch;
             hintsOn = prefs.hints;
+            scene.setHoldSwitch(prefs.holdSwitch);
             rumble.configure(prefs.rumble);
             commentary = prefs.commentary;
             voiceVolume = prefs.sound ? prefs.volume : 0;

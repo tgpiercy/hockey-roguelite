@@ -46,6 +46,7 @@ import { groupPages } from './pages/groups';
 import { rosterPages } from './pages/roster';
 import { playPages } from './pages/play';
 import { deadlinePages } from './pages/deadline';
+import { welcomePages } from './pages/welcome';
 import { settingsPages } from './pages/settings';
 
 /**
@@ -74,6 +75,8 @@ function useApp() {
   const [plan, setPlan] = useState<SeasonSetup>({});
   // Whether the browser has agreed to keep the save (null until it has answered).
   const [keptSafe, setKeptSafe] = useState<boolean | null>(null);
+  // True from a start with no save until the new player has said how hard and who switches.
+  const [firstRun, setFirstRun] = useState(false);
   useEffect(() => {
     void storageProtected().then(setKeptSafe);
   }, []);
@@ -127,6 +130,7 @@ function useApp() {
           redraw(0);
         } else {
           startOver();
+          if (raw === null) setFirstRun(true);
           if (loaded && !loaded.ok) setMessage(`${loaded.reason} A new franchise was started.`);
         }
       })
@@ -379,7 +383,7 @@ function useApp() {
   return {
     screen, setScreen, message, setMessage, sort, setSort, faPosition, setFaPosition, gearFilter, setGearFilter,
     playing, setPlaying, joined, setJoined, together, setTogether, exRink, setExRink, exShootout, setExShootout,
-    tourney, setTourney, plan, setPlan, keptSafe, mainRef, group, setGroup, rewards, mapFocus,
+    tourney, setTourney, plan, setPlan, keptSafe, firstRun, setFirstRun, mainRef, group, setGroup, rewards, mapFocus,
     setMapFocus, trainee, setTrainee, prefs, setPrefs, changePrefs, commit, startOver, shown, f,
     league, season, team, locked, myCrest, barCrest, screenKey, go, after, weeklyOn,
     enterWeekly, leaveWeekly, home, top, openGroup, tile, weeklyCard, card, wearing, earlyLock,
@@ -407,6 +411,7 @@ export function App() {
     rosterPages(app) ??
     playPages(app) ??
     deadlinePages(app) ??
+    welcomePages(app) ??
     settingsPages(app);
   return (
     <WearingContext.Provider value={wearing}>

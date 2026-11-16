@@ -293,6 +293,7 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
                   Bounty: {gameBounty(f)!.text.toLowerCase()} for {gameBounty(f)!.pucks} more Pucks. Only if you play the game; missing it costs nothing.
                 </div>
               )}
+              {game.rules?.mercy !== undefined && <div class="note">Mercy rule: the game is called off if either team leads by {game.rules.mercy}.</div>}
               {season.ringer && (
                 <div class="note">
                   Ringer: {season.ringer.player.name} ({season.ringer.player.overall}) plays for you{season.ringer.fee > 0 ? `, for ${season.ringer.fee} Pucks a game` : ''}.

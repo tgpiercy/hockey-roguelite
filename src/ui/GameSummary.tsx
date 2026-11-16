@@ -1,3 +1,4 @@
+import { goalLines } from '../core/goalLog';
 import type { Crest } from '../core/crest';
 import { MASCOT_ID } from '../core/mascot';
 import type { DressedTeam } from '../core/matchup';
@@ -91,6 +92,7 @@ export function GameSummary({ result, teams, crests, best }: Props) {
   const [you, them] = result.score;
   const verdict = result.winner === 0 ? 'Victory' : result.winner === 1 ? 'Defeat' : 'Tie';
   const stars = threeStars(result);
+  const howScored = goalLines(result);
   return (
     <div class="summary">
       <div class="summary-score">
@@ -140,6 +142,13 @@ export function GameSummary({ result, teams, crests, best }: Props) {
         </div>
       )}
 
+      {howScored.length > 0 && (
+        <div class="summary-how">
+          {howScored.map((words) => (
+            <div key={words}>{words}</div>
+          ))}
+        </div>
+      )}
       <div class="summary-teams">
         <TeamTable team={teams[0]} crest={crests[0]} players={result.players.filter((p) => p.team === 0)} mascot={result.mascots?.[0] ?? null} />
         <TeamTable team={teams[1]} crest={crests[1]} players={result.players.filter((p) => p.team === 1)} mascot={result.mascots?.[1] ?? null} />

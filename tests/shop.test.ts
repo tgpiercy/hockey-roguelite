@@ -27,7 +27,8 @@ import type { GameResult } from '../src/sim/match';
 
 const started = (difficulty = 'pro', seed = 'shop'): Franchise => {
   const f = newFranchise(generateLeague(seed), difficulty);
-  startSeason(f);
+  // Where these tests say "pro" they mean a season under the "One meeting" handicap: a boss loss ends it.
+  startSeason(f, difficulty === 'rookie' ? {} : { vows: { oneMeeting: 1 } });
   return f;
 };
 /** Puts the franchise in a shop of the first region, with Pucks to spend. */

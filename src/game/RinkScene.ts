@@ -134,6 +134,8 @@ export class RinkScene extends Phaser.Scene {
   private labels: Phaser.GameObjects.Text[] = [];
   private effects!: Effects;
   private venue: Venue = venueLook();
+  private frameTimes: number[] = [];
+  private frameSum = 0;
   private crowd = new Crowd();
   private crests!: [Crest, Crest];
   private showDebug = false;
@@ -277,6 +279,12 @@ export class RinkScene extends Phaser.Scene {
   }
 
   override update(time: number, deltaMs: number): void {
+    // The last ten seconds of frame times, for the read-out in the pause menu. Frames drawn while paused do not count.
+    if (!this.options.paused?.()) {
+      this.frameTimes.push(deltaMs);
+      this.frameSum += deltaMs;
+      while (this.frameSum > look.frameWindowMs && this.frameTimes.length > 1) this.frameSum -= this.frameTimes.shift() as number;
+    }
     const controls = this.reader.read(time);
     // A second player: his controller's frame, and his pause button counts too. If his controller goes, the AI takes his skater.
     const controls2 = this.reader2 ? this.reader2.read(time) : null;
@@ -1170,6 +1178,17 @@ export class RinkScene extends Phaser.Scene {
     if (!carrier || carrier.team !== humanTeam) return false;
     const ownEnd = humanTeam === 0 ? world.puck.pos.x < 0 : world.puck.pos.x > 0;
     return ownEnd && world.players.some((p) => p.onIce && p.team !== humanTeam && p.role === 'skater' && p.fx.fullPress > 0);
+  }
+
+  /** Frames a second over the last ten seconds of play, and the slowest single frame among them in milliseconds; null before any play. */
+  frameStats(): { fps: number; worstMs: number } | null {
+    if (this.frameTimes.length < 2 || this.frameSum <= 0) return null;
+    return { fps: Math.round((this.frameTimes.length * 1000) / this.frameSum), worstMs: Math.round(Math.max(...this.frameTimes)) };
+  }
+
+  /** Changes, from now on, whether control stays on player one's skater until he presses switch (the pause menu does this). */
+  setHoldSwitch(on: boolean): void {
+    if (this.world.human) this.world.human.hold = on;
   }
 
   /** Changes how the first team's AI skaters are told to play, from now on (the pause menu does this). */

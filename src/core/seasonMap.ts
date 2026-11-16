@@ -57,7 +57,14 @@ export function generateMap(seed: string, teamsByStrength: string[], regions: nu
   // Events you have not had before come first; within each group the order is the seed's.
   const shuffled = rng.shuffle(events.map((e) => e.id));
   const eventOrder = [...shuffled.filter((id) => !seenEvents.includes(id)), ...shuffled.filter((id) => seenEvents.includes(id))];
-  const bossOrder = rng.shuffle(bosses.map((b) => b.id));
+  // A boss may be kept for later regions (`minRegion`): the ones a new player has no answer to are not met first.
+  const drawn = rng.shuffle(bosses.map((b) => b.id));
+  const bossOrder: string[] = [];
+  for (let region = 0; region < regions; region++) {
+    const from = (id: string): number => (bosses as unknown as { id: string; minRegion?: number }[]).find((b) => b.id === id)?.minRegion ?? 0;
+    const next = drawn.find((id) => !bossOrder.includes(id) && from(id) <= region) ?? drawn.find((id) => !bossOrder.includes(id)) ?? (drawn[region % drawn.length] as string);
+    bossOrder.push(next);
+  }
   const tierSize = Math.max(1, Math.floor(teamsByStrength.length / regions));
   let nextEvent = 0;
 

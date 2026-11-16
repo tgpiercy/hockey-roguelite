@@ -98,3 +98,18 @@ No change to how the game plays or looks; every step is proved by the tests pass
 - **Round 2 can break things quietly.** Splitting a 3,270-line file is the riskiest item here; it is done in small steps with the tests run after each, and nothing else changes in the same commits.
 - **Long rounds delay your corrections.** You chose them; if a round runs past about a day's work I stop at the last finished part and report.
 - **I still cannot play.** The novice player in round 3 narrows that, but your games remain the real test.
+
+## The plan after the research (2026-11-16)
+
+The research report `reports/Sports game lessons and pitfalls.md` (kept on this machine, not in the repository) reviewed the game against the pitfalls of sports games and lists 33 improvements, rated. The owner chose the order below; it replaces the order of rounds 3 and 4 above.
+
+| Round | What | State |
+| --- | --- | --- |
+| First contact | Ask the difficulty and who switches on a first start; the help written down; the Wall and the Marathon out of the first region; a mercy rule; momentum not cut by a goal against; a boss loss ending the season as a handicap (the owner's choice); old saves as test fixtures; frame times in the pause menu; how each goal was scored on the summary | **Done** |
+| The hockey and the difficulty | Cover behind the play; a linemate at the net and a pass that pays; assists as named settings in steps, with each difficulty a preset of them; a tier between Rookie and Pro; the difficulties re-set against both measuring players and the owner's results | Next |
+| Subtraction and the economy | Decide, system by system, what a new player should not meet or the game should not have; make Pucks scarce; a test that tries to fleece the trade AI | |
+| Teaching | A staged first game; screens opened in order; a page of the rink's signs; hints for the basics | |
+| Presentation and practicalities | Commentary from parts; a crowd that follows the game; a game in progress kept when the page is hidden; touch as its own scheme | |
+
+For the owner to judge by playing after the first-contact round: whether holding control feels better than automatic switching; whether the mercy rule ends games at the right lead; whether momentum still feels earned; the frame figures from the phone (pause menu, top line); and what the two goal lines on the summary say about where goals come from.
+

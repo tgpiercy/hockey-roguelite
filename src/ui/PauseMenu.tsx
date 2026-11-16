@@ -96,10 +96,12 @@ interface Props {
   onEnd: () => void;
   /** Told whenever a preference changes, so the game can follow it at once. */
   onPrefs: (prefs: Prefs) => void;
+  /** How smoothly the game was running when it was paused: frames a second and the slowest frame, over the last ten seconds of play. */
+  frames?: { fps: number; worstMs: number } | null;
 }
 
 /** The pause menu over the rink: resume, sound, the controls, the tuning panel and ending the game. */
-export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs, tactics, onTactics }: Props) {
+export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs, tactics, onTactics, frames }: Props) {
   const [page, setPage] = useState<'main' | 'controls' | 'end' | 'tactics'>('main');
   const [plan, setPlan] = useState<Tactics>(tactics ?? BALANCED);
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
@@ -180,6 +182,7 @@ export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs, tactics
     <Menu
       key="main"
       title="Paused"
+      {...(frames ? { header: `Running at ${frames.fps} frames a second; slowest frame ${frames.worstMs} ms (last ten seconds of play).` } : {})}
       onBack={onResume}
       help="A select · B resume"
       items={[
@@ -203,6 +206,7 @@ export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs, tactics
           detail: 'A line of text for the big plays, or the same lines read aloud by this device\'s voice as well.',
           onSelect: () => change({ ...prefs, commentary: COMMENTARY_MODES[(COMMENTARY_MODES.indexOf(prefs.commentary) + 1) % COMMENTARY_MODES.length] as Prefs['commentary'] }),
         },
+        { key: 'switching', label: `Player switching: ${prefs.holdSwitch ? 'Hold' : 'Automatic'}`, detail: 'Automatic: you always control whoever of yours has the puck. Hold: you keep your skater until you press switch.', onSelect: () => change({ ...prefs, holdSwitch: !prefs.holdSwitch }) },
         { key: 'hints', label: `Hints: ${prefs.hints ? 'On' : 'Off'}`, detail: 'Reminders of the moves, shown when one is on. Each stops once you have done it a few times.', onSelect: () => change({ ...prefs, hints: !prefs.hints }) },
         ...(onTactics ? [{ key: 'tactics', label: `Tactics: ${tacticsLine(plan)}`, detail: 'Change how your linemates forecheck, attack and defend for the rest of this game.', onSelect: () => setPage('tactics') }] : []),
         { key: 'controls', label: 'Controls', detail: 'What every button does, and the on-screen controls.', onSelect: () => setPage('controls') },

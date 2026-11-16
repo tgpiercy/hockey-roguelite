@@ -1,3 +1,4 @@
+import seasonRules from '../../data/season.json';
 import { progress } from '../../core/achievements';
 import { currentScreenPlan, goFullscreen } from '../fullscreen';
 import { BACKUP_KEY, backupDue, backupWords, lastExport, noteExported } from '../safety';
@@ -76,6 +77,10 @@ export function settingsPages(app: AppCtx): ComponentChildren {
           tile('commentary', 'Commentary', COMMENTARY_NAMES[prefs.commentary], () => changePrefs({ ...prefs, commentary: COMMENTARY_MODES[(COMMENTARY_MODES.indexOf(prefs.commentary) + 1) % COMMENTARY_MODES.length] as Prefs['commentary'] }), {
             icon: 'sound',
             detail: 'Short lines for the big plays during a game. Text shows them on the rink; Text and voice also reads them aloud with this device\'s own voice, which differs from phone to phone.',
+          }),
+          tile('assists', 'How you are helped', 'What the game does for your team', () => go({ name: 'assists' }), {
+            icon: 'target',
+            detail: 'A plain list of the help your shots, passes, checks, team-mates and goalie are given, and what the opponents are not.',
           }),
           tile('switching', 'Player switching', prefs.holdSwitch ? 'Hold' : 'Automatic', () => changePrefs({ ...prefs, holdSwitch: !prefs.holdSwitch }), {
             detail: 'Automatic: you always control whoever of yours has the puck. Hold: you keep your skater until you press switch, and a team-mate who gets the puck plays it himself.',
@@ -162,29 +167,38 @@ export function settingsPages(app: AppCtx): ComponentChildren {
 
   if (screen.name === 'difficulty') {
     const fresh = screen.fresh;
+    const first = screen.first === true;
     return (
       <Menu
         key={screenKey}
-        title={fresh ? 'New franchise: how hard?' : 'Difficulty'}
+        title={first ? 'How hard should it be?' : fresh ? 'New franchise: how hard?' : 'Difficulty'}
         message={message}
         header={
-          fresh
-            ? 'Your current team, record, season and artifacts are replaced. Difficulty only changes how sharp the opponents are, and you can change it between seasons.'
-            : 'Difficulty only changes how sharp the opponents are: how fast they react and how many mistakes they make. Ratings, money and rewards are the same on every level.'
+          first
+            ? 'Welcome. Choose how sharp the opponents are. Rookie is the place to start if arcade hockey is new to you; you can change it between seasons.'
+            : fresh
+              ? 'Your current team, record, season and artifacts are replaced. Difficulty only changes how sharp the opponents are, and you can change it between seasons.'
+              : 'Difficulty only changes how sharp the opponents are: how fast they react and how many mistakes they make. Ratings, money and rewards are the same on every level.'
         }
-        onBack={() => go({ name: fresh ? 'saves' : 'settings' })}
-        initialFocus={Math.max(0, DIFFICULTIES.findIndex((d) => d.id === f.difficulty))}
+        onBack={() => go({ name: first ? 'title' : fresh ? 'saves' : 'settings' })}
+        initialFocus={Math.max(0, DIFFICULTIES.findIndex((d) => d.id === (first ? seasonRules.suggestedDifficulty : f.difficulty)))}
         items={DIFFICULTIES.map((d) => ({
           key: d.id,
+          detail: d.description,
           label: (
             <span class="tile">
               <span class="tile-name">{d.name}</span>
-              <span class="tile-what">{d.description}</span>
+              <span class="tile-what">{d.short ?? d.description}</span>
               {!fresh && d.id === f.difficulty ? <span class="badge">Now</span> : null}
+              {first && d.id === seasonRules.suggestedDifficulty ? <span class="badge">Start here</span> : null}
             </span>
           ),
           onSelect: () => {
-            if (fresh) {
+            if (first) {
+              setGroup(null);
+              startOver(d.id);
+              go({ name: 'switching' });
+            } else if (fresh) {
               setGroup(null);
               setScreen({ name: 'home' });
               setMessage(`A new franchise has begun on ${d.name}.`);

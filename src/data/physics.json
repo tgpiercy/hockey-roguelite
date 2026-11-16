@@ -180,7 +180,7 @@
     "oneTimer": 0.12,
     "save": 0.06,
     "drainPerSecond": 0.004,
-    "concedeLoss": 0.5,
+    "concedeLoss": 0,
     "fireSeconds": 8,
     "fireShotPower": 0.12,
     "fireSpeedScale": 1.06,

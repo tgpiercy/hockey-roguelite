@@ -1,6 +1,7 @@
 [
   {
     "id": "the-wall",
+    "minRegion": 1,
     "name": "Greyport Wall",
     "trait": "The Wall",
     "description": "Their goalie covers more net and reacts sooner.",
@@ -89,6 +90,7 @@
   },
   {
     "id": "iron-lungs",
+    "minRegion": 1,
     "name": "Highmoor Marathon",
     "trait": "Iron lungs",
     "description": "They barely tire.",

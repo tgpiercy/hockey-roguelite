@@ -109,6 +109,7 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .summary th:first-child, .summary td:first-child { text-align: left; }
 .summary th { color: var(--dim); font-weight: 400; }
 .summary-goalie { margin-top: 5px; color: var(--dim); font-size: 13px; }
+.summary-how { margin: 2px 0 8px; color: var(--dim); font-size: 13px; text-align: center; }
 .summary-again { margin-top: 12px; font-weight: 700; color: var(--accent); animation: pulse 1.2s ease-in-out infinite alternate; }
 
 /* ------------------------------------------------------------------ menus */

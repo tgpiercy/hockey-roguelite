@@ -202,6 +202,7 @@
         }
       ]
     },
+    { "id": "oneMeeting", "name": "One meeting", "describe": "A boss is met once: lose to him and the season is over, whatever strikes were left.", "ranks": 1, "modifiers": [{ "stat": "bossLossEnds", "op": "add", "value": 1 }] },
     {
       "id": "thinIce",
       "name": "Thin ice",

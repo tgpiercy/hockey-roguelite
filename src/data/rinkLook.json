@@ -405,6 +405,7 @@
   "glassGlints": 9,
   "openingLightSeconds": 1.8,
   "openingDark": 0.6,
+  "frameWindowMs": 10000,
   "venueByStage": [
     "barn",
     "arena",
