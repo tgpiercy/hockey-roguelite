@@ -43,7 +43,7 @@ interface Props {
   columns?: number;
 }
 
-/** Something every menu screen shows in its top bar: the strip of cap space, cash, tape and Pucks. */
+/** Something every menu screen shows in its top bar: the strip of cap room, cash and Pucks. */
 export const MenuChrome = createContext<ComponentChildren>(null);
 /** The crest that stands at the left of every screen's top bar: the team whose screens these are. */
 export const MenuCrest = createContext<ComponentChildren>(null);

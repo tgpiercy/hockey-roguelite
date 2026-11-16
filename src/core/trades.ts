@@ -3,7 +3,6 @@ import rules from '../data/offseason.json';
 import { playerOf, teamOf, userTeam } from './league';
 import { autoLineup, repairLineup } from './lineup';
 import { capHitOf, type PlayerRecord } from './player';
-import { overLimit } from './economy';
 import { payroll, type MoveResult } from './roster';
 import { rosterLocked, type Franchise } from './season';
 
@@ -63,7 +62,7 @@ export function judgeTrade(f: Franchise, minePlayerId: string, theirTeamId: stri
   if (tradeValue(mine) + need < tradeValue(theirs) + rules.trade.acceptMargin) {
     return { ok: false, reason: `${theirTeam.name} say no: they value ${theirs.name} more than ${mine.name}.` };
   }
-  return overLimit(f, theirs.capHit - mine.capHit, 0);
+  return { ok: true };
 }
 
 /** Makes the trade, if the other team accepts. Your player's gear comes back to the inventory. */

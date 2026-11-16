@@ -4,7 +4,6 @@ import staffRules from '../data/staff.json';
 import { LEGACY } from './nicknames';
 import type { SeasonSetup } from './charter';
 import { closeChronicle, rememberRetired } from './chronicle';
-import { overLimit } from './economy';
 import leagueRules from '../data/league.json';
 import rules from '../data/offseason.json';
 import grades from '../data/grades.json';
@@ -180,9 +179,6 @@ export function decideContract(f: Franchise, playerId: string, years: number | n
       const money = (n: number): string => `$${(n / 1_000_000).toFixed(2)}M`;
       return { ok: false, reason: `Over the cap: re-signing him at ${money(cost)} would put you at ${money(after)}.` };
     }
-    // A raise has to fit under the owner's limit too; staying on the same pay or less always does.
-    const limit = overLimit(f, cost - player.capHit, 0);
-    if (!limit.ok) return limit;
     player.capHit = cost;
     player.contractYears = years;
   }

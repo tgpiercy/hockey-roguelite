@@ -39,7 +39,7 @@ export function canPrestige(f: Franchise): MoveResult {
 }
 
 /**
- * Prestige: artifacts are given up for a permanent level. The roster, contracts, gear, tape, XP and
+ * Prestige: artifacts are given up for a permanent level. The roster, contracts, gear, XP and
  * ratings all stay. Each level makes the league harder, improves pack odds and unlocks a jersey colour.
  */
 export function prestige(f: Franchise): MoveResult {

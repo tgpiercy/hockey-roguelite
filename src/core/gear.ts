@@ -11,6 +11,8 @@ import type { Rng } from './rng';
 import { type MoveResult, deadCapFor, release } from './roster';
 import type { Franchise } from './season';
 
+const dollars = (n: number): string => `$${(n / 1_000_000).toFixed(2)}M`;
+
 export type RarityId = 'common' | 'rare' | 'epic' | 'legendary';
 export type GearKind = 'skater' | 'goalie';
 
@@ -236,10 +238,16 @@ export function releasePlayer(f: Franchise, playerId: string): MoveResult {
   return result;
 }
 
-/** What the next level costs in tape, or null at the top level. */
+/** What the next level costs in cash, or null at the top level. */
 export function levelCost(item: GearItem): number | null {
   if (item.level >= data.maxLevel) return null;
-  return rarityInfo(item.rarity).levelCost[item.level - 1] ?? null;
+  const points = rarityInfo(item.rarity).levelCost[item.level - 1];
+  return points === undefined ? null : points * data.cashPerPoint;
+}
+
+/** What a piece sells for as scrap, in cash. */
+export function scrapValue(item: GearItem): number {
+  return rarityInfo(item.rarity).scrap * data.cashPerPoint;
 }
 
 export function levelUp(f: Franchise, itemId: string): MoveResult {
@@ -247,18 +255,18 @@ export function levelUp(f: Franchise, itemId: string): MoveResult {
   if (!item) return refuse('You do not have that piece.');
   const cost = levelCost(item);
   if (cost === null) return refuse(`It is already at the top level (${data.maxLevel}).`);
-  if (f.tape < cost) return refuse(`You need ${cost} tape and have ${f.tape}.`);
-  f.tape -= cost;
+  if (f.cash < cost) return refuse(`That costs ${dollars(cost)} and you have ${dollars(f.cash)}.`);
+  book(f, 'gearWork', cost);
   item.level += 1;
   return { ok: true };
 }
 
-/** Scraps a piece nobody is wearing for tape. */
+/** Sells a piece nobody is wearing for scrap. */
 export function scrap(f: Franchise, itemId: string): MoveResult {
   const item = f.gear.find((g) => g.id === itemId);
   if (!item) return refuse('You do not have that piece.');
   if (item.wornBy !== null) return refuse('Take it off first.');
   f.gear = f.gear.filter((g) => g.id !== itemId);
-  f.tape += rarityInfo(item.rarity).scrap;
+  book(f, 'gearSold', scrapValue(item));
   return { ok: true };
 }

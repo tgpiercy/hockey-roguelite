@@ -1,3 +1,4 @@
+import { scrapValue } from '../src/core/gear';
 import { describe, expect, it } from 'vitest';
 import {
   abilityModifiers,
@@ -436,40 +437,47 @@ describe('equipping', () => {
   });
 });
 
-describe('tape', () => {
-  it('scrapping pays by rarity, and a worn piece cannot be scrapped', () => {
+describe('gear and cash', () => {
+  it('selling for scrap pays cash by rarity, on its own line of the books, and a worn piece cannot be sold', () => {
     const f = fresh();
     const skater = skatersOn(f.league, userTeam(f.league))[0]!;
     for (const rarity of ['common', 'rare', 'epic', 'legendary'] as const) give(f, { rarity }, rarity);
     equip(f, 'common', skater.id);
     expect(scrap(f, 'common').ok).toBe(false);
     unequip(f, 'common');
+    const start = f.cash;
     let expected = 0;
     for (const rarity of ['common', 'rare', 'epic', 'legendary'] as const) {
+      const value = scrapValue(f.gear.find((g) => g.id === rarity)!);
+      expect(value).toBe(rarityInfo(rarity).scrap * gearData.cashPerPoint);
       expect(scrap(f, rarity).ok).toBe(true);
-      expected += rarityInfo(rarity).scrap;
-      expect(f.tape).toBe(expected);
+      expected += value;
+      expect(f.cash).toBe(start + expected);
     }
+    expect(f.ledger.gearSold).toBe(expected);
     expect(f.gear).toEqual([]);
     expect(scrap(f, 'common').ok).toBe(false);
     expect(rarityInfo('legendary').scrap).toBeGreaterThan(rarityInfo('epic').scrap);
   });
 
-  it('levelling costs tape, is refused without enough, and stops at level 5', () => {
+  it('levelling costs cash, is refused without enough, and stops at level 5', () => {
     const f = fresh();
     const item = give(f, { rarity: 'rare', boosts: ['shooting', 'passing'] }, 'a');
     const first = levelCost(item)!;
-    f.tape = first - 1;
+    f.cash = first - 1;
     expect(levelUp(f, 'a').ok).toBe(false);
     expect(item.level).toBe(1);
-    f.tape = 10_000;
+    f.cash = 500_000_000;
+    let spent = 0;
     for (let level = 2; level <= gearData.maxLevel; level++) {
       const cost = levelCost(item)!;
-      const before = f.tape;
+      const before = f.cash;
       expect(levelUp(f, 'a').ok).toBe(true);
       expect(item.level).toBe(level);
-      expect(f.tape).toBe(before - cost);
+      expect(f.cash).toBe(before - cost);
+      spent += cost;
     }
+    expect(f.ledger.gearWork).toBe(spent);
     expect(levelCost(item)).toBe(null);
     expect(levelUp(f, 'a').ok).toBe(false);
     expect(boostPoints(item)).toBe(3 + 4);
@@ -594,10 +602,9 @@ describe('packs and milestones in a season', () => {
     expect(f.packs.filter((p) => p.type === 'gold')).toHaveLength(f.season.milestones.length);
   });
 
-  it('milestones start again next season; gear, packs and tape are kept', () => {
+  it('milestones start again next season; gear and packs are kept', () => {
     const f = started();
     play(f, game(4, 3, [[0, 3]]));
-    f.tape = 77;
     const packs = f.packs.length;
     openPack(f, f.packs[0]!.id);
     const gear = f.gear.length;
@@ -607,7 +614,6 @@ describe('packs and milestones in a season', () => {
     expect(f.season.hatTrick).toBe(false);
     expect(f.packs).toHaveLength(packs - 1);
     expect(f.gear).toHaveLength(gear);
-    expect(f.tape).toBe(77);
   });
 
   it('the milestone list is the one agreed', () => {
@@ -630,7 +636,7 @@ describe('saving gear', () => {
     const f = fresh('old');
     startSeason(f);
     travel(f, availableStops(f)[0]!.id);
-    const { gear: _g, packs: _p, tape: _t, packsSinceLegendary: _s, gearCount: _c, prestige: _pr, offseason: _of, ...older } = f;
+    const { gear: _g, packs: _p, packsSinceLegendary: _s, gearCount: _c, prestige: _pr, offseason: _of, ...older } = f;
     const { milestones: _m, playerGoals: _pg, shutouts: _sh, hatTrick: _h, xp: _x, ...oldSeason } = older.season;
     const old = JSON.parse(JSON.stringify({ schemaVersion: 2, savedAt: 'then', ...older, season: oldSeason }));
     const loaded = fromSave(old);
@@ -640,19 +646,17 @@ describe('saving gear', () => {
     expect(loaded.save.schemaVersion).toBe(SAVE_VERSION);
     expect(back.gear).toEqual([]);
     expect(back.packs).toEqual([]);
-    expect(back.tape).toBe(0);
     expect(back.season.current).toBe(f.season.current);
     expect(back.season.milestones).toEqual([]);
     expect(back.season.playerGoals).toEqual({});
   });
 
-  it('a save with gear, packs and tape round-trips unchanged', () => {
+  it('a save with gear and packs round-trips unchanged', () => {
     const f = fresh('round');
     awardPack(f, 'gold', 'test');
     awardPack(f, 'bronze', 'test');
     openPack(f, f.packs[0]!.id);
     equip(f, f.gear.find((g) => g.kind === 'skater')!.id, skatersOn(f.league, userTeam(f.league))[0]!.id);
-    f.tape = 42;
     const loaded = parseSave(JSON.stringify(toSave(f, 'now')));
     expect(loaded.ok).toBe(true);
     expect(loaded.ok && franchiseOf(loaded.save)).toEqual(f);

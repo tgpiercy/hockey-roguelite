@@ -1,4 +1,3 @@
-import { payRoom } from '../core/economy';
 import { kindOf, talentOf } from '../core/playerKind';
 import { createContext, type ComponentChildren } from 'preact';
 import { useContext, useEffect, useState } from 'preact/hooks';
@@ -183,23 +182,19 @@ export function Dots({ filled, total }: { filled: number; total: number }) {
 
 /**
  * The strip in the top bar of every screen: what you have to spend, each named the same way everywhere.
- * Cap space limits player pay; cash pays for everything; tape levels up gear; Pucks are won and spent during a season.
+ * Cap room limits player pay; cash pays for everything else; Pucks are won and spent during a season.
  */
 export function Wallet({ f }: { f: Franchise }) {
   const inSeason = f.season.phase === 'map' || f.season.phase === 'playoffs';
   return (
     <div class="wallet">
       <span class="chip">
-        <i>Pay room</i>
-        <b>{money(Math.min(capSpace(f.league, userTeam(f.league)), payRoom(f)))}</b>
+        <i>Cap room</i>
+        <b>{money(capSpace(f.league, userTeam(f.league)))}</b>
       </span>
       <span class={`chip${f.cash < 0 ? ' neg' : ''}`}>
         <i>Cash</i>
         <b>{money(f.cash)}</b>
-      </span>
-      <span class="chip">
-        <i>Tape</i>
-        <b>{f.tape}</b>
       </span>
       {inSeason && (
         <span class="chip pucks">

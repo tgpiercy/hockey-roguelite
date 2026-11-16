@@ -3,7 +3,6 @@ import { ArtifactCard } from '../screens/season';
 import { charterInfo } from '../../core/charter';
 import { points } from '../../core/standings';
 import type { ComponentChildren } from 'preact';
-import { payrollLimit } from '../../core/economy';
 import { scrap } from '../../core/gear';
 import { playerOf, rosterOf, type Team } from '../../core/league';
 import { canPrestige, prestige, unlockedJerseys } from '../../core/prestige';
@@ -114,10 +113,7 @@ export function groupPages(app: AppCtx): ComponentChildren | undefined {
         header={
           <>
             <CapLine league={league} team={team} />
-            <div>
-              Payroll limit <b>{money(payrollLimit(f))}</b>: what the owner will pay, set by the club's value and its cash.
-              {team.deadCap ? ` Dead cap this season: ${money(team.deadCap)}.` : ''}
-            </div>
+            {team.deadCap ? <div>Dead cap this season: {money(team.deadCap)}.</div> : null}
           </>
         }
         onBack={top}
@@ -234,7 +230,7 @@ export function groupPages(app: AppCtx): ComponentChildren | undefined {
             primary: f.packs.length > 0,
             detail: 'Packs are earned by winning season games and by reaching milestones.',
           }),
-          tile('gear', 'Gear', `${f.gear.length} pieces · ${f.tape} tape`, () => go({ name: 'gear' }), { detail: 'Equip, level up with tape, or scrap for tape.' }),
+          tile('gear', 'Gear', `${f.gear.length} pieces`, () => go({ name: 'gear' }), { detail: 'Equip, level up, or sell for scrap for tape.' }),
           ...(locked
             ? [
                 tile('powerups', 'Powerups', `${season.powerups.length} in the bag`, () => go({ name: 'powerups' }), {

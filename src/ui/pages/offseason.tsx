@@ -1,7 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import { teamStrength } from '../../core/bosses';
 import { teamCrest } from '../../core/crest';
-import { payrollLimit } from '../../core/economy';
 import { playerOf, rosterOf, teamOf } from '../../core/league';
 import { decideContract, resignCapHit } from '../../core/offseason';
 import { canPrestige, leagueName, prestige, prestigeEffects, setJersey, unlockedJerseys } from '../../core/prestige';
@@ -131,7 +130,7 @@ export function offseasonPages(app: AppCtx): ComponentChildren | undefined {
               <PlayerRow player={p} />
             </div>
             <div>
-              He was paid {money(p.capHit)}. A one-season contract is <b>{money(cost)}</b>, and the price stays fixed until it runs out. Your payroll limit is {money(payrollLimit(f))}.
+              He was paid {money(p.capHit)}. A one-season contract is <b>{money(cost)}</b>, and the price stays fixed until it runs out.
             </div>
             <div>
               <CapLine league={league} team={team} />
@@ -274,7 +273,7 @@ export function offseasonPages(app: AppCtx): ComponentChildren | undefined {
         header={
           <>
             <PrestigeLadder level={f.prestige.level} />
-            <div class="note">Climbing a level keeps your roster, contracts, gear, tape and every player's level. It costs you your {f.artifacts.length} artifact{f.artifacts.length === 1 ? '' : 's'}, and cannot be undone.</div>
+            <div class="note">Climbing a level keeps your roster, contracts, gear and every player's level. It costs you your {f.artifacts.length} artifact{f.artifacts.length === 1 ? '' : 's'}, and cannot be undone.</div>
           </>
         }
         onBack={home}

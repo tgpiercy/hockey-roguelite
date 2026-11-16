@@ -1,7 +1,7 @@
 /** Where money comes from, in the order the finances screen lists it. */
-export const INCOME_LINES = ['tickets', 'merchandise', 'sponsorship', 'playoffGate', 'milestones', 'sales'] as const;
+export const INCOME_LINES = ['tickets', 'merchandise', 'sponsorship', 'playoffGate', 'milestones', 'sales', 'gearSold'] as const;
 /** Where it goes. */
-export const EXPENSE_LINES = ['salaries', 'staff', 'upkeep', 'mascot', 'travel', 'construction'] as const;
+export const EXPENSE_LINES = ['salaries', 'staff', 'upkeep', 'mascot', 'travel', 'construction', 'gearWork'] as const;
 
 export type IncomeLine = (typeof INCOME_LINES)[number];
 export type ExpenseLine = (typeof EXPENSE_LINES)[number];
@@ -17,12 +17,14 @@ export const LINE_NAMES: Record<Line, string> = {
   playoffGate: 'Playoff gates',
   milestones: 'Milestone bonuses',
   sales: 'Contracts sold',
+  gearSold: 'Gear sold',
   salaries: 'Player salaries',
   staff: 'Staff salaries',
   upkeep: 'Facility upkeep',
   mascot: 'Mascot',
   travel: 'Travel',
   construction: 'Building and costumes',
+  gearWork: 'Gear levels',
 };
 
 /** A finished season's books, kept for the finances screen and the long-term record. */
@@ -36,7 +38,7 @@ export interface SeasonBooks {
 }
 
 export function newLedger(): Ledger {
-  return { tickets: 0, merchandise: 0, sponsorship: 0, playoffGate: 0, milestones: 0, sales: 0, salaries: 0, staff: 0, upkeep: 0, mascot: 0, travel: 0, construction: 0 };
+  return { tickets: 0, merchandise: 0, sponsorship: 0, playoffGate: 0, milestones: 0, sales: 0, gearSold: 0, salaries: 0, staff: 0, upkeep: 0, mascot: 0, travel: 0, construction: 0, gearWork: 0 };
 }
 
 const isIncome = (line: Line): line is IncomeLine => (INCOME_LINES as readonly string[]).includes(line);

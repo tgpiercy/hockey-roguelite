@@ -13,35 +13,6 @@ import { staffSalaries, staffSalePrice } from './staff';
 import leagueRules from '../data/league.json';
 import gradeRules from '../data/grades.json';
 
-/**
- * The most the owner will pay in salaries: a share of what the club is worth plus a share of the cash
- * it holds, and never more than the league's cap. A richer club can carry a dearer team, and cash
- * spent on buildings is cash the owner no longer counts toward players.
- */
-export function payrollLimit(f: Franchise): number {
-  const raw = f.value * data.payroll.shareOfValue + Math.max(0, f.cash) * data.payroll.shareOfCash;
-  const share = Math.round(raw / gradeRules.capRounding) * gradeRules.capRounding;
-  return Math.min(leagueRules.cap, share);
-}
-
-/** Room left under the payroll limit. */
-export function payRoom(f: Franchise): number {
-  return payrollLimit(f) - payroll(f.league, userTeam(f.league));
-}
-
-const millions = (dollars: number): string => `$${(dollars / 1_000_000).toFixed(2)}M`;
-
-/**
- * Would taking on this much more pay break the owner's limit? Pay at or under `always` is never refused:
- * a full bench of the cheapest players is always allowed.
- */
-export function overLimit(f: Franchise, extra: number, always: number): MoveResult {
-  const after = payroll(f.league, userTeam(f.league)) + extra;
-  const limit = payrollLimit(f);
-  if (extra <= always || after <= limit) return { ok: true };
-  return { ok: false, reason: `Over your payroll limit: the owner allows ${millions(limit)} (set by what the club is worth and the cash it holds) and this would make it ${millions(after)}.` };
-}
-
 export const STARTING_CASH = data.startingCash;
 export const STARTING_VALUE = data.startingValue;
 

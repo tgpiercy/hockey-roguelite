@@ -1,8 +1,4 @@
 {
-  "payroll": {
-    "shareOfValue": 0.17,
-    "shareOfCash": 0.5
-  },
   "startingCash": 10000000,
   "startingValue": 100000000,
   "ticketsPerHomeGame": 1200000,

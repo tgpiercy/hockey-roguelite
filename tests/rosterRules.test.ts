@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { overLimit, payRoom, payrollLimit } from '../src/core/economy';
 import { perkInfo, releasePlayer, type GearItem } from '../src/core/gear';
 import { generateLeague } from '../src/core/generate';
 import { playerOf, rosterOf, skatersOn, userTeam } from '../src/core/league';
@@ -32,61 +31,6 @@ const skater = (over: Partial<PlayerRecord> = {}): PlayerRecord => ({
   xp: 0,
   level: 1,
   ...over,
-});
-
-describe('the payroll limit', () => {
-  it('is a share of the club\'s value plus a share of its cash, never more than the cap', () => {
-    const f = fresh();
-    expect(payrollLimit(f)).toBeCloseTo(f.value * economy.payroll.shareOfValue + f.cash * economy.payroll.shareOfCash, -5);
-    const richer = fresh();
-    richer.cash += 4_000_000;
-    expect(payrollLimit(richer)).toBeGreaterThan(payrollLimit(f));
-    richer.value *= 10;
-    expect(payrollLimit(richer)).toBe(leagueRules.cap);
-    const broke = fresh();
-    broke.cash = -5_000_000;
-    expect(payrollLimit(broke)).toBeCloseTo(broke.value * economy.payroll.shareOfValue, -5);
-  });
-
-  it('leaves a new club a few million of room, not enough for two stars', () => {
-    const f = fresh();
-    expect(payRoom(f)).toBeGreaterThan(1_500_000);
-    expect(payRoom(f)).toBeLessThan(7_000_000);
-    expect(overLimit(f, payRoom(f) + 1_000_000, 0).ok).toBe(false);
-    expect(overLimit(f, payRoom(f), 0).ok).toBe(true);
-    // The cheapest players are always allowed.
-    expect(overLimit(f, 50_000_000, 50_000_000).ok).toBe(true);
-  });
-
-  it('stops you signing a star you cannot pay for, and says why; a cheap player still signs', () => {
-    const f = fresh();
-    const team = userTeam(f.league);
-    releasePlayer(f, skatersOn(f.league, team)[7]!.id);
-    const hidden = hiddenFreeAgents(f);
-    const pool = f.league.freeAgents.filter((id) => !hidden.has(id)).map((id) => playerOf(f.league, id)).filter((p) => p.position !== 'G');
-    const star = pool.sort((a, b) => b.capHit - a.capHit)[0]!;
-    // A club with half a million of room.
-    f.cash = 0;
-    f.value = (payroll(f.league, team) + 500_000) / economy.payroll.shareOfValue;
-    expect(star.capHit).toBeGreaterThan(payRoom(f));
-    const refused = signPlayer(f, star.id);
-    expect(refused.ok).toBe(false);
-    expect(!refused.ok && refused.reason).toMatch(/payroll limit/);
-    const cheap = pool.filter((p) => p.capHit <= offseasonRules.cheapCapHit)[0]!;
-    f.value = 1;
-    f.cash = 0;
-    expect(signPlayer(f, cheap.id)).toEqual({ ok: true });
-  });
-
-  it('never stops you icing a team', () => {
-    const f = fresh();
-    const team = userTeam(f.league);
-    f.value = 1;
-    f.cash = 0;
-    while (skatersOn(f.league, team).length >= leagueRules.dressedSkaters) team.roster = team.roster.filter((id) => id !== skatersOn(f.league, team)[0]!.id);
-    const dear = f.league.freeAgents.filter((id) => !hiddenFreeAgents(f).has(id)).map((id) => playerOf(f.league, id)).filter((p) => p.position !== 'G' && p.capHit > offseasonRules.cheapCapHit).sort((a, b) => a.capHit - b.capHit)[0]!;
-    expect(signPlayer(f, dear.id)).toEqual({ ok: true });
-  });
 });
 
 describe('contract length', () => {

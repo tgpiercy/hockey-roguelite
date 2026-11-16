@@ -1,4 +1,3 @@
-import { payrollLimit } from './economy';
 import { autoSpend } from './xp';
 import leagueRules from '../data/league.json';
 import rules from '../data/offseason.json';
@@ -70,7 +69,11 @@ function payrollBudget(f: Franchise, style: ManagerStyle): number {
   if (style === 'none' || style === 'spender') return leagueRules.cap;
   const bills = seasonEndBills(f);
   const spare = Math.max(0, f.cash) * styleRules(style).cashShareForPayroll;
-  return Math.min(leagueRules.cap, expectedIncome(f) - bills.staff - bills.upkeep - bills.mascot + spare);
+  // A careful manager also keeps wages to a share of what the club is worth and the cash it holds. (This was once a
+  // rule for the player too; now it is only the automatic manager's own prudence.)
+  const rules = styleRules(style) as { payShareOfValue?: number; payShareOfCash?: number };
+  const prudent = rules.payShareOfValue === undefined ? leagueRules.cap : f.value * rules.payShareOfValue + Math.max(0, f.cash) * (rules.payShareOfCash ?? 0);
+  return Math.min(leagueRules.cap, prudent, expectedIncome(f) - bills.staff - bills.upkeep - bills.mascot + spare);
 }
 
 /** Out of cash: sell staff contracts, then the most expensive player contracts, then ask the league. */
@@ -137,9 +140,9 @@ function spend(f: Franchise, style: ManagerStyle): void {
 export function autoOffseason(f: Franchise, style: ManagerStyle = 'none'): OffseasonMoney {
   const { league } = f;
   const team = userTeam(league);
-  // It spends its skill points the automatic way, and never plans to pay more than the owner allows.
+  // It spends its skill points the automatic way.
   for (const id of team.roster) autoSpend(playerOf(league, id));
-  const budget = Math.min(payrollBudget(f, style), payrollLimit(f));
+  const budget = payrollBudget(f, style);
 
   for (const id of [...f.offseason.pending]) {
     const player = playerOf(league, id);

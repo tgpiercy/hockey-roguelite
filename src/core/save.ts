@@ -1,10 +1,12 @@
+import gearRules from '../data/gear.json';
+import { newLedger } from './ledger';
 import seasonRules from '../data/season.json';
 import { newClub, newOffseasonState, newPrestigeState, newSeasonState, type Franchise } from './season';
 
 export { emptyRecord, type TeamRecord } from './season';
 
 /** Bump this whenever the shape of a save changes, and add a step to `migrations`. */
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 /** A save is the franchise plus a version number and a date. */
 export interface SaveFile extends Franchise {
@@ -75,6 +77,18 @@ const migrations: Record<number, (old: Record<string, unknown>) => Record<string
     difficulty: seasonRules.startingDifficulty,
     season: { ...newSeasonState(), ...(isObject(old.season) ? old.season : {}) },
   }),
+  // Version 7 dropped tape as a currency of its own: gear is levelled with cash, and scrap is sold for cash.
+  // Tape held is turned into cash at what it would now have cost, and the books gain their two new lines.
+  6: (old) => {
+    const { tape, ...rest } = old;
+    const fill = (ledger: unknown): Record<string, unknown> => ({ ...newLedger(), ...(isObject(ledger) ? ledger : {}) });
+    return {
+      ...rest,
+      cash: (typeof rest.cash === 'number' ? rest.cash : 0) + (typeof tape === 'number' ? tape : 0) * gearRules.cashPerPoint,
+      ledger: fill(rest.ledger),
+      books: Array.isArray(rest.books) ? rest.books.map((b: unknown) => (isObject(b) ? { ...b, ledger: fill(b.ledger) } : b)) : [],
+    };
+  },
 };
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -99,7 +113,6 @@ function problemWith(save: Record<string, unknown>): string | null {
   if (!isObject(save.season) || typeof save.season.phase !== 'string') return 'it does not say where the season stands';
   if (!Array.isArray(save.artifacts)) return 'it has no artifact list';
   if (!Array.isArray(save.gear) || !Array.isArray(save.packs)) return 'it has no gear or pack list';
-  if (typeof save.tape !== 'number') return 'it has no tape count';
   if (!isObject(save.prestige) || !isObject(save.offseason)) return 'it has no prestige or off-season record';
   if (typeof save.difficulty !== 'string') return 'it does not say how hard the game is';
   if (typeof save.cash !== 'number' || typeof save.value !== 'number' || !isObject(save.ledger)) return 'it has no finances';

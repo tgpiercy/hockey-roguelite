@@ -1,5 +1,6 @@
 {
   "maxLevel": 5,
+  "cashPerPoint": 20000,
   "pointsPerLevel": 1,
   "perkPerLevel": 0.1,
   "maxRating": 99,

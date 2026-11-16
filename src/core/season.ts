@@ -221,8 +221,6 @@ export interface Franchise {
   gear: GearItem[];
   /** Packs awarded and not yet opened. */
   packs: Pack[];
-  /** Tape: earned by scrapping gear, spent on levelling it up. */
-  tape: number;
   /** Packs awarded since the last one that held a Legendary, for the pity timer. */
   packsSinceLegendary: number;
   /** The week whose weekly-run prize has been collected. */
@@ -305,7 +303,6 @@ export function newFranchise(league: League, difficulty: string = rules.starting
     artifacts: [],
     gear: [],
     packs: [],
-    tape: 0,
     packsSinceLegendary: 0,
     gearCount: 0,
     prestige: newPrestigeState(),

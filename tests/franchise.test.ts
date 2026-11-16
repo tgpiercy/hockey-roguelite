@@ -602,7 +602,6 @@ describe('prestige', () => {
     const f = fresh('prestige');
     f.prestige.championAt = true;
     f.artifacts = ['big-pads', 'heavy-sticks'];
-    f.tape = 55;
     f.gear.push({ id: 'g1', kind: 'skater', slot: 'stick', rarity: 'epic', boosts: ['shooting', 'passing'], perk: 'heavy-shot', set: null, level: 3, wornBy: null });
     return f;
   };
@@ -616,7 +615,7 @@ describe('prestige', () => {
     expect(canPrestige(f).ok).toBe(false);
   });
 
-  it('keeps the roster, contracts, gear, tape, XP and ratings, and wipes the artifacts', () => {
+  it('keeps the roster, contracts, gear, XP and ratings, and wipes the artifacts', () => {
     const f = champion();
     const star = rosterOf(f.league, userTeam(f.league))[0]!;
     star.level = 7;
@@ -627,7 +626,6 @@ describe('prestige', () => {
     expect(f.artifacts).toEqual([]);
     expect(JSON.stringify(rosterOf(f.league, userTeam(f.league)))).toBe(roster);
     expect(f.gear).toHaveLength(1);
-    expect(f.tape).toBe(55);
     expect(star.level).toBe(7);
   });
 

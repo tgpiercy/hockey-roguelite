@@ -1,3 +1,4 @@
+import { scrapValue } from '../../core/gear';
 import { progress } from '../../core/achievements';
 import type { ComponentChildren } from 'preact';
 import { equip, levelCost, levelUp, rarityInfo, scrap, unequip, wornBy, type GearItem } from '../../core/gear';
@@ -102,7 +103,7 @@ export function gearPages(app: AppCtx): ComponentChildren | undefined {
         header={
           <>
             <div>
-              {f.gear.length} pieces · <b>{f.tape}</b> tape · showing {filter.label} ({shown.length}) · left and right change what is shown
+              {f.gear.length} pieces · showing {filter.label} ({shown.length}) · left and right change what is shown
             </div>
             {f.gear.length === 0 && <div>Nothing yet. Open packs to get gear.</div>}
           </>
@@ -131,7 +132,7 @@ export function gearPages(app: AppCtx): ComponentChildren | undefined {
       return <Menu key={screenKey} title="Gear" header="That piece is gone." onBack={() => go({ name: 'gear' })} items={[]} />;
     }
     const cost = levelCost(item);
-    const value = rarityInfo(item.rarity).scrap;
+    const value = scrapValue(item);
     return (
       <Menu
         key={screenKey}
@@ -141,7 +142,7 @@ export function gearPages(app: AppCtx): ComponentChildren | undefined {
           <>
             <GearCard item={item} />
             <div>
-              {item.wornBy ? `Worn by ${nameOf(item.wornBy)}` : 'In the inventory'} · level {item.level} of {gearData.maxLevel} · you have {f.tape} tape
+              {item.wornBy ? `Worn by ${nameOf(item.wornBy)}` : 'In the inventory'} · level {item.level} of {gearData.maxLevel}
             </div>
           </>
         }
@@ -151,9 +152,9 @@ export function gearPages(app: AppCtx): ComponentChildren | undefined {
           ...(item.wornBy ? [{ key: 'off', label: 'Take it off', onSelect: () => after(unequip(f, item.id)) }] : []),
           {
             key: 'level',
-            label: cost === null ? 'Level up: already at the top level' : `Level up · ${cost} tape`,
+            label: cost === null ? 'Level up: already at the top level' : `Level up · ${money(cost)}`,
             detail: 'Each level adds 1 point to every boost on the piece.',
-            disabled: cost === null || f.tape < cost,
+            disabled: cost === null || f.cash < cost,
             onSelect: () => {
               const result = levelUp(f, item.id);
               after(result.ok ? { ok: true, message: `Levelled up to ${item.level}.` } : result);
@@ -161,12 +162,12 @@ export function gearPages(app: AppCtx): ComponentChildren | undefined {
           },
           {
             key: 'scrap',
-            label: `Scrap for ${value} tape`,
-            detail: item.wornBy ? 'Take it off first.' : 'The piece is destroyed.',
+            label: `Sell for scrap · ${money(value)}`,
+            detail: item.wornBy ? 'Take it off first.' : 'The piece is gone for good.',
             disabled: item.wornBy !== null,
             onSelect: () => {
               const result = scrap(f, item.id);
-              after(result.ok ? { ok: true, message: `Scrapped for ${value} tape.` } : result, { name: 'gear' });
+              after(result.ok ? { ok: true, message: `Sold for ${money(value)}.` } : result, { name: 'gear' });
             },
           },
         ]}

@@ -1,3 +1,4 @@
+import gearRules from '../src/data/gear.json';
 import { describe, expect, it } from 'vitest';
 import { earnAchievements } from '../src/core/achievements';
 import { deadlineOffers } from '../src/core/deadline';
@@ -40,7 +41,20 @@ describe('saves from before', () => {
       const again = load(toSave(f, '2026-11-16T00:00:00.000Z'));
       expect(again.league.season).toBe(f.league.season);
       expect(again.cash).toBe(f.cash);
+      expect(toSave(f, 'now').schemaVersion).toBe(SAVE_VERSION);
       expect(again.season.phase).toBe(f.season.phase);
+    }
+  });
+
+  it('tape held in an old save is cash now, and its books have the two new lines', () => {
+    for (const raw of [atABoss, offSeason, seasonOver]) {
+      const tape = (raw as unknown as { tape: number }).tape;
+      const f = load(raw);
+      expect((f as unknown as { tape?: number }).tape).toBeUndefined();
+      expect(f.cash).toBe(raw.cash + tape * gearRules.cashPerPoint);
+      expect(f.ledger.gearSold).toBe(0);
+      expect(f.ledger.gearWork).toBe(0);
+      for (const year of f.books) expect(year.ledger.gearWork).toBe(0);
     }
   });
 
