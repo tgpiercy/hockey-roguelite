@@ -149,11 +149,14 @@ export function makeSave(g: Player, world: World, t: Tuning, events: SimEvent[])
 }
 
 /** The teammate a goalie should pass out to: the one with the most room. */
-export function outletTarget(g: Player, world: World): Player | null {
+export function outletTarget(g: Player, world: World, t: Tuning): Player | null {
   const opponents = skatersOf(world, otherTeam(g.team));
+  const out = attackDir(g.team);
   let best: Player | null = null;
   let bestRoom = -1;
   for (const mate of availableSkaters(world, g.team)) {
+    // Never a team-mate behind him or beside the net: a pass back there can end up in his own goal.
+    if (out * (mate.pos.x - g.pos.x) < t.goalie.outletMinAhead) continue;
     const room = opponents.length === 0 ? 1 : Math.min(...opponents.map((o) => dist(o.pos, mate.pos)));
     if (room > bestRoom) {
       best = mate;
@@ -175,7 +178,7 @@ export function stepGoalieHold(g: Player, world: World, t: Tuning, dt: number, e
   state.hold -= dt;
   if (state.hold > 0) return;
 
-  const mate = outletTarget(g, world);
+  const mate = outletTarget(g, world, t);
   const speed = t.goalie.outletSpeed;
   let angle = out === 1 ? 0 : Math.PI;
   let flight = 1;
@@ -183,6 +186,11 @@ export function stepGoalieHold(g: Player, world: World, t: Tuning, dt: number, e
     angle = Math.atan2(mate.pos.y - puck.pos.y, mate.pos.x - puck.pos.x);
     flight = dist(mate.pos, puck.pos) / speed;
   }
+  // Whatever he aims at, the puck leaves him going up the ice: never across his own goal mouth or back into it.
+  const straight = out === 1 ? 0 : Math.PI;
+  const widest = (t.goalie.outletMaxAngleDegrees * Math.PI) / 180;
+  const off = Math.atan2(Math.sin(angle - straight), Math.cos(angle - straight));
+  angle = straight + Math.max(-widest, Math.min(widest, off));
   loosePuck(world);
   puck.vel.x = Math.cos(angle) * speed;
   puck.vel.y = Math.sin(angle) * speed;

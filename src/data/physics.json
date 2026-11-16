@@ -105,6 +105,8 @@
     "reboundMinSpeed": 5,
     "reboundScatterDegrees": 35,
     "outletSpeed": 16,
+    "outletMinAhead": 1.5,
+    "outletMaxAngleDegrees": 70,
     "reboundToSlot": 0.5,
     "challengeDepth": 0.5,
     "challengeRange": 10,
