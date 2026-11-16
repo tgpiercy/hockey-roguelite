@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { screenPlan } from '../src/ui/fullscreen';
 import { BACKUP_DAYS, backupDue, backupWords, isBenign } from '../src/ui/safety';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -35,3 +36,26 @@ describe('the notice when something goes wrong', () => {
     }
   });
 });
+
+describe('getting the address bar out of the way', () => {
+  const phone = { standalone: false, fullscreen: false, canRequest: true, touch: true };
+
+  it('opened from the home screen, or already full screen, there is nothing to do', () => {
+    expect(screenPlan({ ...phone, standalone: true })).toBe('none');
+    expect(screenPlan({ ...phone, fullscreen: true })).toBe('none');
+  });
+
+  it('a phone whose browser allows it is taken full screen on a touch', () => {
+    expect(screenPlan(phone)).toBe('request');
+  });
+
+  it('a phone whose browser does not is told to add the game to the home screen', () => {
+    expect(screenPlan({ ...phone, canRequest: false })).toBe('hint');
+  });
+
+  it('a computer is left alone', () => {
+    expect(screenPlan({ ...phone, touch: false })).toBe('none');
+    expect(screenPlan({ ...phone, touch: false, canRequest: false })).toBe('none');
+  });
+});
+

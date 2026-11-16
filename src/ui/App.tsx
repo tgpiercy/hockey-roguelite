@@ -1,3 +1,4 @@
+import { currentScreenPlan, goFullscreen } from './fullscreen';
 import { BACKUP_KEY, backupDue, backupWords, lastExport, noteExported, storageProtected } from './safety';
 import { rumble } from '../game/rumble';
 import { buzz } from '../game/rumbleMap';
@@ -600,6 +601,7 @@ export function App() {
               <div class="title-words">
                 <div class="title-mark">{gameInfo.title}</div>
                 <div class="title-tag">{gameInfo.tagline}</div>
+                {currentScreenPlan() === 'hint' && <div class="title-hint">For the full screen: Share, then Add to Home Screen.</div>}
               </div>
             </div>
             <div class="title-team">
@@ -2486,6 +2488,23 @@ export function App() {
             icon: 'target',
             detail: 'Large draws the puck bigger with a bright ring round it, for a small screen or a busy rink. Nothing about the play changes.',
           }),
+          tile(
+            'fullscreen',
+            'Full screen',
+            currentScreenPlan() === 'hint' ? 'Add to Home Screen' : prefs.fullscreen ? 'On' : 'Off',
+            () => {
+              changePrefs({ ...prefs, fullscreen: !prefs.fullscreen });
+              // Turned on by a touch, it can take effect at once.
+              if (!prefs.fullscreen && currentScreenPlan() === 'request') goFullscreen();
+            },
+            {
+              icon: 'detail',
+              detail:
+                currentScreenPlan() === 'hint'
+                  ? 'This browser will not let a page hide its address bar. To play without it: press the Share button, choose Add to Home Screen, and open Third Line from there.'
+                  : 'On a phone held sideways, your first touch hides the browser\'s address bar and keeps the screen sideways. Opened from the home screen there is no address bar at all.',
+            },
+          ),
           tile(
             'rumble',
             'Rumble',

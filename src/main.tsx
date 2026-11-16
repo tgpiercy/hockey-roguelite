@@ -1,3 +1,5 @@
+import { fullscreenOnTouch } from './ui/fullscreen';
+import { loadPrefs } from './ui/prefs';
 import { keepOffline, protectStorage, watchForCrashes } from './ui/safety';
 import { SoundSheet } from './ui/SoundSheet';
 import { render } from 'preact';
@@ -24,6 +26,8 @@ for (const type of ['keydown', 'pointerdown', 'touchstart']) {
 watchForCrashes();
 keepOffline(import.meta.env.BASE_URL, import.meta.env.PROD);
 void protectStorage();
+// On a phone held sideways, a touch takes the game full screen where the browser allows it.
+fullscreenOnTouch(() => loadPrefs().fullscreen);
 
 const query = new URLSearchParams(location.search);
 if (query.has('sheet')) {

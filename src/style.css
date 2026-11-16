@@ -845,3 +845,5 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 #crash button { font: inherit; font-weight: 700; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel-hi); color: var(--text); }
 #crash small { flex-basis: 100%; color: var(--dim); }
 
+/* On the title screen, how to lose the address bar where the browser will not hide it. */
+.title-hint { margin-top: 6px; font-size: 13px; color: var(--accent); }

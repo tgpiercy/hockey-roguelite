@@ -15,6 +15,8 @@ export interface Prefs {
   hints: boolean;
   /** Whether a goal is shown again in slow motion. */
   replays: boolean;
+  /** Whether a touch takes the game full screen on a phone held sideways, hiding the browser's address bar (where the browser allows it). */
+  fullscreen: boolean;
   /** Whether the controller (or the phone) shakes for hits, goals, posts and saves. */
   rumble: boolean;
   /** True: the puck is drawn larger, with a bright edge. */
@@ -28,7 +30,7 @@ export interface Prefs {
   musicVolume: number;
 }
 
-export const DEFAULT_PREFS: Prefs = { sound: true, volume: 0.7, detail: 'full', touch: 'auto', hints: true, replays: true, holdSwitch: false, bigPuck: false, rumble: true, commentary: 'text', music: true, musicVolume: 0.5 };
+export const DEFAULT_PREFS: Prefs = { sound: true, volume: 0.7, detail: 'full', touch: 'auto', hints: true, replays: true, holdSwitch: false, bigPuck: false, rumble: true, fullscreen: true, commentary: 'text', music: true, musicVolume: 0.5 };
 export const COMMENTARY_MODES: Prefs['commentary'][] = ['off', 'text', 'voice'];
 export const COMMENTARY_NAMES: Record<Prefs['commentary'], string> = { off: 'Off', text: 'Text', voice: 'Text and voice' };
 export const VOLUME_STEPS = [0.2, 0.4, 0.7, 1];
@@ -61,6 +63,7 @@ export function parsePrefs(raw: string | null): Prefs {
       hints: typeof v.hints === 'boolean' ? v.hints : DEFAULT_PREFS.hints,
       replays: typeof v.replays === 'boolean' ? v.replays : DEFAULT_PREFS.replays,
       rumble: typeof v.rumble === 'boolean' ? v.rumble : DEFAULT_PREFS.rumble,
+      fullscreen: typeof v.fullscreen === 'boolean' ? v.fullscreen : DEFAULT_PREFS.fullscreen,
       holdSwitch: typeof v.holdSwitch === 'boolean' ? v.holdSwitch : DEFAULT_PREFS.holdSwitch,
       bigPuck: typeof v.bigPuck === 'boolean' ? v.bigPuck : DEFAULT_PREFS.bigPuck,
       commentary: v.commentary === 'off' || v.commentary === 'text' || v.commentary === 'voice' ? v.commentary : DEFAULT_PREFS.commentary,
