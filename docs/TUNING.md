@@ -971,6 +971,33 @@ Frame time in the test pane at 844 x 390, full detail, about 2,600 frames of an 
 
 Each player now has his own pictures, so there are several times as many; each is about 135 by 150 pixels (some 80 KB), so the cap of 320 is about 25 MB. Past the cap the longest unused are dropped. The single frames of over half a second in each run came at the start of a batch of stepping, as in earlier measurements.
 
+## Goalie assist (2026-11-15)
+
+The owner's report: 12 goals against in a first-region game, most with an opponent in alone.
+
+One AI skater alone from centre ice against a goalie, 100 tries each, no person on either team (so no assist): the goalie stops most of them at every rating.
+
+| Opponent's level | Goalie 60 | Goalie 68 | Goalie 76 | Goalie 85 |
+| --- | --- | --- | --- | --- |
+| 0.3 | 17 goals | 18 | 12 | 11 |
+| 0.5 | 20 | 20 | 17 | 15 |
+| 0.65 | 10 | 11 | 9 | 8 |
+| 0.8 | 8 | 8 | 8 | 8 |
+
+So one breakaway is not the trouble; how many there are is. Whole games, the scripted player's 67 team against a 70 team at level 0.5, 40 games, the other team's shots split by whether the shooter had none of your skaters between him and your net:
+
+| `goalieAssist` (reaction, extra depth) | Goals against a game | Clear-path shots a game | Scored | Other shots | Scored |
+| --- | --- | --- | --- | --- | --- |
+| none (before) | 4.50 | 25.1 | 15% | 10.2 | 8% |
+| 0.6, 0.5 | 1.85 | 24.5 | 4% | 10.4 | 7% |
+| **0.8, 0.25 (shipped)** | 3.50 | 24.4 | 10% | 10.7 | 11% |
+
+Seven shots in ten against a person's team come with a clear path, and before the change four goals in five did. The shipped setting makes that chance about as dangerous as any other shot. With the player idle (never touching the controls) the AI scored 3.8 a game before. At opponent level 0.3 (Rookie's first region) the script conceded 3.67 before.
+
+What this does not show: why a person concedes 12 where the script concedes 4.5. The script defends tirelessly; a person new to the game does not, and the skater a person controls is always the nearest one to the puck, so a slow reaction is a free lane. If games are still lopsided after this, the next lever is the team-mates' cover behind the play, not the goalie.
+
+The season measure moves with this (the script concedes a goal fewer a game): re-measured below when run.
+
 | Date | Value | From | To | Why |
 | --- | --- | --- | --- | --- |
 | 2026-11-13 | goalie positioning cover radius (ratings.json) | 0.5 to 0.9 | 0.3 to 0.6 | All-AI games averaged under 1 goal per 5 minutes; now about 3 |

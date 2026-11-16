@@ -211,6 +211,11 @@
   "boss": {
     "burstSpeedScale": 1.25
   },
+  "goalieAssist": {
+    "strength": 1,
+    "reactionScale": 0.8,
+    "challengeDepth": 0.25
+  },
   "checkAssist": {
     "strength": 1,
     "pokeConeDegrees": 220,

@@ -1,10 +1,22 @@
 import { hitBoards } from './rink';
 import { goalieReaction } from './lines';
 import { screened } from './tips';
-import { attackDir, availableSkaters, dist, givePuck, loosePuck, otherTeam, ownNet, skatersOf } from './team';
+import { attackDir, availableSkaters, clearAhead, dist, givePuck, humansOn, loosePuck, otherTeam, ownNet, skatersOf } from './team';
 import type { Tuning } from './tuning';
 import type { Player, SimEvent, Vec, World } from './types';
 import { STEPS_PER_SECOND } from './clock';
+
+/**
+ * Goalie assist, like aim assist and check assist: the goalie of a team a person plays on gets help on the
+ * chance his skaters could do nothing about, an opponent in alone with nobody between him and the net.
+ * True while the opponent carrying the puck, or the one who has just shot it, has a clear path.
+ */
+export function goalieHelped(g: Player, world: World, t: Tuning): boolean {
+  if (t.goalieAssist.strength <= 0 || humansOn(world, g.team).length === 0) return false;
+  const id = world.puck.carrier ?? world.puck.shotBy;
+  const attacker = id === null ? undefined : world.players[id];
+  return attacker !== undefined && attacker.team !== g.team && attacker.role === 'skater' && clearAhead(world, attacker);
+}
 
 /** What the goalie currently believes about the puck: where it was one reaction time ago. */
 function perceived(g: Player, world: World, t: Tuning): { pos: Vec; vel: Vec; loose: boolean } {
@@ -12,7 +24,9 @@ function perceived(g: Player, world: World, t: Tuning): { pos: Vec; vel: Vec; lo
   // An attacker standing in his sightline makes him slower to see where the puck has gone.
   // A shot at the end of a passing chain reaches a goalie still moving across: he reacts a little later for each pass in it.
   const chained = 1 + t.chain.reactionPerStep * world.puck.shotChain;
-  const delaySteps = Math.round(goalieReaction(g, t) * (screened(g, world, t) ? t.tips.screenScale : 1) * chained * STEPS_PER_SECOND);
+  // Helped (see above), he reads the play sooner.
+  const helped = goalieHelped(g, world, t) ? 1 - t.goalieAssist.strength * (1 - t.goalieAssist.reactionScale) : 1;
+  const delaySteps = Math.round(goalieReaction(g, t) * (screened(g, world, t) ? t.tips.screenScale : 1) * chained * helped * STEPS_PER_SECOND);
   const index = Math.max(0, state.seen.length - 1 - delaySteps);
   return state.seen[index] ?? { pos: world.puck.pos, vel: world.puck.vel, loose: world.puck.carrier === null };
 }
@@ -61,7 +75,9 @@ export function goalieTarget(g: Player, world: World, t: Tuning): Vec {
   const d = Math.hypot(dx, dy) || 1;
   // A carrier coming straight down the middle is challenged: he steps out further to cut the angle.
   const straightOn = !seen.loose && d <= t.goalie.challengeRange && Math.abs(dy) <= t.goalie.challengeHalfWidth;
-  const depth = Math.min(state.fx.depth + (straightOn ? t.goalie.challengeDepth : 0), d * 0.5);
+  // Helped, he comes out further still against the man in alone.
+  const extra = straightOn && goalieHelped(g, world, t) ? t.goalieAssist.challengeDepth * t.goalieAssist.strength : 0;
+  const depth = Math.min(state.fx.depth + (straightOn ? t.goalie.challengeDepth : 0) + extra, d * 0.5);
   return { x: net.x + (dx / d) * depth, y: Math.max(-limit, Math.min(limit, (dy / d) * depth)) };
 }
 
