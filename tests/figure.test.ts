@@ -29,8 +29,9 @@ function box(shapes: readonly Shape[]): { left: number; right: number; top: numb
 const skates = (fig: Figure): Limb[] => fig.shapes.filter((s): s is Limb => s.kind === 'limb' && s.tag === 'skate');
 const mid = (s: Limb | undefined): number => (s ? (s.x1 + s.x2) / 2 : Number.NaN);
 const helmetOf = (fig: Figure): Extract<Shape, { kind: 'circle' }> => {
-  const h = fig.shapes.find((s) => s.tag === 'helmet');
-  if (!h || h.kind !== 'circle') throw new Error('no helmet');
+  // Where his head is: the face, which the helmet sits on. (The helmet itself is a shell, not a circle.)
+  const h = fig.shapes.find((s) => s.tag === 'skin');
+  if (!h || h.kind !== 'circle') throw new Error('no head');
   return h;
 };
 
@@ -42,8 +43,12 @@ describe('the on-ice figure', () => {
     expect(fig.top).toBeCloseTo(-F.height);
     // Nothing reaches below the ice by more than the thickness of a skate blade.
     expect(Math.abs(b.bottom)).toBeLessThan(0.1);
-    const helmet = helmetOf(fig);
-    expect(helmet.y - helmet.r).toBeCloseTo(b.top);
+    // The top of him is the top of his helmet's shell, which stands a little above the head it covers.
+    const shell = fig.shapes.find((x) => x.tag === 'helmet');
+    if (!shell || shell.kind !== 'poly') throw new Error('no helmet shell');
+    expect(Math.min(...shell.points.map((p) => p[1]))).toBeCloseTo(b.top);
+    const head = helmetOf(fig);
+    expect(head.y - head.r).toBeGreaterThan(b.top);
   });
 
   it('facing left is the exact mirror of facing right', () => {

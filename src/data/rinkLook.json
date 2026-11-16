@@ -222,13 +222,8 @@
     "body": {
       "headRadius": 1.12,
       "headY": -2.86,
-      "helmetBack": 0.22,
-      "helmetUp": 0.42,
-      "helmetScale": 0.93,
-      "earGuard": 0.62,
       "eyeRadius": 0.22,
       "glint": 0.07,
-      "brimWidth": 0.2,
       "cageWidth": 0.08,
       "stripeWidth": 0.2,
       "hipY": -0.98,
@@ -333,7 +328,27 @@
     },
     "tiredBelow": 0.3,
     "tiredSpeed": 0.35,
-    "maxTextures": 320
+    "maxTextures": 320,
+    "helmet": {
+      "back": 0.1,
+      "up": 0.12,
+      "scale": 1.08,
+      "browAngle": -15,
+      "napeAngle": -210,
+      "earX": 0.36,
+      "earTop": 0.12,
+      "earBottom": 0.52,
+      "earWidth": 0.58,
+      "earHole": 0.13,
+      "stripeRadius": 0.86,
+      "ventRadius": 0.8,
+      "vents": [
+        -172,
+        -190
+      ],
+      "visorWidth": 0.1,
+      "strapWidth": 0.09
+    }
   },
   "bigPuckScale": 1.6,
   "practiceWord": "PRACTICE",

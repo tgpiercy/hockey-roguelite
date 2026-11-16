@@ -10,8 +10,9 @@ type Limb = Extract<Shape, { kind: 'limb' }>;
 type Circle = Extract<Shape, { kind: 'circle' }>;
 
 const helmetOf = (fig: Figure): Circle => {
-  const h = fig.shapes.find((s) => s.tag === 'helmet');
-  if (!h || h.kind !== 'circle') throw new Error('no helmet');
+  // Where his head is: the face, which the helmet sits on. (The helmet itself is a shell, not a circle.)
+  const h = fig.shapes.find((s) => s.tag === 'skin');
+  if (!h || h.kind !== 'circle') throw new Error('no head');
   return h;
 };
 const faceOf = (fig: Figure): Circle => {
@@ -26,10 +27,17 @@ describe('the head is most of him', () => {
     const fig = figure(STANDING);
     expect(faceOf(fig).r * 2).toBeGreaterThan(F.height * 0.5);
     expect(fig.shapes.filter((s) => s.tag === 'eye').length).toBeGreaterThanOrEqual(2);
-    // The helmet does not cover the eye.
-    const helmet = helmetOf(fig);
+    // The helmet does not cover the eye: the shell's lower edge, from brow to nape, passes above it.
+    const shell = fig.shapes.find((s) => s.tag === 'helmet');
+    if (!shell || shell.kind !== 'poly') throw new Error('no helmet shell');
+    const brow = shell.points[0]!;
+    const nape = shell.points[shell.points.length - 1]!;
     const eye = fig.shapes.find((s) => s.tag === 'eye') as Circle;
-    expect(Math.hypot(eye.x - helmet.x, eye.y - helmet.y)).toBeGreaterThan(helmet.r * 0.9);
+    const edgeAtEye = nape[1] + ((eye.x - nape[0]) / (brow[0] - nape[0])) * (brow[1] - nape[1]);
+    expect(eye.y - eye.r).toBeGreaterThan(edgeAtEye);
+    // The brow is in front of the face and the nape behind it.
+    expect(brow[0]).toBeGreaterThan(faceOf(fig).x);
+    expect(nape[0]).toBeLessThan(faceOf(fig).x);
   });
 });
 
@@ -55,6 +63,18 @@ describe('what is particular to a player', () => {
     expect(hair({ hair: 'flow' })).toBeGreaterThan(hair({ hair: 'short' }));
     expect(hair({ hair: 'bald', beard: 'full' })).toBeGreaterThan(0);
     expect(hair({ hair: 'bald', beard: 'moustache' })).toBe(1);
+  });
+
+  it('the helmet has an ear piece, a chin strap and vents; a skater has a visor and a goalie bars', () => {
+    const skater = figure(STANDING);
+    const keeper = figure({ ...STANDING, goalie: true });
+    expect(skater.shapes.filter((s) => s.tag === 'helmet').length).toBe(2);
+    expect(skater.shapes.filter((s) => s.tag === 'visor' && s.kind === 'limb').length).toBe(2);
+    expect(keeper.shapes.filter((s) => s.tag === 'visor' && s.kind === 'limb').length).toBe(0);
+    // Ear hole, two vents and a strap on both; the goalie has his bars as well.
+    const dark = (fig: Figure): number => fig.shapes.filter((s) => s.tag === 'cage').length;
+    expect(dark(skater)).toBe(4);
+    expect(dark(keeper)).toBeGreaterThan(dark(skater));
   });
 
   it('a captain wears a band and a mascot has ears and no helmet', () => {

@@ -6,6 +6,7 @@ import look from '../data/rinkLook.json';
 const F = look.figure;
 const B = F.body;
 const G = F.goalie;
+const H = F.helmet;
 
 /** What a shape of the figure is, which decides its colour. */
 export type Tag = 'skin' | 'hair' | 'eye' | 'helmet' | 'visor' | 'cage' | 'jersey' | 'accent' | 'glove' | 'pants' | 'sock' | 'skate' | 'blade' | 'pad' | 'stick' | 'mark';
@@ -106,6 +107,48 @@ function beardOn(x: number, y: number, beard: FigureLook['beard']): Shape[] {
   return [];
 }
 
+/** Points along an arc round a centre, from one angle to another (degrees, y down the screen), a point every `step` degrees. */
+function arc(cx: number, cy: number, radius: number, from: number, to: number, step = 15): [number, number][] {
+  const out: [number, number][] = [];
+  const n = Math.max(1, Math.round(Math.abs(to - from) / step));
+  for (let i = 0; i <= n; i++) {
+    const a = ((from + ((to - from) * i) / n) * Math.PI) / 180;
+    out.push([cx + Math.cos(a) * radius, cy + Math.sin(a) * radius]);
+  }
+  return out;
+}
+
+/** A row of short limbs along an arc: a stripe that follows the curve of the shell. */
+function stripeAlong(cx: number, cy: number, radius: number, from: number, to: number, width: number): Shape[] {
+  const points = arc(cx, cy, radius, from, to, 20);
+  return points.slice(1).map(([x2, y2], i) => limb('accent', points[i]![0], points[i]![1], x2, y2, width, true));
+}
+
+/**
+ * The helmet, drawn over the head at (x, y): a shell whose edge runs from the brow down to the nape, an ear
+ * piece with its hole, a stripe over the crown, two vents and a chin strap; for a skater, a clear visor in
+ * front of the eye. (The owner chose it from three drawn candidates.)
+ */
+function helmet(x: number, y: number, caged: boolean): Shape[] {
+  const r = B.headRadius;
+  const cx = x - H.back;
+  const cy = y - H.up;
+  const out: Shape[] = [{ kind: 'poly', tag: 'helmet', points: arc(cx, cy, r * H.scale, H.browAngle, H.napeAngle) }];
+  out.push(limb('helmet', x - H.earX - 0.06, y + H.earTop, x - H.earX, y + H.earBottom, H.earWidth));
+  out.push(circle('cage', x - H.earX, y + H.earBottom - 0.1, H.earHole, true));
+  out.push(...stripeAlong(cx, cy, r * H.stripeRadius, -55, -150, B.stripeWidth));
+  for (const a of H.vents) {
+    const [[vx, vy]] = arc(cx, cy, r * H.ventRadius, a, a) as [[number, number]];
+    out.push(limb('cage', vx, vy, vx + 0.2, vy - 0.1, H.strapWidth, true));
+  }
+  if (!caged) {
+    out.push(limb('visor', x + 1.0, y - 0.36, x + 1.16, y + 0.1, H.visorWidth, true));
+    out.push(limb('visor', x + 1.16, y + 0.1, x + 0.98, y + 0.52, H.visorWidth, true));
+  }
+  out.push(limb('cage', x - 0.12, y + 0.62, x + 0.5, y + 1.0, H.strapWidth, true));
+  return out;
+}
+
 /**
  * The head, which is most of him. The head is the face; the helmet is a cap over the top and back of it,
  * so the face shows: one big eye with a glint, a mouth, whatever beard he wears, his hair at the nape.
@@ -129,14 +172,12 @@ function head(x: number, y: number, caged: boolean, who: FigureLook): Shape[] {
   // A side parting shows a lock under the front of the helmet.
   if (who.hair === 'side' || who.hair === 'flow') out.push(circle('hair', x + 0.42, y - 0.3, 0.22, true));
   out.push(...beardOn(x, y, who.beard));
-  out.push(circle('helmet', x - B.helmetBack, y - B.helmetUp, r * B.helmetScale), circle('helmet', x - B.earGuard, y + 0.12, B.earGuard, true));
-  out.push(limb('accent', x - 0.95, y - 0.92, x + 0.3, y - 1.18, B.stripeWidth, true));
+  out.push(...helmet(x, y, caged));
   if (caged) {
     for (const k of [0, 0.3, 0.6]) out.push(limb('cage', x + 0.2, y + 0.02 + k, x + 1.1, y + 0.1 + k, B.cageWidth, true));
     for (const k of [0.4, 0.75]) out.push(limb('cage', x + k, y - 0.05, x + k + 0.06, y + 0.85, B.cageWidth, true));
     out.push(circle('eye', x + 0.6, y + 0.22, 0.13, true));
   } else {
-    out.push(limb('helmet', x + 0.35, y - 0.16, x + 1.08, y - 0.04, B.brimWidth));
     out.push(circle('eye', x + 0.62, y + 0.3, B.eyeRadius, true));
     out.push(circle('visor', x + 0.69, y + 0.23, B.glint, true));
     out.push(limb('eye', x + 0.5, y + 0.78, x + 0.86, y + 0.72, 0.08, true));
