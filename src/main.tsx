@@ -1,3 +1,4 @@
+import { preloadRink } from './ui/playMatch';
 import { fullscreenOnTouch } from './ui/fullscreen';
 import { loadPrefs } from './ui/prefs';
 import { keepOffline, protectStorage, watchForCrashes } from './ui/safety';
@@ -26,6 +27,8 @@ for (const type of ['keydown', 'pointerdown', 'touchstart']) {
 watchForCrashes();
 keepOffline(import.meta.env.BASE_URL, import.meta.env.PROD);
 void protectStorage();
+// The rink is fetched apart from the menus: start on it once the page has settled, ahead of the first game.
+window.addEventListener('load', () => window.setTimeout(preloadRink, 1500));
 // On a phone held sideways, a touch takes the game full screen where the browser allows it.
 fullscreenOnTouch(() => loadPrefs().fullscreen);
 

@@ -77,7 +77,7 @@ import { PackOpening } from './PackOpening';
 import { COMMENTARY_MODES, COMMENTARY_NAMES, loadHintCounts, loadPrefs, saveHintCounts, savePrefs, VOLUME_STEPS, type Prefs } from './prefs';
 import { HINT_IDS, retired } from '../game/hints';
 import { menuInput } from './menuInput';
-import { playMatch } from './matchView';
+import { playMatch, preloadRink } from './playMatch';
 import type { PlayerRecord } from '../core/player';
 import { CapLine, CountUp, Dots, Face, Grade, Meter, money, NO_TEAM, PlayerRow, Ratings, Wallet, WearingContext, type Wearing, OptionCard, RinkOutline } from './parts';
 import { MapKey, SeasonMapView } from './SeasonMap';

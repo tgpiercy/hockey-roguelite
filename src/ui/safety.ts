@@ -67,28 +67,40 @@ export async function storageProtected(): Promise<boolean> {
   }
 }
 
+let offlineBase: string | null = null;
+
 /**
- * Keeps an offline copy of the game: registers the worker (sw.js) and, once the page has loaded, tells it
- * every file the page is made of. Only on the built game: in development files change under it.
+ * Keeps an offline copy of the game: registers the worker (sw.js). Only on the built game: in development
+ * files change under it. What the copy should hold is told to it later, by `tellOffline`.
  */
 export function keepOffline(base: string, production: boolean): void {
   if (!production || !('serviceWorker' in navigator)) return;
+  offlineBase = base;
   window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register(`${base}sw.js`)
-      .then(() => navigator.serviceWorker.ready)
-      .then((registration) => {
-        const here = new URL(base, location.href).href;
-        const urls = new Set<string>([here, `${here}manifest.webmanifest`]);
-        for (const entry of performance.getEntriesByType('resource')) if (entry.name.startsWith(here)) urls.add(entry.name);
-        for (const el of document.querySelectorAll<HTMLScriptElement | HTMLLinkElement>('script[src], link[href]')) {
-          const url = 'src' in el ? el.src : el.href;
-          if (url.startsWith(here)) urls.add(url);
-        }
-        registration.active?.postMessage({ type: 'keep', urls: [...urls] });
-      })
-      .catch(() => undefined);
+    navigator.serviceWorker.register(`${base}sw.js`).catch(() => undefined);
   });
+}
+
+/**
+ * Tells the offline copy every file the game is made of, so that it keeps those and lets older ones go.
+ * Called once the rink has been fetched: before that the list would lack the rink, and the copy would let
+ * it go.
+ */
+export function tellOffline(): void {
+  if (offlineBase === null || !('serviceWorker' in navigator)) return;
+  const base = offlineBase;
+  navigator.serviceWorker.ready
+    .then((registration) => {
+      const here = new URL(base, location.href).href;
+      const urls = new Set<string>([here, `${here}manifest.webmanifest`]);
+      for (const entry of performance.getEntriesByType('resource')) if (entry.name.startsWith(here)) urls.add(entry.name);
+      for (const el of document.querySelectorAll<HTMLScriptElement | HTMLLinkElement>('script[src], link[href]')) {
+        const url = 'src' in el ? el.src : el.href;
+        if (url.startsWith(here)) urls.add(url);
+      }
+      registration.active?.postMessage({ type: 'keep', urls: [...urls] });
+    })
+    .catch(() => undefined);
 }
 
 let shown = false;
