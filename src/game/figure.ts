@@ -1,13 +1,16 @@
 import type { Crest, JerseyPattern } from '../core/crest';
 import { lighten } from '../core/teamColours';
 import look from '../data/rinkLook.json';
+import * as above from './figureStyles/above';
+import * as bigHead from './figureStyles/bigHead';
+import * as chunky from './figureStyles/chunky';
 
 const F = look.figure;
 
 /** What a shape of the figure is, which decides its colour. */
-export type Tag = 'skin' | 'eye' | 'helmet' | 'visor' | 'cage' | 'jersey' | 'accent' | 'glove' | 'pants' | 'sock' | 'skate' | 'blade' | 'pad' | 'stick';
+export type Tag = 'skin' | 'hair' | 'eye' | 'helmet' | 'visor' | 'cage' | 'jersey' | 'accent' | 'glove' | 'pants' | 'sock' | 'skate' | 'blade' | 'pad' | 'stick';
 
-export const TAGS: readonly Tag[] = ['skin', 'eye', 'helmet', 'visor', 'cage', 'jersey', 'accent', 'glove', 'pants', 'sock', 'skate', 'blade', 'pad', 'stick'];
+export const TAGS: readonly Tag[] = ['skin', 'hair', 'eye', 'helmet', 'visor', 'cage', 'jersey', 'accent', 'glove', 'pants', 'sock', 'skate', 'blade', 'pad', 'stick'];
 
 /** One piece of the figure. A limb is a thick line with round ends. `bare` pieces get no outline round them. */
 export type Shape =
@@ -45,6 +48,20 @@ export interface Figure {
   stickEnd: { x: number; y: number } | null;
   /** The highest point of the figure (a negative y). */
   top: number;
+}
+
+/** The styles a figure can be drawn in. "classic" is the one the game has had; the others are candidates. */
+export type FigureStyle = 'classic' | 'bigHead' | 'chunky' | 'above';
+export const FIGURE_STYLES: readonly FigureStyle[] = ['classic', 'bigHead', 'chunky', 'above'];
+let currentStyle: FigureStyle = 'classic';
+
+/** Chooses the style every figure is drawn in from now on. */
+export function setFigureStyle(style: FigureStyle): void {
+  currentStyle = style;
+}
+
+export function figureStyle(): FigureStyle {
+  return currentStyle;
 }
 
 export const STANDING: PoseInput = { side: 1, stride: 0, speed: 0, windUp: 0, goalie: false, down: false, tilt: 0, pattern: 'hoop' };
@@ -226,8 +243,15 @@ const SCALE = F.height / -topOf(skater(STANDING).shapes);
  * front. It is built facing right, then mirrored to face left and tipped over if he is off balance, so the
  * two directions are exact mirror images.
  */
-export function figure(pose: PoseInput): Figure {
-  let raw = scaled(pose.goalie ? goalie(pose) : skater(pose), SCALE);
+export function figure(pose: PoseInput, style: FigureStyle = currentStyle): Figure {
+  let raw: Raw;
+  if (style === 'bigHead') raw = pose.goalie ? bigHead.goalie(pose) : bigHead.skater(pose);
+  else if (style === 'chunky') raw = pose.goalie ? chunky.goalie(pose) : chunky.skater(pose);
+  else if (style === 'above') {
+    // Seen from above he is not mirrored or tipped: the rink turns his picture to the way he faces.
+    raw = pose.goalie ? above.goalie(pose) : above.skater(pose);
+    return { ...raw, top: -(above.ABOVE_CENTRE - 1.9) };
+  } else raw = scaled(pose.goalie ? goalie(pose) : skater(pose), SCALE);
   if (pose.side === -1) raw = mapPoints(raw, (x, y) => [-x, y]);
   if (pose.tilt !== 0) {
     const cos = Math.cos(pose.tilt * pose.side);
@@ -260,6 +284,7 @@ export function figureColours(crest: Crest, goalie: boolean, skin: string, kit: 
     const K = F.awayKit;
     return {
       skin,
+      hair: F.colours.hair,
       eye: F.colours.eye,
       helmet: lighten(crest.primary, K.helmetLighten),
       visor: F.colours.visor,
@@ -278,6 +303,7 @@ export function figureColours(crest: Crest, goalie: boolean, skin: string, kit: 
   const jersey = goalie ? lighten(crest.primary, look.goalieLighten) : crest.primary;
   return {
     skin,
+    hair: F.colours.hair,
     eye: F.colours.eye,
     helmet: lighten(crest.primary, goalie ? F.goalieHelmetLighten : F.helmetLighten),
     visor: F.colours.visor,

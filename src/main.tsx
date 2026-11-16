@@ -1,3 +1,4 @@
+import { FIGURE_STYLES, setFigureStyle, type FigureStyle } from './game/figure';
 import { render } from 'preact';
 import { gameAudio } from './game/audio';
 import { music } from './game/music';
@@ -19,6 +20,9 @@ for (const type of ['keydown', 'pointerdown', 'touchstart']) {
 }
 
 const query = new URLSearchParams(location.search);
+// While the player figures are being redesigned: ?figure=bigHead, chunky or above shows a candidate on the rink.
+const wanted = query.get('figure');
+if (wanted && (FIGURE_STYLES as readonly string[]).includes(wanted)) setFigureStyle(wanted as FigureStyle);
 if (query.has('sheet')) {
   // Every piece of drawn art on one page, for checking it together.
   document.body.className = 'mode-menu mode-sheet';

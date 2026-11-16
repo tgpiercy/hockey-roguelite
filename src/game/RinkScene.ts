@@ -1,3 +1,5 @@
+import { ABOVE_CENTRE } from './figureStyles/above';
+import { figureStyle } from './figure';
 import type { Tactics } from '../sim/tactics';
 import { Commentator, COMMENTARY_SHOW_SECONDS } from './commentary';
 import * as Phaser from 'phaser';
@@ -826,7 +828,8 @@ export class RinkScene extends Phaser.Scene {
         kneel,
       };
       const skin = skinTone(p.id);
-      const key = `figure-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}${kneel ? '-kneel' : ''}`;
+      const above = figureStyle() === 'above';
+      const key = `figure-${figureStyle()}-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}${kneel ? '-kneel' : ''}`;
       if (!this.textures.exists(key)) {
         const canvas = document.createElement('canvas');
         paintFigure(canvas, figure(pose).shapes, figureColours(crest, goalie, skin, this.options.whiteTeam === p.team ? 'away' : 'home'), pixels);
@@ -962,7 +965,7 @@ export class RinkScene extends Phaser.Scene {
         const sweep = this.full && world.puck.carrier !== p.id ? Math.sin(stride * 0.5) * fx.stickSweep : 0;
         end = { x: (this.sx(blade.x) - x) / unit + sweep * side, y: (this.sy(blade.y) - y) / unit };
       }
-      for (const piece of withStick(fig, end, side)) {
+      for (const piece of above ? [] : withStick(fig, end, side)) {
         if (piece.tag !== 'stick' || piece.kind !== 'limb') continue;
         g.lineStyle(Math.max(1.5, piece.w * unit), colour(c.stick), alpha);
         g.lineBetween(x + piece.x1 * unit, y + piece.y1 * unit, x + piece.x2 * unit, y + piece.y2 * unit);
@@ -971,11 +974,11 @@ export class RinkScene extends Phaser.Scene {
       const sprite = this.sprites[i];
       sprite
         ?.setTexture(key)
-        .setOrigin(0.5, FIGURE_BOX.feetY / FIGURE_BOX.height)
+        .setOrigin(0.5, (FIGURE_BOX.feetY - (above ? ABOVE_CENTRE : 0)) / FIGURE_BOX.height)
         .setPosition(x, y)
         .setScale(unit / pixels)
-        .setFlipX(side === -1)
-        .setRotation(p.knockedDown ? FIG.knockdownTilt * side : p.stagger > 0 ? FIG.staggerTilt * side : 0)
+        .setFlipX(!above && side === -1)
+        .setRotation(above ? p.facing : p.knockedDown ? FIG.knockdownTilt * side : p.stagger > 0 ? FIG.staggerTilt * side : 0)
         .setAlpha(alpha)
         .setDepth(DEPTH.players + (p.pos.y + t.rink.width) / (t.rink.width * 4))
         .setVisible(true);
