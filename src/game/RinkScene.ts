@@ -1395,7 +1395,12 @@ export class RinkScene extends Phaser.Scene {
     // Bottom right: the powerup on each button, and any boost that is running.
     const mine = world.human ? world.teams[world.human.team] : null;
     if (mine) {
-      const buttons = ['LT', 'RB'].map((button, slot) => `${button} ${mine.powerups[slot]?.name ?? '—'}`);
+      const buttons = ['LT', 'RB'].map((button, slot) => {
+        const wait = mine.powerupWait[slot] ?? 0;
+        const running = mine.boosts.some((b) => b.id === mine.powerups[slot]?.id);
+        // A recharging powerup counts down to ready once its boost has ended.
+        return `${button} ${mine.powerups[slot]?.name ?? '—'}${wait > 0 && !running ? ` ${Math.ceil(wait)}s` : ''}`;
+      });
       // What is in force now: timed boosts with their seconds, and the artifacts whose moment it is.
       const running = [...mine.boosts.map((b) => `${b.name} ${Math.ceil(b.secondsLeft)}s`), ...activeLabels(world, world.human!.team)];
       this.powerText.setFontSize(fontSize);

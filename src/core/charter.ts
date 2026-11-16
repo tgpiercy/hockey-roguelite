@@ -45,6 +45,8 @@ export interface SeasonSetup {
   charter?: string;
   /** Ranks taken, by vow id. */
   vows?: Record<string, number>;
+  /** The powerup kept all season on the first button: one of the three offered (season.signatureOffer). */
+  signature?: string;
 }
 
 export const CHARTERS = data.charters as unknown as CharterInfo[];
@@ -125,7 +127,7 @@ export function setupLine(setup: SeasonSetup): string {
 }
 
 /** The set-up drawn for a week's run from its key: one charter and a couple of handicaps, the same for everyone. */
-export function weeklySetup(key: string): Required<SeasonSetup> {
+export function weeklySetup(key: string): Required<Pick<SeasonSetup, 'charter' | 'vows'>> {
   const rng = createRng(`weekly/${key}/setup`);
   // The short season is left out: the weekly run is short already.
   const charter = rng.pick(CHARTERS.filter((c) => c.id !== STANDARD_CHARTER && c.regions === undefined)).id;

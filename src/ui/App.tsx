@@ -1,3 +1,5 @@
+import { rumble } from '../game/rumble';
+import { buzz } from '../game/rumbleMap';
 import powerupData from '../data/powerups.json';
 import type { PowerupSpec } from '../sim/modifiers';
 import { EXPECTATION_RULES, expectationLine, expectationShort, nextExpectation } from '../core/expectation';
@@ -43,7 +45,7 @@ import { canPlay, canSign, type MoveResult, deadCapFor } from '../core/roster';
 import { hiddenFreeAgents, potentialText, scoutingPoints, signPlayer } from '../core/scouting';
 import { gradePower, hire, kindName, letGo, roleOf, slotsFor, STAFF_KINDS, staffOfKind, staffSalePrice, type StaffMember } from '../core/staff';
 import { franchiseOf, fromSave, parseSave, toSave } from '../core/save';
-import { artifactInfo, artifactModifiers, bargainGames, bossLossEnds, cupHeld, isCupTie, renamePlayer, type ArtifactInfo, gameBounty, maxStrikes, pickRinger, recipeFor, seasonRegions, setupOf, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
+import { artifactInfo, artifactModifiers, bargainGames, signatureOffer, bossLossEnds, buySecondChance, buyShopArtifact, cupHeld, insuranceLeft, isCupTie, rerollPrice, rerollShop, secondChancePrice, shopArtifact, shopArtifactPrice, renamePlayer, type ArtifactInfo, gameBounty, maxStrikes, pickRinger, recipeFor, seasonRegions, setupOf, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
 import type { Stop } from '../core/seasonMap';
 import { seasonSummary } from '../core/seasonSummary';
 import { teamColour } from '../core/teamColours';
@@ -920,7 +922,7 @@ export function App() {
                   }, { wide: true, icon: 'team', detail: 'A second controller has joined: both of you play for your team, each with his own skater (yours has the red ring, his the blue). Press here to send player 2 away and play alone.' }),
                 ]
               : []),
-            tile('play', 'Play', game.elite ? 'Elite games must be played' : game.kind === 'game' ? 'Take the ice' : game.kind === 'boss' ? (bossLossEnds(f) ? 'Lose and the season is over' : 'Bosses must be played') : 'Playoff games must be played', playSeasonGame, { primary: true, wide: true }),
+            tile('play', 'Play', game.elite ? 'Elite games must be played' : game.kind === 'game' ? 'Take the ice' : game.kind === 'boss' ? (bossLossEnds(f) && insuranceLeft(f) === 0 ? 'Lose and the season is over' : bossLossEnds(f) ? 'Insured for one loss' : 'Bosses must be played') : 'Playoff games must be played', playSeasonGame, { primary: true, wide: true }),
             ...(canSimulate(f)
               ? [
                   tile('simulate', 'Simulate', 'Settle it without playing', () => showOutcome(simulateGame(f)), {
@@ -1028,6 +1030,7 @@ export function App() {
               <div class="poster-foot">
                 <StrikeLights strikes={season.strikes} of={maxStrikes(f)} />
                 <span>Powerups in the bag {season.powerups.length}</span>
+                {insuranceLeft(f) > 0 && <span>Insured against a boss loss</span>}
               </div>
             </>
           }
@@ -1044,6 +1047,47 @@ export function App() {
                 onSelect: () => after(buy(f, id)),
               };
             }),
+            // The top shelf: one artifact, for a good deal more than anything else here.
+            ...(shopArtifact(f)
+              ? [
+                  ((): MenuItem => {
+                    const a = artifactInfo(shopArtifact(f) as string);
+                    const price = shopArtifactPrice(f);
+                    return {
+                      key: 'shelf',
+                      wide: true,
+                      label: (
+                        <span class="shop-card">
+                          <ArtifactCard name={a.name} description={a.description} modifiers={a.modifiers} chips={[{ text: 'Top shelf', tone: 'recipe' }]} />
+                          <span class={`price-tag${season.currency >= price ? '' : ' short'}`}>{price}</span>
+                        </span>
+                      ),
+                      detail: `${a.description} An artifact, kept for the rest of the season.`,
+                      disabled: season.currency < price,
+                      onSelect: () => after(buyShopArtifact(f)),
+                    };
+                  })(),
+                ]
+              : []),
+            // Insurance, where a loss to a boss would end the season.
+            ...(bossLossEnds(f)
+              ? [
+                  {
+                    key: 'second',
+                    wide: true,
+                    label: (
+                      <span class="shop-card">
+                        <Icon name="bailout" size={26} />
+                        <span class="shop-name">Second chance</span>
+                        <span class={`price-tag${season.currency >= secondChancePrice(f) ? '' : ' short'}`}>{secondChancePrice(f)}</span>
+                      </span>
+                    ),
+                    detail: season.secondChance ? 'You already hold one: your next loss to a boss is a strike and a rematch.' : 'Insurance: one loss to a boss is only a strike, and you play him again. You can hold one.',
+                    disabled: Boolean(season.secondChance) || season.currency < secondChancePrice(f),
+                    onSelect: () => after(buySecondChance(f)),
+                  } as MenuItem,
+                ]
+              : []),
             {
               key: 'heal',
               wide: true,
@@ -1072,6 +1116,24 @@ export function App() {
               disabled: Boolean(season.scouted) || season.currency < scoutPrice(f),
               onSelect: () => after(buyScouting(f)),
             },
+            ...(rerollPrice(f) !== null
+              ? [
+                  {
+                    key: 'reroll',
+                    wide: true,
+                    label: (
+                      <span class="shop-card">
+                        <Icon name="shop" size={26} />
+                        <span class="shop-name">See what is in the back</span>
+                        <span class={`price-tag${season.currency >= (rerollPrice(f) as number) ? '' : ' short'}`}>{rerollPrice(f)}</span>
+                      </span>
+                    ),
+                    detail: 'Swaps the powerups and the top shelf for others. It costs more each time in the same shop.',
+                    disabled: season.currency < (rerollPrice(f) as number),
+                    onSelect: () => after(rerollShop(f)),
+                  } as MenuItem,
+                ]
+              : []),
             tile('leave', 'Leave the shop', 'Back to the map', () => after(leaveShop(f)), { wide: true, icon: 'play' }),
           ]}
         />
@@ -1109,7 +1171,7 @@ export function App() {
         const boss = bossInfo(s.bossId);
         return {
           label: <StopCard icon="boss" kind={isVariant(s.rink) ? `Boss · ${rinkInfo(s.rink).name}` : 'Boss'} title={boss.name} />,
-          detail: `${boss.trait}: ${boss.description}${rinkLine(s.rink, false)} Beat him to choose an artifact and wipe a strike; ${bossLossEnds(f) ? 'lose and the season is over' : 'lose and it is a strike and a rematch'}.${season.scouted ? ' You have a scouting report on him.' : ''}`,
+          detail: `${boss.trait}: ${boss.description}${rinkLine(s.rink, false)} Beat him to choose an artifact and wipe a strike; ${bossLossEnds(f) && insuranceLeft(f) === 0 ? 'lose and the season is over' : 'lose and it is a strike and a rematch'}${bossLossEnds(f) && insuranceLeft(f) > 0 ? ' (your insurance covers one loss)' : ''}.${season.scouted ? ' You have a scouting report on him.' : ''}`,
         };
       }
       if (s.kind === 'training') return { label: <StopCard icon="training" kind="Training" title="One player improves" />, detail: 'One dressed player gains a little of everything, a lot of one rating, or a trait, for the rest of the season.' };
@@ -2417,6 +2479,20 @@ export function App() {
             icon: 'target',
             detail: 'Large draws the puck bigger with a bright ring round it, for a small screen or a busy rink. Nothing about the play changes.',
           }),
+          tile(
+            'rumble',
+            'Rumble',
+            prefs.rumble ? 'On' : 'Off',
+            () => {
+              changePrefs({ ...prefs, rumble: !prefs.rumble });
+              // Turning it on gives a buzz at once, so you know whether this controller can.
+              if (!prefs.rumble) rumble.play(0, buzz('hit'));
+            },
+            {
+              icon: 'pHit',
+              detail: 'The controller shakes for a body check, a goal, a post and a save. Not every controller or browser can: turning it on gives one buzz to show whether yours does. With no controller, a phone shakes itself where it can.',
+            },
+          ),
           tile('replays', 'Goal replays', prefs.replays ? 'On' : 'Off', () => changePrefs({ ...prefs, replays: !prefs.replays }), {
             detail: 'After each goal the last few seconds are shown again at half speed. Any button skips it.',
           }),
@@ -2878,6 +2954,11 @@ export function App() {
     const charter = charterInfo(plan.charter);
     const points = vowPoints(plan.vows);
     const next = CHARTERS[(CHARTERS.findIndex((c) => c.id === charter.id) + 1) % CHARTERS.length] as (typeof CHARTERS)[number];
+    // The season's own powerup: one of three drawn for this season, the first until another is chosen.
+    const offer = signatureOffer(f);
+    const signature = plan.signature && offer.includes(plan.signature) ? plan.signature : (offer[0] as string);
+    const chosen = powerupInfo(signature);
+    const ready: SeasonSetup = { ...plan, signature };
     return (
       <Menu
         key={screenKey}
@@ -2893,7 +2974,14 @@ export function App() {
         onBack={home}
         columns={2}
         items={[
-          tile('go', 'Start the season', setupLine(plan) || 'Standard, no handicaps', () => after(beginSeason(f, plan), { name: 'home' }), { primary: true, wide: true, detail: 'Your seventh skater is the spare: you can swap him in between games.' }),
+          tile('go', 'Start the season', setupLine(plan) || 'Standard, no handicaps', () => after(beginSeason(f, ready), { name: 'home' }), { primary: true, wide: true, detail: 'Your seventh skater is the spare: you can swap him in between games.' }),
+          {
+            key: 'signature',
+            wide: true,
+            label: <OptionCard icon="powerups" name="Your powerup" value={chosen.name} chip="Press to change" />,
+            detail: `${chosen.description} Yours all season on the LT button: it is never used up, and can be used again ${rules.signatureRechargeSeconds} seconds of play after it ends. This season's three: ${offer.map((id) => powerupInfo(id).name).join(', ')}. Press to change.`,
+            onSelect: () => setPlan({ ...plan, signature: offer[(offer.indexOf(signature) + 1) % offer.length] as string }),
+          },
           { key: 'charter', wide: true, label: <OptionCard icon="charter" name="Charter" value={charter.name} chip="Press to change" />, detail: `${charter.describe} Press to change.`, onSelect: () => setPlan({ ...plan, charter: next.id }) },
           ...VOWS.map((vow): MenuItem => {
             const rank = cleanVows(plan.vows)[vow.id] ?? 0;
@@ -3081,7 +3169,7 @@ export function App() {
         message={message}
         header={
           <>
-            <div>Used up when triggered in a game. Anything left over is lost at the end of the season.</div>
+            <div>{season.signature ? 'Your own powerup stays on LT all season. The ones in the bag, from shops and wins, go on RB and are used up when triggered; anything left over is lost at the end of the season.' : 'Used up when triggered in a game. Anything left over is lost at the end of the season.'}</div>
             {loadoutLine}
           </>
         }
@@ -3089,6 +3177,14 @@ export function App() {
         help="A load on a button · B back"
         items={[
           ...BUTTONS.map((button, slot) => {
+            if (slot === 0 && season.signature) {
+              const own = powerupInfo(season.signature);
+              return tile('slot-own', `${button} button`, `${own.name} · yours all season`, () => undefined, {
+                icon: powerupIcon(season.signature),
+                primary: true,
+                detail: `${own.description} Never used up: it can be used again ${rules.signatureRechargeSeconds} seconds of play after it ends.`,
+              });
+            }
             const id = season.loadout[slot];
             return tile(`slot-${slot}`, `${button} button`, id ? powerupInfo(id).name : 'Empty', () => go({ name: 'load', slot }), {
               icon: id ? powerupIcon(id) : 'powerups',

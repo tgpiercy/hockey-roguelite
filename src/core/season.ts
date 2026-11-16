@@ -82,6 +82,11 @@ export interface SeasonState {
   expectation?: Expectation;
   /** The cup: ties won so far, and whether you are still in it. Won by winning a tie in every region. */
   cup?: { won: number; alive: boolean };
+  /** The powerup chosen when the season began: it sits on the first button all season and recharges. Left out in a season begun before there was one. */
+  signature?: string;
+  /** Insurance bought in a shop: one loss to a boss forgiven. And how many such losses the artifacts have already forgiven. */
+  secondChance?: boolean;
+  insuranceSpent?: number;
   /** True once any game of the season was played with a second player on your team. */
   coop?: boolean;
   /** Wins in a row (positive) or losses in a row (negative), for the paper and the announcer. */
@@ -574,6 +579,8 @@ export function startSeason(f: Franchise, setup: SeasonSetup & { regions?: numbe
   if (regions !== undefined) season.regions = Math.max(1, Math.min(rules.regions, regions));
   if (setup.weekly) season.weekly = setup.weekly;
   season.map = generateMap(season.seed, aiTeamsByStrength(f.league), season.regions ?? rules.regions, f.seen?.events ?? []);
+  // The powerup kept all season, if one of the three on offer was chosen.
+  if (setup.signature && signatureOffer(f).includes(setup.signature)) season.signature = setup.signature;
   // The sponsor names its target, and the cup begins. (A weekly run has neither: it is not the club's season.)
   if (!setup.weekly) {
     season.expectation = nextExpectation(f);
@@ -802,7 +809,9 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
   const { season, league } = f;
   const home = dressUser(f);
   if (!home) return null;
-  const loaded = season.loadout.map((id) => (id ? powerupInfo(id) : null));
+  // The first button holds the season's own powerup, which recharges; the rest are loaded from the bag.
+  const loaded: (PowerupSpec | null)[] = season.loadout.map((id) => (id ? powerupInfo(id) : null));
+  if (season.signature) loaded[0] = { ...powerupInfo(season.signature), recharge: rules.signatureRechargeSeconds };
   // Each prestige level makes every opponent a little better and a little sharper.
   const tougher = f.prestige.level * prestigeRules.opponentRatingPerLevel + stat(f, 'opponentRating', 0);
   // The difficulty shifts every opponent's AI level, and each prestige level sharpens it a little more.
@@ -1084,6 +1093,13 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
   if (game.kind === 'boss') {
     if (!won) {
       // On the harder settings a boss is met once: lose, and the season is over, whatever strikes were left.
+      if (bossLossEnds(f) && insuranceLeft(f) > 0) {
+        // Insured: the shop's second chance goes first, then an artifact's.
+        if (season.secondChance) delete season.secondChance;
+        else season.insuranceSpent = (season.insuranceSpent ?? 0) + 1;
+        if (strike(f)) return done('The boss beats you. That is your last strike: the season is over.');
+        return done(`The boss beats you, and your insurance pays out: strike ${season.strikes} of ${maxStrikes(f)}, and you play him again.`);
+      }
       if (bossLossEnds(f)) {
         season.strikes = Math.min(maxStrikes(f), season.strikes + 1);
         season.phase = 'ended';
@@ -1229,6 +1245,92 @@ export function renamePlayer(f: Franchise, playerId: string, raw: string): Actio
   return done(`${before} is now ${name}.`);
 }
 
+/** How many losses to a boss are still forgiven: a second chance bought in a shop, and any an artifact gives and has not used. */
+export function insuranceLeft(f: Franchise): number {
+  const fromArtifacts = Math.max(0, Math.round(stat(f, 'bossInsurance', 0)) - (f.season.insuranceSpent ?? 0));
+  return (f.season.secondChance ? 1 : 0) + fromArtifacts;
+}
+
+/** What a second chance costs in a shop. */
+export function secondChancePrice(f: Franchise): number {
+  return Math.round(stat(f, 'shopPrice', rules.secondChancePrice));
+}
+
+/** Buys a second chance: one loss to a boss forgiven. Only where such a loss would end the season, and one at a time. */
+export function buySecondChance(f: Franchise): ActionResult {
+  if (!shopStop(f)) return refuse('You are not in a shop.');
+  if (!bossLossEnds(f)) return refuse('On this difficulty a boss you lose to can be played again anyway.');
+  if (f.season.secondChance) return refuse('You already hold a second chance.');
+  const price = secondChancePrice(f);
+  if (f.season.currency < price) return refuse(`You need ${price} Pucks and have ${f.season.currency}.`);
+  f.season.currency -= price;
+  f.season.secondChance = true;
+  return done('You buy a second chance: one loss to a boss will be a strike and a rematch.');
+}
+
+/** The artifact on a shop's top shelf, or null if it is sold or there is none left to sell. Fixed for the shop by the season's seed. */
+export function shopArtifact(f: Franchise): string | null {
+  const stop = shopStop(f);
+  if (!stop) return null;
+  if (stop.shelf === undefined) stop.shelf = shelfPick(f, `${f.season.seed}/shelf/${stop.id}`);
+  // One you have come to hold since is no longer for sale.
+  return stop.shelf !== null && f.artifacts.includes(stop.shelf) ? null : stop.shelf;
+}
+
+function shelfPick(f: Franchise, label: string): string | null {
+  const unowned = (artifacts as unknown as ArtifactInfo[]).filter((a) => !a.recipe && !a.bargain && !f.artifacts.includes(a.id)).map((a) => a.id);
+  return unowned.length > 0 ? createRng(label).pick(unowned) : null;
+}
+
+/** What the top-shelf artifact costs. */
+export function shopArtifactPrice(f: Franchise): number {
+  return Math.round(stat(f, 'shopPrice', rules.shopArtifactPrice));
+}
+
+/** Buys the artifact on the top shelf. */
+export function buyShopArtifact(f: Franchise): ActionResult {
+  const stop = shopStop(f);
+  const id = shopArtifact(f);
+  if (!stop || !id) return refuse('There is nothing on the top shelf.');
+  const price = shopArtifactPrice(f);
+  if (f.season.currency < price) return refuse(`You need ${price} Pucks and have ${f.season.currency}.`);
+  f.season.currency -= price;
+  stop.shelf = null;
+  gainArtifact(f, id);
+  return done(`You buy ${artifactInfo(id).name}.`);
+}
+
+/** What swapping this shop's shelf for new stock costs now: dearer each time, and null once it can be swapped no more. */
+export function rerollPrice(f: Franchise): number | null {
+  const stop = shopStop(f);
+  if (!stop) return null;
+  const base = rules.rerollPrices[stop.rerolls ?? 0];
+  return base === undefined ? null : Math.round(stat(f, 'shopPrice', base));
+}
+
+/** Pays to swap the shop's powerups and its top-shelf artifact for others. */
+export function rerollShop(f: Franchise): ActionResult {
+  const stop = shopStop(f);
+  const price = rerollPrice(f);
+  if (!stop || price === null) return refuse('This shop has nothing more in the back.');
+  if (f.season.currency < price) return refuse(`You need ${price} Pucks and have ${f.season.currency}.`);
+  f.season.currency -= price;
+  stop.rerolls = (stop.rerolls ?? 0) + 1;
+  const rng = createRng(`${f.season.seed}/reroll/${stop.id}/${stop.rerolls}`);
+  stop.stock = rng.shuffle(powerups.map((p) => p.id)).slice(0, rules.shopItems);
+  stop.shelf = shelfPick(f, `${f.season.seed}/shelf/${stop.id}/${stop.rerolls}`);
+  return done('The shopkeeper brings out what was in the back.');
+}
+
+/**
+ * The powerups to choose a season's own from: drawn for the season that is about to start, the same every
+ * time it is asked, different from one season to the next.
+ */
+export function signatureOffer(f: Franchise): string[] {
+  const rng = createRng(`${f.league.seed}/season-${f.league.season}/signature`);
+  return rng.shuffle(powerups.map((p) => p.id)).slice(0, rules.signatureChoices);
+}
+
 /** True where losing to a boss ends the season: the difficulty says. */
 export function bossLossEnds(f: Franchise): boolean {
   return difficultyInfo(f.difficulty).bossLossEnds === true;
@@ -1271,6 +1373,7 @@ function tidyLoadout(loadout: (string | null)[], bag: string[]): (string | null)
 export function setLoadout(f: Franchise, slot: number, powerupId: string | null): ActionResult {
   const { season } = f;
   if (slot < 0 || slot >= rules.loadoutSlots) return refuse('There is no such button.');
+  if (slot === 0 && season.signature) return refuse('That button holds your own powerup for the season.');
   const next = [...season.loadout];
   next[slot] = powerupId;
   const tidy = tidyLoadout(next, season.powerups);

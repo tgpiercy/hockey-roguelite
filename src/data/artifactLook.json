@@ -85,7 +85,8 @@
         "eliteGain",
         "eliteBump",
         "cupGain",
-        "bountyGain"
+        "bountyGain",
+        "bossInsurance"
       ]
     }
   },

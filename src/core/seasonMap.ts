@@ -31,6 +31,9 @@ export interface Stop {
   bossId?: string;
   /** Shop stops: powerup ids still on the shelf. */
   stock?: string[];
+  /** Shop stops: the one artifact on the top shelf (null once it is sold, left out until the shop is first looked at), and how often the shelf has been swapped. */
+  shelf?: string | null;
+  rerolls?: number;
 }
 
 export interface SeasonMap {

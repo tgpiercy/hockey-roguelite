@@ -146,9 +146,12 @@ describe('strikes', () => {
     expect(g.season.strikes).toBe(0);
   });
 
-  it('wiping one in a shop costs about two wins, not four', () => {
+  it('wiping one in a shop costs about three good wins: dear, but within reach', () => {
+    // The owner made shops dearer (see tests/shop.test.ts): a strike wiped is now worth saving for.
     const f = started();
-    expect(healPrice(f)).toBeLessThanOrEqual(3 * (rules.winCurrency + rules.marginCurrency));
+    const goodWin = rules.winCurrency + rules.maxMarginCurrency;
+    expect(healPrice(f)).toBeGreaterThan(2 * goodWin);
+    expect(healPrice(f)).toBeLessThanOrEqual(4 * goodWin);
   });
 });
 

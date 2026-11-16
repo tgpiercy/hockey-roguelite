@@ -399,7 +399,20 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
     }
     return;
   }
-  const free = mates.filter((s) => s.id !== presser?.id);
+  // The skater a person controls is always the nearest to the puck, so on a person's team the nearest man is
+  // the person. He cannot be counted on to be there: once the carrier is over centre and the person is not
+  // right on him, the nearest AI team-mate goes to the carrier as well, exactly as a presser would.
+  let second: Player | null = null;
+  if (presser && humanOf(world, presser.id) !== null && dir * carrier.pos.x < P.matePressFromX && dist(presser.pos, carrier.pos) > P.matePressGap) {
+    second = nearestTo(mates.filter((s) => s.id !== presser.id), carrier.pos);
+    if (second?.id === p.id) {
+      m.follow = 'carrier';
+      m.sprint = danger || dist(p.pos, carrier.pos) > P.pressureRadius;
+      m.wantCheck = world.rng.chance(Math.min(1, lv.checkEagerness * (danger ? P.slotCheckBoost : 1)));
+      return;
+    }
+  }
+  const free = mates.filter((s) => s.id !== presser?.id && s.id !== second?.id);
   const defence = world.teams[p.team].tactics?.defence ?? 'balanced';
   // Collapse: everyone but the presser packs the slot in front of the net.
   if (defence === 'collapse' && inZone(carrier.team, carrier.pos.x)) {

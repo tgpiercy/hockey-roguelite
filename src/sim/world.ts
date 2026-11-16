@@ -191,6 +191,7 @@ function newTeamState(powerups: (PowerupSpec | null)[], style: string | null, he
     powerups: [powerups[0] ?? null, powerups[1] ?? null],
     powerupsUsed: [],
     powerupHeld: [false, false],
+    powerupWait: [0, 0],
     boosts: [],
     style,
     heat: 0,

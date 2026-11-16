@@ -117,5 +117,49 @@
     "buttonHeld": 0.5,
     "axisHeld": 0.5,
     "axisMoved": 0.6
+  },
+  "rumble": {
+    "buzzes": {
+      "goalFor": {
+        "strong": 1,
+        "weak": 0.8,
+        "ms": 420
+      },
+      "goalAgainst": {
+        "strong": 0.35,
+        "weak": 0.2,
+        "ms": 180
+      },
+      "bigHit": {
+        "strong": 1,
+        "weak": 0.5,
+        "ms": 220
+      },
+      "hit": {
+        "strong": 0.7,
+        "weak": 0.3,
+        "ms": 130
+      },
+      "hitTaken": {
+        "strong": 0.8,
+        "weak": 0.4,
+        "ms": 160
+      },
+      "post": {
+        "strong": 0.2,
+        "weak": 0.9,
+        "ms": 110
+      },
+      "save": {
+        "strong": 0.3,
+        "weak": 0.5,
+        "ms": 90
+      },
+      "block": {
+        "strong": 0.6,
+        "weak": 0.3,
+        "ms": 110
+      }
+    }
   }
 }

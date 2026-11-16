@@ -15,6 +15,8 @@ export interface Prefs {
   hints: boolean;
   /** Whether a goal is shown again in slow motion. */
   replays: boolean;
+  /** Whether the controller (or the phone) shakes for hits, goals, posts and saves. */
+  rumble: boolean;
   /** True: the puck is drawn larger, with a bright edge. */
   bigPuck: boolean;
   /** True: you keep your skater until you press switch. False: control follows the puck to whoever of yours has it. */
@@ -26,7 +28,7 @@ export interface Prefs {
   musicVolume: number;
 }
 
-export const DEFAULT_PREFS: Prefs = { sound: true, volume: 0.7, detail: 'full', touch: 'auto', hints: true, replays: true, holdSwitch: false, bigPuck: false, commentary: 'text', music: true, musicVolume: 0.5 };
+export const DEFAULT_PREFS: Prefs = { sound: true, volume: 0.7, detail: 'full', touch: 'auto', hints: true, replays: true, holdSwitch: false, bigPuck: false, rumble: true, commentary: 'text', music: true, musicVolume: 0.5 };
 export const COMMENTARY_MODES: Prefs['commentary'][] = ['off', 'text', 'voice'];
 export const COMMENTARY_NAMES: Record<Prefs['commentary'], string> = { off: 'Off', text: 'Text', voice: 'Text and voice' };
 export const VOLUME_STEPS = [0.2, 0.4, 0.7, 1];
@@ -58,6 +60,7 @@ export function parsePrefs(raw: string | null): Prefs {
       touch: v.touch === 'auto' || v.touch === 'always' || v.touch === 'never' ? v.touch : DEFAULT_PREFS.touch,
       hints: typeof v.hints === 'boolean' ? v.hints : DEFAULT_PREFS.hints,
       replays: typeof v.replays === 'boolean' ? v.replays : DEFAULT_PREFS.replays,
+      rumble: typeof v.rumble === 'boolean' ? v.rumble : DEFAULT_PREFS.rumble,
       holdSwitch: typeof v.holdSwitch === 'boolean' ? v.holdSwitch : DEFAULT_PREFS.holdSwitch,
       bigPuck: typeof v.bigPuck === 'boolean' ? v.bigPuck : DEFAULT_PREFS.bigPuck,
       commentary: v.commentary === 'off' || v.commentary === 'text' || v.commentary === 'voice' ? v.commentary : DEFAULT_PREFS.commentary,

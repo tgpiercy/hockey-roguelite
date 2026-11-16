@@ -1046,6 +1046,31 @@ Nothing distorts. On-ice sounds are two to four times the menu sounds, as intend
 
 Found: five of the eight tunes were half as loud as the theme or less, and the two goal stings a sixth of the horn they play beside. Their track gains were raised so every tune peaks near 0.2. The theme measures 18.5 seconds a pass, not the 37 an earlier note says. Whether any of it is pleasant is for the owner's ears: nothing here measures that.
 
+## A second man to the puck, and the new shop (2026-11-15)
+
+**What a person's team gives up** (`measureDefence` in `tests/harness/defence.ts`), 40 games, a 67 team against a 70 team at level 0.5:
+
+| | Script, before | Script, after | Idle, before | Idle, after |
+| --- | --- | --- | --- | --- |
+| Goals for and against | 6.58 and 2.73 | 6.80 and 2.75 | 0 and 2.42 | 0 and 2.13 |
+| Shots against | 31.4 | 28.8 | 27.2 | 26.2 |
+| ...with nobody within 3 m of the shooter | 11.5 | 8.7 | 12.9 | 12.8 |
+| Goals from those | 0.78 | 0.80 | 1.18 | 1.05 |
+| Your AI team-mates' checks, a game | 33 | 37 | 21 | 19 |
+
+For the script, a quarter fewer shots are let go with nobody on the shooter; goals against did not move. For an idle player almost nothing changes, and that is the control scheme, not the rule: control jumps to whichever of yours is nearest the puck, so the team-mate who goes to the carrier becomes the one you hold, and with the controls untouched he stops. With "Player switching: hold" that does not happen. A person who moves at all sits between these two columns. This is a modest gain, not a cure.
+
+**Shop prices** (`powerups.json`, `season.json`): powerups 30 to 60 became 50 to 100; a strike wiped 70 to 110; scouting 35 to 55; new: a top-shelf artifact 150, a second chance 120, a reroll 20, 40, 60.
+
+Seasons with the script (it buys one thing it can afford at each shop, never the top shelf, a reroll or insurance; it takes no powerup of its own):
+
+| | First region | Title | Pucks earned | Spent | Left | Shops reached | Could afford something |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Pro, 100 seasons | 75% | 23% | 336 | 87 | 248 | 1.6 | 1.2 |
+| Rookie, 40 seasons | 95% | 78% | 567 | 143 | 424 | 2.3 | 1.9 |
+
+A Pro season now earns enough for about one of the dear things (the artifact, or insurance and a powerup) and not all of them; at the first shop of a season there is often nothing it can afford. Rookie, where seasons run long, still ends with Pucks to spare. Not measured: a person who saves for the top shelf, and the effect of a powerup that recharges all season, which the script never presses.
+
 | Date | Value | From | To | Why |
 | --- | --- | --- | --- | --- |
 | 2026-11-13 | goalie positioning cover radius (ratings.json) | 0.5 to 0.9 | 0.3 to 0.6 | All-AI games averaged under 1 goal per 5 minutes; now about 3 |

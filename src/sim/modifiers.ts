@@ -29,6 +29,8 @@ export interface PowerupSpec {
   seconds?: number;
   /** The boost, for a timed powerup. */
   modifiers?: Modifier[];
+  /** Left out, the powerup is used up when triggered. Given, it stays on its button and can be used again this many seconds of play after its boost ends. */
+  recharge?: number;
   /** What an instant powerup does. */
   effect?: 'restoreLineEnergy' | 'restoreBenchEnergy' | 'restoreAllEnergy' | 'fillHeat';
 }

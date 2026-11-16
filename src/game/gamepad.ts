@@ -113,6 +113,12 @@ export function seenPads(): SeenPad[] {
   return seen;
 }
 
+/** The browser's slot for a player's controller, or null when he has none: for shaking it. */
+export function padIndex(player: 0 | 1 = 0): number | null {
+  seats = assignSeats(seenPads(), seats, joinOpen);
+  return player === 0 ? seats.first : seats.second;
+}
+
 /** Reads a player's controller (player one's by default), or null when he has none. */
 export function readGamepad(player: 0 | 1 = 0): GamepadSnapshot | null {
   const pads = seenPads();

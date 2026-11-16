@@ -91,7 +91,9 @@
     "dumpCornerInset": 2.5,
     "emptyNetRange": 16,
     "bodyCheckAim": 0.85,
-    "netRunFromX": 6
+    "netRunFromX": 6,
+    "matePressFromX": 2,
+    "matePressGap": 2.5
   },
   "styles": {
     "rush": {

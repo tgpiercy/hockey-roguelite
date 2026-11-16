@@ -1,3 +1,4 @@
+import { rumble } from '../game/rumble';
 import { teamLooks } from '../core/playerLook';
 import { rinkInfo, rinkTuning, SHOOTOUT } from '../core/rinks';
 import type { Tuning } from '../sim/tuning';
@@ -114,6 +115,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
   let touchMode = loadPrefs().touch;
   // Hints: on or off, and how often each move has been done on this device.
   let hintsOn = loadPrefs().hints;
+  rumble.configure(loadPrefs().rumble);
   // How your linemates are told to play: from the lineup, and changeable in the pause menu for this game.
   let tactics: Tactics = home.setup.tactics ?? BALANCED;
   // Commentary: off, text, or text read aloud.
@@ -156,6 +158,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
           onPrefs={(prefs) => {
             touchMode = prefs.touch;
             hintsOn = prefs.hints;
+            rumble.configure(prefs.rumble);
             commentary = prefs.commentary;
             voiceVolume = prefs.sound ? prefs.volume : 0;
             showTouch();
@@ -235,6 +238,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       paused: () => paused,
       onEvents: (events, world, t) => {
         gameAudio.onEvents(events, world, t);
+        rumble.onEvents(events, world);
         const piece = stingFor(events, world.human?.team ?? 0);
         if (piece) music.sting(piece);
       },

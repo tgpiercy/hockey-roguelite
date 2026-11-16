@@ -28,8 +28,14 @@ export function usePowerup(world: World, team: 0 | 1, slot: number, events: SimE
   const state = world.teams[team];
   const spec: PowerupSpec | null = state.powerups[slot] ?? null;
   if (!spec) return false;
-  state.powerups[slot] = null;
-  state.powerupsUsed.push(spec.id);
+  if (spec.recharge !== undefined) {
+    // A recharging powerup stays on its button: it is not used up, only made to wait.
+    if ((state.powerupWait[slot] ?? 0) > 0) return false;
+    state.powerupWait[slot] = (spec.seconds ?? 0) + spec.recharge;
+  } else {
+    state.powerups[slot] = null;
+    state.powerupsUsed.push(spec.id);
+  }
 
   if (spec.effect === 'fillHeat') {
     // The momentum meter is filled: the team catches fire on the next step.
@@ -72,6 +78,9 @@ export function stepPowerups(world: World, humanInput: InputFrame, events: SimEv
   }
   for (const team of [0, 1] as const) {
     const state = world.teams[team];
+    for (let slot = 0; slot < state.powerupWait.length; slot++) {
+      if ((state.powerupWait[slot] as number) > 0) state.powerupWait[slot] = Math.max(0, (state.powerupWait[slot] as number) - STEP_SECONDS);
+    }
     if (state.boosts.length === 0) continue;
     for (const boost of state.boosts) boost.secondsLeft -= STEP_SECONDS;
     if (state.boosts.some((b) => b.secondsLeft <= 0)) {

@@ -341,6 +341,8 @@ export interface TeamState {
   powerupsUsed: string[];
   /** Whether each powerup button was held on the previous step. */
   powerupHeld: boolean[];
+  /** Seconds of play until the powerup on each button can be used again (a recharging one only). */
+  powerupWait: number[];
   /** Timed boosts that are running. */
   boosts: Boost[];
   /** The team's modifiers that only count some of the time (see conditions.ts), and the ones in force now. */
