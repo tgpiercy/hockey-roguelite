@@ -189,6 +189,7 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - Icons are line drawings in `src/ui/Icon.tsx`; a `tile` gets its icon from `TILE_ICONS` by its key, or names one. Gear drawings are in `src/ui/GearArt.tsx`.
 - Faces: `src/core/portrait.ts` works a portrait out of the player's id and age; `src/ui/Portrait.tsx` draws it; `Face` in `parts.tsx` adds the colours he wears, which `App.tsx` provides through `WearingContext`. `PlayerRow` shows it, so every list has faces.
 - Three stars: `src/core/stars.ts`, shown by `src/ui/GameSummary.tsx`.
+- `?sound` opens `src/ui/SoundSheet.tsx`: every sound and tune with a button to hear it, and beside each its measured peak, average level and length (rendered off-line with `playSound` and `music.schedule`; the figures are also on `window.__soundMeasures`). Use it after changing `audio.json` or `music.json`.
 - `?sheet` opens `src/ui/ArtSheet.tsx`: every portrait style, icon, gear drawing and crest on one page. Look at it after changing any art.
 - `src/ui/SeasonMap.tsx` draws one region of the map as SVG from `season.map`, `season.visited` (the route walked) and the stops that can be reached.
 - After a season game `recordGame` (or `simulateGame`) returns `rewards`, and the `rewards` screen steps through it.

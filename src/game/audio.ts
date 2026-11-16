@@ -20,7 +20,7 @@ interface Layer {
 type Context = BaseAudioContext;
 
 /** A second of white noise, made once per context and reused by every noisy sound. */
-function noiseBuffer(ctx: Context): AudioBuffer {
+export function noiseBuffer(ctx: Context): AudioBuffer {
   const buffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
   const samples = buffer.getChannelData(0);
   // A fixed sequence, so the noise is the same every time: no randomness needed for hiss.

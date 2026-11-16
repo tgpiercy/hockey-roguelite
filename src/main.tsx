@@ -1,3 +1,4 @@
+import { SoundSheet } from './ui/SoundSheet';
 import { render } from 'preact';
 import { gameAudio } from './game/audio';
 import { music } from './game/music';
@@ -23,4 +24,8 @@ if (query.has('sheet')) {
   // Every piece of drawn art on one page, for checking it together.
   document.body.className = 'mode-menu mode-sheet';
   render(<ArtSheet />, document.getElementById('menu') as HTMLElement);
+} else if (query.has('sound')) {
+  // Every sound and tune on one page, each with a button to hear it.
+  document.body.className = 'mode-menu mode-sheet';
+  render(<SoundSheet />, document.getElementById('menu') as HTMLElement);
 } else render(<App />, document.getElementById('menu') as HTMLElement);

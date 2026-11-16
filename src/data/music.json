@@ -7,61 +7,174 @@
       "bpm": 104,
       "loop": true,
       "tracks": [
-        { "wave": "triangle", "gain": 0.22, "attack": 0.01, "release": 0.12, "notes": "C2:2 C2:2 G2:2 G2:2 A2:2 A2:2 F2:2 F2:2 C2:2 C2:2 G2:2 G2:2 A2:2 A2:2 F2:2 G2:2" },
-        { "wave": "square", "gain": 0.05, "attack": 0.005, "release": 0.05, "filter": 1800, "notes": "C4:.5 E4:.5 G4:.5 E4:.5 C4:.5 E4:.5 G4:.5 E4:.5 B3:.5 D4:.5 G4:.5 D4:.5 B3:.5 D4:.5 G4:.5 D4:.5 A3:.5 C4:.5 E4:.5 C4:.5 A3:.5 C4:.5 E4:.5 C4:.5 A3:.5 C4:.5 F4:.5 C4:.5 A3:.5 C4:.5 F4:.5 C4:.5 C4:.5 E4:.5 G4:.5 E4:.5 C4:.5 E4:.5 G4:.5 E4:.5 B3:.5 D4:.5 G4:.5 D4:.5 B3:.5 D4:.5 G4:.5 D4:.5 A3:.5 C4:.5 E4:.5 C4:.5 A3:.5 C4:.5 E4:.5 C4:.5 A3:.5 C4:.5 F4:.5 C4:.5 B3:.5 D4:.5 G4:.5 D4:.5" },
-        { "wave": "triangle", "gain": 0.12, "attack": 0.02, "release": 0.2, "notes": "-:16 E5:1 G5:1 E5:1 D5:1 D5:1 G5:1 B4:2 C5:1 E5:1 A5:1 G5:1 F5:1 E5:1 D5:2" }
+        {
+          "wave": "triangle",
+          "gain": 0.22,
+          "attack": 0.01,
+          "release": 0.12,
+          "notes": "C2:2 C2:2 G2:2 G2:2 A2:2 A2:2 F2:2 F2:2 C2:2 C2:2 G2:2 G2:2 A2:2 A2:2 F2:2 G2:2"
+        },
+        {
+          "wave": "square",
+          "gain": 0.05,
+          "attack": 0.005,
+          "release": 0.05,
+          "filter": 1800,
+          "notes": "C4:.5 E4:.5 G4:.5 E4:.5 C4:.5 E4:.5 G4:.5 E4:.5 B3:.5 D4:.5 G4:.5 D4:.5 B3:.5 D4:.5 G4:.5 D4:.5 A3:.5 C4:.5 E4:.5 C4:.5 A3:.5 C4:.5 E4:.5 C4:.5 A3:.5 C4:.5 F4:.5 C4:.5 A3:.5 C4:.5 F4:.5 C4:.5 C4:.5 E4:.5 G4:.5 E4:.5 C4:.5 E4:.5 G4:.5 E4:.5 B3:.5 D4:.5 G4:.5 D4:.5 B3:.5 D4:.5 G4:.5 D4:.5 A3:.5 C4:.5 E4:.5 C4:.5 A3:.5 C4:.5 E4:.5 C4:.5 A3:.5 C4:.5 F4:.5 C4:.5 B3:.5 D4:.5 G4:.5 D4:.5"
+        },
+        {
+          "wave": "triangle",
+          "gain": 0.12,
+          "attack": 0.02,
+          "release": 0.2,
+          "notes": "-:16 E5:1 G5:1 E5:1 D5:1 D5:1 G5:1 B4:2 C5:1 E5:1 A5:1 G5:1 F5:1 E5:1 D5:2"
+        }
       ]
     },
     "organ": {
       "bpm": 132,
       "loop": false,
       "tracks": [
-        { "wave": "sawtooth", "gain": 0.12, "attack": 0.01, "release": 0.08, "filter": 1500, "notes": "G4:.5 C5:.5 E5:.5 G5:1 E5:.5 G5:2" },
-        { "wave": "square", "gain": 0.05, "attack": 0.01, "release": 0.08, "filter": 1200, "notes": "G3:.5 C4:.5 E4:.5 G4:1 E4:.5 G4:2" }
+        {
+          "wave": "sawtooth",
+          "gain": 0.288,
+          "attack": 0.01,
+          "release": 0.08,
+          "filter": 1500,
+          "notes": "G4:.5 C5:.5 E5:.5 G5:1 E5:.5 G5:2"
+        },
+        {
+          "wave": "square",
+          "gain": 0.12,
+          "attack": 0.01,
+          "release": 0.08,
+          "filter": 1200,
+          "notes": "G3:.5 C4:.5 E4:.5 G4:1 E4:.5 G4:2"
+        }
       ]
     },
     "goalFor": {
       "bpm": 150,
       "loop": false,
       "tracks": [
-        { "wave": "triangle", "gain": 0.16, "attack": 0.005, "release": 0.1, "notes": "C5:.5 E5:.5 G5:.5 C6:1.5" },
-        { "wave": "square", "gain": 0.04, "attack": 0.005, "release": 0.1, "filter": 1600, "notes": "E4:.5 G4:.5 C5:.5 E5:1.5" }
+        {
+          "wave": "triangle",
+          "gain": 0.32,
+          "attack": 0.005,
+          "release": 0.1,
+          "notes": "C5:.5 E5:.5 G5:.5 C6:1.5"
+        },
+        {
+          "wave": "square",
+          "gain": 0.08,
+          "attack": 0.005,
+          "release": 0.1,
+          "filter": 1600,
+          "notes": "E4:.5 G4:.5 C5:.5 E5:1.5"
+        }
       ]
     },
     "goalAgainst": {
       "bpm": 110,
       "loop": false,
-      "tracks": [{ "wave": "triangle", "gain": 0.14, "attack": 0.01, "release": 0.15, "notes": "E4:.75 Eb4:.75 D4:1.5" }]
+      "tracks": [
+        {
+          "wave": "triangle",
+          "gain": 0.364,
+          "attack": 0.01,
+          "release": 0.15,
+          "notes": "E4:.75 Eb4:.75 D4:1.5"
+        }
+      ]
     },
     "win": {
       "bpm": 132,
       "loop": false,
       "tracks": [
-        { "wave": "triangle", "gain": 0.17, "attack": 0.005, "release": 0.12, "notes": "C5:.5 C5:.25 C5:.25 E5:.5 G5:.5 C6:1 G5:.5 C6:2" },
-        { "wave": "triangle", "gain": 0.16, "attack": 0.01, "release": 0.12, "notes": "C3:1 C3:1 G2:1 C3:1 G2:.5 C3:2" },
-        { "wave": "square", "gain": 0.04, "attack": 0.005, "release": 0.1, "filter": 1600, "notes": "E4:.5 E4:.25 E4:.25 G4:.5 C5:.5 E5:1 C5:.5 E5:2" }
+        {
+          "wave": "triangle",
+          "gain": 0.17,
+          "attack": 0.005,
+          "release": 0.12,
+          "notes": "C5:.5 C5:.25 C5:.25 E5:.5 G5:.5 C6:1 G5:.5 C6:2"
+        },
+        {
+          "wave": "triangle",
+          "gain": 0.16,
+          "attack": 0.01,
+          "release": 0.12,
+          "notes": "C3:1 C3:1 G2:1 C3:1 G2:.5 C3:2"
+        },
+        {
+          "wave": "square",
+          "gain": 0.04,
+          "attack": 0.005,
+          "release": 0.1,
+          "filter": 1600,
+          "notes": "E4:.5 E4:.25 E4:.25 G4:.5 C5:.5 E5:1 C5:.5 E5:2"
+        }
       ]
     },
     "loss": {
       "bpm": 84,
       "loop": false,
       "tracks": [
-        { "wave": "triangle", "gain": 0.15, "attack": 0.02, "release": 0.25, "notes": "A3:1 G3:1 F3:1 E3:2" },
-        { "wave": "sine", "gain": 0.08, "attack": 0.02, "release": 0.25, "notes": "C4:1 B3:1 A3:1 Ab3:2" }
+        {
+          "wave": "triangle",
+          "gain": 0.255,
+          "attack": 0.02,
+          "release": 0.25,
+          "notes": "A3:1 G3:1 F3:1 E3:2"
+        },
+        {
+          "wave": "sine",
+          "gain": 0.136,
+          "attack": 0.02,
+          "release": 0.25,
+          "notes": "C4:1 B3:1 A3:1 Ab3:2"
+        }
       ]
     },
     "reveal": {
       "bpm": 160,
       "loop": false,
-      "tracks": [{ "wave": "triangle", "gain": 0.13, "attack": 0.004, "release": 0.12, "notes": "G5:.5 B5:.5 D6:.5 G6:1.5" }]
+      "tracks": [
+        {
+          "wave": "triangle",
+          "gain": 0.39,
+          "attack": 0.004,
+          "release": 0.12,
+          "notes": "G5:.5 B5:.5 D6:.5 G6:1.5"
+        }
+      ]
     },
     "fanfare": {
       "bpm": 120,
       "loop": false,
       "tracks": [
-        { "wave": "sawtooth", "gain": 0.1, "attack": 0.01, "release": 0.12, "filter": 1700, "notes": "C4:.5 E4:.5 G4:.5 C5:1 G4:.5 C5:1 E5:.5 G5:.5 C6:3" },
-        { "wave": "triangle", "gain": 0.16, "attack": 0.01, "release": 0.15, "notes": "C3:1.5 C3:1 G2:.5 C3:1 C3:1 C3:3" },
-        { "wave": "square", "gain": 0.04, "attack": 0.01, "release": 0.12, "filter": 1500, "notes": "E3:.5 G3:.5 C4:.5 E4:1 C4:.5 E4:1 G4:.5 C5:.5 E5:3" }
+        {
+          "wave": "sawtooth",
+          "gain": 0.13,
+          "attack": 0.01,
+          "release": 0.12,
+          "filter": 1700,
+          "notes": "C4:.5 E4:.5 G4:.5 C5:1 G4:.5 C5:1 E5:.5 G5:.5 C6:3"
+        },
+        {
+          "wave": "triangle",
+          "gain": 0.208,
+          "attack": 0.01,
+          "release": 0.15,
+          "notes": "C3:1.5 C3:1 G2:.5 C3:1 C3:1 C3:3"
+        },
+        {
+          "wave": "square",
+          "gain": 0.052,
+          "attack": 0.01,
+          "release": 0.12,
+          "filter": 1500,
+          "notes": "E3:.5 G3:.5 C4:.5 E4:1 C4:.5 E4:1 G4:.5 C5:.5 E5:3"
+        }
       ]
     }
   }

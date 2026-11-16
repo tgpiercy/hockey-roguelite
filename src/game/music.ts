@@ -45,7 +45,7 @@ export class Music {
   }
 
   /** Schedules one pass of a piece into `into`, starting at `when`. Returns the nodes made. */
-  private schedule(ctx: AudioContext, into: AudioNode, name: PieceName, when: number): AudioScheduledSourceNode[] {
+  schedule(ctx: BaseAudioContext, into: AudioNode, name: PieceName, when: number): AudioScheduledSourceNode[] {
     const piece = pieceSpec(name);
     const nodes: AudioScheduledSourceNode[] = [];
     for (const track of piece.tracks) {

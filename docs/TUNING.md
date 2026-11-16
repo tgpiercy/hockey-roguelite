@@ -1015,6 +1015,37 @@ Seasons with the script (`measureSeasons`), all of today's changes together, a b
 
 On Pro the easier games and the harsher boss rule nearly cancel for the script; on Rookie, which keeps the rematch, the script now wins nearly four seasons in five. The script is a strong, tireless defender and wins 36 single games in 40 at this level; the owner lost 12 to 3 and then 4 to 3 to a boss. The numbers above are the script's, not a person's.
 
+## Sound levels, measured (2026-11-15)
+
+Every sound and tune rendered off-line at full volume on the sound page (`?sound`), before the game's own volume: the loudest moment (1 would distort), and the length.
+
+| Sound | Peak | Seconds | | Sound | Peak | Seconds |
+| --- | --- | --- | --- | --- | --- | --- |
+| horn | 0.63 | 1.26 | | groan | 0.37 | 0.89 |
+| shot | 0.58 | 0.09 | | poke | 0.29 | 0.04 |
+| hit | 0.57 | 0.16 | | chime | 0.25 | 0.34 |
+| post | 0.56 | 0.29 | | reveal | 0.24 | 0.15 |
+| roar | 0.46 | 1.69 | | legendary | 0.24 | 0.86 |
+| pass | 0.42 | 0.04 | | select | 0.19 | 0.09 |
+| whistle | 0.39 | 0.36 | | back | 0.18 | 0.05 |
+| save | 0.37 | 0.09 | | tap | 0.16 | 0.02 |
+| drop | 0.37 | 0.03 | | tick | 0.15 | 0.02 |
+
+Nothing distorts. On-ice sounds are two to four times the menu sounds, as intended.
+
+| Tune | Peak before | Peak now |
+| --- | --- | --- |
+| theme | 0.20 | 0.20 |
+| win | 0.19 | 0.19 |
+| fanfare | 0.15 | 0.19 |
+| loss | 0.11 | 0.20 |
+| goalFor | 0.10 | 0.21 |
+| organ | 0.08 | 0.20 |
+| goalAgainst | 0.07 | 0.18 |
+| reveal | 0.06 | 0.19 |
+
+Found: five of the eight tunes were half as loud as the theme or less, and the two goal stings a sixth of the horn they play beside. Their track gains were raised so every tune peaks near 0.2. The theme measures 18.5 seconds a pass, not the 37 an earlier note says. Whether any of it is pleasant is for the owner's ears: nothing here measures that.
+
 | Date | Value | From | To | Why |
 | --- | --- | --- | --- | --- |
 | 2026-11-13 | goalie positioning cover radius (ratings.json) | 0.5 to 0.9 | 0.3 to 0.6 | All-AI games averaged under 1 goal per 5 minutes; now about 3 |
