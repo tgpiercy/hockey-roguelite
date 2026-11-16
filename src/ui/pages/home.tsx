@@ -3,7 +3,6 @@ import { backupDue, lastExport } from '../safety';
 import { EXPECTATION_RULES, expectationLine, expectationShort, nextExpectation } from '../../core/expectation';
 import { announcerName, pregameLine } from '../../core/voice';
 import { ArtifactCard, type ArtChip } from '../screens/season';
-import { STICKERS } from '../../core/bounty';
 import { isVariant, RINK_BONUS, rinkInfo } from '../../core/rinks';
 import { readTactics, tacticsLine } from '../../sim/tactics';
 import { dropSecond } from '../../game/gamepad';
@@ -19,7 +18,7 @@ import { talentInfo } from '../../core/mascot';
 import { finishSeason } from '../../core/offseason';
 import { jerseyColour, leagueName, prestige, prestigeEffects } from '../../core/prestige';
 import { canPlay } from '../../core/roster';
-import { artifactInfo, artifactModifiers, bossLossEnds, buySecondChance, buyShopArtifact, cupHeld, insuranceLeft, isCupTie, rerollPrice, rerollShop, secondChancePrice, shopArtifact, shopArtifactPrice, gameBounty, maxStrikes, pickRinger, recipeFor, seasonRegions, availableStops, buy, canSimulate, chooseEvent, currentStop, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, pickArtifact, powerupInfo, shopPrice, simulateGame, train, travel, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../../core/season';
+import { artifactInfo, artifactModifiers, bossLossEnds, buySecondChance, buyShopArtifact, cupHeld, insuranceLeft, isCupTie, rerollPrice, rerollShop, secondChancePrice, shopArtifact, shopArtifactPrice, maxStrikes, pickRinger, recipeFor, seasonRegions, availableStops, buy, canSimulate, chooseEvent, currentStop, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, pickArtifact, powerupInfo, shopPrice, simulateGame, train, travel, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../../core/season';
 import type { Stop } from '../../core/seasonMap';
 import { seasonSummary } from '../../core/seasonSummary';
 import { teamColour } from '../../core/teamColours';
@@ -181,25 +180,16 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
           header="Take one. You keep it for the rest of this season. Some only count at certain moments; a bargain costs you first and pays after."
           items={season.offer.map((id) => {
             const a = artifactInfo(id);
-            const sticker = season.offerStickers?.[id];
             const half = recipeFor(id);
             const pairs = half && f.artifacts.includes(half.partner) ? ` With your ${artifactInfo(half.partner).name} it becomes ${artifactInfo(half.makes).name}: ${artifactInfo(half.makes).description}` : '';
-            const terms =
-              sticker === 'loan'
-                ? ` On loan: it leaves after ${STICKERS.loanGames} games, and you get ${STICKERS.loanPucks} Pucks now.`
-                : sticker === 'pricey'
-                  ? ` Pricey: it costs ${STICKERS.priceyFee} Pucks after every game, and you then take a second artifact from this offer.`
-                  : '';
             const chips: ArtChip[] = [
-              ...(sticker === 'loan' ? [{ text: `On loan · ${STICKERS.loanGames} games · +${STICKERS.loanPucks}`, tone: 'loan' as const }] : []),
-              ...(sticker === 'pricey' ? [{ text: `Pricey · ${STICKERS.priceyFee} a game · 2nd pick`, tone: 'pricey' as const }] : []),
               ...(a.bargain ? [{ text: `Bargain · ${a.bargain.games} games`, tone: 'bargain' as const }] : []),
               ...(pairs !== '' && half ? [{ text: `Makes ${artifactInfo(half.makes).name}`, tone: 'recipe' as const }] : []),
             ];
             return {
               key: id,
               label: <ArtifactCard name={a.name} description={a.description} modifiers={a.bargain ? [...a.modifiers, ...a.bargain.handicap] : a.modifiers} chips={chips} tall />,
-              detail: `${a.description}${terms}${pairs}`,
+              detail: `${a.description}${pairs}`,
               onSelect: () => after(pickArtifact(f, id)),
             };
           })}
@@ -286,11 +276,6 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
               {isCupTie(f, currentStop(f)) && (
                 <div class="note">
                   A cup tie ({season.cup?.won ?? 0} of {seasonRegions(f)} won). Win and you stay in the cup, with {rules.cupCurrency} more Pucks; lose and the cup is over for this season, at no other cost.
-                </div>
-              )}
-              {gameBounty(f) && (
-                <div class="note">
-                  Bounty: {gameBounty(f)!.text.toLowerCase()} for {gameBounty(f)!.pucks} more Pucks. Only if you play the game; missing it costs nothing.
                 </div>
               )}
               {game.rules?.mercy !== undefined && <div class="note">Mercy rule: the game is called off if either team leads by {game.rules.mercy}.</div>}

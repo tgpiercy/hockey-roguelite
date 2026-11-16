@@ -55,7 +55,7 @@
   {"id": "derby-day", "name": "Derby day", "description": "Against a rival your checks are 15% stronger and your skaters tire 15% more slowly.", "modifiers": [{"stat": "checkStrength", "op": "mul", "value": 1.15, "when": "rival"}, {"stat": "drainScale", "op": "mul", "value": 0.85, "when": "rival"}]},
   {"id": "sponsors-patch", "name": "Sponsor's patch", "description": "Once the sponsor's target is met, wins pay 35% more Pucks.", "modifiers": [{"stat": "currencyGain", "op": "mul", "value": 1.35, "when": "targetMet"}]},
   {"id": "cup-purse", "name": "Cup purse", "description": "A cup tie won pays three times its usual Pucks.", "modifiers": [{"stat": "cupGain", "op": "mul", "value": 3}]},
-  {"id": "bounty-board", "name": "Bounty board", "description": "Bounties pay half as much again.", "modifiers": [{"stat": "bountyGain", "op": "mul", "value": 1.5}]},
+  {"id": "bounty-board", "name": "Notice board", "description": "Every win pays a tenth more Pucks.", "modifiers": [{"stat": "currencyGain", "op": "mul", "value": 1.1}]},
   {"id": "bend-dont-break", "name": "Bend, don't break", "description": "While you are behind, your goalie covers 8% more net.", "modifiers": [{"stat": "coverRadius", "op": "mul", "value": 1.08, "when": "trailing"}]},
   {"id": "front-foot", "name": "Front foot", "description": "While you lead, your skaters tire 20% more slowly.", "modifiers": [{"stat": "drainScale", "op": "mul", "value": 0.8, "when": "leading"}]},
   {"id": "road-warriors", "name": "Road warriors", "description": "On the road your skaters are 4% faster and your passes 20% truer.", "modifiers": [{"stat": "topSpeedScale", "op": "mul", "value": 1.04, "when": "away"}, {"stat": "passSpreadDegrees", "op": "mul", "value": 0.8, "when": "away"}]},

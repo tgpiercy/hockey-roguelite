@@ -77,8 +77,6 @@ const resolve = (f: Franchise, win: boolean): void => {
   if (!stop) return;
   if (stop.kind === 'game' || stop.kind === 'boss') {
     while ((f.season.stage as string) === 'reward') {
-      // These tests are about the plain pick: stickers are tested in runFeatures.test.ts.
-      f.season.offerStickers = {};
       pickArtifact(f, f.season.offer[0]!);
     }
     if ((f.season.stage as string) === 'ringer') pickRinger(f, null);
@@ -86,8 +84,6 @@ const resolve = (f: Franchise, win: boolean): void => {
       recordGame(f, result(win));
       // Beating a boss moves the stage on to the artifact pick.
       while ((f.season.stage as string) === 'reward') {
-      // These tests are about the plain pick: stickers are tested in runFeatures.test.ts.
-      f.season.offerStickers = {};
       pickArtifact(f, f.season.offer[0]!);
     }
       if ((f.season.stage as string) === 'ringer') pickRinger(f, null);

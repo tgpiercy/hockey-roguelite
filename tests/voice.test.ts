@@ -180,7 +180,6 @@ describe('boss clubs', () => {
     f.season.current = boss.id;
     f.season.stage = 'arrived';
     recordGame(f, result(true));
-    f.season.offerStickers = {};
     pickArtifact(f, f.season.offer[0]!);
     expect(f.season.ringerOffer![2]!.player.name).toBe(bossInfo(boss.bossId!).person.name);
     expect(availableStops(f)).toEqual([]);

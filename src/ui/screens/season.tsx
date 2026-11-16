@@ -239,7 +239,7 @@ export function ChangeRow({ player, name, from, to }: { player: PlayerRecord | u
 /** One chip on an artifact's card: a few words, and how it should look. */
 export interface ArtChip {
   text: string;
-  tone?: 'when' | 'loan' | 'pricey' | 'bargain' | 'recipe';
+  tone?: 'when' | 'bargain' | 'recipe';
 }
 
 /**

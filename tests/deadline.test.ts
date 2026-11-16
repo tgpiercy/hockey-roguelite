@@ -19,7 +19,6 @@ function resolve(f: Franchise): void {
   if (stop.kind === 'game' || stop.kind === 'boss') {
     if (f.season.stage === 'arrived') recordGame(f, won);
     while ((f.season.stage as string) === 'reward') {
-      f.season.offerStickers = {};
       pickArtifact(f, f.season.offer[0]!);
     }
     if ((f.season.stage as string) === 'ringer') pickRinger(f, null);

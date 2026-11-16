@@ -504,8 +504,6 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
   padding: 3px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--ice); white-space: nowrap;
 }
 .art-chip.when { border-color: var(--accent); color: var(--accent); }
-.art-chip.loan { background: var(--rare); border-color: var(--rare); color: var(--bg-deep); }
-.art-chip.pricey { background: var(--bad); border-color: var(--bad); color: var(--bg-deep); }
 .art-chip.bargain { background: var(--epic); border-color: var(--epic); color: var(--bg-deep); }
 .art-chip.recipe { background: var(--good); border-color: var(--good); color: var(--bg-deep); }
 .art-cards { align-items: stretch; }

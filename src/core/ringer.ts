@@ -1,4 +1,4 @@
-import { RINGER } from './bounty';
+import run from '../data/run.json';
 import { generatePlayer } from './generate';
 import { MASCOT_ID } from './mascot';
 import type { DressedTeam } from './matchup';
@@ -7,6 +7,8 @@ import { kindOf } from './playerKind';
 import type { PlayerRecord } from './player';
 import { createRng } from './rng';
 import type { SkaterRatings } from '../sim/ratings';
+
+const RINGER = run.ringer;
 
 /**
  * A ringer: a loan skater offered after a boss is beaten. He plays for you for the rest of the season

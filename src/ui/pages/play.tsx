@@ -2,7 +2,6 @@ import { assistStrengths } from '../../core/assists';
 import { charterOpen } from '../../core/achievements';
 import { BACKUP_KEY } from '../safety';
 import { ArtifactCard, type ArtChip } from '../screens/season';
-import { STICKERS } from '../../core/bounty';
 import { afterTournamentGame, newTournament, tournamentOpponent, type Tournament } from '../../core/tournament';
 import { CHARTERS, charterInfo, cleanVows, nextRank, setupLine, vowPackLuck, vowPay, vowPoints, VOWS, type SeasonSetup } from '../../core/charter';
 import { nextRink, rinkInfo } from '../../core/rinks';
@@ -326,13 +325,9 @@ export function playPages(app: AppCtx): ComponentChildren | undefined {
         items={f.artifacts.map((id) => {
           const a = artifactInfo(id);
           const left = bargainGames(f, id);
-          const loan = season.loans?.[id] ?? 0;
-          const fee = (season.pricey ?? []).includes(id);
           const half = recipeFor(id);
           const chips: ArtChip[] = [
             ...(left > 0 ? [{ text: `Handicap · ${left} to go`, tone: 'bargain' as const }] : []),
-            ...(loan > 0 ? [{ text: `On loan · ${loan} left`, tone: 'loan' as const }] : []),
-            ...(fee ? [{ text: `${STICKERS.priceyFee} Pucks a game`, tone: 'pricey' as const }] : []),
             ...(half ? [{ text: `+ ${artifactInfo(half.partner).name} = ${artifactInfo(half.makes).name}`, tone: 'recipe' as const }] : []),
           ];
           return {
