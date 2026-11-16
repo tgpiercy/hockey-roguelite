@@ -1095,3 +1095,27 @@ A Pro season now earns enough for about one of the dear things (the artifact, or
 | 2026-11-14 | check.bodyHoldSeconds (new) | none | 0.25 | A body check needs the button held; a tap is a poke |
 | 2026-11-14 | check.pokeRange | 1.9 | 2.8 | The owner wanted a poke check that works from a stick length away |
 | 2026-11-14 | economy.json sponsorShareOfValue | 0.04 | 0.18 | Every manager style was bankrupt by season 3: income was per game but seasons can be 4 games long |
+
+## Two measuring players, and what each difficulty is to them (2026-11-16)
+
+`npm run measure -- seasons --player script|novice --difficulty rookie|pro|allstar --games 40`: a new franchise, plain choices, 40 seasons each. A 40-season sample swings by about 7 to 10 points.
+
+The **script** carries the puck in and shoots for the open corner; it never passes or checks and never makes a mistake at what it does. The **newcomer** (`NOVICE` in `tests/harness/bot.ts`) reacts a quarter of a second late, steers roughly, does nothing a fifth of the time, and shoots from too far with a short wind-up. In single games on a 67 team against a 70 team it wins 17 of 40 at AI level 0.3 and 7 of 40 at 0.5 (goals 2.35 to 2.42, and 1.38 to 2.95). It was very sensitive while being set: one step either way made it win 18 of 30 or score 0.9 a game. Read it as a floor.
+
+| Difficulty | Player | First region cleared | Title | Wins of games | Pucks earned, spent, left |
+| --- | --- | --- | --- | --- | --- |
+| Rookie | script | 95% | 78% | 11.0 of 12.7 | 567, 143, 424 |
+| Rookie | newcomer | 58% | 0% | 2.6 of 8.2 | 126, 45, 81 |
+| Pro | script | 80% | 35% | 7.9 of 9.0 | 399, 112, 287 |
+| Pro | newcomer | 13% | 0% | 0.9 of 3.4 | 42, 9, 33 |
+| All-Star | script | 63% | 5% | 4.8 of 6.2 | 230, 91, 140 |
+| All-Star | newcomer | 5% | 0% | 0.6 of 3.1 | 28, 4, 24 |
+
+What it says:
+- The two players are a long way apart, and a real person is somewhere between. The owner's own games (a 12-3 loss, then a 4-3 loss to a boss) sit nearer the newcomer on Pro.
+- Rookie is not gentle enough for a true newcomer: it clears the first region a little over half the time and never wins a title, while the script wins three in four.
+- Pro ends a newcomer's season in the first region seven times in eight. With a boss loss ending the run, that is what Pro now means.
+- Nothing was changed here. Where each difficulty should sit against the two players is the owner's decision.
+
+Not measured: a person. The newcomer never uses a powerup, a deke, a pass or a check, and never changes lines by hand.
+

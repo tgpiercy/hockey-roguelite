@@ -869,3 +869,12 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .intro-skip { color: var(--dim); }
 @media (prefers-reduced-motion: reduce) { #intro { animation: none; } }
 
+/* The season's picture: shown whole, whatever the screen. */
+.recap {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: min(54vh, 320px);
+  margin: 0 auto;
+  border-radius: var(--radius);
+}

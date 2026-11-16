@@ -45,6 +45,7 @@ import { leaguePages } from './pages/league';
 import { groupPages } from './pages/groups';
 import { rosterPages } from './pages/roster';
 import { playPages } from './pages/play';
+import { deadlinePages } from './pages/deadline';
 import { settingsPages } from './pages/settings';
 
 /**
@@ -405,6 +406,7 @@ export function App() {
     groupPages(app) ??
     rosterPages(app) ??
     playPages(app) ??
+    deadlinePages(app) ??
     settingsPages(app);
   return (
     <WearingContext.Provider value={wearing}>

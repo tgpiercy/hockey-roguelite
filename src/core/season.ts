@@ -3,6 +3,7 @@ import { expectationMet, nextExpectation, type Expectation } from './expectation
 import { cleanName, nicknameFor, nicknamesOf, NICKNAME_RULES } from './temperament';
 import { bountyFor, bountyMet, STICKERS, UNSEEN_WEIGHT, type BountyInfo } from './bounty';
 import { isGuest, ringerOffer, withRinger, type Ringer } from './ringer';
+import type { DeadlineOffer } from './deadline';
 import { rinkInfo } from './rinks';
 import { charterInfo, cleanVows, opponentModifiers, setupModifiers, STANDARD_CHARTER, type SeasonSetup } from './charter';
 import type { MatchRules } from '../sim/types';
@@ -66,6 +67,8 @@ export interface SeasonState {
   stage: 'none' | 'arrived' | 'reward' | 'ringer';
   /** The loan skaters on offer after a boss, and the one playing for you this season. */
   ringerOffer?: Ringer[];
+  /** The trade deadline, while its offers stand (`deadline.ts`): there from the opening of the last region until your next game. */
+  deadline?: { offers?: DeadlineOffer[] };
   ringer?: Ringer;
   /** Stickers on the artifacts now on offer, by artifact id. */
   offerStickers?: Record<string, 'loan' | 'pricey'>;
@@ -646,6 +649,8 @@ function finishStop(f: Franchise): void {
   season.offer = [];
   // Leaving a region without having won its cup tie (lost, or not on your road) is the cup gone for the season.
   if (stop && stop.kind === 'boss' && season.cup && season.cup.alive && season.cup.won < stop.region + 1) season.cup.alive = false;
+  // The last region opens with the trade deadline: a few clubs make offers, which stand until your next game.
+  if (stop && stop.kind === 'boss' && stop.region === seasonRegions(f) - 2 && !season.weekly) season.deadline = {};
   // A weekly run is over when its last boss is beaten: there are no playoffs.
   if (stop && stop.kind === 'boss' && stop.region === seasonRegions(f) - 1 && season.weekly) {
     season.phase = 'ended';
@@ -1049,6 +1054,8 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
   if (fees > 0) season.currency = Math.max(0, season.currency - fees);
   if (season.bargains) season.bargains = Object.fromEntries(Object.entries(season.bargains).map(([id, games]) => [id, games - 1] as [string, number]).filter(([, games]) => games > 0));
   season.gamesPlayed += 1;
+  // The deadline has passed once a game is played.
+  delete season.deadline;
   f.record = applyResult(f.record, result);
   leagueRound(f, game, result);
 

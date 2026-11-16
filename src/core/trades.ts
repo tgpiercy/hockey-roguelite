@@ -27,6 +27,11 @@ const money = (n: number): string => `$${(n / 1_000_000).toFixed(2)}M`;
 export function evaluateTrade(f: Franchise, minePlayerId: string, theirTeamId: string, theirPlayerId: string): MoveResult {
   if (rosterLocked(f)) return { ok: false, reason: 'Trades happen in the off-season.' };
   if (f.offseason.pending.length > 0) return { ok: false, reason: 'Decide your expiring contracts first.' };
+  return judgeTrade(f, minePlayerId, theirTeamId, theirPlayerId);
+}
+
+/** The judgement itself, whenever it is asked: the off-season's trades and the deadline's offers both go through it. */
+export function judgeTrade(f: Franchise, minePlayerId: string, theirTeamId: string, theirPlayerId: string): MoveResult {
   const { league } = f;
   const mineTeam = userTeam(league);
   if (theirTeamId === league.userTeamId) return { ok: false, reason: 'You cannot trade with yourself.' };
@@ -65,6 +70,12 @@ export function evaluateTrade(f: Franchise, minePlayerId: string, theirTeamId: s
 export function trade(f: Franchise, minePlayerId: string, theirTeamId: string, theirPlayerId: string): MoveResult {
   const verdict = evaluateTrade(f, minePlayerId, theirTeamId, theirPlayerId);
   if (!verdict.ok) return verdict;
+  swapPlayers(f, minePlayerId, theirTeamId, theirPlayerId);
+  return { ok: true };
+}
+
+/** Moves the two players, with no questions asked: judge the trade first. */
+export function swapPlayers(f: Franchise, minePlayerId: string, theirTeamId: string, theirPlayerId: string): void {
   const { league } = f;
   const mineTeam = userTeam(league);
   const theirTeam = teamOf(league, theirTeamId);
@@ -74,5 +85,4 @@ export function trade(f: Franchise, minePlayerId: string, theirTeamId: string, t
   repairLineup(league, mineTeam);
   theirTeam.lineup = autoLineup(league, theirTeam);
   f.offseason.signed.push(theirPlayerId);
-  return { ok: true };
 }

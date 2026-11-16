@@ -19,6 +19,17 @@
   "resignYears": [1, 2, 3, 4],
   "contract": { "youngMaxAge": 25, "youngPerYear": 0.05, "oldMinAge": 31, "oldPerYear": 0.05 },
   "trade": { "positionShort": 3, "positionPlenty": 5, "positionNeed": 2, "positionMin": 2, "salaryPerMillion": 1.5, "youthCredit": 0.3, "agePenaltyFrom": 30, "agePenaltyPerYear": 1.5, "acceptMargin": 0 },
+  "deadline": {
+    "offers": 3, "keepBest": 2,
+    "veteranMinAge": 29, "veteranGain": 2, "veteranMaxGain": 8,
+    "prospectMaxAge": 23, "prospectFromAge": 27, "prospectGain": 3,
+    "swapMaxGap": 3,
+    "kinds": {
+      "veteran": { "name": "A veteran for the run", "what": "Better now, older, and not for long." },
+      "prospect": { "name": "A prospect for later", "what": "Younger, with more to come than the man you give up." },
+      "swap": { "name": "A straight swap", "what": "A forward for a defenceman of about the same worth, or the other way round." }
+    }
+  },
   "quick": { "ratingPointsFor75Percent": 12, "minGoals": 1, "maxWinnerGoals": 6, "shotsPerGoal": 8, "secondsOnIcePerGame": 180, "hitsPerGame": 6, "blocksPerGame": 4, "ratingPointsPerTenthOfLevel": 1.5, "autoKeepMaxAge": 34, "autoKeepOverall": 80, "autoLongDealMaxAge": 28, "autoLongDealYears": 3, "firstSeasonIncome": 24000000,
     "styles": {
       "cautious": { "reserveShareOfBills": 0.6, "cashShareForPayroll": 0.1, "maxStaffPower": 2, "maxStaffSalaryShare": 0.04 },

@@ -69,6 +69,9 @@ export type Screen =
   | { name: 'padTest' }
   | { name: 'padSetup'; player?: 0 | 1 }
   | { name: 'confirmAbandon' }
+  | { name: 'deadline' }
+  | { name: 'deadlineOffer'; index: number }
+  | { name: 'recap' }
   | { name: 'confirmNew' };
 
 export type Sort = PlayerSort;

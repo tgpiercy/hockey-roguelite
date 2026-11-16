@@ -1,3 +1,4 @@
+import { deadlineOffers } from '../../core/deadline';
 import { backupDue, lastExport } from '../safety';
 import { EXPECTATION_RULES, expectationLine, expectationShort, nextExpectation } from '../../core/expectation';
 import { announcerName, pregameLine } from '../../core/voice';
@@ -164,6 +165,7 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
               primary: true,
               icon: 'play',
             }),
+            tile('recap', 'The season on one card', 'A picture of it, to keep or to send', () => go({ name: 'recap' }), { icon: 'report' }),
           ]}
         />
       );
@@ -654,6 +656,15 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
         }
         help="A go there · left/right and up/down move"
         items={[
+          ...(deadlineOffers(f).length > 0
+            ? [
+                tile('deadline', 'Trade deadline', `${count(deadlineOffers(f).length, 'offer')} · until your next game`, () => go({ name: 'deadline' }), {
+                  icon: 'trade',
+                  wide: true,
+                  detail: 'Other clubs have rung with offers: one skater of theirs for one of yours. You may take one. They are withdrawn when you play your next game.',
+                }),
+              ]
+            : []),
           ...options.map((s): MenuItem => {
             const d = stopCard(s);
             return { key: s.id, wide: options.length === 1, label: d.label, detail: `${d.detail}${ahead(s)}`, onSelect: () => after(travel(f, s.id)) };
