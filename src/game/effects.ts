@@ -80,6 +80,8 @@ export class Effects {
     const players = world.players;
 
     for (const e of events) {
+      // A fresh sheet for each period.
+      if (e.type === 'period') this.marks = [];
       if (e.type === 'goal') {
         // The light goes on behind the net that was scored on.
         this.goalLight[e.team === 0 ? 1 : 0] = fx.goalLightSeconds;
@@ -157,8 +159,8 @@ export class Effects {
       else last.speed = speed;
     }
     if (this.marks.length > fx.maxMarks) this.marks.splice(0, this.marks.length - fx.maxMarks);
+    // A cut in the ice is bright when it is made and fades to a faint scar that stays until the period ends.
     for (const mark of this.marks) mark.age += dt;
-    this.marks = this.marks.filter((mark) => mark.age < fx.markSeconds);
 
     // The streak behind a fast, loose puck.
     const puck = world.puck;
@@ -205,7 +207,7 @@ export class Effects {
   drawUnder(g: Phaser.GameObjects.Graphics, view: View): void {
     const width = Math.max(1, fx.markWidth * view.zoom);
     for (const mark of this.marks) {
-      g.lineStyle(width, colour(look.colours.mark), fx.markAlpha * (1 - mark.age / fx.markSeconds));
+      g.lineStyle(width, colour(look.colours.mark), Math.max(fx.wearAlpha, fx.markAlpha * (1 - mark.age / fx.markSeconds)));
       g.lineBetween(view.sx(mark.x1), view.sy(mark.y1), view.sx(mark.x2), view.sy(mark.y2));
     }
     for (let i = 1; i < this.trail.length; i++) {

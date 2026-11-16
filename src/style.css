@@ -847,3 +847,25 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 
 /* On the title screen, how to lose the address bar where the browser will not hide it. */
 .title-hint { margin-top: 6px; font-size: 13px; color: var(--accent); }
+
+/* The introduction before a boss game: over the rink, both teams' starters and a few words. */
+#intro { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; background: rgba(4, 12, 28, 0.97); animation: screen-in 0.2s ease-out; }
+.intro { width: min(94vw, 760px); display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text); text-align: center; }
+.intro-head { display: flex; flex-direction: column; gap: 2px; }
+.intro-head span { font: 800 11px/1 var(--heading); letter-spacing: 0.2em; text-transform: uppercase; color: var(--dim); }
+.intro-head b { font: 800 clamp(22px, 5vw, 34px)/1.05 var(--heading); letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+.intro-head i { font-style: normal; color: var(--ice); }
+.intro-teams { display: flex; align-items: center; justify-content: center; gap: 14px; width: 100%; }
+.intro-vs { font: 800 14px/1 var(--heading); letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); }
+.intro-team { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--line); }
+.intro-name { display: flex; align-items: center; gap: 8px; font: 800 14px/1.1 var(--heading); letter-spacing: 0.06em; text-transform: uppercase; }
+.intro-cards { display: flex; gap: 8px; justify-content: center; }
+.intro-card { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; }
+.intro-card small { font-weight: 600; font-size: 12px; max-width: 5.5em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.intro-card i { font-style: normal; font-size: 11px; color: var(--dim); }
+.intro-lines { max-width: 60ch; }
+.intro-lines p { margin: 2px 0; font-size: 14px; line-height: 1.3; }
+.intro-lines p:last-child { color: var(--accent); }
+.intro-skip { color: var(--dim); }
+@media (prefers-reduced-motion: reduce) { #intro { animation: none; } }
+

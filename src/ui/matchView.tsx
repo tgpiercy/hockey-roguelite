@@ -1,3 +1,5 @@
+import { readGamepad } from '../game/gamepad';
+import { MatchIntro, type IntroWords } from './MatchIntro';
 import { rumble } from '../game/rumble';
 import { teamLooks } from '../core/playerLook';
 import { rinkInfo, rinkTuning, SHOOTOUT } from '../core/rinks';
@@ -85,13 +87,15 @@ export interface MatchOptions {
   practice?: boolean;
   /** How long a period lasts, in seconds. Left out, what the tuning says. */
   periodSeconds?: number;
+  /** Shown over the rink before the puck drops: the two teams' starters and these words. Left out, the game starts at once. */
+  intro?: IntroWords;
 }
 
 /**
  * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening, practice, periodSeconds }: MatchOptions, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening, practice, periodSeconds, intro }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
   // The rink's own numbers sit on top of whatever the tuning panel holds; worked out again only when that changes.
   const where = rinkInfo(shootout ? null : rink);
@@ -129,6 +133,37 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
   const hintCounts = loadHintCounts();
   const showTouch = (): void => render(<TouchControls hidden={touchHidden} mode={touchMode} />, touch);
   showTouch();
+
+  // The introduction: the rink waits behind it for a few seconds, or until any press.
+  let introOn = intro !== undefined;
+  const introBox = document.createElement('div');
+  introBox.id = 'intro';
+  let introTimer = 0;
+  let introPoll = 0;
+  const endIntro = (): void => {
+    if (!introOn) return;
+    introOn = false;
+    window.clearTimeout(introTimer);
+    window.clearInterval(introPoll);
+    window.removeEventListener('keydown', endIntro);
+    window.removeEventListener('pointerdown', endIntro);
+    render(null, introBox);
+    introBox.remove();
+  };
+  if (intro) {
+    document.body.append(introBox);
+    render(<MatchIntro home={home} away={away} homeColour={homeColour ?? teamCrest(home.name).primary} awayColour={awayColour ?? teamCrest(away.name).primary} words={intro} />, introBox);
+    introTimer = window.setTimeout(endIntro, look.introSeconds * 1000);
+    // A press ends it, once it has been up long enough not to be skipped by the press that started the game.
+    window.setTimeout(() => {
+      if (!introOn) return;
+      window.addEventListener('keydown', endIntro);
+      window.addEventListener('pointerdown', endIntro);
+      introPoll = window.setInterval(() => {
+        if (readGamepad(0)?.buttons.some((b) => b.pressed)) endIntro();
+      }, 60);
+    }, look.introGraceSeconds * 1000);
+  }
 
   // Pausing: the game freezes and the pause menu, an ordinary menu screen, opens over the rink.
   let paused = false;
@@ -242,7 +277,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       rules: practice ? { practice: true } : shootout ? { shootout: SHOOTOUT } : { ...where.rules, ...(rules ?? {}) },
       bigPuck: loadPrefs().bigPuck,
       onControls,
-      paused: () => paused,
+      paused: () => paused || introOn,
       onEvents: (events, world, t) => {
         gameAudio.onEvents(events, world, t);
         rumble.onEvents(events, world);
@@ -274,6 +309,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       },
       onDone: (result) => {
         document.removeEventListener('visibilitychange', onHidden);
+        endIntro();
         window.removeEventListener('gamepaddisconnected', onPadGone);
         onPauseButton = null;
         paused = false;

@@ -731,6 +731,16 @@ export class RinkScene extends Phaser.Scene {
     g.lineStyle(Math.max(1, wall * 0.2), colour(c.rail));
     g.strokeRoundedRect(this.sx(-hx), this.sy(-hy), t.rink.length * z, t.rink.width * z, corner);
 
+    // Glass above the boards: a pale band outside them, with a few glints of light along the top and bottom.
+    const pane = wall * 0.9;
+    g.lineStyle(pane, colour(c.glass), look.glassAlpha);
+    g.strokeRoundedRect(this.sx(-hx) - wall * 0.5 - pane * 0.5, this.sy(-hy) - wall * 0.5 - pane * 0.5, t.rink.length * z + wall + pane, t.rink.width * z + wall + pane, corner + wall);
+    g.lineStyle(Math.max(1, pane * 0.3), colour(c.glass), look.glassAlpha * 2.6);
+    for (let k = 0; k < look.glassGlints; k++) {
+      const gx0 = this.sx(-hx + corner / z + ((k + 0.5) / look.glassGlints) * (t.rink.length - (2 * corner) / z));
+      for (const edge of [this.sy(-hy) - wall * 0.5 - pane * 0.5, this.sy(hy) + wall * 0.5 + pane * 0.5]) g.lineBetween(gx0 - pane * 1.6, edge, gx0 + pane * 0.4, edge);
+    }
+
     // Bench doors: a gap in the top boards in each team's colour.
     for (const team of [0, 1] as const) {
       const door = benchDoor(team, t);
@@ -779,6 +789,12 @@ export class RinkScene extends Phaser.Scene {
       this.figureKeys.clear();
       this.figurePixels = pixels;
     }
+    // The lights come up as the game begins: a dark veil over the building that lifts in the first moments.
+    if (this.full && this.clock < look.openingLightSeconds) {
+      const left = 1 - this.clock / look.openingLightSeconds;
+      this.top.fillStyle(colour(FIG.colours.outline), look.openingDark * left * left);
+      this.top.fillRect(0, 0, this.scale.width, this.scale.height);
+    }
     // Every player has his own pictures now, so they add up: past the limit, the ones not shown for longest are let go.
     this.figureFrame += 1;
     if (this.figureKeys.size > FIG.maxTextures) {
@@ -802,8 +818,11 @@ export class RinkScene extends Phaser.Scene {
       const white = this.options.whiteTeam === team;
       spare.forEach((p, k) => {
         const bx = this.sx(door.x + (k - (spare.length - 1) / 2) * look.benchGap);
-        const by = this.sy(-t.rink.width / 2) - look.benchBehind * z;
         const r = look.benchHead * z;
+        // Their side has just scored: the bench is on its feet.
+        const scoredBy = world.phase === 'goal' && this.scorer !== null ? world.players[this.scorer]?.team : undefined;
+        const up = scoredBy === team ? Math.abs(Math.sin(this.clock * 11 + k * 1.7)) * r * fx.benchJump : 0;
+        const by = this.sy(-t.rink.width / 2) - look.benchBehind * z - up;
         g.fillStyle(colour(FIG.colours.outline));
         g.fillCircle(bx, by, r + Math.max(1, r * 0.18));
         g.fillStyle(colour(this.options.looks?.[team]?.[p.id - team * 7]?.skin ?? skinTone(p.id)));

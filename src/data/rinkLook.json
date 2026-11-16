@@ -38,7 +38,8 @@
     "fire": "#ff7a1a",
     "shield": "#7fd4ff",
     "danger": "#ff2436",
-    "mascot": "#ffd24a"
+    "mascot": "#ffd24a",
+    "glass": "#cfe8f7"
   },
   "font": "'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', system-ui, sans-serif",
   "marginPixels": 8,
@@ -63,6 +64,8 @@
   "centreCrestSize": 5.2,
   "centreCrestAlpha": 0.5,
   "bannerSlideSeconds": 0.35,
+  "introSeconds": 6,
+  "introGraceSeconds": 0.7,
   "goalBannerLift": 0.4,
   "goalBannerSize": 0.11,
   "benchHead": 0.5,
@@ -86,7 +89,7 @@
     "markSeconds": 5,
     "markAlpha": 0.22,
     "markWidth": 0.07,
-    "maxMarks": 420,
+    "maxMarks": 480,
     "stopSprayDrop": 0.12,
     "stopSprayMinSpeed": 5,
     "stopSpray": 5,
@@ -116,7 +119,9 @@
     "confettiSeconds": 1.6,
     "confettiSpeed": 9,
     "confettiSize": 0.2,
-    "confettiFall": 5
+    "confettiFall": 5,
+    "wearAlpha": 0.08,
+    "benchJump": 0.9
   },
   "arena": {
     "maxRows": 14,
@@ -394,5 +399,9 @@
     "arrowGap": 0.45,
     "bobUnits": 0.22,
     "bobPerSecond": 6
-  }
+  },
+  "glassAlpha": 0.16,
+  "glassGlints": 9,
+  "openingLightSeconds": 1.8,
+  "openingDark": 0.6
 }
