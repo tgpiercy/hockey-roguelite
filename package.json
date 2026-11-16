@@ -10,6 +10,7 @@
     "test": "vitest run",
     "balance": "node scripts/balance.mjs",
     "seasons": "node scripts/seasons.mjs",
+    "measure": "node scripts/measure.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.core.json"
   },
   "dependencies": {

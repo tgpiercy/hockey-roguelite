@@ -1,8 +1,8 @@
 import { clearAhead, dist } from '../../src/sim/team';
 import { cloneTuning, type Tuning } from '../../src/sim/tuning';
-import { NO_INPUT, type InputFrame, type World } from '../../src/sim/types';
+import type { World } from '../../src/sim/types';
 import { createGame, step, STEPS_PER_SECOND } from '../../src/sim/world';
-import { createNaivePlayer } from './bot';
+import { standIn, type Stand } from './bot';
 import { uniformTeam } from './harness';
 
 /** What a person's team gives up, a game: every figure is an average over the games played. */
@@ -28,12 +28,12 @@ export interface DefenceReport {
  * `who` is the stand-in for the person: the script, which defends tirelessly, or nobody at all (the
  * controls never touched), which is the far end of a newcomer who does not defend.
  */
-export function measureDefence(n: number, level: number, who: 'script' | 'idle', seed: string, closeMetres = 3, tuning?: Tuning): DefenceReport {
+export function measureDefence(n: number, level: number, who: Stand, seed: string, closeMetres = 3, tuning?: Tuning): DefenceReport {
   const t = tuning ?? cloneTuning();
   const sum = { wins: 0, goalsFor: 0, goalsAgainst: 0, shotsAgainst: 0, clearPathShots: 0, clearPathGoals: 0, unpressedShots: 0, unpressedGoals: 0, mateChecks: 0, mateChecksLanded: 0 };
   for (let i = 0; i < n; i++) {
     const world: World = createGame(t, `${seed}-${i}`, { teams: [uniformTeam(67), uniformTeam(70)], levels: [null, level], overtimeLimit: 300 });
-    const bot = who === 'script' ? createNaivePlayer(t) : (): InputFrame => NO_INPUT;
+    const bot = standIn(who, t, `${seed}-${i}`);
     let last: { clear: boolean; unpressed: boolean } | null = null;
     for (let s = 0; s < 30 * 60 * STEPS_PER_SECOND && world.phase !== 'final'; s++) {
       for (const e of step(world, bot(world), t)) {

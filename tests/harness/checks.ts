@@ -27,7 +27,7 @@ import { cloneTuning, type Tuning } from '../../src/sim/tuning';
 import type { SimEvent, World } from '../../src/sim/types';
 import { createGame, createWorld, step, STEPS_PER_SECOND, type TeamSetup } from '../../src/sim/world';
 import { clearIce, giveTo, ID, place, player } from '../helpers';
-import { createNaivePlayer } from './bot';
+import { createNaivePlayer, standIn, type Stand } from './bot';
 import { uniformTeam } from './harness';
 
 /**
@@ -146,7 +146,7 @@ export interface SeasonReport {
  * Plays whole seasons with the scripted player in every game, on one difficulty, making plain choices
  * between games (random stops, first artifact, no ringer fee, buys what it can afford).
  */
-export function measureSeasons(n: number, difficulty: string, seed: string): SeasonReport {
+export function measureSeasons(n: number, difficulty: string, seed: string, who: Stand = 'script'): SeasonReport {
   const t = cloneTuning();
   const report: SeasonReport = { seasons: n, clearedFirstRegion: 0, champions: 0, wins: 0, played: 0, pucksEarned: 0, pucksSpent: 0, pucksLeft: 0, shops: 0, shopsBoughtAt: 0 };
   for (let i = 0; i < n; i++) {
@@ -164,7 +164,7 @@ export function measureSeasons(n: number, difficulty: string, seed: string): Sea
         if (f.season.powerups[0]) setLoadout(f, 0, f.season.powerups[0]);
         const boss = game.kind === 'boss' && currentStop(f)?.region === 0;
         const world = createGame(t, `${seed}-${i}/g${guard}`, { teams: [game.home.setup, game.away.setup], levels: [null, game.level], overtimeLimit: 300 });
-        const bot = createNaivePlayer(t);
+        const bot = standIn(who, t, `${seed}-${i}/g${guard}`);
         for (let s = 0; s < 30 * 60 * STEPS_PER_SECOND && world.phase !== 'final'; s++) step(world, bot(world), t);
         const result = gameResult(world);
         // A game still level after the overtime limit goes to the other side, so the season always moves on.

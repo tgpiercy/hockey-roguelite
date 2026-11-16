@@ -1,3 +1,4 @@
+import { createRng } from '../../src/core/rng';
 import { gameResult, type GameResult } from '../../src/sim/match';
 import { goalLineX } from '../../src/sim/rink';
 import { cloneTuning, type Tuning } from '../../src/sim/tuning';
@@ -40,6 +41,82 @@ export function createNaivePlayer(t: Tuning, reactionSeconds = 0.25): (world: Wo
     }
     return input;
   };
+}
+
+/** How a newcomer differs from the script. Kept together so the stand-in can be re-shaped in one place. */
+export const NOVICE = {
+  /** He decides what to do this often, in steps (a third of a second), and holds it in between. */
+  reactSteps: 17,
+  /** How far off his steering may be, in degrees either way. */
+  steerDegrees: 24,
+  /** The share of his decisions without the puck in which he does nothing at all. */
+  idleChance: 0.2,
+  /** He shoots from this far out (the script waits for 10 m), and for anywhere on the net, not the corner. */
+  shootFrom: 13.5,
+  /** His wind-up is anything from a tap to a long hold, in steps. */
+  windUp: [6, 30],
+};
+
+/**
+ * A stand-in for a person new to the game, on team 0. He does what the script does (chase the puck, carry
+ * it at the net, shoot) but as a newcomer would: late, a little off line, sometimes not at all, from too
+ * far out and at the middle of the net as often as the corner. Like the script he never passes, checks or
+ * changes lines. The same seed always plays the same game.
+ */
+export function createNovicePlayer(t: Tuning, seed: string): (world: World) => InputFrame {
+  const rng = createRng(`novice/${seed}`);
+  let held: InputFrame = { ...NO_INPUT };
+  let wait = 0;
+  let shooting = 0;
+  let aimY = 0;
+  return (world: World): InputFrame => {
+    if (world.phase === 'faceoff') {
+      const f = world.faceoff;
+      // Slow to the draw.
+      return { ...NO_INPUT, pass: f !== null && f.dropped && f.sinceDrop >= 0.45 && f.sinceDrop < 0.55 };
+    }
+    const me = world.human ? world.players[world.human.controlled] : undefined;
+    if (!me || world.phase !== 'play') return { ...NO_INPUT };
+    const mine = world.puck.carrier === me.id;
+
+    // A shot once begun is held to its length, then let go.
+    if (shooting > 0) {
+      shooting -= 1;
+      return { ...held, shoot: mine && shooting > 0 };
+    }
+    if (wait > 0) {
+      wait -= 1;
+      return { ...held, shoot: false };
+    }
+    wait = NOVICE.reactSteps;
+    const input: InputFrame = { ...NO_INPUT };
+    if (!mine && rng.chance(NOVICE.idleChance)) {
+      held = input;
+      return input;
+    }
+    if (mine && shooting === 0) aimY = rng.range(-1, 1) * (t.net.mouthWidth / 2 - 0.2);
+    const targetX = mine ? goalLineX(t) : world.puck.pos.x;
+    const targetY = mine ? aimY : world.puck.pos.y;
+    const off = (rng.range(-1, 1) * NOVICE.steerDegrees * Math.PI) / 180;
+    const angle = Math.atan2(targetY - me.pos.y, targetX - me.pos.x) + off;
+    input.moveX = Math.cos(angle);
+    input.moveY = Math.sin(angle);
+    if (mine && me.pos.x > goalLineX(t) - NOVICE.shootFrom) {
+      shooting = rng.int(NOVICE.windUp[0] as number, NOVICE.windUp[1] as number);
+      input.shoot = true;
+    }
+    held = input;
+    return input;
+  };
+}
+
+/** Who sits in the person's seat for a measurement: the script, a newcomer, or nobody touching the controls. */
+export type Stand = 'script' | 'novice' | 'idle';
+
+export function standIn(who: Stand, t: Tuning, seed: string): (world: World) => InputFrame {
+  if (who === 'novice') return createNovicePlayer(t, seed);
+  if (who === 'idle') return () => NO_INPUT;
+  return createNaivePlayer(t);
 }
 
 /** Plays one game with the naive player on team 0 against the AI on team 1. */
