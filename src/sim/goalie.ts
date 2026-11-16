@@ -22,11 +22,9 @@ export function goalieHelped(g: Player, world: World, t: Tuning): boolean {
 function perceived(g: Player, world: World, t: Tuning): { pos: Vec; vel: Vec; loose: boolean } {
   const state = g.goalie!;
   // An attacker standing in his sightline makes him slower to see where the puck has gone.
-  // A shot at the end of a passing chain reaches a goalie still moving across: he reacts a little later for each pass in it.
-  const chained = 1 + t.chain.reactionPerStep * world.puck.shotChain;
   // Helped (see above), he reads the play sooner.
   const helped = goalieHelped(g, world, t) ? 1 - t.goalieAssist.strength * (1 - t.goalieAssist.reactionScale) : 1;
-  const delaySteps = Math.round(goalieReaction(g, t) * (screened(g, world, t) ? t.tips.screenScale : 1) * chained * helped * STEPS_PER_SECOND);
+  const delaySteps = Math.round(goalieReaction(g, t) * (screened(g, world, t) ? t.tips.screenScale : 1) * helped * STEPS_PER_SECOND);
   const index = Math.max(0, state.seen.length - 1 - delaySteps);
   return state.seen[index] ?? { pos: world.puck.pos, vel: world.puck.vel, loose: world.puck.carrier === null };
 }

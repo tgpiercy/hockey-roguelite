@@ -1,6 +1,6 @@
 import { charterOpen, earnAchievements, extraPowerupChoices } from './achievements';
 import { expectationMet, nextExpectation, type Expectation } from './expectation';
-import { cleanName, nicknameFor, nicknamesOf, NICKNAME_RULES } from './temperament';
+import { cleanName, nicknameFor, nicknamesOf, NICKNAME_RULES } from './nicknames';
 import { bountyFor, bountyMet, STICKERS, UNSEEN_WEIGHT, type BountyInfo } from './bounty';
 import { isGuest, ringerOffer, withRinger, type Ringer } from './ringer';
 import type { DeadlineOffer } from './deadline';

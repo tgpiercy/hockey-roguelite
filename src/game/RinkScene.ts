@@ -1157,11 +1157,6 @@ export class RinkScene extends Phaser.Scene {
       g.strokeCircle(x, y, radius * 2.5);
       return;
     }
-    // The passing chain: a bright ring round the puck for each pass in it.
-    for (let k = 1; k <= puck.chain; k++) {
-      g.lineStyle(Math.max(1.5, z * 0.09), colour(c.charge), 0.9);
-      g.strokeCircle(x, y, radius * (1.4 + k * 0.7));
-    }
     const lift = puck.air > 0 ? radius * 1.2 : radius * 0.35;
     g.fillStyle(colour(c.shadow), 0.3);
     g.fillCircle(x + lift * 0.6, y + lift, radius * (puck.air > 0 ? 1.3 : 1));

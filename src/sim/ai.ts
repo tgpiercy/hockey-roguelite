@@ -478,25 +478,11 @@ export function think(world: World, p: Player, t: Tuning, level: AiLevel): void 
     m.wantCheck = world.rng.chance(lv.checkEagerness);
     return;
   }
-  // Forecheck, as the team is told: with the other team carrying in its own end, press with two or sit back at the blue line.
+  // Forecheck, as the team is told: with the other team carrying in its own end, they may sit back at the blue line.
   const forecheck = world.teams[p.team].tactics?.forecheck ?? 'balanced';
-  if (forecheck !== 'balanced' && pressed && pressed.team !== p.team && pressed.role === 'skater' && attackDir(p.team) * pressed.pos.x > 0 && (m.state === 'defend' || m.state === 'backcheck')) {
-    if (forecheck === 'press') {
-      const chasers = availableSkaters(world, p.team)
-        .filter((s) => humanOf(world, s.id) === null)
-        .sort((a, b) => dist(a.pos, pressed.pos) - dist(b.pos, pressed.pos) || a.id - b.id)
-        .slice(0, data.tactics.pressChasers);
-      if (chasers.some((s) => s.id === p.id)) {
-        m.follow = 'carrier';
-        m.sprint = true;
-        // The pressers go for the puck every time: that is what the press is for.
-        m.wantCheck = world.rng.chance(Math.max(lv.checkEagerness, data.tactics.pressCheck));
-        return;
-      }
-    } else {
-      goTo(m, -attackDir(p.team) * P.zoneLineX, spread(world, p) * P.retreatY);
-      return;
-    }
+  if (forecheck === 'sit' && pressed && pressed.team !== p.team && pressed.role === 'skater' && attackDir(p.team) * pressed.pos.x > 0 && (m.state === 'defend' || m.state === 'backcheck')) {
+    goTo(m, -attackDir(p.team) * P.zoneLineX, spread(world, p) * P.retreatY);
+    return;
   }
   switch (m.state) {
     case 'attack':

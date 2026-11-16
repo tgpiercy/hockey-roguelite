@@ -3,7 +3,7 @@ import data from '../data/ai.json';
 /** How a team's AI skaters are told to play in each part of the game. The skaters a person controls do as they are told by him. */
 export interface Tactics {
   /** They have the puck in their own end. */
-  forecheck: 'press' | 'balanced' | 'sit';
+  forecheck: 'balanced' | 'sit';
   /** You have the puck. */
   attack: 'balanced' | 'rush' | 'cycle' | 'crash';
   /** They have the puck in your end. */
@@ -56,7 +56,7 @@ export function readTactics(value: unknown): Tactics {
   return { forecheck: pick('forecheck'), attack: pick('attack'), defence: pick('defence') };
 }
 
-/** "Press · Cycle · Collapse". */
+/** "Sit back · Cycle · Collapse". */
 export function tacticsLine(tactics: Tactics): string {
   return TACTIC_KINDS.map((kind) => tacticInfo(kind, tactics[kind]).name).join(' · ');
 }

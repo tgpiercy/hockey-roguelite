@@ -1,4 +1,3 @@
-import { temperamentModifiers } from './temperament';
 import { readTactics } from '../sim/tactics';
 import leagueRules from '../data/league.json';
 import { alwaysOnModifiers, talentOf } from './playerKind';
@@ -69,8 +68,7 @@ export function dress(league: League, team: Team, options: DressOptions = {}): D
       goalie: boostedRatings(bumped(goalie.ratings as GoalieRatings, bump(goalie)), gear(goalie)),
       positions: skaters.map((p) => (p.position === 'D' ? 'D' : 'F')),
       modifiers: options.modifiers ?? [],
-      // Each skater also brings his temperament: a conditional modifier or two of his own.
-      skaterModifiers: skaters.map((p, i) => [...abilityModifiers(gear(p)), ...alwaysOnModifiers(talentOf(p)), ...(balancedLine(skaters, i < 3 ? 0 : 1) ? LINE_BONUS : []), ...temperamentModifiers(p)]),
+      skaterModifiers: skaters.map((p, i) => [...abilityModifiers(gear(p)), ...alwaysOnModifiers(talentOf(p)), ...(balancedLine(skaters, i < 3 ? 0 : 1) ? LINE_BONUS : [])]),
       skaterTalents: skaters.map((p) => (talentOf(p) ? [p.talent as string] : [])),
       goalieModifiers: abilityModifiers(gear(goalie)),
       // Every team but yours attacks in its own way; your linemates have no leaning.

@@ -29,7 +29,7 @@ describe('the settings', () => {
     for (const kind of TACTIC_KINDS) {
       expect(kindName(kind).length).toBeGreaterThan(3);
       const all = choices(kind);
-      expect(all.length).toBeGreaterThanOrEqual(3);
+      expect(all.length).toBeGreaterThanOrEqual(2);
       expect(all[0]!.id).toBe('balanced');
       for (const c of all) expect(c.describe.length).toBeGreaterThan(20);
     }
@@ -49,7 +49,9 @@ describe('the settings', () => {
   });
 
   it('stored tactics are read back; anything unknown falls back to balanced', () => {
-    expect(readTactics({ forecheck: 'press', attack: 'crash', defence: 'man' })).toEqual({ forecheck: 'press', attack: 'crash', defence: 'man' });
+    expect(readTactics({ forecheck: 'sit', attack: 'crash', defence: 'man' })).toEqual({ forecheck: 'sit', attack: 'crash', defence: 'man' });
+    // A lineup stored when there was a Press forecheck reads as balanced there.
+    expect(readTactics({ forecheck: 'press', attack: 'crash', defence: 'man' })).toEqual({ forecheck: 'balanced', attack: 'crash', defence: 'man' });
     expect(readTactics({ forecheck: 'charge', attack: 7 })).toEqual(BALANCED);
     expect(readTactics(undefined)).toEqual(BALANCED);
     expect(tacticInfo('attack', 'nonsense').id).toBe('balanced');
@@ -59,7 +61,7 @@ describe('the settings', () => {
     const league = generateLeague('tactics');
     const mine = userTeam(league);
     expect(dress(league, mine)!.setup.tactics).toBeUndefined();
-    mine.lineup.tactics = { forecheck: 'press', attack: 'cycle', defence: 'collapse' };
+    mine.lineup.tactics = { forecheck: 'sit', attack: 'cycle', defence: 'collapse' };
     expect(dress(league, mine)!.setup.tactics).toEqual(mine.lineup.tactics);
     expect(dress(league, teamOf(league, 't-04'))!.setup.tactics).toBeUndefined();
     const w = createWorld(t, 'reach', { teams: [dress(league, mine)!.setup, dress(league, teamOf(league, 't-04'))!.setup] });
@@ -84,8 +86,7 @@ describe('forecheck', () => {
   };
   const chasing = (w: World): number => [ID.home1, ID.home2, ID.home3].filter((id) => player(w, id).ai.follow === 'carrier').length;
 
-  it('press sends two after the carrier; balanced fewer; sit back none', () => {
-    expect(chasing(theirEnd({ forecheck: 'press' }))).toBe(2);
+  it('balanced sends somebody after the carrier or nobody; sit back none', () => {
     expect(chasing(theirEnd({}))).toBeLessThan(2);
     expect(chasing(theirEnd({ forecheck: 'sit' }))).toBe(0);
   });
@@ -174,19 +175,5 @@ describe('who the tactics are for', () => {
       return JSON.stringify([ID.home1, ID.home2, ID.home3].map((id) => player(w, id).ai));
     };
     expect(run(BALANCED)).toBe(run(null));
-  });
-
-  it('a skater a person controls is never one of the pressers', () => {
-    const w = createWorld(t, 'human-press');
-    w.teams[0].tactics = { ...BALANCED, forecheck: 'press' };
-    w.human!.controlled = ID.home1;
-    place(w, ID.away1, gx - 6, 2, Math.PI);
-    giveTo(w, ID.away1);
-    place(w, ID.home1, 6, 0, 0);
-    place(w, ID.home2, 0, -5, 0);
-    place(w, ID.home3, -2, 5, 0);
-    for (const id of [ID.home2, ID.home3]) plan(w, id);
-    expect(player(w, ID.home2).ai.follow).toBe('carrier');
-    expect(player(w, ID.home3).ai.follow).toBe('carrier');
   });
 });

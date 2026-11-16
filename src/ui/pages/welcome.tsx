@@ -72,7 +72,7 @@ export function welcomePages(app: AppCtx): ComponentChildren | undefined {
           ),
           tile('others', 'The opponents, and the score', 'What they get: nothing', () => undefined, {
             icon: 'report',
-            detail: `The opponents get none of this: difficulty changes only how fast they think. Nothing changes with the score behind your back. What does depend on the score is in plain sight and the same for both teams: a mascot may arrive for a team ${mascotRules.trailBy} goals down, and an artifact or a temperament says so when it works while trailing or leading. Your team-mates are also ${pct(ai.mateCheckBoost - 1)}% readier to throw a check than the other team's.`,
+            detail: `The opponents get none of this: difficulty changes only how fast they think. Nothing changes with the score behind your back. What does depend on the score is in plain sight and the same for both teams: a mascot may arrive for a team ${mascotRules.trailBy} goals down, and an artifact says so when it works while trailing or leading. Your team-mates are also ${pct(ai.mateCheckBoost - 1)}% readier to throw a check than the other team's.`,
           }),
           tile('reset', `As ${difficultyInfo(f.difficulty).name} sets them`, assistsChanged(f) ? 'Undo your changes' : 'Nothing is changed', () => after(resetAssists(f)), { icon: 'play', disabled: !assistsChanged(f) }),
           tile('back', 'Back', 'To the settings', () => go({ name: 'settings' }), { icon: 'play' }),

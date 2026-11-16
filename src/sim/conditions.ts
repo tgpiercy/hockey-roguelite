@@ -96,7 +96,7 @@ export function stepConditions(world: World, events: readonly SimEvent[], period
 }
 
 /**
- * The same for each player's own conditional modifiers (a temperament): the "when" ones follow his team's
+ * The same for each player's own conditional modifiers (nothing gives a player one today; the way is kept for content): the "when" ones follow his team's
  * situation, and an "on" one starts a timed boost for him alone when its moment comes for his team.
  */
 function stepOwnConditions(world: World, events: readonly SimEvent[], periods: number): void {

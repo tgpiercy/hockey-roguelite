@@ -1,7 +1,7 @@
 import { earnAchievements, unlockWords } from './achievements';
 import { charterInfo } from './charter';
 import staffRules from '../data/staff.json';
-import { LEGACY } from './temperament';
+import { LEGACY } from './nicknames';
 import type { SeasonSetup } from './charter';
 import { closeChronicle, rememberRetired } from './chronicle';
 import { overLimit } from './economy';

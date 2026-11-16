@@ -236,9 +236,17 @@ describe('pulling the goalie', () => {
     expect(mayPull(firstPeriod, 0, t)).toBe(false);
   });
 
-  it('an AI team behind late takes its goalie off for a fourth skater; the team ahead does not', () => {
+  it('a team with nobody playing on it never takes its goalie off, however late and however far behind', () => {
     const world = late(1);
-    const events = step(world, NO_INPUT, t);
+    for (let i = 0; i < STEPS_PER_SECOND * 3; i++) expect(step(world, NO_INPUT, t).some((e) => e.type === 'pull')).toBe(false);
+    expect(goalieOn(world, ID.homeGoalie)).toBe(true);
+    expect(skaters(world, 0)).toBe(3);
+    expect(world.teams[0].pulled).toBe(false);
+  });
+
+  it('a person behind late takes his goalie off for a fourth skater', () => {
+    const world = late(1, true);
+    const events = step(world, { ...NO_INPUT, pullGoalie: true }, t);
     expect(events).toContainEqual({ type: 'pull', team: 0, on: true });
     expect(goalieOn(world, ID.homeGoalie)).toBe(false);
     expect(skaters(world, 0)).toBe(4);
@@ -248,8 +256,8 @@ describe('pulling the goalie', () => {
   });
 
   it('the goalie is back, and the extra skater off, at the faceoff after a goal', () => {
-    const world = late(1);
-    step(world, NO_INPUT, t);
+    const world = late(1, true);
+    step(world, { ...NO_INPUT, pullGoalie: true }, t);
     // The other team scores into the empty net.
     world.puck.carrier = null;
     world.puck.pos = { x: -gx + 0.4, y: 0 };

@@ -99,7 +99,7 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index:
   const own = role === 'skater' ? (setup?.skaterModifiers?.[index] ?? []) : (setup?.goalieModifiers ?? []);
   // Only what is always on goes into his abilities; the rest comes and goes during the game (conditions.ts).
   const modifiers = plainOf([...(setup?.modifiers ?? []), ...own]);
-  // His own conditional modifiers (a temperament) stay his: the team's are kept on the team.
+  // His own conditional modifiers stay his: the team's are kept on the team.
   const fx = applyModifiers(skaterEffects(role === 'skater' ? skater : defaultSkaterRatings), modifiers);
   const goalieFx = applyModifiers(goalieEffects(goalie), modifiers);
   return {
@@ -497,9 +497,6 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
     if (speed !== null) {
       loosePuck(world);
       puck.shotBy = p.id;
-      // The passing chain goes into the shot: the goalie has less time. It is spent either way.
-      puck.shotChain = puck.chain;
-      puck.chain = 0;
       // A boss trick: the marksman's full wind-up cannot be saved.
       puck.unstoppable = woundUp && fx.unstoppableCharged > 0;
       p.pickupLock = t.puck.pickupCooldown;
@@ -544,9 +541,6 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
   }
 
   for (const p of active) if (p.role === 'goalie') recordPuck(p, world, t);
-  // A passing chain lapses if the next pass does not come soon enough.
-  puck.chainAge += dt;
-  if (puck.chain > 0 && puck.chainAge > t.chain.windowSeconds) puck.chain = 0;
   stepEnergy(world, t);
   if (game && world.phase === 'play') tickClock(world, t, events);
   stepTalents(world, t, events, dt);

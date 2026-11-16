@@ -1,5 +1,5 @@
 import seasonRules from '../data/season.json';
-import { nicknameFor, nicknamesOf, NICKNAME_RULES } from './temperament';
+import { nicknameFor, nicknamesOf, NICKNAME_RULES } from './nicknames';
 import { vowPoints } from './charter';
 import data from '../data/standings.json';
 import { book } from './ledger';

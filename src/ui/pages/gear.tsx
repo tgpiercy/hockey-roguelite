@@ -1,5 +1,4 @@
 import { progress } from '../../core/achievements';
-import { temperamentOf } from '../../core/temperament';
 import type { ComponentChildren } from 'preact';
 import { equip, levelCost, levelUp, rarityInfo, scrap, unequip, wornBy, type GearItem } from '../../core/gear';
 import { playerOf, rosterOf } from '../../core/league';
@@ -206,7 +205,6 @@ export function gearPages(app: AppCtx): ComponentChildren | undefined {
 
   if (screen.name === 'player') {
     const p = playerOf(league, screen.playerId);
-    const temper = temperamentOf(p);
     const mine = team.roster.includes(p.id);
     const worn = wornBy(f, p.id);
     const slots = p.position === 'G' ? gearData.slots.goalie : gearData.slots.skater;
@@ -256,8 +254,8 @@ export function gearPages(app: AppCtx): ComponentChildren | undefined {
             ? [
                 {
                   key: 'rename',
-                  label: <OptionCard icon="roster" name="Rename" value={p.nickname ? `${p.name}, "${p.nickname}"` : p.name} chip={temper.name} />,
-                  detail: `${temper.name}: ${temper.describe} Press to give him a new name.`,
+                  label: <OptionCard icon="roster" name="Rename" value={p.nickname ? `${p.name}, "${p.nickname}"` : p.name} />,
+                  detail: 'Press to give him a new name.',
                   onSelect: () => {
                     const typed = window.prompt('His new name', p.name);
                     if (typed !== null) after(renamePlayer(f, p.id, typed));

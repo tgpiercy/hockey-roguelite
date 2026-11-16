@@ -4,8 +4,8 @@ import { generateLeague } from '../src/core/generate';
 import { playerOf, rosterOf, userTeam } from '../src/core/league';
 import { finishSeason } from '../src/core/offseason';
 import { dressUser, newFranchise, recordGame, renamePlayer, startSeason, type Franchise } from '../src/core/season';
-import { cleanName, nicknameFor, NICKNAME_RULES, NICKNAMES, temperamentModifiers, temperamentOf, TEMPERAMENTS } from '../src/core/temperament';
-import data from '../src/data/temperaments.json';
+import { cleanName, nicknameFor, NICKNAME_RULES, NICKNAMES } from '../src/core/nicknames';
+import data from '../src/data/nicknames.json';
 import { ON, stepConditions, WHEN } from '../src/sim/conditions';
 import type { GameResult, PlayerLine } from '../src/sim/match';
 import type { Modifier } from '../src/sim/modifiers';
@@ -29,57 +29,6 @@ const atGame = (f: Franchise): void => {
   f.season.current = stops[f.season.gamesPlayed % stops.length]!.id;
   f.season.stage = 'arrived';
 };
-
-describe('temperament', () => {
-  const simStats = new Set(Object.keys(skaterEffects(defaultSkaterRatings)));
-
-  it('there are several, each with a word, a sentence, and modifiers the ice reads', () => {
-    expect(TEMPERAMENTS.length).toBeGreaterThanOrEqual(5);
-    expect(new Set(TEMPERAMENTS.map((x) => x.id)).size).toBe(TEMPERAMENTS.length);
-    for (const temper of TEMPERAMENTS) {
-      expect(temper.name.length).toBeGreaterThan(3);
-      expect(temper.describe.length).toBeGreaterThan(15);
-      expect((data.weights as Record<string, number>)[temper.id], temper.id).toBeGreaterThan(0);
-      for (const m of temper.modifiers) {
-        expect(simStats.has(m.stat), `${temper.id}: ${m.stat}`).toBe(true);
-        // Every one is conditional: a temperament never simply makes a player better.
-        expect(m.when !== undefined || m.on !== undefined, temper.id).toBe(true);
-        if (m.when !== undefined) expect(WHEN as readonly string[]).toContain(m.when);
-        if (m.on !== undefined) {
-          expect(ON as readonly string[]).toContain(m.on);
-          expect(m.seconds).toBeGreaterThan(0);
-        }
-        // Small: within about an eighth either way.
-        if (m.op === "mul") expect(Math.abs(m.value - 1)).toBeLessThanOrEqual(0.151);
-      }
-    }
-  });
-
-  it('a player always has the same one; goalies are steady; the league has a spread', () => {
-    const f = started();
-    const counts = new Map<string, number>();
-    for (const p of Object.values(f.league.players)) {
-      const temper = temperamentOf(p);
-      expect(temperamentOf(p)).toBe(temper);
-      if (p.position === 'G') expect(temper.id).toBe('steady');
-      else counts.set(temper.id, (counts.get(temper.id) ?? 0) + 1);
-    }
-    expect(counts.size).toBe(TEMPERAMENTS.length);
-    const p = Object.values(f.league.players).find((x) => x.position !== 'G' && temperamentOf(x).id !== 'steady')!;
-    expect(temperamentModifiers(p).every((m) => m.label === temperamentOf(p).name)).toBe(true);
-    // Age and ratings do not move it.
-    expect(temperamentOf({ ...p, age: p.age + 9 } as typeof p).id).toBe(temperamentOf(p).id);
-  });
-
-  it('every dressed skater carries his own into a game', () => {
-    const f = started();
-    const dressed = dressUser(f)!;
-    dressed.players.slice(0, 6).forEach((p, i) => {
-      const own = (dressed.setup.skaterModifiers?.[i] ?? []).filter((m) => m.when !== undefined || m.on !== undefined);
-      expect(own).toEqual(temperamentModifiers(p));
-    });
-  });
-});
 
 describe('a player with conditional modifiers of his own', () => {
   const team = (own: Modifier[]): TeamSetup => ({ ...uniformTeam(70), skaterModifiers: [own] });

@@ -83,7 +83,7 @@ export function ownStats(world: World, p: Player): PlayerStats {
 
 function arrive(world: World, team: 0 | 1, visit: MascotVisit, p: Player): void {
   visit.saved = { fx: p.fx, baseFx: p.baseFx, talents: p.talents, talentCooldown: p.talentCooldown, rallyPeriod: p.rallyPeriod, position: p.position, stats: p.stats, conditional: p.conditional };
-  // The mascot has no temperament: the skater's waits with the rest of him.
+  // The mascot has no conditional modifiers of his own: the skater's wait with the rest of him.
   p.conditional = [];
   p.active = [];
   p.timed = [];

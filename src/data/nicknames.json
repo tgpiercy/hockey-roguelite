@@ -1,0 +1,45 @@
+{
+  "nicknames": {
+    "hatTrick": [
+      "Hat Trick",
+      "Trigger",
+      "Three-Piece",
+      "The Finisher",
+      "Goals",
+      "Sniper",
+      "Hands",
+      "The Closer"
+    ],
+    "veteran": [
+      "Old Reliable",
+      "Iron",
+      "The Mayor",
+      "Pops",
+      "Lifer",
+      "The Landlord",
+      "Uncle",
+      "Furniture",
+      "The Deacon",
+      "Clockwork",
+      "First In",
+      "The Caretaker"
+    ],
+    "rival": [
+      "Spoiler",
+      "The Thorn",
+      "Derby Day",
+      "Big Game",
+      "Heartbreak",
+      "The Nuisance",
+      "Bad News"
+    ]
+  },
+  "nicknameRules": {
+    "hatTrickGoals": 3,
+    "veteranSeasons": 4,
+    "rivalGoals": 2
+  },
+  "legacy": {
+    "minSeasons": 3
+  }
+}

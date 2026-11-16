@@ -196,7 +196,7 @@ export interface Player extends Skater {
   fakeCooldown: number;
   /** True while the pass button is still down from the fake: it must not also pass. */
   fakePass: boolean;
-  /** His own modifiers that only count some of the time (a temperament), the ones in force now, and his own timed boosts. See conditions.ts. */
+  /** His own modifiers that only count some of the time, the ones in force now, and his own timed boosts. See conditions.ts. */
   conditional: Modifier[];
   active: Modifier[];
   timed: { on: string; modifiers: Modifier[]; secondsLeft: number }[];
@@ -230,11 +230,6 @@ export interface Puck {
   tipped: boolean;
   /** True for a shot no goalie can stop (a boss trick). */
   unstoppable: boolean;
-  /** The passing chain: completed passes in a row by one team, each soon after the last (up to a cap), and seconds since the last. */
-  chain: number;
-  chainAge: number;
-  /** The chain the shot now flying was taken with: it gives the goalie less time. */
-  shotChain: number;
 }
 
 export type SimEvent =

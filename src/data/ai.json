@@ -124,7 +124,6 @@
       "attack": "Attack",
       "defence": "Defence"
     },
-    "pressChasers": 2,
     "crashStyle": {
       "name": "Crash",
       "describe": "",
@@ -136,10 +135,6 @@
       "balanced": {
         "name": "Balanced",
         "describe": "One of yours goes after the puck in their end; the others drop back."
-      },
-      "press": {
-        "name": "Press",
-        "describe": "Two of yours chase the carrier deep in their end. Wins pucks high up the ice, but tires your line faster and leaves room behind them."
       },
       "sit": {
         "name": "Sit back",
@@ -185,7 +180,6 @@
       "longShot": 1.0,
       "dump": 0
     },
-    "pressCheck": 0.6,
     "manCheck": 1,
     "manCoverGoalSide": 0.12
   },

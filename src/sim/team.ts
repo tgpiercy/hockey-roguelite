@@ -75,9 +75,6 @@ export function givePuck(world: World, player: Player): void {
   puck.threaded = false;
   // The run of touches carries on within a team and starts again when the other team gets it.
   const last = puck.touches[puck.touches.length - 1];
-  // A turnover ends the passing chain; and whoever has it now, the last shot is over.
-  if (puck.lastTeam !== player.team) puck.chain = 0;
-  puck.shotChain = 0;
   if (puck.lastTeam !== player.team) puck.touches = [player.id];
   else if (last !== player.id) puck.touches = [...puck.touches, player.id].slice(-3);
   puck.lastTeam = player.team;

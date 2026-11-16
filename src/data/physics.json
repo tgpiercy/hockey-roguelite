@@ -253,10 +253,5 @@
   },
   "grace": {
     "seconds": 0.18
-  },
-  "chain": {
-    "max": 3,
-    "windowSeconds": 4,
-    "reactionPerStep": 0.03
   }
 }
