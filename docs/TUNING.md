@@ -1212,3 +1212,18 @@ Goalies standing on the line that halves the angle between the posts (short side
 
 Not measured: a person. Whether Pro at 27% for the script is right for the owner is for his games to say.
 
+## The subtraction round (2026-11-16)
+
+Eight systems were removed and Pucks were cut (see `docs/DECISIONS.md`). Forty seasons each, after all of it:
+
+| Difficulty | Player | First region cleared | Title | Wins of games | Pucks earned, spent, left | Shops reached, could afford something at |
+| --- | --- | --- | --- | --- | --- | --- |
+| Pro | script | 95% | 38% | 8.5 of 11.4 | 295, 118, 176 | 2.2, 1.6 |
+| Rookie | newcomer | 90% | 10% | 5.8 of 11.8 | 174, 76, 98 | 2.1, 1.0 |
+
+- Pro's title rate for the script reads 38% here against 27% before the removals. The two are within the swing of a 40-season sample of each other, and the removals that touch play (no chain, no opponents' goalie pull, no temperaments) are small; it was not measured apart which, if any, moved it.
+- "Left" overstates the surplus: the scripted shopper buys one thing it can afford and moves on. Two shops' shelves (an artifact at 150, a strike wiped at 105, powerups at 50 to 100, a report at 55, a reroll) hold several times what a season now earns, so a person has to choose.
+- The newcomer can afford something at one shop in two.
+- The money health check (`tests/club.test.ts`, 20 seasons, three styles) passes with the payroll limit gone because the careful automatic managers keep the same share-of-value prudence as their own rule. What a person does with a cap of room and no owner's limit was not measured.
+- Not re-measured after this round: Semi-Pro and All-Star seasons, the defence counts, `npm run seasons`.
+

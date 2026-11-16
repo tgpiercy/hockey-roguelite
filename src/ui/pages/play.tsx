@@ -1,3 +1,4 @@
+import { opened, OPENS_WHEN } from '../../core/opening';
 import { assistStrengths } from '../../core/assists';
 import { charterOpen } from '../../core/achievements';
 import { BACKUP_KEY } from '../safety';
@@ -54,7 +55,9 @@ export function playPages(app: AppCtx): ComponentChildren | undefined {
         message={message}
         header={
           <div class="note">
-            {points === 0
+            {!opened(f, 'setup')
+              ? `Choose the powerup you will carry all season, and start. ${OPENS_WHEN.setup}`
+              : points === 0
               ? 'No handicaps. Each one you take is worth points; every point pays more Pucks and better pack luck this season.'
               : `${points} handicap ${points === 1 ? 'point' : 'points'}: games pay ${Math.round((vowPay(plan.vows) - 1) * 100)}% more Pucks, and packs are ${Math.round((vowPackLuck(plan.vows) - 1) * 100)}% luckier, this season.`}
           </div>
@@ -75,6 +78,7 @@ export function playPages(app: AppCtx): ComponentChildren | undefined {
             detail: `${chosen.description} Yours all season on the LT button: it is never used up, and can be used again ${rules.signatureRechargeSeconds} seconds of play after it ends. This season's three: ${offer.map((id) => powerupInfo(id).name).join(', ')}. Press to change.`,
             onSelect: () => setPlan({ ...plan, signature: offer[(offer.indexOf(signature) + 1) % offer.length] as string }),
           },
+          ...(opened(f, 'setup') ? [
           { key: 'charter', wide: true, label: <OptionCard icon="charter" name="Charter" value={charter.name} chip="Press to change" />, detail: `${charter.describe} Press to change.`, onSelect: () => setPlan({ ...plan, charter: next.id }) },
           ...VOWS.map((vow): MenuItem => {
             const rank = cleanVows(plan.vows)[vow.id] ?? 0;
@@ -85,6 +89,7 @@ export function playPages(app: AppCtx): ComponentChildren | undefined {
               onSelect: () => setPlan({ ...plan, vows: nextRank(plan.vows, vow.id) }),
             };
           }),
+          ] as MenuItem[] : []),
         ]}
       />
     );

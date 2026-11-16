@@ -1,3 +1,4 @@
+import { opened } from '../../core/opening';
 import { kindName as tacticKindName, nextTactic, readTactics, TACTIC_KINDS, tacticInfo } from '../../sim/tactics';
 import { points } from '../../core/standings';
 import leagueRules from '../../data/league.json';
@@ -239,7 +240,7 @@ export function rosterPages(app: AppCtx): ComponentChildren | undefined {
           slot(1, 1),
           slot(1, 0),
           slot(1, 2),
-          ...TACTIC_KINDS.map((kind): MenuItem => {
+          ...(opened(f, 'tactics') ? TACTIC_KINDS : []).map((kind): MenuItem => {
             const plan = readTactics(team.lineup.tactics);
             return {
               key: `tactic-${kind}`,
@@ -251,7 +252,7 @@ export function rosterPages(app: AppCtx): ComponentChildren | undefined {
               },
             };
           }),
-          {
+          ...(opened(f, 'tactics') ? [{
             key: 'shift',
             wide: true,
             label: <OptionCard icon="shifts" name="Shifts" value={team.lineup.heavy === undefined ? 'Even' : `Line ${team.lineup.heavy + 1} plays more`} chip="Change" />,
@@ -262,7 +263,7 @@ export function rosterPages(app: AppCtx): ComponentChildren | undefined {
               else delete team.lineup.heavy;
               after({ ok: true, message: team.lineup.heavy === undefined ? 'Even shifts.' : `Line ${team.lineup.heavy + 1} will play more.` });
             },
-          },
+          }] as MenuItem[] : []),
           {
             key: 'goalie',
             wide: true,

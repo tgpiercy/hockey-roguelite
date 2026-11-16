@@ -1,7 +1,7 @@
 {
   "standard": "standard",
   "seasonChance": 0.3,
-  "seasonBonus": 6,
+  "seasonBonus": 4,
   "shootout": {
     "rounds": 5,
     "attemptSeconds": 9,

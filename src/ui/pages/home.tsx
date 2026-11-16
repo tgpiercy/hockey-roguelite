@@ -1,3 +1,4 @@
+import { opened } from '../../core/opening';
 import { deadlineOffers } from '../../core/deadline';
 import { backupDue, lastExport } from '../safety';
 import { EXPECTATION_RULES, expectationLine, expectationShort, nextExpectation } from '../../core/expectation';
@@ -136,7 +137,7 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
               disabled: !ready.ok,
               detail: 'A one-off game against any team. Nothing is won or lost.',
             }),
-            weeklyCard(),
+            ...(opened(f, 'weekly') ? [weeklyCard()] : []),
           ]}
         />
       );
@@ -236,7 +237,7 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
       // Once there is a season behind you, the tile says when the save has no recent copy outside the phone.
       card('settings', 'Settings', (f.history ?? []).length > 0 && backupDue(lastExport(), Date.now()) ? 'Back up your save' : 'Sound, detail, save', () => openGroup('settings')),
       card('exhibition', 'Exhibition', 'A game that does not count', () => go({ name: 'exhibition' })),
-      weeklyCard(),
+      ...(opened(f, 'weekly') ? [weeklyCard()] : []),
     ];
     const best = (players: PlayerRecord[]): PlayerRecord[] => [...players].sort((x, y) => y.overall - x.overall).slice(0, 3);
 

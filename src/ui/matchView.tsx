@@ -91,6 +91,8 @@ export interface MatchOptions {
   practice?: boolean;
   /** How long a period lasts, in seconds. Left out, what the tuning says. */
   periodSeconds?: number;
+  /** True for a club that has not opened tactics yet: the pause menu does not offer them. */
+  noTactics?: boolean;
   /** The share of each kind of help the first team's person gets (`core/assists.ts`). Not given: all of it. */
   assists?: Record<AssistKind, number>;
   /** Shown over the rink before the puck drops: the two teams' starters and these words. Left out, the game starts at once. */
@@ -101,7 +103,7 @@ export interface MatchOptions {
  * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening, practice, periodSeconds, intro, stage, assists }: MatchOptions, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening, practice, periodSeconds, intro, stage, assists, noTactics }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
   // The rink's own numbers sit on top of whatever the tuning panel holds; worked out again only when that changes.
   const where = rinkInfo(shootout ? null : rink);
@@ -198,11 +200,15 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
             if (!tuningStore.open) tuningStore.toggle();
           }}
           onEnd={() => scene.forfeit()}
-          tactics={tactics}
-          onTactics={(next) => {
-            tactics = next;
-            scene.setTactics(next);
-          }}
+          {...(noTactics
+            ? {}
+            : {
+                tactics,
+                onTactics: (next: Tactics) => {
+                  tactics = next;
+                  scene.setTactics(next);
+                },
+              })}
           onPrefs={(prefs) => {
             touchMode = prefs.touch;
             hintsOn = prefs.hints;
