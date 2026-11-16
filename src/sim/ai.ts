@@ -403,8 +403,21 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   // the person. He cannot be counted on to be there: once the carrier is over centre and the person is not
   // right on him, the nearest AI team-mate goes to the carrier as well, exactly as a presser would.
   let second: Player | null = null;
+  // On a person's team, with the carrier over the line set for it, the man furthest back holds the lane to the net
+  // first (he is chosen below, before anyone goes to the carrier): a rush should meet somebody.
+  const guardEarly = humansOn(world, p.team).length > 0 && dir * carrier.pos.x < P.guardFromX;
+  const defence = world.teams[p.team].tactics?.defence ?? 'balanced';
+  const away = dist(carrier.pos, net) || 1;
+  const k = Math.min(P.guardDepth, away * 0.6) / away;
+  const guardSpot: Vec = { x: net.x + (carrier.pos.x - net.x) * k, y: net.y + (carrier.pos.y - net.y) * k };
+  const lastMan = guardEarly && defence !== 'man' ? nearestTo(mates.filter((s) => s.id !== presser?.id), guardSpot) : null;
+  if (lastMan?.id === p.id) {
+    goTo(m, guardSpot.x, guardSpot.y, dist(p.pos, guardSpot) > P.pressureRadius);
+    m.wantCheck = world.rng.chance(lv.checkEagerness);
+    return;
+  }
   if (presser && humanOf(world, presser.id) !== null && dir * carrier.pos.x < P.matePressFromX && dist(presser.pos, carrier.pos) > P.matePressGap) {
-    second = nearestTo(mates.filter((s) => s.id !== presser.id), carrier.pos);
+    second = nearestTo(mates.filter((s) => s.id !== presser.id && s.id !== lastMan?.id), carrier.pos);
     if (second?.id === p.id) {
       m.follow = 'carrier';
       m.sprint = danger || dist(p.pos, carrier.pos) > P.pressureRadius;
@@ -412,8 +425,7 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
       return;
     }
   }
-  const free = mates.filter((s) => s.id !== presser?.id && s.id !== second?.id);
-  const defence = world.teams[p.team].tactics?.defence ?? 'balanced';
+  const free = mates.filter((s) => s.id !== presser?.id && s.id !== second?.id && s.id !== lastMan?.id);
   // Collapse: everyone but the presser packs the slot in front of the net.
   if (defence === 'collapse' && inZone(carrier.team, carrier.pos.x)) {
     goTo(m, slot.x, slot.y);
@@ -422,10 +434,8 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   }
   // With the puck in our zone, one of the others guards the slot: he stands between the carrier and the net.
   // (Man-to-man leaves the slot unguarded: everyone takes a man.)
-  if (inZone(carrier.team, carrier.pos.x) && defence !== 'man') {
-    const away = dist(carrier.pos, net) || 1;
-    const k = Math.min(P.guardDepth, away * 0.6) / away;
-    const spot: Vec = { x: net.x + (carrier.pos.x - net.x) * k, y: net.y + (carrier.pos.y - net.y) * k };
+  if (inZone(carrier.team, carrier.pos.x) && defence !== 'man' && !lastMan) {
+    const spot = guardSpot;
     const guard = nearestTo(free, spot);
     if (guard?.id === p.id) {
       goTo(m, spot.x, spot.y);

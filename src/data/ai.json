@@ -93,7 +93,7 @@
     "bodyCheckAim": 0.85,
     "netRunFromX": 6,
     "matePressFromX": 2,
-    "matePressGap": 2.5
+    "matePressGap": 2.5, "guardFromX": 0
   },
   "styles": {
     "rush": {

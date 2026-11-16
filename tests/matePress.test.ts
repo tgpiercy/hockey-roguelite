@@ -34,10 +34,25 @@ const goesToCarrier = (world: World, id: number): boolean => {
 };
 
 describe('a person cannot be everywhere: his nearest AI team-mate goes to the carrier too', () => {
-  it('with the person well off the carrier, the nearest AI team-mate presses and the other does not', () => {
+  it('with the person well off the carrier, one AI team-mate holds the lane to the net and the other presses', () => {
     const world = defending(true, P.matePressGap + 2);
-    expect(goesToCarrier(world, ID.home2)).toBe(true);
+    const pressers = [ID.home2, ID.home3].filter((id) => goesToCarrier(world, id));
+    expect(pressers).toHaveLength(1);
+    // The other is the last man back: he goes to a spot between the carrier and his own net, in the lane.
+    const holder = player(world, pressers[0] === ID.home2 ? ID.home3 : ID.home2);
+    const carrier = player(world, ID.away1);
+    expect(holder.ai.follow).toBe('point');
+    expect(holder.ai.targetX).toBeLessThan(carrier.pos.x);
+    expect(Math.abs(holder.ai.targetY)).toBeLessThan(1);
+  });
+
+  it('the last man is the one nearest the lane, whoever is nearer the carrier', () => {
+    const world = defending(true, P.matePressGap + 2);
+    // Home 3 stands in front of his net; home 2 is up beside the play.
+    place(world, ID.home3, -15.5, -0.5);
+    place(world, ID.home2, -12, 6);
     expect(goesToCarrier(world, ID.home3)).toBe(false);
+    expect(goesToCarrier(world, ID.home2)).toBe(true);
   });
 
   it('with the person right on the carrier, his team-mates leave it to him', () => {
