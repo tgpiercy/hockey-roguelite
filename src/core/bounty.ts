@@ -24,10 +24,20 @@ export function bountyInfo(id: string): BountyInfo | null {
   return BOUNTIES.find((b) => b.id === id) ?? null;
 }
 
-/** The bounty for a game, fixed by its label (the season's seed and the game's number). */
-export function bountyFor(label: string, hasPeriods: boolean): BountyInfo {
+/**
+ * The bounty for a game, fixed by its label (the season's seed and the game's number). One that counts
+ * things (shots, checks, the margin) asks for more in a longer game and fewer in a shorter one: `scale` is
+ * the game's length against the standard. Its words carry the number asked for.
+ */
+export function bountyFor(label: string, hasPeriods: boolean, scale = 1): BountyInfo {
   const pool = BOUNTIES.filter((b) => hasPeriods || !b.needsPeriods);
-  return createRng(`${label}/bounty`).pick(pool);
+  return scaledBounty(createRng(`${label}/bounty`).pick(pool), scale);
+}
+
+/** A bounty as it stands for a game of this length, with its number written into its words. */
+export function scaledBounty(bounty: BountyInfo, scale: number): BountyInfo {
+  const n = (data.scaledKinds as string[]).includes(bounty.kind) ? Math.max(1, Math.round(bounty.n * scale)) : bounty.n;
+  return { ...bounty, n, text: bounty.text.replace('{n}', String(n)) };
 }
 
 /** True if team 0 (yours) met the bounty in this game. A game given up meets nothing. */

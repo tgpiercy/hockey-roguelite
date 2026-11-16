@@ -47,7 +47,7 @@ import { canPlay, canSign, type MoveResult, deadCapFor } from '../core/roster';
 import { hiddenFreeAgents, potentialText, scoutingPoints, signPlayer } from '../core/scouting';
 import { gradePower, hire, kindName, letGo, roleOf, slotsFor, STAFF_KINDS, staffOfKind, staffSalePrice, type StaffMember } from '../core/staff';
 import { franchiseOf, fromSave, parseSave, toSave } from '../core/save';
-import { artifactInfo, artifactModifiers, bargainGames, signatureOffer, bossLossEnds, buySecondChance, buyShopArtifact, cupHeld, insuranceLeft, isCupTie, rerollPrice, rerollShop, secondChancePrice, shopArtifact, shopArtifactPrice, renamePlayer, type ArtifactInfo, gameBounty, maxStrikes, pickRinger, recipeFor, seasonRegions, setupOf, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
+import { artifactInfo, artifactModifiers, bargainGames, signatureOffer, periodSecondsOf, setPeriodSeconds, bossLossEnds, buySecondChance, buyShopArtifact, cupHeld, insuranceLeft, isCupTie, rerollPrice, rerollShop, secondChancePrice, shopArtifact, shopArtifactPrice, renamePlayer, type ArtifactInfo, gameBounty, maxStrikes, pickRinger, recipeFor, seasonRegions, setupOf, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
 import type { Stop } from '../core/seasonMap';
 import { seasonSummary } from '../core/seasonSummary';
 import { teamColour } from '../core/teamColours';
@@ -494,7 +494,7 @@ export function App() {
     setPlaying(true);
     const homeColour = jerseyColour(f);
     // A second player who has joined plays on your team in a season game.
-    playMatch({ home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: homeGame(f, season.gamesPlayed + 1), ...(game.rink ? { rink: game.rink } : {}), ...(game.rules ? { rules: game.rules } : {}), opening: pregameLine(f), forfeitNote: 'Giving the game up counts as a loss, whatever the score.', ...(joined ? { second: 0 as const } : {}) }, (result) => {
+    playMatch({ periodSeconds: periodSecondsOf(f), home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: homeGame(f, season.gamesPlayed + 1), ...(game.rink ? { rink: game.rink } : {}), ...(game.rules ? { rules: game.rules } : {}), opening: pregameLine(f), forfeitNote: 'Giving the game up counts as a loss, whatever the score.', ...(joined ? { second: 0 as const } : {}) }, (result) => {
       // A game with a second player on your team marks the season as one played together.
       if (joined) f.season.coop = true;
       showOutcome(recordGame(f, result));
@@ -2459,6 +2459,19 @@ export function App() {
             lock: locked ? 'The difficulty can only be changed between seasons.' : undefined,
             detail: difficultyInfo(f.difficulty).description,
           }),
+          tile(
+            'length',
+            'Game length',
+            `${Math.floor(periodSecondsOf(f) / 60)}:00 periods`,
+            () => {
+              const lengths = rules.periodLengths;
+              after(setPeriodSeconds(f, lengths[(lengths.indexOf(periodSecondsOf(f)) + 1) % lengths.length] as number));
+            },
+            {
+              icon: 'detail',
+              detail: `How long each of a game's three periods lasts: ${rules.periodLengths.map((x) => `${Math.floor(x / 60)}:00`).join(', ')}. Shorter games make a season quicker to play. Bounties that count things (shots, checks, the winning margin) ask for fewer in a shorter game. Everything else about the season is the same.`,
+            },
+          ),
           tile('sound', 'Sound', prefs.sound ? 'On' : 'Off', () => changePrefs({ ...prefs, sound: !prefs.sound }), {
             detail: 'Every sound is made by the game as it runs. Sound starts after your first key press or tap; with only a controller connected, tap the screen once.',
           }),
@@ -3052,7 +3065,7 @@ export function App() {
                     if (!homeTeam || !away) return;
                     setPlaying(true);
                     const homeColour = jerseyColour(f);
-                    playMatch({ home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, ...(joined ? { second: 0 as const } : {}) }, (result) => {
+                    playMatch({ periodSeconds: periodSecondsOf(f), home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, ...(joined ? { second: 0 as const } : {}) }, (result) => {
                       const next = afterTournamentGame(tourney, result.winner === 0 && !result.forfeit);
                       const over = tournamentOpponent(next) === null;
                       if (next.stage === 'won') music.sting('fanfare');
@@ -3100,7 +3113,7 @@ export function App() {
               if (!opponent || !homeTeam || !away) return;
               setPlaying(true);
               const homeColour = jerseyColour(f);
-              playMatch({ home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, practice: true, powerups: practicePowerups, forfeitNote: 'Leave the practice rink?', ...(joined ? { second: 0 as const } : {}) }, () => {
+              playMatch({ periodSeconds: periodSecondsOf(f), home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, practice: true, powerups: practicePowerups, forfeitNote: 'Leave the practice rink?', ...(joined ? { second: 0 as const } : {}) }, () => {
                 setScreen({ name: 'home' });
                 setMessage('Back from the practice rink.');
                 setPrefs(loadPrefs());
@@ -3174,7 +3187,7 @@ export function App() {
               if (!homeTeam || !away) return;
               setPlaying(true);
               const homeColour = jerseyColour(f);
-              playMatch({ home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, shootout: exShootout, ...(joined ? { second: together === 'coop' ? (0 as const) : (1 as const) } : {}) }, (result) => {
+              playMatch({ periodSeconds: periodSecondsOf(f), home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, shootout: exShootout, ...(joined ? { second: together === 'coop' ? (0 as const) : (1 as const) } : {}) }, (result) => {
                 const what = exShootout ? 'Shootout' : 'Exhibition';
                 const verdict = result.winner === 0 ? 'won' : result.winner === 1 ? 'lost' : 'tied';
                 setScreen({ name: 'home' });

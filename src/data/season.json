@@ -49,6 +49,8 @@
   ],
   "maxRating": 99,
   "artifactChoices": 3,
+  "periodLengths": [60, 120, 180],
+  "standardPeriodSeconds": 120,
   "signatureChoices": 3,
   "signatureRechargeSeconds": 45,
   "loadoutSlots": 2

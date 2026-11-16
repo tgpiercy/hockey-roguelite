@@ -2,7 +2,7 @@
   "bounties": [
     {
       "id": "winBy3",
-      "text": "Win by three or more",
+      "text": "Win by {n} or more",
       "pucks": 12,
       "kind": "winBy",
       "n": 3
@@ -23,28 +23,28 @@
     },
     {
       "id": "hits",
-      "text": "Land 8 body checks",
+      "text": "Land {n} body checks",
       "pucks": 8,
       "kind": "hits",
       "n": 8
     },
     {
       "id": "shots",
-      "text": "Take 35 shots",
+      "text": "Take {n} shots",
       "pucks": 8,
       "kind": "shots",
       "n": 35
     },
     {
       "id": "blocks",
-      "text": "Block 3 shots",
+      "text": "Block {n} shots",
       "pucks": 8,
       "kind": "blocks",
       "n": 3
     },
     {
       "id": "assists",
-      "text": "Rack up 5 assists",
+      "text": "Rack up {n} assists",
       "pucks": 10,
       "kind": "assists",
       "n": 5
@@ -88,5 +88,12 @@
     ],
     "pricierAbove": 11,
     "fee": 4
-  }
+  },
+  "scaledKinds": [
+    "winBy",
+    "hits",
+    "shots",
+    "blocks",
+    "assists"
+  ]
 }

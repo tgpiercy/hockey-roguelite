@@ -196,6 +196,8 @@ export interface PrestigeState {
 
 /** Everything that is saved: the league, the record, where the season stands, and the artifacts owned. */
 export interface Franchise {
+  /** How long a period of your games lasts, in seconds: one of season.json's periodLengths. Left out, the standard. */
+  periodSeconds?: number;
   /** Each step up to a bigger league (a prestige): the season it came after, and the league's name. */
   promotions?: { season: number; league: string }[];
   league: League;
@@ -1331,6 +1333,19 @@ export function signatureOffer(f: Franchise): string[] {
   return rng.shuffle(powerups.map((p) => p.id)).slice(0, rules.signatureChoices);
 }
 
+/** How long a period lasts in this franchise's games, in seconds. */
+export function periodSecondsOf(f: Franchise): number {
+  return rules.periodLengths.includes(f.periodSeconds ?? -1) ? (f.periodSeconds as number) : rules.standardPeriodSeconds;
+}
+
+/** Sets the length of a period. It may be changed at any time between games. */
+export function setPeriodSeconds(f: Franchise, seconds: number): ActionResult {
+  if (!rules.periodLengths.includes(seconds)) return refuse('There is no such game length.');
+  if (seconds === rules.standardPeriodSeconds) delete f.periodSeconds;
+  else f.periodSeconds = seconds;
+  return done();
+}
+
 /** True where losing to a boss ends the season: the difficulty says. */
 export function bossLossEnds(f: Franchise): boolean {
   return difficultyInfo(f.difficulty).bossLossEnds === true;
@@ -1352,7 +1367,7 @@ export function gameBounty(f: Franchise): BountyInfo | null {
   const game = plainMatchup(f);
   if (!game) return null;
   const firstTo = rinkInfo(game.rink).rules.firstTo !== undefined;
-  return bountyFor(`${f.season.seed}/${f.season.gamesPlayed}`, !firstTo);
+  return bountyFor(`${f.season.seed}/${f.season.gamesPlayed}`, !firstTo, periodSecondsOf(f) / rules.standardPeriodSeconds);
 }
 
 // ---------- loadout ----------

@@ -83,13 +83,15 @@ export interface MatchOptions {
   opening?: string;
   /** True for a practice in place of a game: endless, nothing settled. */
   practice?: boolean;
+  /** How long a period lasts, in seconds. Left out, what the tuning says. */
+  periodSeconds?: number;
 }
 
 /**
  * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening, practice }: MatchOptions, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening, practice, periodSeconds }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
   // The rink's own numbers sit on top of whatever the tuning panel holds; worked out again only when that changes.
   const where = rinkInfo(shootout ? null : rink);
@@ -99,6 +101,8 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
     if (tunedFrom !== tuningStore.tuning) {
       tunedFrom = tuningStore.tuning;
       tuned = rinkTuning(tuningStore.tuning, where);
+      // The franchise's own length of game, on a copy: the tuning panel's numbers are left as they are.
+      if (periodSeconds !== undefined && periodSeconds !== tuned.period.seconds) tuned = { ...tuned, period: { ...tuned.period, seconds: periodSeconds } };
     }
     return tuned;
   };
