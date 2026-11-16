@@ -106,7 +106,7 @@ The research report `reports/Sports game lessons and pitfalls.md` (kept on this 
 | Round | What | State |
 | --- | --- | --- |
 | First contact | Ask the difficulty and who switches on a first start; the help written down; the Wall and the Marathon out of the first region; a mercy rule; momentum not cut by a goal against; a boss loss ending the season as a handicap (the owner's choice); old saves as test fixtures; frame times in the pause menu; how each goal was scored on the summary | **Done** |
-| The hockey and the difficulty | Cover behind the play; a linemate at the net and a pass that pays; assists as named settings in steps, with each difficulty a preset of them; a tier between Rookie and Pro; the difficulties re-set against both measuring players and the owner's results | Next |
+| The hockey and the difficulty | Built: the last man back (a modest gain, not a cure); the help as settings in steps; Semi-Pro between Rookie and Pro, and Pro re-set to a title about one in four for the script; a grace for an early shot; a passing stand-in for the measurements. Found: passing already pays (55% against 17% a shot); the aim help is not what makes the solo carry-in pay. Not done: a cure for the solo carry-in; the opt-in help after a failed season. | **Done, with those two left** |
 | Subtraction and the economy | Decide, system by system, what a new player should not meet or the game should not have; make Pucks scarce; a test that tries to fleece the trade AI | |
 | Teaching | A staged first game; screens opened in order; a page of the rink's signs; hints for the basics | |
 | Presentation and practicalities | Commentary from parts; a crowd that follows the game; a game in progress kept when the page is hidden; touch as its own scheme | |

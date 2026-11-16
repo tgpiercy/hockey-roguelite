@@ -1148,3 +1148,67 @@ What it says:
 - The owner's earlier aim for Pro was a title about one season in four for the script. That aim is no longer met. Re-setting it belongs to the next round (the difficulties are to be re-set against both players and the owner's own results), and with the "One meeting" handicap as the way to ask for the old rule.
 - Rookie was not re-measured after this round; its changes are the same two, both in the player's favour.
 
+## The hockey and the difficulty round (2026-11-16)
+
+### The four difficulties, as they stand
+
+Forty seasons each (`npm run measure -- seasons --player script|novice --difficulty rookie|semipro|pro|allstar`); a sample this size swings 7 to 10 points. Every difficulty gives the help in full.
+
+| Difficulty | Opponents' level by region, playoffs | Strikes | Script: first region, title | Newcomer: first region, title |
+| --- | --- | --- | --- | --- |
+| Rookie | 0.15, 0.10, 0.15, 0.25 | 5 | 100%, 80% | 93%, 5% |
+| Semi-Pro | 0.35, 0.30, 0.35, 0.45 | 4 | 100%, 75% | 43%, 0% |
+| Pro | 0.50, 0.55, 0.65, 0.75 | 3 | 100%, 27% | 18%, 0% |
+| All-Star | 0.65, 0.80, 0.95, 1.0 | 3 | 98%, 5% (measured before this round's other changes) | 5%, 0% (measured before the first-contact round) |
+
+- Pro's easing by region was halved (`regionShift` 0, -0.1, -0.15; playoffs -0.15; it was 0, -0.2, -0.3 and -0.3). With the old easing every region of Pro was played at about level 0.5, and the script won 60% of titles once the walls left the first region. At 27% it is back at the owner's aim of about one in four.
+- Semi-Pro is `levelShift` -0.15 with Pro's old easing and one more strike.
+- For the script the step from Semi-Pro to Pro is large (75% to 27%) and the step from Rookie to Semi-Pro is small; for the newcomer it is the other way round (93%, 43%, 18%). A person is between the two.
+- All-Star was not re-measured after the last-man rule or the grace; neither should move it much.
+
+### What a person's team gives up, and the last man back
+
+`npm run measure -- defence --games 200`, a 67 team against a 70 team at level 0.5. "Open lane" is a shot with none of your skaters within 1.5 m of the line from shooter to net; "on the rush" is within 4 s of their getting the puck.
+
+| Stand-in | Rule | Goals against | Shots against | Nobody ahead of the shooter | Open lane (on the rush) |
+| --- | --- | --- | --- | --- | --- |
+| Script | before | 2.58 | 30.0 | 21.9 | 16.7 (8.4) |
+| Script | last man back | 2.66 | 29.6 | 15.1 | 14.9 (6.8) |
+| Newcomer | before | 3.48 | 37.7 | 26.7 | 22.9 (12.5) |
+| Newcomer | last man back | 3.42 | 35.3 | 17.8 | 19.0 (9.9) |
+| Nobody at the controls | before | 2.50 | 27.0 | 15.3 | 17.5 (11.6) |
+| Nobody at the controls | last man back | 2.12 | 25.3 | 11.5 | 15.8 (10.7) |
+
+Uncovered shots fall by about a third; goals against do not follow, except with nobody at the controls. A man standing in the lane four metres out does not stop the shot often enough to show. Half of the open lanes are still rushes. Kept as a modest gain; the cover is not cured.
+
+### What each step of help is worth
+
+100 games each, a 67 team against a 70 team. (The first row of aim "part" is the blend that was thrown away.)
+
+| Stand-in, level | All full | Aim part (blend, discarded) | Aim part (you choose the side) | Aim off | Goalie off | Check off | All off |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Script, 0.5: wins, goals for | 89, 6.35 | 16, 1.20 | 98, 8.02 | 86, 5.62 | 85, 6.69 | 88, 6.71 | 78, 5.38 |
+| Script, 0.8: wins, goals for | 82, 5.70 | 5, 0.73 | 91, 7.04 | 63, 4.51 | 77, 6.16 | 80, 6.12 | 50, 4.03 |
+| Newcomer, 0.3: wins, goals for | 44, 2.26 | 26, 1.50 | 52, 2.44 | 16, 1.02 | 33, 2.24 | 29, 1.83 | 9, 0.93 |
+
+- The script scores more when it picks the side itself than when the game picks the open corner: it shoots short-side from beside the post. So the aim help is not what makes the solo carry-in pay, and the difficulties were not built from the steps of help.
+- With every help off, the script still wins half its games at level 0.8.
+- For the newcomer the aim help is worth the most by far.
+
+### Passing against carrying
+
+100 games, level 0.5, all help full.
+
+| Stand-in | Goals for | Shots | One-timers: shots, goals |
+| --- | --- | --- | --- |
+| Script (never passes) | 6.33 | 36.8 | 0, 0 |
+| Passer (passes to the man at the net, shoots first-touch) | 6.35 | 17.1 | 11.0, 6.0 |
+
+A cross-ice one-timer scores on 55% of tries; a solo shot on 17%. The two plays are level only because the solo play shoots twice as often. Passing is not unrewarded for a person, whatever the all-AI measurement of the chain said.
+
+### Tried and taken out
+
+Goalies standing on the line that halves the angle between the posts (short side first): the script went from 6.35 goals a game to 9.42 with the help at full (the far side opened), and all-AI games from about 3 goals a team to 4.8 and 5.3, save percentage 0.724. Reverted.
+
+Not measured: a person. Whether Pro at 27% for the script is right for the owner is for his games to say.
+
