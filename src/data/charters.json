@@ -124,6 +124,42 @@
           "value": -1
         }
       ]
+    },
+    {
+      "id": "suddenDeath",
+      "name": "Sudden death",
+      "describe": "Two fewer strikes before the season is over, and every win pays half as much again. Opened by winning a title without a strike.",
+      "locked": true,
+      "modifiers": [
+        {
+          "stat": "maxStrikes",
+          "op": "add",
+          "value": -2
+        },
+        {
+          "stat": "currencyGain",
+          "op": "mul",
+          "value": 1.5
+        }
+      ]
+    },
+    {
+      "id": "allComers",
+      "name": "All comers",
+      "describe": "Every opponent is two rating points better, and you choose from one more artifact every time. Opened by beating six boss clubs.",
+      "locked": true,
+      "modifiers": [
+        {
+          "stat": "opponentRating",
+          "op": "add",
+          "value": 2
+        },
+        {
+          "stat": "artifactChoices",
+          "op": "add",
+          "value": 1
+        }
+      ]
     }
   ],
   "vows": [

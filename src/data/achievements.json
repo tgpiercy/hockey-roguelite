@@ -1,0 +1,130 @@
+{
+  "achievements": [
+    {
+      "id": "champions",
+      "name": "Champions",
+      "text": "Win a title.",
+      "kind": "titles",
+      "n": 1,
+      "unlock": {
+        "kind": "jersey",
+        "name": "Old gold",
+        "colour": "#c9a227"
+      }
+    },
+    {
+      "id": "dynasty",
+      "name": "Dynasty",
+      "text": "Win three titles.",
+      "kind": "titles",
+      "n": 3,
+      "unlock": {
+        "kind": "jersey",
+        "name": "Midnight",
+        "colour": "#15171c"
+      }
+    },
+    {
+      "id": "cup-holders",
+      "name": "Cup holders",
+      "text": "Win the cup.",
+      "kind": "cups",
+      "n": 1,
+      "unlock": {
+        "kind": "jersey",
+        "name": "Silver",
+        "colour": "#8a96a3"
+      }
+    },
+    {
+      "id": "spotless",
+      "name": "Spotless",
+      "text": "Win a title without a single strike.",
+      "kind": "cleanTitle",
+      "n": 1,
+      "unlock": {
+        "kind": "charter",
+        "id": "suddenDeath"
+      }
+    },
+    {
+      "id": "hard-way",
+      "name": "The hard way",
+      "text": "Win a title with three or more handicap points.",
+      "kind": "handicapTitle",
+      "n": 3,
+      "unlock": {
+        "kind": "powerupChoice"
+      }
+    },
+    {
+      "id": "together",
+      "name": "Better together",
+      "text": "Win a title in a season played with a second player.",
+      "kind": "coopTitle",
+      "n": 1,
+      "unlock": {
+        "kind": "jersey",
+        "name": "Sky",
+        "colour": "#4a9fd8"
+      }
+    },
+    {
+      "id": "giant-killers",
+      "name": "Giant-killers",
+      "text": "Beat six different boss clubs.",
+      "kind": "bosses",
+      "n": 6,
+      "unlock": {
+        "kind": "charter",
+        "id": "allComers"
+      }
+    },
+    {
+      "id": "every-one",
+      "name": "Every one of them",
+      "text": "Beat all twelve boss clubs.",
+      "kind": "bosses",
+      "n": 12,
+      "unlock": {
+        "kind": "jersey",
+        "name": "Crimson",
+        "colour": "#a4161a"
+      }
+    },
+    {
+      "id": "collector",
+      "name": "Collector",
+      "text": "Hold thirty different artifacts over your seasons.",
+      "kind": "found",
+      "n": 30,
+      "unlock": {
+        "kind": "powerupChoice"
+      }
+    },
+    {
+      "id": "hundred-club",
+      "name": "Hundred club",
+      "text": "Have a player score a hundred goals for you.",
+      "kind": "careerGoals",
+      "n": 100,
+      "unlock": {
+        "kind": "jersey",
+        "name": "Emerald",
+        "colour": "#1f8a5b"
+      }
+    },
+    {
+      "id": "household-names",
+      "name": "Household names",
+      "text": "Have four players on your roster who have earned nicknames.",
+      "kind": "nicknames",
+      "n": 4,
+      "unlock": {
+        "kind": "jersey",
+        "name": "Plum",
+        "colour": "#6d2e6b"
+      }
+    }
+  ]
+}

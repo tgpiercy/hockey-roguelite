@@ -1,3 +1,5 @@
+import { earnAchievements, unlockWords } from './achievements';
+import { charterInfo } from './charter';
 import staffRules from '../data/staff.json';
 import { LEGACY } from './temperament';
 import type { SeasonSetup } from './charter';
@@ -105,6 +107,8 @@ export function finishSeason(f: Franchise): ActionResult {
 
   // The season's awards, its place in the club's history, and next season's rivals.
   report.news.push(...closeChronicle(f, beforeAll));
+  // Feats that the season just written into the history completes.
+  for (const feat of earnAchievements(f)) report.news.push(`Your club: a feat is done, ${feat.name}. It opens ${unlockWords(feat, (id) => charterInfo(id).name)}.`);
 
   // 3. Retirements.
   const legacies: PlayerRecord[] = [];

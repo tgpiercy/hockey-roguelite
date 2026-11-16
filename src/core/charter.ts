@@ -28,6 +28,8 @@ export interface CharterInfo {
   /** Written per goal as a rate (0.01 is 1% more): what each goal by one of your defencemen adds, up to the cap. */
   perDefenceGoal?: Modifier[];
   defenceGoalCap?: number;
+  /** True for a charter that a feat must open first (achievements.ts). */
+  locked?: boolean;
 }
 
 export interface VowInfo {
@@ -130,7 +132,8 @@ export function setupLine(setup: SeasonSetup): string {
 export function weeklySetup(key: string): Required<Pick<SeasonSetup, 'charter' | 'vows'>> {
   const rng = createRng(`weekly/${key}/setup`);
   // The short season is left out: the weekly run is short already.
-  const charter = rng.pick(CHARTERS.filter((c) => c.id !== STANDARD_CHARTER && c.regions === undefined)).id;
+  // (Nor are the ones a feat opens: the weekly run is the same for everyone.)
+  const charter = rng.pick(CHARTERS.filter((c) => c.id !== STANDARD_CHARTER && c.regions === undefined && !c.locked)).id;
   const vows: Record<string, number> = {};
   for (const vow of rng.shuffle([...VOWS]).slice(0, data.weekly.vows)) vows[vow.id] = 1;
   return { charter, vows };

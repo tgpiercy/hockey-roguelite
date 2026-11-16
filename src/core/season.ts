@@ -1,3 +1,4 @@
+import { charterOpen, earnAchievements, extraPowerupChoices } from './achievements';
 import { expectationMet, nextExpectation, type Expectation } from './expectation';
 import { cleanName, nicknameFor, nicknamesOf, NICKNAME_RULES } from './temperament';
 import { bountyFor, bountyMet, STICKERS, UNSEEN_WEIGHT, type BountyInfo } from './bounty';
@@ -196,6 +197,9 @@ export interface PrestigeState {
 
 /** Everything that is saved: the league, the record, where the season stands, and the artifacts owned. */
 export interface Franchise {
+  /** Feats done (achievements.ts), by id, and the boss clubs beaten at least once. */
+  feats?: string[];
+  bossesBeaten?: string[];
   /** How long a period of your games lasts, in seconds: one of season.json's periodLengths. Left out, the standard. */
   periodSeconds?: number;
   /** Each step up to a bigger league (a prestige): the season it came after, and the league's name. */
@@ -573,7 +577,8 @@ export function startSeason(f: Franchise, setup: SeasonSetup & { regions?: numbe
   season.phase = 'map';
   season.seed = `${f.league.seed}/season-${f.league.season}`;
   // The set-up first: the map and everything after may depend on it.
-  const charter = charterInfo(setup.charter);
+  // A charter that a feat must open is the standard one until it has.
+  const charter = charterInfo(setup.charter && charterOpen(f, setup.charter) ? setup.charter : undefined);
   if (charter.id !== STANDARD_CHARTER) season.charter = charter.id;
   const vows = cleanVows(setup.vows);
   if (Object.keys(vows).length > 0) season.vows = vows;
@@ -972,6 +977,8 @@ export function recordGame(f: Franchise, result: GameResult, played = true): Gam
   const millions = (Math.abs(net) / 1_000_000).toFixed(2);
   let message = `${result.forfeit ? 'You forfeit the game. ' : ''}${outcome.message} Cash ${net >= 0 ? '+' : '-'}$${millions}M.`;
   for (const line of named) message += ` ${line}`;
+  // Feats done by this game.
+  for (const feat of earnAchievements(f)) message += ` Feat: ${feat.name}.`;
   if (bounty) message += met ? ` Bounty met (${bounty.text.toLowerCase()}): ${bountyPay} more Pucks.` : ` Bounty missed (${bounty.text.toLowerCase()}).`;
   const pack = packForWin(result, game.kind === 'boss');
   if (pack) {
@@ -1112,6 +1119,9 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
       return done(`The boss beats you. Strike ${season.strikes} of ${maxStrikes(f)}. You must play the boss again.`);
     }
     const amount = pay(rules.bossCurrency);
+    // Each boss club beaten is remembered, once.
+    const beatenId = currentStop(f)?.bossId;
+    if (beatenId && !(f.bossesBeaten ?? []).includes(beatenId)) f.bossesBeaten = [...(f.bossesBeaten ?? []), beatenId];
     delete season.scouted;
     // Beating a boss wipes a strike.
     const healed = Math.min(season.strikes, rules.bossHealsStrikes);
@@ -1330,7 +1340,8 @@ export function rerollShop(f: Franchise): ActionResult {
  */
 export function signatureOffer(f: Franchise): string[] {
   const rng = createRng(`${f.league.seed}/season-${f.league.season}/signature`);
-  return rng.shuffle(powerups.map((p) => p.id)).slice(0, rules.signatureChoices);
+  // A feat may add to the choice.
+  return rng.shuffle(powerups.map((p) => p.id)).slice(0, rules.signatureChoices + extraPowerupChoices(f));
 }
 
 /** How long a period lasts in this franchise's games, in seconds. */

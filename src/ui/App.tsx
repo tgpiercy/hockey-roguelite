@@ -1,3 +1,4 @@
+import { achieved, ACHIEVEMENTS, charterOpen, progress, unlockWords } from '../core/achievements';
 import { currentScreenPlan, goFullscreen } from './fullscreen';
 import { BACKUP_KEY, backupDue, backupWords, lastExport, noteExported, storageProtected } from './safety';
 import { rumble } from '../game/rumble';
@@ -123,6 +124,7 @@ type Screen =
   | { name: 'mascot' }
   | { name: 'setup' }
   | { name: 'found' }
+  | { name: 'feats' }
   | { name: 'team' }
   | { name: 'office' }
   | { name: 'collection' }
@@ -2383,6 +2385,32 @@ export function App() {
     );
   }
 
+  if (screen.name === 'feats') {
+    return (
+      <Menu
+        key={screenKey}
+        title="Feats"
+        header={<div class="note">{(f.feats ?? []).length} of {ACHIEVEMENTS.length} done. A feat is done once and what it opens stays open, whatever happens to the club after.</div>}
+        onBack={() => go({ name: 'collection' })}
+        help="B back"
+        items={ACHIEVEMENTS.map((a): MenuItem => {
+          const done = achieved(f, a.id);
+          const at = progress(f, a);
+          return {
+            key: a.id,
+            label: (
+              <span class={`found-row${done ? '' : ' unfound'}`}>
+                <OptionCard icon={a.unlock.kind === 'jersey' ? 'jersey' : a.unlock.kind === 'charter' ? 'charter' : 'powerups'} name={a.name} value={a.text} {...(a.n > 1 ? { pips: { filled: Math.round((at / a.n) * Math.min(a.n, 6)), total: Math.min(a.n, 6) } } : {})} />
+                {done && <i class="found-mark">Done</i>}
+              </span>
+            ),
+            detail: `${a.text} Opens ${unlockWords(a, (id) => charterInfo(id).name)}.${done ? ' Done.' : a.n > 1 ? ` So far: ${at} of ${a.n}.` : ''}`,
+          };
+        })}
+      />
+    );
+  }
+
   if (screen.name === 'found') {
     const seen = new Set(f.seen?.artifacts ?? []);
     const events = (f.seen?.events ?? []).length;
@@ -2439,6 +2467,10 @@ export function App() {
               ]
             : []),
           tile('artifacts', 'Artifacts', `${f.artifacts.length} held this season`, () => go({ name: 'artifacts' }), { detail: 'The artifacts you hold this season.' }),
+          tile('feats', 'Feats', `${(f.feats ?? []).length} of ${ACHIEVEMENTS.length} done`, () => go({ name: 'feats' }), {
+            icon: 'prestige',
+            detail: 'Things done once in the life of your club. Each opens something for good: a jersey, a charter, or a wider choice of powerup.',
+          }),
           tile('found', 'Found so far', `${(f.seen?.artifacts ?? []).length} of ${everyArtifact.length} artifacts`, () => go({ name: 'found' }), {
             icon: 'artifacts',
             detail: 'Every artifact there is, found or not, and the hardest title you have won while holding each.',
@@ -2995,7 +3027,8 @@ export function App() {
   if (screen.name === 'setup') {
     const charter = charterInfo(plan.charter);
     const points = vowPoints(plan.vows);
-    const next = CHARTERS[(CHARTERS.findIndex((c) => c.id === charter.id) + 1) % CHARTERS.length] as (typeof CHARTERS)[number];
+    const open = CHARTERS.filter((c) => charterOpen(f, c.id));
+    const next = open[(open.findIndex((c) => c.id === charter.id) + 1) % open.length] as (typeof CHARTERS)[number];
     // The season's own powerup: one of three drawn for this season, the first until another is chosen.
     const offer = signatureOffer(f);
     const signature = plan.signature && offer.includes(plan.signature) ? plan.signature : (offer[0] as string);

@@ -1,3 +1,4 @@
+import { featJerseys } from './achievements';
 import { userTeam } from './league';
 import { teamColour } from './teamColours';
 import rules from '../data/prestige.json';
@@ -13,7 +14,8 @@ export interface Jersey {
 export function unlockedJerseys(f: Franchise): Jersey[] {
   // The first is the club's own colour, worked out from its name as every other team's is.
   const club: Jersey = { name: 'Club colours', colour: teamColour(userTeam(f.league).name) };
-  return [club, ...rules.jerseys.slice(1, Math.min(rules.jerseys.length, f.prestige.level + 1))];
+  // Then one for each prestige level, then the ones feats have opened.
+  return [club, ...rules.jerseys.slice(1, Math.min(rules.jerseys.length, f.prestige.level + 1)), ...featJerseys(f)];
 }
 
 /** The colour the team wears on the ice. */
