@@ -205,6 +205,8 @@ export interface Franchise {
   bossesBeaten?: string[];
   /** How long a period of your games lasts, in seconds: one of season.json's periodLengths. Left out, the standard. */
   periodSeconds?: number;
+  /** The help set away from what the difficulty gives, by kind (`assists.ts`). Left out: all as the difficulty sets it. */
+  assists?: Partial<Record<'aim' | 'pass' | 'check' | 'goalie', string>>;
   /** Each step up to a bigger league (a prestige): the season it came after, and the league's name. */
   promotions?: { season: number; league: string }[];
   league: League;
@@ -342,6 +344,8 @@ export interface DifficultyInfo {
   levelShift: number;
   /** A few words for a list; the description says it in full. */
   short?: string;
+  /** The step each kind of help is set to on this difficulty; a kind left out is at full. */
+  assists?: Partial<Record<'aim' | 'pass' | 'check' | 'goalie', string>>;
   description: string;
   /** Added to the opponents' AI level in each region, and in the playoffs, on top of `levelShift`. Left out, nothing. */
   regionShift?: number[];
@@ -362,6 +366,8 @@ export function setDifficulty(f: Franchise, id: string): ActionResult {
   if (f.season.phase !== 'offseason') return refuse('The difficulty can only be changed between seasons.');
   if (!DIFFICULTIES.some((d) => d.id === id)) return refuse('There is no such difficulty.');
   f.difficulty = id;
+  // The help goes back to what the new difficulty gives.
+  delete f.assists;
   return done(`Difficulty set to ${difficultyInfo(id).name}.`);
 }
 

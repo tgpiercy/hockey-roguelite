@@ -251,6 +251,9 @@
     "keepSpeed": 0.08,
     "minCarrierDistance": 3
   },
+  "grace": {
+    "seconds": 0.18
+  },
   "chain": {
     "max": 3,
     "windowSeconds": 4,

@@ -1,3 +1,4 @@
+import { assistStrengths } from '../core/assists';
 import { seasonRegions } from '../core/season';
 import { progress } from '../core/achievements';
 import { storageProtected } from './safety';
@@ -330,7 +331,7 @@ function useApp() {
     // A boss is introduced before the puck drops: his club, his man, and what they do.
     const bossStop = game.kind === 'boss' ? currentStop(f) : null;
     const boss = bossStop?.bossId ? bossInfo(bossStop.bossId) : null;
-    playMatch({ ...(boss ? { intro: { title: boss.name, person: `${boss.person.name}, ${boss.person.role}`, lines: [boss.club, boss.trick] } } : {}), periodSeconds: periodSecondsOf(f), stage: season.phase === 'playoffs' ? seasonRegions(f) : (currentStop(f)?.region ?? 0), home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: homeGame(f, season.gamesPlayed + 1), ...(game.rink ? { rink: game.rink } : {}), ...(game.rules ? { rules: game.rules } : {}), opening: pregameLine(f), forfeitNote: 'Giving the game up counts as a loss, whatever the score.', ...(joined ? { second: 0 as const } : {}) }, (result) => {
+    playMatch({ ...(boss ? { intro: { title: boss.name, person: `${boss.person.name}, ${boss.person.role}`, lines: [boss.club, boss.trick] } } : {}), periodSeconds: periodSecondsOf(f), assists: assistStrengths(f), stage: season.phase === 'playoffs' ? seasonRegions(f) : (currentStop(f)?.region ?? 0), home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: homeGame(f, season.gamesPlayed + 1), ...(game.rink ? { rink: game.rink } : {}), ...(game.rules ? { rules: game.rules } : {}), opening: pregameLine(f), forfeitNote: 'Giving the game up counts as a loss, whatever the score.', ...(joined ? { second: 0 as const } : {}) }, (result) => {
       // A game with a second player on your team marks the season as one played together.
       if (joined) f.season.coop = true;
       showOutcome(recordGame(f, result));

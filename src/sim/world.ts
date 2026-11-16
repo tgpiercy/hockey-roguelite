@@ -463,6 +463,20 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
     const hadPuck = puck.carrier === p.id;
     stepDeke(world, p, hadPuck, input, t, events);
     input = stepFake(world, p, hadPuck, input, t, events, dt);
+    // A person who lets go of shoot a moment before a pass reaches his team is not punished for being early:
+    // it counts when the puck arrives, on whichever skater he then controls.
+    const person = humanOf(world, p.id);
+    if (person) {
+      const incoming = puck.carrier === null && puck.passTarget !== null && world.players[puck.passTarget]?.team === person.team;
+      if (person.shootDown && !input.shoot && !hadPuck && incoming) person.earlyShoot = t.grace.seconds;
+      person.shootDown = input.shoot;
+      if ((person.earlyShoot ?? 0) > 0) {
+        if (hadPuck && !input.shoot) {
+          p.shootHeld = true;
+          person.earlyShoot = 0;
+        } else person.earlyShoot = Math.max(0, (person.earlyShoot ?? 0) - dt);
+      }
+    }
     // A pass that arrived with shoot already held goes first-touch: treated as the button being let go now.
     const firstTouch = hadPuck && p.oneTimerArmed && input.shoot;
     p.oneTimerArmed = false;
@@ -477,7 +491,7 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
     const oneTimer = p.oneTimer > 0;
     const woundUp = chargeFraction(p.charge, t) >= 1;
     // The human's shots also stray less: part of the aim assist.
-    const steady = assist && t.aimAssist.strength > 0 ? { spreadScale: t.aimAssist.spreadScale } : {};
+    const steady = assist && t.aimAssist.strength > 0 ? { spreadScale: 1 - Math.min(1, t.aimAssist.strength) * (1 - t.aimAssist.spreadScale) } : {};
     const params = oneTimer ? { ...fx, ...steady, oneTimer: fx.oneTimerScale * t.shot.oneTimerPower } : { ...fx, ...steady };
     const speed = stepShooting(p, hadPuck, puck, input, params, t, world.rng, dt, assist);
     if (speed !== null) {

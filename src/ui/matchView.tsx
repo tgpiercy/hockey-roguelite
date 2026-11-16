@@ -1,3 +1,4 @@
+import { assistTuning, type AssistKind } from '../core/assists';
 import { venueFor } from '../game/venue';
 import { readGamepad } from '../game/gamepad';
 import { MatchIntro, type IntroWords } from './MatchIntro';
@@ -90,6 +91,8 @@ export interface MatchOptions {
   practice?: boolean;
   /** How long a period lasts, in seconds. Left out, what the tuning says. */
   periodSeconds?: number;
+  /** The share of each kind of help the first team's person gets (`core/assists.ts`). Not given: all of it. */
+  assists?: Record<AssistKind, number>;
   /** Shown over the rink before the puck drops: the two teams' starters and these words. Left out, the game starts at once. */
   intro?: IntroWords;
 }
@@ -98,7 +101,7 @@ export interface MatchOptions {
  * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening, practice, periodSeconds, intro, stage }: MatchOptions, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening, practice, periodSeconds, intro, stage, assists }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
   // The rink's own numbers sit on top of whatever the tuning panel holds; worked out again only when that changes.
   const where = rinkInfo(shootout ? null : rink);
@@ -110,6 +113,8 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       tuned = rinkTuning(tuningStore.tuning, where);
       // The franchise's own length of game, on a copy: the tuning panel's numbers are left as they are.
       if (periodSeconds !== undefined && periodSeconds !== tuned.period.seconds) tuned = { ...tuned, period: { ...tuned.period, seconds: periodSeconds } };
+      // The help as this franchise has it set, as shares of what the tuning gives in full.
+      if (assists) tuned = assistTuning(tuned, assists);
     }
     return tuned;
   };

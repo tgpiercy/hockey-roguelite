@@ -273,6 +273,10 @@ export interface Human {
     giveGo: { passer: number; receiver: number; left: number } | null;
     /** True if control stays on his skater until he presses switch: it does not follow the puck to a team-mate. */
     hold?: boolean;
+    /** Whether shoot was down on the previous step, whoever he controlled. */
+    shootDown?: boolean;
+    /** Seconds left in which a shoot button let go just before a pass arrived still counts when it does. */
+    earlyShoot?: number;
 }
 
 export interface World {

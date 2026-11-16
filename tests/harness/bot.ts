@@ -110,11 +110,95 @@ export function createNovicePlayer(t: Tuning, seed: string): (world: World) => I
   };
 }
 
-/** Who sits in the person's seat for a measurement: the script, a newcomer, or nobody touching the controls. */
-export type Stand = 'script' | 'novice' | 'idle';
+/** How the passing player differs from the script: where it looks for the pass and when it gives up and shoots. */
+export const PASSER = {
+  /** It looks for a pass once this near the goal line, and shoots by itself this near if nobody is there. */
+  lookFrom: 13,
+  shootFrom: 6,
+  /** A team-mate counts as "at the net" within this distance of it, and across the ice by at least this much. */
+  mateRange: 8,
+  mateAcross: 2,
+  /** Steps the pass button is held, and steps shoot is held on the one-timer before it is let go. */
+  passSteps: 2,
+  shotSteps: 3,
+};
+
+/**
+ * A stand-in that plays the pass: it carries in like the script, but with a team-mate in front of the net and
+ * across the ice it passes to him and shoots first-touch. With nobody there it shoots as the script does.
+ * It measures whether passing pays against carrying in alone.
+ */
+export function createPasserPlayer(t: Tuning, reactionSeconds = 0.25): (world: World) => InputFrame {
+  let shootSteps = 0;
+  let passing = 0;
+  let firing = 0;
+  return (world: World): InputFrame => {
+    const input: InputFrame = { ...NO_INPUT };
+    if (world.phase === 'faceoff') {
+      const f = world.faceoff;
+      input.pass = f !== null && f.dropped && f.sinceDrop >= reactionSeconds && f.sinceDrop < reactionSeconds + 0.1;
+      return input;
+    }
+    const me = world.human ? world.players[world.human.controlled] : undefined;
+    if (!me || world.phase !== 'play') return input;
+    const mine = world.puck.carrier === me.id;
+    const gx = goalLineX(t);
+    const corner = (me.pos.y > 0 ? -1 : 1) * (t.net.mouthWidth / 2 - 0.3);
+
+    // Just received a pass: fire it first-touch at the far corner.
+    if (mine && me.oneTimer > 0) {
+      const dx = gx - me.pos.x;
+      const dy = corner - me.pos.y;
+      const d = Math.hypot(dx, dy) || 1;
+      input.moveX = dx / d;
+      input.moveY = dy / d;
+      firing += 1;
+      input.shoot = firing <= PASSER.shotSteps;
+      return input;
+    }
+    firing = 0;
+
+    const targetX = mine ? gx : world.puck.pos.x;
+    const targetY = mine ? (me.pos.y > 0 ? 1 : -1) * (t.net.mouthWidth / 2 - 0.3) : world.puck.pos.y;
+    const dx = targetX - me.pos.x;
+    const dy = targetY - me.pos.y;
+    const d = Math.hypot(dx, dy) || 1;
+    input.moveX = dx / d;
+    input.moveY = dy / d;
+
+    if (mine && me.pos.x > gx - PASSER.lookFrom) {
+      const mate = world.players.find((o) => o.team === me.team && o.role === 'skater' && o.onIce && o.id !== me.id && Math.hypot(gx - o.pos.x, o.pos.y) <= PASSER.mateRange && o.pos.x < gx - 1 && Math.abs(o.pos.y - me.pos.y) >= PASSER.mateAcross);
+      if (mate && shootSteps === 0) {
+        const mx = mate.pos.x - me.pos.x;
+        const my = mate.pos.y - me.pos.y;
+        const md = Math.hypot(mx, my) || 1;
+        input.moveX = mx / md;
+        input.moveY = my / md;
+        passing += 1;
+        input.pass = passing <= PASSER.passSteps;
+        if (passing > PASSER.passSteps + 2) passing = 0;
+        return input;
+      }
+      passing = 0;
+      if (me.pos.x > gx - PASSER.shootFrom || shootSteps > 0) {
+        shootSteps += 1;
+        input.shoot = shootSteps < 20;
+        if (shootSteps >= 20) shootSteps = 0;
+      }
+    } else {
+      shootSteps = 0;
+      passing = 0;
+    }
+    return input;
+  };
+}
+
+/** Who sits in the person's seat for a measurement: the script, a newcomer, one who plays the pass, or nobody touching the controls. */
+export type Stand = 'script' | 'novice' | 'passer' | 'idle';
 
 export function standIn(who: Stand, t: Tuning, seed: string): (world: World) => InputFrame {
   if (who === 'novice') return createNovicePlayer(t, seed);
+  if (who === 'passer') return createPasserPlayer(t);
   if (who === 'idle') return () => NO_INPUT;
   return createNaivePlayer(t);
 }

@@ -1,3 +1,4 @@
+import { assistLine } from '../../core/assists';
 import seasonRules from '../../data/season.json';
 import { progress } from '../../core/achievements';
 import { currentScreenPlan, goFullscreen } from '../fullscreen';
@@ -78,9 +79,9 @@ export function settingsPages(app: AppCtx): ComponentChildren {
             icon: 'sound',
             detail: 'Short lines for the big plays during a game. Text shows them on the rink; Text and voice also reads them aloud with this device\'s own voice, which differs from phone to phone.',
           }),
-          tile('assists', 'How you are helped', 'What the game does for your team', () => go({ name: 'assists' }), {
+          tile('assists', 'How you are helped', assistLine(f), () => go({ name: 'assists' }), {
             icon: 'target',
-            detail: 'A plain list of the help your shots, passes, checks, team-mates and goalie are given, and what the opponents are not.',
+            detail: 'The help your shots, passes, checks and goalie are given, each of which you can turn down or off, and what the opponents are not given.',
           }),
           tile('switching', 'Player switching', prefs.holdSwitch ? 'Hold' : 'Automatic', () => changePrefs({ ...prefs, holdSwitch: !prefs.holdSwitch }), {
             detail: 'Automatic: you always control whoever of yours has the puck. Hold: you keep your skater until you press switch, and a team-mate who gets the puck plays it himself.',

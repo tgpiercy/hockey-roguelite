@@ -14,9 +14,23 @@
   "defaultDifficulty": 0.75,
   "difficulties": [
     { "id": "rookie", "name": "Rookie", "short": "Slower opponents, two more strikes", "levelShift": -0.35, "regionShift": [0, -0.2, -0.3], "playoffShift": -0.3, "extraStrikes": 2, "description": "Opponents think more slowly and make more mistakes, more so as the season goes on, and you have two more strikes. Only their thinking changes: their ratings, the physics and your own team are the same on every setting, and it never changes with the score." },
-    { "id": "pro", "name": "Pro", "short": "The standard game", "levelShift": 0, "regionShift": [0, -0.2, -0.3], "playoffShift": -0.3, "description": "The standard game. Later opponents are stronger teams, and think a little more slowly to make up for it. Difficulty only ever changes how well opponents think: never their ratings, the physics or your own team, and it never changes with the score." },
+    { "id": "semipro", "name": "Semi-Pro", "short": "A step up from Rookie", "levelShift": -0.15, "regionShift": [0, -0.2, -0.3], "playoffShift": -0.3, "extraStrikes": 1, "description": "Opponents think a little more slowly than on Pro, and you have one more strike. Later opponents are stronger teams, and think more slowly to make up for it. Difficulty only ever changes how well opponents think: never their ratings, the physics or your own team, and it never changes with the score." },
+    { "id": "pro", "name": "Pro", "short": "The standard game", "levelShift": 0, "regionShift": [0, -0.1, -0.15], "playoffShift": -0.15, "description": "The standard game. Later opponents are stronger teams, and think a little more slowly to make up for it. Difficulty only ever changes how well opponents think: never their ratings, the physics or your own team, and it never changes with the score." },
     { "id": "allstar", "name": "All-Star", "short": "Faster opponents, fewer mistakes", "levelShift": 0.15, "description": "Opponents think faster and make fewer mistakes. Only their thinking changes: their ratings, the physics and your own team are the same on every setting, and it never changes with the score." }
   ],
+  "assists": {
+    "steps": [
+      { "id": "full", "name": "Full", "strength": 1 },
+      { "id": "part", "name": "Part", "strength": 0.5 },
+      { "id": "off", "name": "Off", "strength": 0 }
+    ],
+    "kinds": [
+      { "id": "aim", "name": "Your shots", "what": "A shot pointed roughly at the net is turned toward the open corner, and scatters less.", "steps": ["full", "part", "off"] },
+      { "id": "pass", "name": "Your passes", "what": "A pass goes to the team-mate nearest to where you point, and prefers one whose lane is open.", "steps": ["full", "off"] },
+      { "id": "check", "name": "Your checks", "what": "Your poke check reaches wider and lands more often, your body check needs a shorter hold, and your team-mates' checks land more often.", "steps": ["full", "part", "off"] },
+      { "id": "goalie", "name": "Your goalie", "what": "When an opponent comes in with nobody in his way, your goalie reacts sooner and comes further out.", "steps": ["full", "part", "off"] }
+    ]
+  },
   "startingDifficulty": "pro",
   "suggestedDifficulty": "rookie",
   "mercyLead": 6,

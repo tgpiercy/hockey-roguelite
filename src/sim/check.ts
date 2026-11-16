@@ -72,8 +72,11 @@ export function checkRules(world: World, p: Player, t: Tuning): CheckRules {
   if (mate) {
     return { pokeConeDegrees: t.check.pokeConeDegrees, bodyRange: t.check.bodyRange, minClosingSpeed: t.check.minClosingSpeed, bodyHoldSeconds: t.check.bodyHoldSeconds, pokeBonus: a.matePokeBonus * a.strength, bodyBonus: a.mateBodyBonus * a.strength, missCooldownSeconds: t.check.cooldownSeconds, pokeSureReach: 0, pokeFrontArcDegrees: 0 };
   }
+  // Part of the help is part of the way from the plain limits to the helped ones.
+  const k = Math.min(1, a.strength);
+  const mix = (plain: number, full: number): number => plain + (full - plain) * k;
   return helped
-    ? { pokeConeDegrees: a.pokeConeDegrees, bodyRange: a.bodyRange, minClosingSpeed: a.minClosingSpeed, bodyHoldSeconds: a.bodyHoldSeconds, pokeBonus: a.pokeChanceBonus, bodyBonus: a.bodyChanceBonus, missCooldownSeconds: a.missCooldownSeconds, pokeSureReach: a.pokeSureReach, pokeFrontArcDegrees: a.pokeFrontArcDegrees }
+    ? { pokeConeDegrees: mix(t.check.pokeConeDegrees, a.pokeConeDegrees), bodyRange: mix(t.check.bodyRange, a.bodyRange), minClosingSpeed: mix(t.check.minClosingSpeed, a.minClosingSpeed), bodyHoldSeconds: mix(t.check.bodyHoldSeconds, a.bodyHoldSeconds), pokeBonus: a.pokeChanceBonus * k, bodyBonus: a.bodyChanceBonus * k, missCooldownSeconds: mix(t.check.cooldownSeconds, a.missCooldownSeconds), pokeSureReach: a.pokeSureReach * k, pokeFrontArcDegrees: a.pokeFrontArcDegrees }
     : { pokeConeDegrees: t.check.pokeConeDegrees, bodyRange: t.check.bodyRange, minClosingSpeed: t.check.minClosingSpeed, bodyHoldSeconds: t.check.bodyHoldSeconds, pokeBonus: 0, bodyBonus: 0, missCooldownSeconds: t.check.cooldownSeconds, pokeSureReach: 0, pokeFrontArcDegrees: 0 };
 }
 

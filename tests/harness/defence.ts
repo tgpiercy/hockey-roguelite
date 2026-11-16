@@ -25,6 +25,10 @@ export interface DefenceReport {
   openLaneQuick: number;
   /** How far out their shots were taken from, on average, in metres. */
   shotMetres: number;
+  /** Your own team's shots and goals, and how many of each were one-timers (a shot first-touch off a pass). */
+  shotsFor: number;
+  oneTimerShotsFor: number;
+  oneTimerGoalsFor: number;
   /** Checks thrown by your AI team-mates, and the share that landed. */
   mateChecks: number;
   mateChecksLanded: number;
@@ -37,7 +41,7 @@ export interface DefenceReport {
  */
 export function measureDefence(n: number, level: number, who: Stand, seed: string, closeMetres = 3, tuning?: Tuning, laneMetres = 1.5, quickSeconds = 4): DefenceReport {
   const t = tuning ?? cloneTuning();
-  const sum = { wins: 0, goalsFor: 0, goalsAgainst: 0, shotsAgainst: 0, clearPathShots: 0, clearPathGoals: 0, unpressedShots: 0, unpressedGoals: 0, mateChecks: 0, mateChecksLanded: 0, openLaneShots: 0, openLaneGoals: 0, openLaneQuick: 0, shotMetres: 0 };
+  const sum = { wins: 0, goalsFor: 0, goalsAgainst: 0, shotsAgainst: 0, clearPathShots: 0, clearPathGoals: 0, unpressedShots: 0, unpressedGoals: 0, mateChecks: 0, mateChecksLanded: 0, openLaneShots: 0, openLaneGoals: 0, openLaneQuick: 0, shotMetres: 0, shotsFor: 0, oneTimerShotsFor: 0, oneTimerGoalsFor: 0 };
   for (let i = 0; i < n; i++) {
     const world: World = createGame(t, `${seed}-${i}`, { teams: [uniformTeam(67), uniformTeam(70)], levels: [null, level], overtimeLimit: 300 });
     const bot = standIn(who, t, `${seed}-${i}`);
@@ -67,7 +71,11 @@ export function measureDefence(n: number, level: number, who: Stand, seed: strin
             }
             if (last.clear) sum.clearPathShots++;
             if (last.unpressed) sum.unpressedShots++;
-          } else last = null;
+          } else {
+            last = null;
+            sum.shotsFor++;
+            if (e.oneTimer) sum.oneTimerShotsFor++;
+          }
         } else if (e.type === 'check') {
           const p = world.players[e.player]!;
           if (p.team === 0 && world.human?.controlled !== p.id) {
@@ -87,6 +95,7 @@ export function measureDefence(n: number, level: number, who: Stand, seed: strin
       }
     }
     if (world.score[0] > world.score[1]) sum.wins++;
+    sum.oneTimerGoalsFor += world.goalNotes.filter((g) => g.team === 0 && g.oneTimer).length;
   }
   const per = (v: number): number => v / n;
   return {
@@ -103,6 +112,9 @@ export function measureDefence(n: number, level: number, who: Stand, seed: strin
     openLaneGoals: per(sum.openLaneGoals),
     openLaneQuick: per(sum.openLaneQuick),
     shotMetres: sum.shotsAgainst > 0 ? sum.shotMetres / sum.shotsAgainst : 0,
+    shotsFor: per(sum.shotsFor),
+    oneTimerShotsFor: per(sum.oneTimerShotsFor),
+    oneTimerGoalsFor: per(sum.oneTimerGoalsFor),
     mateChecks: per(sum.mateChecks),
     mateChecksLanded: sum.mateChecks > 0 ? sum.mateChecksLanded / sum.mateChecks : 0,
   };
@@ -111,5 +123,5 @@ export function measureDefence(n: number, level: number, who: Stand, seed: strin
 /** One line of a report, for a table. */
 export function defenceLine(label: string, r: DefenceReport): string {
   const f = (v: number): string => v.toFixed(2);
-  return `${label}: wins ${r.wins}/${r.games} | for ${f(r.goalsFor)} against ${f(r.goalsAgainst)} | shots against ${f(r.shotsAgainst)}: clear path ${f(r.clearPathShots)} (${f(r.clearPathGoals)} goals), nobody on him ${f(r.unpressedShots)} (${f(r.unpressedGoals)} goals), open lane ${f(r.openLaneShots)} (${f(r.openLaneGoals)} goals; ${f(r.openLaneQuick)} on the rush), from ${f(r.shotMetres)} m | mates' checks ${f(r.mateChecks)}, ${Math.round(r.mateChecksLanded * 100)}% land`;
+  return `${label}: wins ${r.wins}/${r.games} | for ${f(r.goalsFor)} (${f(r.shotsFor)} shots; one-timers ${f(r.oneTimerShotsFor)} shots, ${f(r.oneTimerGoalsFor)} goals) against ${f(r.goalsAgainst)} | shots against ${f(r.shotsAgainst)}: clear path ${f(r.clearPathShots)} (${f(r.clearPathGoals)} goals), nobody on him ${f(r.unpressedShots)} (${f(r.unpressedGoals)} goals), open lane ${f(r.openLaneShots)} (${f(r.openLaneGoals)} goals; ${f(r.openLaneQuick)} on the rush), from ${f(r.shotMetres)} m | mates' checks ${f(r.mateChecks)}, ${Math.round(r.mateChecksLanded * 100)}% land`;
 }

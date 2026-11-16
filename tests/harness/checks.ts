@@ -1,3 +1,4 @@
+import { assistStrengths, assistTuning } from '../../src/core/assists';
 import { generateLeague } from '../../src/core/generate';
 import { createRng } from '../../src/core/rng';
 import {
@@ -147,11 +148,13 @@ export interface SeasonReport {
  * between games (random stops, first artifact, no ringer fee, buys what it can afford).
  */
 export function measureSeasons(n: number, difficulty: string, seed: string, who: Stand = 'script'): SeasonReport {
-  const t = cloneTuning();
+  let t = cloneTuning();
   const report: SeasonReport = { seasons: n, clearedFirstRegion: 0, champions: 0, wins: 0, played: 0, pucksEarned: 0, pucksSpent: 0, pucksLeft: 0, shops: 0, shopsBoughtAt: 0 };
   for (let i = 0; i < n; i++) {
     const f = newFranchise(generateLeague(`${seed}-${i}`), difficulty);
     setDifficulty(f, difficulty);
+    // The help the difficulty gives, as the game itself would apply it.
+    t = assistTuning(cloneTuning(), assistStrengths(f));
     const choose = createRng(`${seed}-${i}/auto`);
     startSeason(f);
     let cleared = false;

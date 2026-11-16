@@ -58,10 +58,12 @@ describe('aim assist', () => {
     off.aimAssist.strength = 0;
     expect(assistedAim(world, shooter, 0.1, off)).toBe(0.1);
 
+    // With part of the help he chooses the side himself: the shot goes for the corner on the side the stick points,
+    // whichever side the goalie is on. (Half-way to the open corner would be the goalie's chest.)
     const half = cloneTuning();
     half.aimAssist.strength = 0.5;
-    const full = angleTo(world, -corner);
-    expect(assistedAim(world, shooter, 0.1, half)).toBeCloseTo((0.1 + full) / 2, 6);
+    expect(assistedAim(world, shooter, 0.1, half)).toBeCloseTo(angleTo(world, corner), 6);
+    expect(assistedAim(world, shooter, -0.1, half)).toBeCloseTo(angleTo(world, -corner), 6);
   });
 
   it('with no goalie, picks the corner nearer to where the stick points', () => {

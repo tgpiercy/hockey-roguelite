@@ -9,7 +9,7 @@
 //   npm run measure -- all                  everything above (slow)
 //
 // Options: --games N (default 40; seasons: number of seasons), --level L (default 0.5),
-//          --difficulty rookie|pro|allstar (seasons; default pro), --player script|novice|idle (default script).
+//          --difficulty rookie|pro|allstar (seasons; default pro), --player script|novice|passer|idle (default script).
 import { createServer } from 'vite';
 
 const args = process.argv.slice(2);
@@ -25,7 +25,7 @@ const who = String(option('player', 'script'));
 
 const NAMES = ['defence', 'breakaways', 'styles', 'bosses', 'rinks', 'seasons'];
 if (what !== 'all' && !NAMES.includes(what)) {
-  console.log(`Usage: npm run measure -- <${NAMES.join('|')}|all> [--games N] [--level L] [--difficulty D] [--player script|novice|idle]`);
+  console.log(`Usage: npm run measure -- <${NAMES.join('|')}|all> [--games N] [--level L] [--difficulty D] [--player script|novice|passer|idle]`);
   process.exit(what === 'help' ? 0 : 1);
 }
 

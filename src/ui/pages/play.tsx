@@ -1,3 +1,4 @@
+import { assistStrengths } from '../../core/assists';
 import { charterOpen } from '../../core/achievements';
 import { BACKUP_KEY } from '../safety';
 import { ArtifactCard, type ArtChip } from '../screens/season';
@@ -114,7 +115,7 @@ export function playPages(app: AppCtx): ComponentChildren | undefined {
                     if (!homeTeam || !away) return;
                     setPlaying(true);
                     const homeColour = jerseyColour(f);
-                    playMatch({ periodSeconds: periodSecondsOf(f), home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, ...(joined ? { second: 0 as const } : {}) }, (result) => {
+                    playMatch({ periodSeconds: periodSecondsOf(f), assists: assistStrengths(f), home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, ...(joined ? { second: 0 as const } : {}) }, (result) => {
                       const next = afterTournamentGame(tourney, result.winner === 0 && !result.forfeit);
                       const over = tournamentOpponent(next) === null;
                       if (next.stage === 'won') music.sting('fanfare');
@@ -162,7 +163,7 @@ export function playPages(app: AppCtx): ComponentChildren | undefined {
               if (!opponent || !homeTeam || !away) return;
               setPlaying(true);
               const homeColour = jerseyColour(f);
-              playMatch({ periodSeconds: periodSecondsOf(f), home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, practice: true, powerups: practicePowerups, forfeitNote: 'Leave the practice rink?', ...(joined ? { second: 0 as const } : {}) }, () => {
+              playMatch({ periodSeconds: periodSecondsOf(f), assists: assistStrengths(f), home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, practice: true, powerups: practicePowerups, forfeitNote: 'Leave the practice rink?', ...(joined ? { second: 0 as const } : {}) }, () => {
                 setScreen({ name: 'home' });
                 setMessage('Back from the practice rink.');
                 setPrefs(loadPrefs());
@@ -236,7 +237,7 @@ export function playPages(app: AppCtx): ComponentChildren | undefined {
               if (!homeTeam || !away) return;
               setPlaying(true);
               const homeColour = jerseyColour(f);
-              playMatch({ periodSeconds: periodSecondsOf(f), home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, shootout: exShootout, ...(joined ? { second: together === 'coop' ? (0 as const) : (1 as const) } : {}) }, (result) => {
+              playMatch({ periodSeconds: periodSecondsOf(f), assists: assistStrengths(f), home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, shootout: exShootout, ...(joined ? { second: together === 'coop' ? (0 as const) : (1 as const) } : {}) }, (result) => {
                 const what = exShootout ? 'Shootout' : 'Exhibition';
                 const verdict = result.winner === 0 ? 'won' : result.winner === 1 ? 'lost' : 'tied';
                 setScreen({ name: 'home' });

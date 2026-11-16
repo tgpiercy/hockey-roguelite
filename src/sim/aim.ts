@@ -5,7 +5,7 @@ import type { Player, World } from './types';
 
 /**
  * Aim assist for a human shooter. If the shot is pointed roughly at the net, it is steered toward
- * the open corner: the one further from the goalie. Pointed anywhere else, it is left alone, so a
+ * a corner: at full strength the open one (further from the goalie), with part of it the one on the side he points. Pointed anywhere else, it is left alone, so a
  * deliberate shot wide or around the boards still goes where the stick says.
  *
  * `aim` is the direction the stick asks for, in radians. Returns the direction to shoot in.
@@ -24,8 +24,10 @@ export function assistedAim(world: World, shooter: Player, aim: number, t: Tunin
 
   const reach = Math.max(0, t.net.mouthWidth / 2 - a.cornerInset);
   const goalie = goalieOf(world, otherTeam(shooter.team));
-  // With no goalie, take the corner nearer to where the stick already points.
-  const side = goalie ? (goalie.pos.y > net.y ? -1 : 1) : wrapAngle(aim - toNet) * attackDir(shooter.team) >= 0 ? 1 : -1;
-  const target = Math.atan2(net.y + side * reach - puck.y, net.x - puck.x);
-  return aim + wrapAngle(target - aim) * Math.min(1, a.strength);
+  // At full strength the open corner is chosen for him: the one further from the goalie. With part of the help
+  // (or no goalie) he chooses the side himself: it is the corner nearer to where the stick already points.
+  // (Half-way between his aim and the open corner would be the goalie's chest, which is no help at all.)
+  const pointed = wrapAngle(aim - toNet) * attackDir(shooter.team) >= 0 ? 1 : -1;
+  const side = goalie && a.strength >= 1 ? (goalie.pos.y > net.y ? -1 : 1) : pointed;
+  return Math.atan2(net.y + side * reach - puck.y, net.x - puck.x);
 }

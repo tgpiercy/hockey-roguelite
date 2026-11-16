@@ -49,6 +49,29 @@ describe('one-timer', () => {
     expect(world.puck.carrier).toBe(null);
   });
 
+  it('shoot let go a moment before it arrives still counts: an early tap is a one-timer', () => {
+    const world = passArriving();
+    // Further off, so the tap is over before the puck is on his stick.
+    world.puck.pos = { x: gx - 4.5, y: 0 };
+    world.puck.vel = { x: -t.pass.speed, y: 0 };
+    expect(shotIn(step(world, shoot, t))).toBeUndefined();
+    expect(world.puck.carrier).toBe(null);
+    let shot: Shot | undefined;
+    for (let i = 0; i < Math.round(t.grace.seconds * STEPS_PER_SECOND) && !shot; i++) shot = shotIn(step(world, NO_INPUT, t));
+    expect(shot).toMatchObject({ player: ID.home1, oneTimer: true });
+  });
+
+  it('a tap long before the pass arrives is forgotten', () => {
+    const world = passArriving();
+    world.puck.pos = { x: gx - 0.5, y: 0 };
+    world.puck.vel = { x: -t.pass.speed, y: 0 };
+    step(world, shoot, t);
+    let shot: Shot | undefined;
+    for (let i = 0; i < STEPS_PER_SECOND && !shot; i++) shot = shotIn(step(world, NO_INPUT, t));
+    expect(shot).toBeUndefined();
+    expect(world.human?.earlyShoot ?? 0).toBe(0);
+  });
+
   it('shoot not held as it arrives: he just takes the pass', () => {
     const world = passArriving();
     step(world, NO_INPUT, t);

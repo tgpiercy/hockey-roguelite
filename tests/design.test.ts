@@ -70,8 +70,8 @@ const game = (won: boolean): GameResult => ({
 });
 
 describe('difficulty', () => {
-  it('there are three levels, and a new franchise starts on the standard one unless told otherwise', () => {
-    expect(DIFFICULTIES.map((d) => d.id)).toEqual(['rookie', 'pro', 'allstar']);
+  it('there are four levels, and a new franchise starts on the standard one unless told otherwise', () => {
+    expect(DIFFICULTIES.map((d) => d.id)).toEqual(['rookie', 'semipro', 'pro', 'allstar']);
     expect(fresh().difficulty).toBe(rules.startingDifficulty);
     expect(fresh('design', 'allstar').difficulty).toBe('allstar');
     expect(fresh('design', 'nonsense').difficulty).toBe(rules.startingDifficulty);
