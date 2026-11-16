@@ -5,6 +5,7 @@ The game is called **Third Line** (`src/data/game.json`, `index.html`, the manif
 - Design: `docs/GDD.md` is the source of truth.
 - Decisions the design doc does not cover: `docs/DECISIONS.md`.
 - Phases, prompts and exit tests: `docs/IMPLEMENTATION_PLAN.md`.
+- What comes next, in the owner's order: `docs/ROADMAP.md`.
 
 ## Stack
 
