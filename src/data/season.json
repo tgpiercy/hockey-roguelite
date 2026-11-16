@@ -13,9 +13,9 @@
   "seriesWins": 2,
   "defaultDifficulty": 0.75,
   "difficulties": [
-    { "id": "rookie", "name": "Rookie", "levelShift": -0.2, "regionShift": [0, -0.2, -0.3], "playoffShift": -0.3, "extraStrikes": 2, "description": "Opponents think more slowly and make more mistakes, more so as the season goes on, and you have two more strikes. Only their thinking changes: their ratings, the physics and your own team are the same on every setting, and it never changes with the score." },
-    { "id": "pro", "name": "Pro", "levelShift": 0, "regionShift": [0, -0.2, -0.3], "playoffShift": -0.3, "description": "The standard game. Later opponents are stronger teams, and think a little more slowly to make up for it. Difficulty only ever changes how well opponents think: never their ratings, the physics or your own team, and it never changes with the score." },
-    { "id": "allstar", "name": "All-Star", "levelShift": 0.15, "description": "Opponents think faster and make fewer mistakes. Only their thinking changes: their ratings, the physics and your own team are the same on every setting, and it never changes with the score." }
+    { "id": "rookie", "name": "Rookie", "levelShift": -0.2, "regionShift": [0, -0.2, -0.3], "playoffShift": -0.3, "extraStrikes": 2, "description": "Opponents think more slowly and make more mistakes, more so as the season goes on, you have two more strikes, and a boss you lose to can be played again. Only their thinking changes: their ratings, the physics and your own team are the same on every setting, and it never changes with the score." },
+    { "id": "pro", "name": "Pro", "levelShift": 0, "bossLossEnds": true, "regionShift": [0, -0.2, -0.3], "playoffShift": -0.3, "description": "The standard game. Lose to a boss and the season is over. Later opponents are stronger teams, and think a little more slowly to make up for it. Difficulty only ever changes how well opponents think: never their ratings, the physics or your own team, and it never changes with the score." },
+    { "id": "allstar", "name": "All-Star", "levelShift": 0.15, "bossLossEnds": true, "description": "Opponents think faster and make fewer mistakes, and a loss to a boss ends the season. Only their thinking changes: their ratings, the physics and your own team are the same on every setting, and it never changes with the score." }
   ],
   "startingDifficulty": "pro",
   "simPenalty": 4,

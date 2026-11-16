@@ -996,7 +996,24 @@ Seven shots in ten against a person's team come with a clear path, and before th
 
 What this does not show: why a person concedes 12 where the script concedes 4.5. The script defends tirelessly; a person new to the game does not, and the skater a person controls is always the nearest one to the puck, so a slow reaction is a free lane. If games are still lopsided after this, the next lever is the team-mates' cover behind the play, not the goalie.
 
-The season measure moves with this (the script concedes a goal fewer a game): re-measured below when run.
+**Team-mates' checks and the boss rule, measured with the goalie assist in place.** Whole games as above (script, level 0.5, 40 games):
+
+| | Before today | After |
+| --- | --- | --- |
+| Your AI team-mates' checks that land | not counted (30% base on a poke) | 47%, 31 thrown a game |
+| The opponents' checks that land | | 36%, 78 thrown a game |
+| Goals for and against | 6.42 and 4.50 | 7.10 and 3.23 |
+
+Seasons with the script (`measureSeasons`), all of today's changes together, a boss loss ending the run on Pro:
+
+| | First region cleared | Title | Seasons |
+| --- | --- | --- | --- |
+| Pro, before today | 88% | 29% | 100 |
+| Pro, after | 73% | 19% | 100 |
+| Rookie, before today | 93% | 60% | 40 |
+| Rookie, after | 93% | 78% | 40 |
+
+On Pro the easier games and the harsher boss rule nearly cancel for the script; on Rookie, which keeps the rematch, the script now wins nearly four seasons in five. The script is a strong, tireless defender and wins 36 single games in 40 at this level; the owner lost 12 to 3 and then 4 to 3 to a boss. The numbers above are the script's, not a person's.
 
 | Date | Value | From | To | Why |
 | --- | --- | --- | --- | --- |

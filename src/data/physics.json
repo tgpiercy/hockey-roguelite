@@ -226,7 +226,9 @@
     "bodyRange": 1.9,
     "minClosingSpeed": 1.2,
     "pokeSureReach": 2.2,
-    "pokeFrontArcDegrees": 240
+    "pokeFrontArcDegrees": 240,
+    "matePokeBonus": 0.15,
+    "mateBodyBonus": 0.1
   },
   "fake": {
     "minCharge": 0.15,

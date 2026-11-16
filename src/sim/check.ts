@@ -2,7 +2,7 @@ import { STEP_SECONDS } from './clock';
 import { energyScale } from './lines';
 import { spinEscape } from './talents';
 import { wrapAngle } from './skater';
-import { carrierOf, dist, loosePuck, humanOf } from './team';
+import { carrierOf, dist, loosePuck, humanOf, humansOn } from './team';
 import type { Tuning } from './tuning';
 import type { InputFrame, Player, SimEvent, World } from './types';
 
@@ -67,6 +67,11 @@ export interface CheckRules {
 export function checkRules(world: World, p: Player, t: Tuning): CheckRules {
   const a = t.checkAssist;
   const helped = a.strength > 0 && humanOf(world, p.id) !== null;
+  // The AI skaters on a team a person plays on get a share of it: better odds, and nothing else.
+  const mate = !helped && a.strength > 0 && humansOn(world, p.team).length > 0;
+  if (mate) {
+    return { pokeConeDegrees: t.check.pokeConeDegrees, bodyRange: t.check.bodyRange, minClosingSpeed: t.check.minClosingSpeed, bodyHoldSeconds: t.check.bodyHoldSeconds, pokeBonus: a.matePokeBonus * a.strength, bodyBonus: a.mateBodyBonus * a.strength, missCooldownSeconds: t.check.cooldownSeconds, pokeSureReach: 0, pokeFrontArcDegrees: 0 };
+  }
   return helped
     ? { pokeConeDegrees: a.pokeConeDegrees, bodyRange: a.bodyRange, minClosingSpeed: a.minClosingSpeed, bodyHoldSeconds: a.bodyHoldSeconds, pokeBonus: a.pokeChanceBonus, bodyBonus: a.bodyChanceBonus, missCooldownSeconds: a.missCooldownSeconds, pokeSureReach: a.pokeSureReach, pokeFrontArcDegrees: a.pokeFrontArcDegrees }
     : { pokeConeDegrees: t.check.pokeConeDegrees, bodyRange: t.check.bodyRange, minClosingSpeed: t.check.minClosingSpeed, bodyHoldSeconds: t.check.bodyHoldSeconds, pokeBonus: 0, bodyBonus: 0, missCooldownSeconds: t.check.cooldownSeconds, pokeSureReach: 0, pokeFrontArcDegrees: 0 };

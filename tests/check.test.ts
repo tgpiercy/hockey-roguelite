@@ -1,3 +1,4 @@
+import { checkRules } from '../src/sim/check';
 import { dekeAngle, dekeThreat, wrongFoot } from '../src/sim/deke';
 import { describe, expect, it } from 'vitest';
 import { checkKind, resolveCheck, stepChecking } from '../src/sim/check';
@@ -499,3 +500,36 @@ describe('check limits', () => {
     expect(weak).toBeGreaterThan(0);
   });
 });
+
+describe('the AI team-mates of a person', () => {
+  it('get better odds on a check than any other AI skater, and none of the rest of the help', () => {
+    const base = cloneTuning();
+    const withPerson = createWorld(base, 'mates');
+    const allAi = createWorld(base, 'mates', { human: false });
+    const me = withPerson.human!.controlled;
+    const mate = withPerson.players.find((p) => p.team === 0 && p.role === 'skater' && p.onIce && p.id !== me)!;
+    const theirs = withPerson.players.find((p) => p.team === 1 && p.role === 'skater' && p.onIce)!;
+
+    const mine = checkRules(withPerson, withPerson.players[me]!, base);
+    const his = checkRules(withPerson, mate, base);
+    const other = checkRules(withPerson, theirs, base);
+    const plain = checkRules(allAi, allAi.players[mate.id]!, base);
+
+    expect(his.pokeBonus).toBe(base.checkAssist.matePokeBonus);
+    expect(his.bodyBonus).toBe(base.checkAssist.mateBodyBonus);
+    expect(his.pokeBonus).toBeGreaterThan(0);
+    expect(his.pokeBonus).toBeLessThan(mine.pokeBonus);
+    // No sure poke, no wider cone, no shorter hold: those are the person's alone.
+    expect(his.pokeSureReach).toBe(0);
+    expect(his.pokeConeDegrees).toBe(base.check.pokeConeDegrees);
+    expect(his.bodyHoldSeconds).toBe(base.check.bodyHoldSeconds);
+    // The other team, and a team with nobody playing on it, get nothing.
+    expect(other.pokeBonus).toBe(0);
+    expect(plain.pokeBonus).toBe(0);
+    // Switched off with the rest of check assist.
+    const off = cloneTuning();
+    off.checkAssist.strength = 0;
+    expect(checkRules(withPerson, mate, off).pokeBonus).toBe(0);
+  });
+});
+

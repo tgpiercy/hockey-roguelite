@@ -186,5 +186,6 @@
     "pressCheck": 0.6,
     "manCheck": 1,
     "manCoverGoalSide": 0.12
-  }
+  },
+  "mateCheckBoost": 1.3
 }

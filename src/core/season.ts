@@ -332,6 +332,8 @@ export interface DifficultyInfo {
   playoffShift?: number;
   /** Strikes added to the season's limit. Left out, none. */
   extraStrikes?: number;
+  /** True where a loss to a boss ends the season at once, whatever strikes were left. */
+  bossLossEnds?: boolean;
 }
 
 export const DIFFICULTIES = rules.difficulties as DifficultyInfo[];
@@ -1081,6 +1083,13 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
 
   if (game.kind === 'boss') {
     if (!won) {
+      // On the harder settings a boss is met once: lose, and the season is over, whatever strikes were left.
+      if (bossLossEnds(f)) {
+        season.strikes = Math.min(maxStrikes(f), season.strikes + 1);
+        season.phase = 'ended';
+        season.outcome = 'struckOut';
+        return done(`${game.away.name} beat you. A boss is met once: the season is over.`);
+      }
       if (strike(f)) return done('The boss beats you. That is your third strike: the season is over.');
       return done(`The boss beats you. Strike ${season.strikes} of ${maxStrikes(f)}. You must play the boss again.`);
     }
@@ -1218,6 +1227,11 @@ export function renamePlayer(f: Franchise, playerId: string, raw: string): Actio
   const before = player.name;
   player.name = name;
   return done(`${before} is now ${name}.`);
+}
+
+/** True where losing to a boss ends the season: the difficulty says. */
+export function bossLossEnds(f: Franchise): boolean {
+  return difficultyInfo(f.difficulty).bossLossEnds === true;
 }
 
 /** True once a cup tie has been won in every region of the season. */

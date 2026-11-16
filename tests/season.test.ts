@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decideContract, finishSeason } from '../src/core/offseason';
-import { DIFFICULTIES, difficultyInfo, abandonSeason, pickRinger } from '../src/core/season';
+import { bossLossEnds, DIFFICULTIES, difficultyInfo, abandonSeason, pickRinger } from '../src/core/season';
 import { seasonSummary } from '../src/core/seasonSummary';
 import { aiTeamsByStrength, buildBoss, teamStrength } from '../src/core/bosses';
 import { generateLeague } from '../src/core/generate';
@@ -598,14 +598,45 @@ describe('bosses and artifacts', () => {
     expect(buildBoss(f.league, currentStop(f)!.bossId!, 0, f.season.seed)).toEqual({ ...game.away, setup: bossSetup });
   });
 
-  it('losing to a boss is a strike and he must be played again', () => {
+  it('on Rookie, losing to a boss is a strike and he must be played again', () => {
     const f = atBoss();
+    f.difficulty = 'rookie';
+    expect(bossLossEnds(f)).toBe(false);
     const boss = currentStop(f)!.id;
     const outcome = recordGame(f, result(false));
     expect(outcome.ok && outcome.message).toMatch(/again/);
     expect(f.season.strikes).toBe(1);
     expect(currentStop(f)?.id).toBe(boss);
     expect(matchup(f)?.kind).toBe('boss');
+  });
+
+  it('on Pro and All-Star, losing to a boss ends the season at once, whatever strikes were left', () => {
+    for (const difficulty of ['pro', 'allstar']) {
+      const f = atBoss();
+      f.difficulty = difficulty;
+      expect(bossLossEnds(f)).toBe(true);
+      expect(f.season.strikes).toBe(0);
+      const outcome = recordGame(f, result(false));
+      expect(outcome.ok && outcome.message).toMatch(/season is over/);
+      expect(f.season.phase).toBe('ended');
+      expect(f.season.outcome).toBe('struckOut');
+      expect(matchup(f)).toBeNull();
+    }
+  });
+
+  it('an ordinary loss is still only a strike on every setting, and a boss win is unchanged', () => {
+    for (const d of DIFFICULTIES) {
+      const f = started();
+      f.difficulty = d.id;
+      goTo(f, 'game');
+      recordGame(f, result(false));
+      expect(f.season.phase, d.id).toBe('map');
+      expect(f.season.strikes, d.id).toBe(1);
+    }
+    const f = atBoss();
+    recordGame(f, result(true));
+    expect(f.season.phase).toBe('map');
+    expect(f.season.stage).toBe('reward');
   });
 
   it('beating a boss offers three artifacts; the one picked is kept and the next region opens', () => {

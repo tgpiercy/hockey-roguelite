@@ -440,7 +440,9 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
 }
 
 /** Reconsiders: picks the state and what to do in it. */
-export function think(world: World, p: Player, t: Tuning, lv: AiLevel): void {
+export function think(world: World, p: Player, t: Tuning, level: AiLevel): void {
+  // The AI skaters on a team a person plays on go for the check more readily: the person cannot be everywhere.
+  const lv = humansOn(world, p.team).length > 0 ? { ...level, checkEagerness: Math.min(1, level.checkEagerness * data.mateCheckBoost) } : level;
   const m = p.ai;
   m.state = chooseState(world, p, t);
   m.wantCheck = false;

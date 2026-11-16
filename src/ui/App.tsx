@@ -43,7 +43,7 @@ import { canPlay, canSign, type MoveResult, deadCapFor } from '../core/roster';
 import { hiddenFreeAgents, potentialText, scoutingPoints, signPlayer } from '../core/scouting';
 import { gradePower, hire, kindName, letGo, roleOf, slotsFor, STAFF_KINDS, staffOfKind, staffSalePrice, type StaffMember } from '../core/staff';
 import { franchiseOf, fromSave, parseSave, toSave } from '../core/save';
-import { artifactInfo, artifactModifiers, bargainGames, cupHeld, isCupTie, renamePlayer, type ArtifactInfo, gameBounty, maxStrikes, pickRinger, recipeFor, seasonRegions, setupOf, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
+import { artifactInfo, artifactModifiers, bargainGames, bossLossEnds, cupHeld, isCupTie, renamePlayer, type ArtifactInfo, gameBounty, maxStrikes, pickRinger, recipeFor, seasonRegions, setupOf, availableStops, buy, canSimulate, chooseEvent, currentStop, DIFFICULTIES, difficultyInfo, eventInfo, healPrice, healStrike, leaveShop, matchup, newFranchise, pickArtifact, powerupInfo, recordGame, rosterLocked, setDifficulty, setLoadout, abandonSeason, setSeasonLineupSlot, shopPrice, simulateGame, startSeason, train, travel, type ActionResult, type Franchise, type GameRewards, buyScouting, scoutPrice, trainingChoices, trainingFocus, playoffSeed, isRival } from '../core/season';
 import type { Stop } from '../core/seasonMap';
 import { seasonSummary } from '../core/seasonSummary';
 import { teamColour } from '../core/teamColours';
@@ -920,7 +920,7 @@ export function App() {
                   }, { wide: true, icon: 'team', detail: 'A second controller has joined: both of you play for your team, each with his own skater (yours has the red ring, his the blue). Press here to send player 2 away and play alone.' }),
                 ]
               : []),
-            tile('play', 'Play', game.elite ? 'Elite games must be played' : game.kind === 'game' ? 'Take the ice' : game.kind === 'boss' ? 'Bosses must be played' : 'Playoff games must be played', playSeasonGame, { primary: true, wide: true }),
+            tile('play', 'Play', game.elite ? 'Elite games must be played' : game.kind === 'game' ? 'Take the ice' : game.kind === 'boss' ? (bossLossEnds(f) ? 'Lose and the season is over' : 'Bosses must be played') : 'Playoff games must be played', playSeasonGame, { primary: true, wide: true }),
             ...(canSimulate(f)
               ? [
                   tile('simulate', 'Simulate', 'Settle it without playing', () => showOutcome(simulateGame(f)), {
@@ -1109,7 +1109,7 @@ export function App() {
         const boss = bossInfo(s.bossId);
         return {
           label: <StopCard icon="boss" kind={isVariant(s.rink) ? `Boss · ${rinkInfo(s.rink).name}` : 'Boss'} title={boss.name} />,
-          detail: `${boss.trait}: ${boss.description}${rinkLine(s.rink, false)} Beat him to choose an artifact and wipe a strike; lose and it is a strike and a rematch.${season.scouted ? ' You have a scouting report on him.' : ''}`,
+          detail: `${boss.trait}: ${boss.description}${rinkLine(s.rink, false)} Beat him to choose an artifact and wipe a strike; ${bossLossEnds(f) ? 'lose and the season is over' : 'lose and it is a strike and a rematch'}.${season.scouted ? ' You have a scouting report on him.' : ''}`,
         };
       }
       if (s.kind === 'training') return { label: <StopCard icon="training" kind="Training" title="One player improves" />, detail: 'One dressed player gains a little of everything, a lot of one rating, or a trait, for the rest of the season.' };
