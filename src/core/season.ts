@@ -844,8 +844,8 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
     const elite = stop.elite === true;
     const away = dress(league, teamOf(league, stop.opponentId), { bumpAll: tougher + (elite ? stat(f, 'eliteBump', rules.eliteRatingBump) : 0) });
     if (!away) return null;
-    if (elite) return { home, away, level: clampLevel(level + rules.eliteLevelBonus), kind: 'game', title: `Elite game against ${away.name}`, powerups: loaded, elite: true };
-    return { home, away, level, kind: 'game', title: `Game against ${away.name}`, powerups: loaded, ...(stop.rink ? { rink: stop.rink } : {}) };
+    if (elite) return { home, away, level: clampLevel(level + rules.eliteLevelBonus), kind: 'game', title: `Elite: ${away.name}`, powerups: loaded, elite: true };
+    return { home, away, level, kind: 'game', title: `vs ${away.name}`, powerups: loaded, ...(stop.rink ? { rink: stop.rink } : {}) };
   }
   return null;
 }

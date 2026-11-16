@@ -2,7 +2,16 @@
 
 Approved by the owner on 2026-11-15. Rounds are ticked here as they finish.
 
-- [ ] Round 1: looks and sound
+- [ ] Round 1: looks and sound. First part done 2026-11-15:
+  - [x] The sound page (`?sound`) and every sound measured; five quiet tunes brought up to the others
+  - [x] Players a step larger (the owner's choice from three sizes)
+  - [x] The goal banner a third smaller and higher up; the spare line sitting on its bench
+  - [x] Menus at phone size: the Standings list no longer spills over the top bar, the hub's nine tiles fit, long titles shortened, a card name no longer broken in two
+  - [ ] The owner listens to the sound page and says which sounds and tunes are wrong; those are redone
+  - [ ] Ice that wears through a period; glass and boards with depth
+  - [ ] A goalie's kick save and post hug; a pose of his own for a knocked-down skater
+  - [ ] One pass over every menu for consistency (cards, units, where the cost is shown)
+  - Dropped: a number on the back (unreadable at phone size; it now shows on the body only when players are drawn large). A boss's named player has no sign of his own: each team's best skater wears the captain's band, which is close to the same man.
 - [ ] Round 2: health of the code
 - [ ] Round 3: how the hockey feels
 - [ ] Round 4: learning the game

@@ -795,6 +795,25 @@ export class RinkScene extends Phaser.Scene {
       const target = passer && world.phase === 'play' ? passPreview(world, passer, this.lastFrames[n] as InputFrame, t) : null;
       if (target) passMarks.set(target.id, n === 0 ? RET.colour : RET.colour2);
     });
+    // The spare line sits on its bench, behind the boards by its door: a row of helmets in the team's colour.
+    for (const team of [0, 1] as const) {
+      const spare = world.players.filter((p) => p.team === team && p.role === 'skater' && !p.onIce);
+      const door = benchDoor(team, t);
+      const white = this.options.whiteTeam === team;
+      spare.forEach((p, k) => {
+        const bx = this.sx(door.x + (k - (spare.length - 1) / 2) * look.benchGap);
+        const by = this.sy(-t.rink.width / 2) - look.benchBehind * z;
+        const r = look.benchHead * z;
+        g.fillStyle(colour(FIG.colours.outline));
+        g.fillCircle(bx, by, r + Math.max(1, r * 0.18));
+        g.fillStyle(colour(this.options.looks?.[team]?.[p.id - team * 7]?.skin ?? skinTone(p.id)));
+        g.fillCircle(bx, by + r * 0.25, r * 0.85);
+        g.fillStyle(colour(lighten(this.crests[team].primary, white ? FIG.awayKit.helmetLighten : FIG.helmetLighten)));
+        g.fillCircle(bx, by - r * 0.12, r * 0.92);
+        g.fillStyle(colour(white ? this.crests[team].primary : this.crests[team].secondary));
+        g.fillRect(bx - r * 0.7, by - r * 0.55, r * 1.4, Math.max(1, r * 0.22));
+      });
+    }
     for (const [i, p] of world.players.entries()) {
       const label = this.labels[i];
       const number = this.numbers[i];
@@ -1399,7 +1418,7 @@ export class RinkScene extends Phaser.Scene {
     this.bigText.setVisible(message !== '');
     if (message !== '') {
       const goal = world.phase === 'goal';
-      const size = Math.max(18, height * (goal ? 0.17 : 0.07));
+      const size = Math.max(18, height * (goal ? look.goalBannerSize : 0.07));
       this.bigText.setFontSize(size);
       this.bigText.setText(message);
       // The goal banner sits in the upper part of the rink, clear of the scorer and the net-front.

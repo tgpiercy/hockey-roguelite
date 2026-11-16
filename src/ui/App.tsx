@@ -2916,7 +2916,7 @@ export function App() {
       <Menu
         key={screenKey}
         remember="exhibition"
-        title="Exhibition game: choose an opponent"
+        title="Exhibition"
         header={`Your team averages ${mine} overall. Weakest opponents first. Exhibition games do not count. ${joined ? (together === 'coop' ? 'Two players, on the same team.' : 'Two players, head to head: player 2 takes the team you choose.') : 'For two players, press a button on a second controller.'}`}
         onBack={home}
         items={[

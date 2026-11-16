@@ -147,8 +147,9 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .menu-list { flex: 1 1 0; min-width: 0; overflow-y: auto; overflow-x: hidden; min-height: 0; touch-action: pan-y; display: flex; flex-direction: column; gap: 3px; padding-right: 2px; }
 .menu-body.two .menu-list { flex: 1.25 1 0; }
 .menu-body.stack { flex-direction: column-reverse; gap: 8px; }
-.menu-body.stack .menu-list { flex: none; }
-.menu-body.stack .menu-side { flex: 1 1 0; min-height: 0; }
+/* Stacked: the facts on top take what is left; a long list below shrinks and scrolls, never pushing the facts off or spilling over the top bar. */
+.menu-body.stack .menu-list { flex: 0 1 auto; min-height: 3.2em; }
+.menu-body.stack .menu-side { flex: 1 1 0; min-height: min(40%, 120px); }
 .menu-side {
   flex: 1 1 0; min-width: 0; overflow-y: auto; touch-action: pan-y;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px;
@@ -465,7 +466,10 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 }
 .opt-card.off .opt-icon { color: var(--dim); }
 .opt-text { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.2; }
-.opt-text b { font: 800 15px/1.15 var(--heading); letter-spacing: 0.04em; text-transform: uppercase; overflow-wrap: anywhere; }
+.opt-text b { font: 800 15px/1.15 var(--heading); letter-spacing: 0.04em; text-transform: uppercase; overflow-wrap: break-word; }
+/* In a narrow grid cell a card's name is set a little smaller, so a word is not broken in two. */
+.menu-list.grid .opt-text b { font-size: 13px; letter-spacing: 0.02em; }
+.menu-list.grid .menu-item.wide .opt-text b { font-size: 15px; letter-spacing: 0.04em; }
 .opt-text small { font-size: var(--size-small); color: var(--ice); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .opt-pips { display: flex; gap: 4px; flex: none; }
 .opt-pips i { width: 18px; height: 7px; border-radius: 4px; background: var(--line); }
@@ -542,6 +546,12 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .menu-list.grid .menu-item.wide { grid-column: 1 / -1; }
 .menu-list.grid .menu-item { min-height: 54px; }
 .menu-list.grid .menu-item.wide { min-height: 44px; }
+/* A phone held sideways is short: the tiles tighten so a screen of nine fits without scrolling. */
+@media (max-height: 430px) {
+  .menu-list.grid { gap: 4px; }
+  .menu-list.grid .menu-item { min-height: 46px; padding-top: 5px; padding-bottom: 5px; }
+  .menu-list.grid .menu-item.wide { min-height: 38px; }
+}
 .dash-tile { display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; }
 .dash-tile .icon { color: var(--accent); }
 .menu-item.disabled .dash-tile .icon { color: var(--dim); }
