@@ -64,7 +64,7 @@ No change to how the game plays or looks; every step is proved by the tests pass
 
 ## Round 3: how the hockey feels
 
-- **Done: a second measuring player that plays like a newcomer** (`--player novice`; numbers in `docs/TUNING.md`; the re-set of the difficulties is waiting on the owner's choice of targets). Was: Today's script defends tirelessly and wins 36 games in 40 where you lost 12–3, so its numbers flatter the game. A "novice" beside it: slower to react, misses checks, loses the puck. Difficulty is then set against both.
+- **Done: a second measuring player that plays like a newcomer** (`--player novice`; numbers in `docs/TUNING.md`; Rookie was re-set against it on the owner's choice; Pro and All-Star stay). Was: Today's script defends tirelessly and wins 36 games in 40 where you lost 12–3, so its numbers flatter the game. A "novice" beside it: slower to react, misses checks, loses the puck. Difficulty is then set against both.
 - **Cover behind the play.** The AI takes about 25 shots a game with none of your skaters between the shooter and your net. One team-mate stays back when you attack and gets back first when the puck turns over. Measured by that count falling.
 - **Whatever your play has found by then**, first.
 - **Loose ends already on file:** shops rarely cost more than a season earns; the season-over screen and the trophy room count a top scorer differently; Pro's first region is cleared 73 to 88% of the time depending on the boss drawn; the Wall and the Marathon cannot be answered by any script, so their answers have never been shown to work in play.

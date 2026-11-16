@@ -1119,3 +1119,16 @@ What it says:
 
 Not measured: a person. The newcomer never uses a powerup, a deke, a pass or a check, and never changes lines by hand.
 
+### Rookie re-set against the newcomer (2026-11-16)
+
+The owner chose to ease Rookie only: the newcomer should clear the first region about three times in four and win a title about one season in ten. Only Rookie's `levelShift` was moved (opponents' thinking; nothing else).
+
+| Rookie `levelShift` | Newcomer: first region | Newcomer: title | Newcomer: wins of games | Script: first region, title |
+| --- | --- | --- | --- | --- |
+| -0.2 (was) | 58% | 0% | 2.6 of 8.2 | 95%, 78% |
+| **-0.35 (now)** | 70% | 5% | 5.0 of 10.7 | not measured at this setting |
+| -0.4 | 85% | 22% | 6.8 of 12.5 | 93%, 75% |
+| -0.45 | 85% | 25% | 6.6 of 12.0 | not measured |
+
+-0.35 is the nearer of the two to the target and on the careful side of it, since a real beginner plays better than the newcomer does. -0.4 and -0.45 are the same within the sample's swing (later regions are already at the lowest level the AI has). The script's title rate did not move between -0.2 and -0.4 (78% and 75%): for a player who already beats the AI, Rookie is no easier than it was. Pro and All-Star are unchanged.
+
