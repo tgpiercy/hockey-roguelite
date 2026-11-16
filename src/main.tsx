@@ -1,3 +1,4 @@
+import { keepOffline, protectStorage, watchForCrashes } from './ui/safety';
 import { SoundSheet } from './ui/SoundSheet';
 import { render } from 'preact';
 import { gameAudio } from './game/audio';
@@ -18,6 +19,11 @@ for (const type of ['keydown', 'pointerdown', 'touchstart']) {
     { passive: true },
   );
 }
+
+// Protect the game and the save: a notice if something goes wrong, an offline copy, storage the browser is asked to keep.
+watchForCrashes();
+keepOffline(import.meta.env.BASE_URL, import.meta.env.PROD);
+void protectStorage();
 
 const query = new URLSearchParams(location.search);
 if (query.has('sheet')) {

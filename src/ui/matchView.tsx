@@ -187,6 +187,9 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
     if (document.hidden) setPaused(true);
   };
   document.addEventListener('visibilitychange', onHidden);
+  // So does a controller that drops out: nobody should lose a game to a flat battery.
+  const onPadGone = (): void => setPaused(true);
+  window.addEventListener('gamepaddisconnected', onPadGone);
 
   const onControls = (controls: Controls): void => {
     hint.hidden = controls.hasPad || controls.hasKeyboard || controls.hasTouch;
@@ -267,6 +270,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       },
       onDone: (result) => {
         document.removeEventListener('visibilitychange', onHidden);
+        window.removeEventListener('gamepaddisconnected', onPadGone);
         onPauseButton = null;
         paused = false;
         document.body.classList.remove('paused');

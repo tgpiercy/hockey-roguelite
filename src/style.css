@@ -839,3 +839,9 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .sound-row b { font: 800 16px/1.1 var(--heading); letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
 .sound-row small { color: var(--dim); font-variant-numeric: tabular-nums; }
 
+/* The notice shown if something goes wrong: a bar across the top, above everything. */
+#crash { position: fixed; left: 8px; right: 8px; top: 8px; z-index: 1000; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-radius: var(--radius); background: var(--bg-deep); border: 2px solid var(--bad); color: var(--text); font: 14px/1.3 var(--body, sans-serif); }
+#crash span { flex: 1 1 14em; }
+#crash button { font: inherit; font-weight: 700; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel-hi); color: var(--text); }
+#crash small { flex-basis: 100%; color: var(--dim); }
+

@@ -65,6 +65,14 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - Ask before adding a dependency.
 - `docs/GDD.md` is the source of truth for design; `docs/DECISIONS.md` records anything we decide that it does not cover.
 
+## How the game and the save are protected
+
+- `src/ui/safety.ts`, called from `src/main.tsx`: `keepOffline` registers `public/sw.js` on the built game only and, after the page has loaded, sends it every file the page is made of; `protectStorage` asks the browser to keep the save; `watchForCrashes` shows a bar (`#crash`, plain elements) on an error or an unhandled rejection, once, ignoring `isBenign` ones, with the stored save offered as a file.
+- `public/sw.js` is plain JavaScript, not built: the page is fetched from the network first and from the kept copy when there is none; every other file of ours is served from the copy first. A `keep` message lists the current files; anything else kept is let go. `tests/offline.test.ts` runs it against a stand-in cache and network. Changing the cache's rules means changing `CACHE`'s name.
+- The built-in test browser refuses to register any service worker, so offline play cannot be checked there: it has to be tried on the phone (open once with a connection, then with none).
+- The save: `noteExported` and `lastExport` record when the save was last exported (in local storage, apart from the save); `backupDue` and `backupWords` are the reminder. `BACKUP_KEY` is a second document in the same store: the franchise as the current season began, written by the set-up screen and restored from Save and load.
+- A game pauses on `gamepaddisconnected` as it does when the page is hidden (`matchView.tsx`).
+
 ## How the franchise side fits together
 
 - Rules live in `src/core`, each with tests in `tests/player.test.ts` and `tests/league.test.ts`:

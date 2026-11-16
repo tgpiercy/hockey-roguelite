@@ -1,3 +1,4 @@
+import { BACKUP_KEY, backupDue, backupWords, lastExport, noteExported, storageProtected } from './safety';
 import { rumble } from '../game/rumble';
 import { buzz } from '../game/rumbleMap';
 import powerupData from '../data/powerups.json';
@@ -241,6 +242,11 @@ export function App() {
   const [tourney, setTourney] = useState<Tournament | null>(null);
   // The charter and handicaps being chosen for the next season.
   const [plan, setPlan] = useState<SeasonSetup>({});
+  // Whether the browser has agreed to keep the save (null until it has answered).
+  const [keptSafe, setKeptSafe] = useState<boolean | null>(null);
+  useEffect(() => {
+    void storageProtected().then(setKeptSafe);
+  }, []);
   // During a weekly run your own franchise waits here, untouched; null the rest of the time.
   const mainRef = useRef<Franchise | null>(null);
   useEffect(() => {
@@ -810,7 +816,8 @@ export function App() {
       card('office', 'Front office', `Cash ${money(f.cash)}`, () => openGroup('office')),
       card('collection', 'Collection', f.packs.length > 0 ? `${f.packs.length} to open` : `${f.gear.length} pieces`, () => openGroup('collection'), { badge: f.packs.length }),
       card('league', 'League', leagueStatus(), () => openGroup('league')),
-      card('settings', 'Settings', 'Sound, detail, save', () => openGroup('settings')),
+      // Once there is a season behind you, the tile says when the save has no recent copy outside the phone.
+      card('settings', 'Settings', (f.history ?? []).length > 0 && backupDue(lastExport(), Date.now()) ? 'Back up your save' : 'Sound, detail, save', () => openGroup('settings')),
       card('exhibition', 'Exhibition', 'A game that does not count', () => go({ name: 'exhibition' })),
       weeklyCard(),
     ];
@@ -2974,7 +2981,12 @@ export function App() {
         onBack={home}
         columns={2}
         items={[
-          tile('go', 'Start the season', setupLine(plan) || 'Standard, no handicaps', () => after(beginSeason(f, ready), { name: 'home' }), { primary: true, wide: true, detail: 'Your seventh skater is the spare: you can swap him in between games.' }),
+          tile('go', 'Start the season', setupLine(plan) || 'Standard, no handicaps', () => {
+            const began = beginSeason(f, ready);
+            // One copy of the franchise as the season begins, beside the save itself.
+            if (began.ok) void store(toSave(f, new Date().toISOString()), BACKUP_KEY).catch(() => undefined);
+            after(began, { name: 'home' });
+          }, { primary: true, wide: true, detail: 'Your seventh skater is the spare: you can swap him in between games.' }),
           {
             key: 'signature',
             wide: true,
@@ -3258,15 +3270,25 @@ export function App() {
         remember="saves"
         title="Save and load"
         message={message}
-        header="The game saves by itself after every move, every stop and every game. A game in progress is not saved."
+        header={
+          <>
+            <div>The game saves by itself after every move, every stop and every game. A game in progress is not saved.</div>
+            <div class={backupDue(lastExport(), Date.now()) ? 'warn' : 'note'}>
+              The save lives in this browser only: clearing the browser's data would lose it. Your copy outside the phone: {backupWords(lastExport(), Date.now())}.
+            </div>
+            <div class="note">{keptSafe === null ? '' : keptSafe ? 'This browser has agreed not to clear the save by itself.' : 'This browser may clear the save if the phone runs short of space: export it now and then.'}</div>
+          </>
+        }
         onBack={home}
         items={[
           {
             key: 'export',
             label: 'Export the save to a file',
             onSelect: () => {
-              downloadText('hockey-save.json', `${JSON.stringify(toSave(f, new Date().toISOString()), null, 2)}\n`);
-              setMessage('Saved as hockey-save.json.');
+              const when = new Date().toISOString();
+              downloadText('hockey-save.json', `${JSON.stringify(toSave(f, when), null, 2)}\n`);
+              noteExported(when);
+              setMessage('Saved as hockey-save.json. Keep it somewhere other than this phone.');
             },
           },
           {
@@ -3279,6 +3301,20 @@ export function App() {
                 if (!loaded.ok) return setMessage(loaded.reason);
                 setScreen({ name: 'home' });
                 setMessage('Save imported.');
+                commit(franchiseOf(loaded.save));
+              });
+            },
+          },
+          {
+            key: 'restore',
+            label: 'Go back to the start of this season',
+            detail: 'The game keeps one copy of your franchise from the moment each season began. This puts it back, losing everything since.',
+            onSelect: () => {
+              void loadStored(BACKUP_KEY).then((raw) => {
+                const loaded = raw ? fromSave(raw) : null;
+                if (!loaded || !loaded.ok) return setMessage('There is no copy from the start of a season yet.');
+                setScreen({ name: 'home' });
+                setMessage('Back at the start of the season.');
                 commit(franchiseOf(loaded.save));
               });
             },
