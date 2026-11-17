@@ -67,6 +67,7 @@ export type Screen =
   | { name: 'assists' }
   | { name: 'firstSkate' }
   | { name: 'signs' }
+  | { name: 'ratingWorth' }
   | { name: 'rewards'; shown: number }
   | { name: 'jersey' }
   | { name: 'saves' }

@@ -4,7 +4,8 @@ import type { Franchise } from './season';
 /**
  * What the town expects. Before each season the club's main sponsor names a fair target, worked out from
  * how last season went. Meeting it adds to the sponsorship paid at the season's end; missing it takes a
- * little off. Nobody is ever sacked: the only thing at stake is the cheque, and so the club's books.
+ * little off, except after a season that ended early on strikes. Nobody is ever sacked: the only thing at
+ * stake is the cheque, and so the club's books.
  */
 export interface Expectation {
   /** "wins": win this many games. "playoffs": reach the playoffs. */
@@ -38,7 +39,9 @@ export function expectationMet(f: Franchise): boolean {
 /** What meeting or missing the target does to the sponsorship, as a multiplier. */
 export function expectationFactor(f: Franchise): number {
   if (!f.season.expectation) return 1;
-  return expectationMet(f) ? 1 + rules.bonus : 1 - rules.penalty;
+  if (expectationMet(f)) return 1 + rules.bonus;
+  // A season that ended early, on strikes, has cost the club enough: the sponsor does not dock it as well.
+  return 1 - (f.season.outcome === 'struckOut' ? rules.struckOutPenalty : rules.penalty);
 }
 
 /** Where the season stands against the target, in a few words. */

@@ -4,7 +4,10 @@ import { teamStrength } from '../../core/bosses';
 import { dress } from '../../core/matchup';
 import { jerseyColour } from '../../core/prestige';
 import { teamColour } from '../../core/teamColours';
+import { ratingsOf, ratingWords } from '../../core/ratingWords';
+import gearData from '../../data/gear.json';
 import lessons from '../../data/lessons.json';
+import ratingData from '../../data/ratingWords.json';
 import look from '../../data/rinkLook.json';
 import signs from '../../data/signs.json';
 import type { AppCtx } from '../App';
@@ -146,7 +149,7 @@ export function SignArt({ kind }: { kind: string }): ComponentChildren {
 }
 
 /** Starts the first skate: your team on the practice rink against the weakest club in the league, with the lesson run on it. */
-export function startLesson(app: AppCtx): void {
+export function startLesson(app: AppCtx, which: 'first' | 'second' = 'first'): void {
   const { f, league, team, setPlaying, setScreen, setMessage, setPrefs } = app;
   const opponent = league.teams.filter((x) => x.id !== league.userTeamId).sort((a, b) => teamStrength(league, a.id) - teamStrength(league, b.id))[0];
   const homeTeam = dress(league, team);
@@ -157,9 +160,9 @@ export function startLesson(app: AppCtx): void {
   }
   setPlaying(true);
   const homeColour = jerseyColour(f);
-  playMatch({ assists: assistStrengths(f), home: homeTeam, away, level: lessons.opponentLevel, homeColour, awayColour: teamColour(away.name, homeColour), lesson: true, forfeitNote: 'Leave the first skate?' }, () => {
+  playMatch({ assists: assistStrengths(f), home: homeTeam, away, level: lessons.opponentLevel, homeColour, awayColour: teamColour(away.name, homeColour), lesson: which, forfeitNote: which === 'first' ? 'Leave the first skate?' : 'Leave the second skate?' }, () => {
     setScreen({ name: 'home' });
-    setMessage('Back from the first skate. It is under Exhibition whenever you want it again, beside the practice rink.');
+    setMessage(which === 'first' ? 'Back from the first skate. It is under Exhibition whenever you want it again, beside the practice rink, with a second skate for the later moves.' : 'Back from the second skate. Both are under Exhibition whenever you want them again.');
     setPrefs(loadPrefs());
     setPlaying(false);
   });
@@ -191,6 +194,23 @@ export function teachPages(app: AppCtx): ComponentChildren | undefined {
         ]}
       />
     );
+  }
+
+  if (screen.name === 'ratingWorth') {
+    const names = gearData.ratingNames as Record<string, string>;
+    const rows = (side: 'skater' | 'goalie') =>
+      ratingsOf(side).map((rating) => ({
+        key: `${side}-${rating}`,
+        label: (
+          <span class="tile">
+            <span class="tile-name">{names[rating] ?? rating}</span>
+            <span class="tile-what">{side === 'goalie' ? 'Goalies' : 'Skaters'}</span>
+          </span>
+        ),
+        detail: ratingWords(side, rating),
+        onSelect: () => undefined,
+      }));
+    return <Menu key={screenKey} title="What ratings are worth" header={ratingData.intro} onBack={() => go({ name: 'settings' })} items={[...rows('skater'), ...rows('goalie')]} />;
   }
 
   if (screen.name === 'signs') {

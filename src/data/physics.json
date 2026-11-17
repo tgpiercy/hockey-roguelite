@@ -110,7 +110,9 @@
     "reboundToSlot": 0.5,
     "challengeDepth": 0.5,
     "challengeRange": 10,
-    "challengeHalfWidth": 4
+    "challengeHalfWidth": 4,
+    "passRead": 1,
+    "passSlide": 1.6
   },
   "period": {
     "seconds": 120,

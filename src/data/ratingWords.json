@@ -1,0 +1,24 @@
+{
+  "from": 70,
+  "to": 80,
+  "intro": "Ratings run from 40 to 99. Ten points is a small edge, not a different player: it shows over a season, not in one shift. Here is what ten points of each is worth.",
+  "skip": ["accelerationScale"],
+  "effects": {
+    "topSpeedScale": "top speed and acceleration",
+    "shotPower": "the speed of his shot",
+    "accuracy": "how far his shot strays",
+    "passSpeedScale": "the speed of his pass",
+    "passSpreadDegrees": "how far his pass strays",
+    "checkStrength": "the strength of his checks",
+    "puckSecurity": "how hard he is to check off the puck",
+    "handleSpeedScale": "how fast a puck he can take",
+    "drainScale": "how fast he tires",
+    "recoverScale": "how fast he gets his wind back",
+    "reactionSeconds": "the time he takes to react",
+    "lateralSpeed": "how fast he moves across his crease",
+    "coverRadius": "how much of the net he covers",
+    "depth": "how far out he stands",
+    "freezeSpeed": "how hard a shot he can hold on to",
+    "reboundKeep": "how lively his rebounds are"
+  }
+}

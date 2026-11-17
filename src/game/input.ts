@@ -53,6 +53,12 @@ export class InputReader {
     window.addEventListener('blur', this.onBlur);
   }
 
+  /** What the player is playing with: a controller if one is in use, the keyboard if a key has been pressed, else the screen. */
+  device(): 'pad' | 'keys' | 'touch' {
+    if (readGamepad(this.player)) return 'pad';
+    return this.hasKeyboard || !(navigator.maxTouchPoints > 0) ? 'keys' : 'touch';
+  }
+
   /** Stops listening to the keyboard. Call when the game that owns this reader ends. */
   dispose(): void {
     window.removeEventListener('keydown', this.onKeyDown);

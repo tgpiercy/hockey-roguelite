@@ -87,6 +87,10 @@ export function settingsPages(app: AppCtx): ComponentChildren {
             icon: 'report',
             detail: 'The marks on the ice and the scoreboard, each with a drawing and what it is telling you, and the marks that give away a boss\'s trick.',
           }),
+          tile('ratingWorth', 'What ratings are worth', 'Ten points of each, in numbers', () => go({ name: 'ratingWorth' }), {
+            icon: 'report',
+            detail: 'What ten points of speed, shooting and the rest change on the ice, worked out from the game\'s own numbers.',
+          }),
           tile('switching', 'Player switching', prefs.holdSwitch ? 'Hold' : 'Automatic', () => changePrefs({ ...prefs, holdSwitch: !prefs.holdSwitch }), {
             detail: 'Automatic: you always control whoever of yours has the puck. Hold: you keep your skater until you press switch, and a team-mate who gets the puck plays it himself.',
           }),

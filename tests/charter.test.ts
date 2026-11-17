@@ -4,7 +4,7 @@ import { clubRecords } from '../src/core/chronicle';
 import { generateLeague } from '../src/core/generate';
 import { beginSeason } from '../src/core/offseason';
 import { fromSave, franchiseOf, toSave } from '../src/core/save';
-import { availableStops, canSimulate, currentStop, healPrice, healStrike, matchup, maxStrikes, newFranchise, pickArtifact, recordGame, seasonRegions, shopPrice, startSeason, teamModifiers, travel, type Franchise, pickRinger } from '../src/core/season';
+import { rallyOffered, availableStops, canSimulate, currentStop, healPrice, healStrike, matchup, maxStrikes, newFranchise, pickArtifact, recordGame, seasonRegions, shopPrice, startSeason, teamModifiers, travel, type Franchise, pickRinger } from '../src/core/season';
 import { betterResult, claimWeekly, isWeekly, newWeekly, resultLine, weekKey, weeklyOver, weeklyResult } from '../src/core/weekly';
 import data from '../src/data/charters.json';
 import rules from '../src/data/season.json';
@@ -303,3 +303,46 @@ describe('the weekly run', () => {
     expect(betterResult(clean, { ...lost, week: 'next' })).toMatchObject({ week: 'next' });
   });
 });
+
+describe('the town rallies after a season that ended early', () => {
+  const after = (outcome: 'struckOut' | 'eliminated' | 'champion'): Franchise => {
+    const f = fresh('rally');
+    f.history = [{ season: 1, outcome, wins: 1, losses: 3 } as NonNullable<Franchise['history']>[number]];
+    f.offseason.leagueMoved = true;
+    return f;
+  };
+
+  it('is on offer only when the last season ended on strikes', () => {
+    expect(rallyOffered(fresh('rally'))).toBe(false);
+    expect(rallyOffered(after('struckOut'))).toBe(true);
+    expect(rallyOffered(after('eliminated'))).toBe(false);
+    expect(rallyOffered(after('champion'))).toBe(false);
+  });
+
+  it('taken, it is one more strike and one more powerup to start with; left, the season is the usual one', () => {
+    const plain = after('struckOut');
+    expect(startSeason(plain).ok).toBe(true);
+    const helped = after('struckOut');
+    expect(startSeason(helped, { rally: true }).ok).toBe(true);
+    expect(helped.season.rally).toBe(true);
+    expect(plain.season.rally).toBeUndefined();
+    expect(maxStrikes(helped)).toBe(maxStrikes(plain) + 1);
+    expect(helped.season.powerups.length).toBe(plain.season.powerups.length + 1);
+  });
+
+  it('cannot be taken when it is not on offer, and survives a save', () => {
+    const f = after('champion');
+    startSeason(f, { rally: true });
+    expect(f.season.rally).toBeUndefined();
+    const helped = after('struckOut');
+    startSeason(helped, { rally: true });
+    const loaded = fromSave(JSON.parse(JSON.stringify(toSave(helped, '2026-11-16'))));
+    expect(loaded.ok).toBe(true);
+    if (!loaded.ok) return;
+    const back = franchiseOf(loaded.save);
+    expect(back.season.rally).toBe(true);
+    expect(maxStrikes(back)).toBe(maxStrikes(helped));
+    expect(rules.rally.modifiers.length).toBeGreaterThan(0);
+  });
+});
+

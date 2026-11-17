@@ -93,6 +93,8 @@ export interface SeasonState {
   /** How the season was set up: its charter and the handicap ranks taken (charter.ts). Left out, a standard season. */
   charter?: string;
   vows?: Record<string, number>;
+  /** True if the town's help was taken for this season: a strike and a powerup more. */
+  rally?: boolean;
   /** Goals your defencemen have scored this season, for a charter that counts them. */
   defenceGoals?: number;
   /** How many regions this season's map has. Left out, the usual number. */
@@ -514,7 +516,18 @@ export function setupOf(f: Franchise): SeasonSetup {
 
 /** What the season's charter and handicaps give your side, for the ice and for the season rules. */
 function seasonSetupModifiers(f: Franchise): Modifier[] {
-  return f.season.charter || f.season.vows ? setupModifiers(setupOf(f), f.season.defenceGoals ?? 0) : [];
+  const own = f.season.charter || f.season.vows ? setupModifiers(setupOf(f), f.season.defenceGoals ?? 0) : [];
+  return f.season.rally ? [...own, ...(rules.rally.modifiers as Modifier[])] : own;
+}
+
+/**
+ * The town's help is on offer for the season about to start when the last one ended early, on strikes,
+ * before the playoffs. It is the player's to take or leave, and nothing is taken away for taking it.
+ * Never in a weekly run.
+ */
+export function rallyOffered(f: Franchise): boolean {
+  const history = f.history ?? [];
+  return f.season.weekly === undefined && history[history.length - 1]?.outcome === 'struckOut';
 }
 
 /** How many strikes end the season: the usual number, less any a handicap takes. */
@@ -585,6 +598,7 @@ export function startSeason(f: Franchise, setup: SeasonSetup & { regions?: numbe
   const regions = setup.regions ?? charter.regions;
   if (regions !== undefined) season.regions = Math.max(1, Math.min(rules.regions, regions));
   if (setup.weekly) season.weekly = setup.weekly;
+  if (setup.rally && !setup.weekly && rallyOffered(f)) season.rally = true;
   season.map = generateMap(season.seed, aiTeamsByStrength(f.league), season.regions ?? rules.regions, f.seen?.events ?? []);
   // The powerup kept all season, if one of the three on offer was chosen.
   if (setup.signature && signatureOffer(f).includes(setup.signature)) season.signature = setup.signature;

@@ -108,6 +108,8 @@ export interface AiMemory {
   passTo: number | null;
   /** True while winding up a shot from distance: he plants his feet instead of skating in as he charges. */
   plant: boolean;
+  /** True while he is down in the shooting lane to block: he holds the check button without throwing a check. */
+  brace: boolean;
 }
 
 export interface GoalieState {

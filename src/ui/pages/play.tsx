@@ -18,8 +18,9 @@ import { dress } from '../../core/matchup';
 import { beginSeason } from '../../core/offseason';
 import { jerseyColour, prestige } from '../../core/prestige';
 import { toSave } from '../../core/save';
-import { artifactInfo, bargainGames, signatureOffer, periodSecondsOf, recipeFor, powerupInfo, setLoadout } from '../../core/season';
+import { artifactInfo, bargainGames, signatureOffer, periodSecondsOf, rallyOffered, recipeFor, powerupInfo, setLoadout } from '../../core/season';
 import { teamColour } from '../../core/teamColours';
+import lessons from '../../data/lessons.json';
 import rules from '../../data/season.json';
 import { CrestBadge } from '../Crest';
 import { powerupIcon } from '../screens/season';
@@ -79,6 +80,17 @@ export function playPages(app: AppCtx): ComponentChildren | undefined {
             detail: `${chosen.description} Yours all season on the LT button: it is never used up, and can be used again ${rules.signatureRechargeSeconds} seconds of play after it ends. This season's three: ${offer.map((id) => powerupInfo(id).name).join(', ')}. Press to change.`,
             onSelect: () => setPlan({ ...plan, signature: offer[(offer.indexOf(signature) + 1) % offer.length] as string }),
           },
+          ...(rallyOffered(f)
+            ? [
+                {
+                  key: 'rally',
+                  wide: true,
+                  label: <OptionCard icon="team" name={rules.rally.name} value={plan.rally ? 'Taken' : 'Not taken'} chip="Press to change" off={!plan.rally} />,
+                  detail: `${rules.rally.describe} Press to change.`,
+                  onSelect: () => setPlan({ ...plan, rally: !plan.rally }),
+                } as MenuItem,
+              ]
+            : []),
           ...(opened(f, 'setup') ? [
           { key: 'charter', wide: true, label: <OptionCard icon="charter" name="Charter" value={charter.name} chip="Press to change" />, detail: `${charter.describe} Press to change.`, onSelect: () => setPlan({ ...plan, charter: next.id }) },
           ...VOWS.map((vow): MenuItem => {
@@ -161,6 +173,10 @@ export function playPages(app: AppCtx): ComponentChildren | undefined {
             icon: 'training',
             wide: true,
             detail: 'About two minutes on the practice rink: skate, shoot, pass, one-timer, poke check and body check, each asked for once or twice with a line saying what it is for. It ends by itself.',
+          }),
+          tile('lesson2', 'Second skate', 'The later moves: deke, fake, give and go, block', () => startLesson(app, 'second'), {
+            icon: 'training',
+            detail: `About two minutes on the practice rink: ${lessons.second.steps.length} moves that come after the first skate, one at a time, each with a line saying what it is for.`,
           }),
           tile(
             'practice',

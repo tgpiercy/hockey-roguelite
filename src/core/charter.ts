@@ -49,6 +49,8 @@ export interface SeasonSetup {
   vows?: Record<string, number>;
   /** The powerup kept all season on the first button: one of the three offered (season.signatureOffer). */
   signature?: string;
+  /** The town's help, taken when it was on offer (season.rallyOffered): see `rally` in season.json. */
+  rally?: boolean;
 }
 
 export const CHARTERS = data.charters as unknown as CharterInfo[];

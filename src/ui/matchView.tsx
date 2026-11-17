@@ -95,8 +95,8 @@ export interface MatchOptions {
   keep?: string;
   /** The game kept from before: play carries on from it, paused, in place of a new game. */
   resume?: World;
-  /** True for the first skate: a practice with a lesson run on it, which ends when the lesson does. */
-  lesson?: boolean;
+  /** A skate, the first or the second: a practice with a lesson run on it, which ends when the lesson does. */
+  lesson?: 'first' | 'second';
   /** How long a period lasts, in seconds. Left out, what the tuning says. */
   periodSeconds?: number;
   /** True for a club that has not opened tactics yet: the pause menu does not offer them. */
@@ -295,7 +295,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       playerNames: [home.players.map((p) => lastName(p.name)), away.players.map((p) => lastName(p.name))],
       looks: [teamLooks(home.players), teamLooks(away.players)],
       commentary: () => commentary !== 'off' && !lesson,
-      ...(lesson ? { lesson: true } : {}),
+      ...(lesson ? { lesson } : {}),
       onCall: (text, priority) => {
         if (commentary === 'voice' && voiceVolume > 0) speak(text, priority, voiceVolume);
       },

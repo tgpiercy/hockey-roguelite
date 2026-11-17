@@ -45,6 +45,10 @@
     "dekeChance": [
       0,
       0.08
+    ],
+    "blockEagerness": [
+      0,
+      1
     ]
   },
   "positions": {
@@ -93,7 +97,11 @@
     "bodyCheckAim": 0.85,
     "netRunFromX": 6,
     "matePressFromX": 2,
-    "matePressGap": 2.5, "guardFromX": 0
+    "matePressGap": 2.5,
+    "guardFromX": 0,
+    "blockRange": 20,
+    "blockSettle": 1.2,
+    "holdBackFrom": 0.3
   },
   "styles": {
     "rush": {

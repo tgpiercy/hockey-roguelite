@@ -67,12 +67,17 @@ export function goalieTarget(g: Player, world: World, t: Tuning): Vec {
     if (Math.abs(y) <= limit + 1) return { x: meetX, y: Math.max(-limit, Math.min(limit, y)) };
   }
 
-  // Otherwise play the angle.
-  const dx = seen.pos.x - net.x;
-  const dy = seen.pos.y - net.y;
+  // Otherwise play the angle: of the puck, or, while a pass is on its way to one of their skaters, partly of the
+  // man it is going to, so that he is already across when it arrives. (He reads the pass from the passer's
+  // body, so this does not wait for his reaction time as a shot does.)
+  const to = world.puck.carrier === null && world.puck.passTarget !== null ? world.players[world.puck.passTarget] : undefined;
+  const read = to !== undefined && to.team !== g.team && to.role === 'skater' ? t.goalie.passRead : 0;
+  const dx = seen.pos.x + ((to?.pos.x ?? seen.pos.x) - seen.pos.x) * read - net.x;
+  const dy = seen.pos.y + ((to?.pos.y ?? seen.pos.y) - seen.pos.y) * read - net.y;
   const d = Math.hypot(dx, dy) || 1;
   // A carrier coming straight down the middle is challenged: he steps out further to cut the angle.
-  const straightOn = !seen.loose && d <= t.goalie.challengeRange && Math.abs(dy) <= t.goalie.challengeHalfWidth;
+  // So is the man a pass is going to, when it is going in front of him.
+  const straightOn = (!seen.loose || read > 0) && d <= t.goalie.challengeRange && Math.abs(dy) <= t.goalie.challengeHalfWidth;
   // Helped, he comes out further still against the man in alone.
   const extra = straightOn && goalieHelped(g, world, t) ? t.goalieAssist.challengeDepth * t.goalieAssist.strength : 0;
   const depth = Math.min(state.fx.depth + (straightOn ? t.goalie.challengeDepth : 0) + extra, d * 0.5);
@@ -94,7 +99,10 @@ export function stepGoalie(g: Player, world: World, t: Tuning, dt: number): void
   const dx = target.x - g.pos.x;
   const dy = target.y - g.pos.y;
   const d = Math.hypot(dx, dy);
-  const move = Math.min(d, state.fx.lateralSpeed * dt);
+  // Pushing across with a pass to one of their skaters, he moves faster than he shuffles.
+  const to = world.puck.carrier === null && world.puck.passTarget !== null ? world.players[world.puck.passTarget] : undefined;
+  const slide = to !== undefined && to.team !== g.team && to.role === 'skater' ? t.goalie.passSlide : 1;
+  const move = Math.min(d, state.fx.lateralSpeed * slide * dt);
   if (d > 1e-6) {
     g.vel.x = ((dx / d) * move) / dt;
     g.vel.y = ((dy / d) * move) / dt;

@@ -3,7 +3,7 @@ import hintData from '../src/data/hints.json';
 import lessons from '../src/data/lessons.json';
 import signs from '../src/data/signs.json';
 import { FAIL_WORDS, FailWatch, hintDone, hintsThatApply } from '../src/game/hints';
-import { LESSON_STEPS, lessonAdvance, lessonLine, lessonOver, lessonStep, newLesson } from '../src/game/lesson';
+import { LESSON_STEPS, lessonAdvance, lessonLine, lessonOver, lessonStep, newLesson, sayFor, SECOND_STEPS, slowStep } from '../src/game/lesson';
 import { resolveCheck } from '../src/sim/check';
 import { stageDrill } from '../src/sim/drill';
 import { targetNet } from '../src/sim/team';
@@ -21,7 +21,8 @@ describe('the first skate', () => {
     for (const step of LESSON_STEPS) {
       expect(step.need).toBeGreaterThan(0);
       expect(step.say.length).toBeGreaterThan(0);
-      expect(step.say).toBe(step.say.toUpperCase());
+      // In capitals, apart from the names of controls, which are filled in for what is being played with.
+      expect(step.say.replace(/\{\w+\}/g, '')).toBe(step.say.replace(/\{\w+\}/g, '').toUpperCase());
       expect(step.why.length).toBeGreaterThan(0);
       expect(['loose', 'attack', 'defend']).toContain(step.drill);
     }
@@ -189,3 +190,66 @@ describe('the page of signs', () => {
     }
   });
 });
+
+describe('the second skate, and the controls by name', () => {
+  it('the later moves each say what and why, and none repeats the first skate', () => {
+    expect(SECOND_STEPS.length).toBeGreaterThanOrEqual(3);
+    const first = new Set(LESSON_STEPS.map((s) => s.id));
+    for (const step of SECOND_STEPS) {
+      expect(first.has(step.id), step.id).toBe(false);
+      expect(step.need).toBeGreaterThan(0);
+      expect(step.why.length).toBeGreaterThan(0);
+      expect(['loose', 'attack', 'defend']).toContain(step.drill);
+    }
+    expect(lessons.second.finished.length).toBeGreaterThan(0);
+  });
+
+  it('every control a step names has a name on a controller, a keyboard and the screen', () => {
+    for (const step of [...LESSON_STEPS, ...SECOND_STEPS]) {
+      for (const device of ['pad', 'keys', 'touch'] as const) {
+        const said = sayFor(step.say, device);
+        expect(said, step.id).not.toMatch(/[{}]/);
+        expect(said).toBe(said.toUpperCase());
+      }
+    }
+    expect(sayFor('{move}: GO', 'pad')).toBe('LEFT STICK: GO');
+    expect(sayFor('{move}: GO', 'keys')).toBe('ARROW KEYS: GO');
+    expect(sayFor('TAP {pass}', 'keys')).toBe('TAP Z');
+    expect(lessonLine(newLesson(), 'keys')).toContain('ARROW KEYS');
+  });
+
+  it('a deke and a fake count as they happen; a give and go and a block count once, when they start', () => {
+    const world = createGame(t, 'second', { rules: { practice: true } });
+    const me = world.human!.controlled;
+    const lesson = newLesson('second');
+    expect(lessonStep(lesson)!.id).toBe('deke');
+    expect(lessonAdvance(lesson, [{ type: 'deke', player: me + 1 }], me, world)).toBe('none');
+    expect(lessonAdvance(lesson, [{ type: 'deke', player: me }], me, world)).toBe('progress');
+    expect(lessonAdvance(lesson, [{ type: 'deke', player: me }], me, world)).toBe('step');
+    expect(lessonStep(lesson)!.id).toBe('fake');
+    expect(lessonAdvance(lesson, [{ type: 'fake', player: me }], me, world)).toBe('step');
+    expect(lessonStep(lesson)!.id).toBe('giveGo');
+    expect(lessonAdvance(lesson, [], me, world)).toBe('none');
+    world.human!.giveGo = { passer: me, receiver: me + 1, left: 1 };
+    expect(lessonAdvance(lesson, [], me, world)).toBe('step');
+    expect(lessonStep(lesson)!.id).toBe('block');
+    // Still on from the step before: it does not count as a block.
+    expect(lessonAdvance(lesson, [], me, world, false)).toBe('none');
+    expect(lessonAdvance(lesson, [], me, world, true)).toBe('step');
+    expect(lessonOver(lesson)).toBe(true);
+    expect(lessonLine(lesson)).toBe(lessons.second.finished);
+  });
+
+  it('time runs slow only on the steps that are learned that way', () => {
+    const lesson = newLesson();
+    const slow: string[] = [];
+    while (!lessonOver(lesson)) {
+      if (slowStep(lesson)) slow.push(lessonStep(lesson)!.id);
+      lesson.step += 1;
+    }
+    expect(slow).toEqual(['oneTimer']);
+    expect(lessons.slowScale).toBeGreaterThan(0);
+    expect(lessons.slowScale).toBeLessThan(1);
+  });
+});
+

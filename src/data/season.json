@@ -34,6 +34,7 @@
   "startingDifficulty": "pro",
   "suggestedDifficulty": "rookie",
   "mercyLead": 6,
+  "rally": { "name": "The town rallies", "describe": "Last season ended early. The town turns out: one more strike this season, and one more powerup to start with. Nothing is taken away for it.", "modifiers": [{ "stat": "maxStrikes", "op": "add", "value": 1 }, { "stat": "startingPowerups", "op": "add", "value": 1 }] },
   "simPenalty": 4,
   "winCurrency": 12,
   "cupCurrency": 6,

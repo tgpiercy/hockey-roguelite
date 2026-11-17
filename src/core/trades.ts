@@ -21,7 +21,8 @@ const money = (n: number): string => `$${(n / 1_000_000).toFixed(2)}M`;
 
 /**
  * Would the other team make this one-for-one trade? It must be skater for skater or goalie for goalie,
- * both teams must stay under the cap, and the other team must get at least as much value as it gives.
+ * both teams must stay under the cap, the other team must get at least as much value as it gives, and it
+ * will not make itself clearly worse this season without getting clearly more for later.
  */
 export function evaluateTrade(f: Franchise, minePlayerId: string, theirTeamId: string, theirPlayerId: string): MoveResult {
   if (rosterLocked(f)) return { ok: false, reason: 'Trades happen in the off-season.' };
@@ -61,6 +62,13 @@ export function judgeTrade(f: Franchise, minePlayerId: string, theirTeamId: stri
   }
   if (tradeValue(mine) + need < tradeValue(theirs) + rules.trade.acceptMargin) {
     return { ok: false, reason: `${theirTeam.name} say no: they value ${theirs.name} more than ${mine.name}.` };
+  }
+  // They have a season to play too: a man better today is not given up for a lesser one, however old he is,
+  // unless what comes back is worth that much more to them in the years ahead, point for point.
+  // (A man at a position they are short of is worth that much more to them today as well.)
+  const worseNow = theirs.overall - mine.overall - need;
+  if (worseNow > 0 && tradeValue(mine) + need < tradeValue(theirs) + worseNow * rules.trade.futurePerPoint) {
+    return { ok: false, reason: `${theirTeam.name} say no: ${theirs.name} is too much of their team this season to give up for ${mine.name}.` };
   }
   return { ok: true };
 }

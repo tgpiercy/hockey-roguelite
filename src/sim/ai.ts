@@ -26,6 +26,8 @@ export interface AiLevel {
   longShotCharge: number;
   /** How readily, each time he thinks, he dekes a defender who is on him. */
   dekeChance: number;
+  /** How readily a defender standing in the shooting lane goes down to block, 0 to 1. */
+  blockEagerness: number;
 }
 
 export function aiLevel(level: number): AiLevel {
@@ -44,6 +46,7 @@ export function aiLevel(level: number): AiLevel {
     longShotChance: at(l.longShotChance),
     longShotCharge: at(l.longShotCharge),
     dekeChance: at(l.dekeChance),
+    blockEagerness: at(l.blockEagerness),
   };
 }
 
@@ -65,6 +68,7 @@ export function createAiMemory(): AiMemory {
     checkSteps: 0,
     passTo: null,
     plant: false,
+    brace: false,
   };
 }
 
@@ -366,8 +370,26 @@ function planSupport(world: World, p: Player, t: Tuning): void {
   goTo(p.ai, clampX(ref.x - dir * P.trailBehind), ref.y * 0.3);
 }
 
+/**
+ * Whether the man guarding the lane goes down to block: the carrier is near enough to shoot, far enough
+ * that the hold is a block and not a hit, and he himself has got to his spot between the carrier and the net.
+ */
+function wantsBlock(world: World, p: Player, carrier: Player, spot: Vec, net: Vec, t: Tuning, lv: AiLevel): boolean {
+  const away = dist(carrier.pos, net) || 1;
+  if (away > P.blockRange) return false;
+  // In the lane: nearer the net than the carrier is, and close to the line from him to it (or at his own spot on it).
+  const along = ((p.pos.x - carrier.pos.x) * (net.x - carrier.pos.x) + (p.pos.y - carrier.pos.y) * (net.y - carrier.pos.y)) / away;
+  const off = Math.abs((p.pos.x - carrier.pos.x) * (net.y - carrier.pos.y) - (p.pos.y - carrier.pos.y) * (net.x - carrier.pos.x)) / away;
+  if (dist(p.pos, spot) > P.blockSettle && (along <= 0 || along >= away || off > P.blockSettle)) return false;
+  if (dist(p.pos, carrier.pos) < t.block.minCarrierDistance) return false;
+  // Once down he stays down while it still applies; getting down is a matter of how sharp he is.
+  return p.ai.brace || world.rng.chance(lv.blockEagerness);
+}
+
 function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   const m = p.ai;
+  const wasBraced = m.brace;
+  m.brace = false;
   const dir = attackDir(p.team);
   const net = ownNet(p.team, t);
   const carrier = carrierOf(world);
@@ -385,15 +407,30 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
     return;
   }
   // Nearest defender pressures the carrier.
-  const presser = nearestTo(mates, carrier.pos);
+  const nearest = nearestTo(mates, carrier.pos);
   // A carrier close in front of the net is the danger: the presser comes hard and checks more readily.
   const danger = dist(carrier.pos, net) < P.slotDangerRadius;
+  const defence = world.teams[p.team].tactics?.defence ?? 'balanced';
+  const away = dist(carrier.pos, net) || 1;
+  const k = Math.min(P.guardDepth, away * 0.6) / away;
+  const guardSpot: Vec = { x: net.x + (carrier.pos.x - net.x) * k, y: net.y + (carrier.pos.y - net.y) * k };
+  // The last man back, chosen before anyone goes to the carrier, holds the lane to the net: a rush should meet
+  // somebody. On a person's team, whenever the carrier is over the line set for it (the nearest man there is the
+  // person, who cannot be counted on). On any other team, when the carrier is leading the rush himself, nobody
+  // of his nearer the net, until he reaches the zone (there one of the others guards the slot, below): with a
+  // team-mate of his in front of him, that man is marked instead. Holding a man back longer frees the pass.
+  // The dullest opponents (the easiest difficulty) do not think to do it at all.
+  const withPerson = humansOn(world, p.team).length > 0;
+  const leads = skatersOf(world, carrier.team).every((o) => o.id === carrier.id || dist(o.pos, net) >= away);
+  const guardEarly = dir * carrier.pos.x < P.guardFromX && (withPerson || (lv.blockEagerness >= P.holdBackFrom && leads && !inZone(carrier.team, carrier.pos.x)));
+  const lastMan = guardEarly && defence !== 'man' ? nearestTo(mates.filter((s) => s.id !== nearest?.id), guardSpot) : null;
+  const presser = nearest;
   if (presser?.id === p.id) {
     m.follow = 'carrier';
     m.sprint = danger || dist(p.pos, carrier.pos) > P.pressureRadius;
     m.wantCheck = world.rng.chance(Math.min(1, lv.checkEagerness * (danger ? P.slotCheckBoost : 1)));
     // Man-to-man: the man on the puck never lets him settle.
-    if (world.teams[p.team].tactics?.defence === 'man') {
+    if (defence === 'man') {
       m.sprint = true;
       m.wantCheck = world.rng.chance(Math.max(lv.checkEagerness, data.tactics.manCheck));
     }
@@ -403,17 +440,11 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   // the person. He cannot be counted on to be there: once the carrier is over centre and the person is not
   // right on him, the nearest AI team-mate goes to the carrier as well, exactly as a presser would.
   let second: Player | null = null;
-  // On a person's team, with the carrier over the line set for it, the man furthest back holds the lane to the net
-  // first (he is chosen below, before anyone goes to the carrier): a rush should meet somebody.
-  const guardEarly = humansOn(world, p.team).length > 0 && dir * carrier.pos.x < P.guardFromX;
-  const defence = world.teams[p.team].tactics?.defence ?? 'balanced';
-  const away = dist(carrier.pos, net) || 1;
-  const k = Math.min(P.guardDepth, away * 0.6) / away;
-  const guardSpot: Vec = { x: net.x + (carrier.pos.x - net.x) * k, y: net.y + (carrier.pos.y - net.y) * k };
-  const lastMan = guardEarly && defence !== 'man' ? nearestTo(mates.filter((s) => s.id !== presser?.id), guardSpot) : null;
   if (lastMan?.id === p.id) {
     goTo(m, guardSpot.x, guardSpot.y, dist(p.pos, guardSpot) > P.pressureRadius);
     m.wantCheck = world.rng.chance(lv.checkEagerness);
+    m.brace = wasBraced;
+    m.brace = wantsBlock(world, p, carrier, guardSpot, net, t, lv);
     return;
   }
   if (presser && humanOf(world, presser.id) !== null && dir * carrier.pos.x < P.matePressFromX && dist(presser.pos, carrier.pos) > P.matePressGap) {
@@ -440,6 +471,8 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
     if (guard?.id === p.id) {
       goTo(m, spot.x, spot.y);
       m.wantCheck = world.rng.chance(lv.checkEagerness);
+      m.brace = wasBraced;
+      m.brace = wantsBlock(world, p, carrier, spot, net, t, lv);
       return;
     }
     if (guard) free.splice(free.indexOf(guard), 1);
@@ -591,6 +624,19 @@ export function aiInput(world: World, p: Player, t: Tuning, lv: AiLevel): InputF
   if (m.wantDeke && hasPuck) {
     input.switchPlayer = true;
     m.wantDeke = false;
+  }
+
+  // Down in the lane to block: the button is simply held. (Leaving the defence, or the carrier coming close, ends it.)
+  if (m.brace && m.checkSteps === 0) {
+    const carrier = carrierOf(world);
+    const shooter = world.puck.shotBy === null ? undefined : world.players[world.puck.shotBy];
+    // He stays down while their man still has it at a distance, and while their shot is on its way.
+    const stillOn = carrier ? carrier.team !== p.team && dist(p.pos, carrier.pos) >= t.block.minCarrierDistance && m.state === 'defend' : shooter !== undefined && shooter.team !== p.team;
+    if (stillOn) {
+      input.check = true;
+      return input;
+    }
+    m.brace = false;
   }
 
   // Checking: the button is held for a planned number of steps and let go on the last, which throws it.

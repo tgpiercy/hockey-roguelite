@@ -26,7 +26,7 @@
   },
   "expectation": {
     "bonus": 0.15,
-    "penalty": 0.1,
+    "penalty": 0.1, "struckOutPenalty": 0,
     "minWins": 3,
     "maxWins": 9,
     "shareOfLastWins": 0.8

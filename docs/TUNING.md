@@ -843,6 +843,81 @@ A poke by your skater is close to a coin toss from the same spot, which is where
 
 The first region is at the benchmark on Pro. The title is far below it: a first-season club strikes out in the second or third region nearly every time. The benchmark comes from a game where every run starts level; ours starts a weak club that is meant to grow over seasons, so the two are not the same thing. Not changed yet: the owner decides.
 
+## The lone carry-in, the trade exploit and gear's worth (2026-11-16)
+
+### The lone carry-in
+
+`npm run measure -- carry --games 60 [--player script|passer|novice]`: a 67 team against a 70 team at level 0.5. It says where a stand-in's shots and goals come from.
+
+Before any change, 5.8 of the script's 6.4 goals a game came from one place: a shot off the carry from 6 to 10 m straight in front, 25 times a game, 23% of them in. A defender stood between the shooter and the net for 16% of those shots, and none ever went down to block. The passer's goals came from one-timers 3 to 6 m in front: 5.3 a game, 80% in.
+
+| | Script: goals a game | its 6 to 10 m shot goes in | Passer: goals a game | its one-timer in front goes in | All-AI, goals a team |
+| --- | --- | --- | --- | --- | --- |
+| Before | 6.40 | 23% | 5.72 | 80% (5.3 a game) | about 3.0 |
+| A man held back against a lone rush, AI shot blocking, goalies that read a pass | about 4.4 | 13 to 14% | about 6.7 | 52 to 54% (9 a game) | 3.1 to 3.3 |
+
+What was built, and what each does:
+
+- **A man held back against a lone rush** (`planDefend`). With the carrier leading the rush himself, one of the two defenders off the puck drops into the lane. A defender is now between shooter and net for about 60% of the script's shots.
+- **AI shot blocking** (`wantsBlock`). The man in the lane goes down and stays down while the shot is in flight: about 5 blocks a game against the script. This is what cuts the script's goals; holding the man back without blocking did nothing (6.95 goals).
+- **Goalies read a pass** (`passRead` 1, `passSlide` 1.6). Holding a man back frees the pass: with it, and no change to goalies, the passer went from 5.7 to about 9 goals a game. With the goalie playing the receiver's angle as soon as the pass leaves, and moving faster, the one-timer in front goes in 52% of the time in place of 70 to 80%. Reading the pass only after his reaction time, or only moving faster, did nothing: by the time he saw the pass the shot was gone.
+
+Tried and taken out, each measured:
+
+| Tried | Script | Passer | Why it went |
+| --- | --- | --- | --- |
+| Every team holds a man back all the time | 4.2 | 8.7 to 9.1 | Frees the pass |
+| The chaser, once passed, marks a man and leaves the carrier | 5.0 | 11.45 | An unpressed carrier passes at will |
+| The man nearest who is still goal-side goes to the carrier | 5.9 | 8.2 | He leaves the lane and is passed |
+| The marker stands in the passing lane | 4.2 | 8.8 | He does not intercept |
+| The man on the carrier cuts across to the lane | 6.8 | 6.05 | He is behind the carrier and cannot get there |
+| A weaker one-timer (`oneTimerPower` 1.0) | | 8.35 | The shot's speed is not what beats the goalie |
+| The goalie steps further out (`challengeDepth` 1.0, 1.5; the owner's idea) | 4.3, 3.65 | 8.8, 9.0 | It does cut the lone shot (to 10% at 1.5), and it leaves the goalie further from the pass. Left at 0.5; worth trying again now that goalies read the pass. |
+
+Not measured: a person. The numbers say passing is now the better play by half again, where the two were level.
+
+### What it does to the difficulties
+
+30 seasons each (`npm run measure -- seasons`); a sample this size swings about 8 points.
+
+| Difficulty, stand-in | Before: first region, title | Now: first region, title |
+| --- | --- | --- |
+| Rookie, newcomer | 93%, 5% | 90%, 7% |
+| Rookie, script | 100%, 80% | 100%, 87% (after the two easings below; 63% before them) |
+| Semi-Pro, script | 100%, 75% | 100%, 43% |
+| Pro, script | 100%, 27% | 80%, 3% |
+| Pro, passer | not measured | 100%, 73% |
+
+- The two stand-ins have moved far apart on Pro: the one that only carries and shoots almost never wins the title now, and the one that passes wins three in four. A person is somewhere between, and nearer the passer the better he gets. The difficulties were not re-set: which stand-in Pro is set against is the owner's call.
+- Rookie was kept where it was for the newcomer by two things: opponents at the bottom of the scale hardly block (`blockEagerness` from 0), and below `holdBackFrom` they do not hold a man back. Without them the newcomer cleared the first region 77% of the time.
+
+### Trading
+
+`tests/fleece.test.ts` plays a manager who does nothing but trade, taking whatever gains most.
+
+- By the other teams' own measure of worth, he never gains: that held before and holds now.
+- Trading only for overall today, he gained 50 to 60 points across a roster of nine in one off-season (nearly 7 a player): a 67 for a 79 aged 38, a 66 for a 75 aged 38. Teams priced an old star by his years and sold his present for nothing.
+- Now a team wants `futurePerPoint` (1.5) of future worth for each point of overall it gives up today. The same manager gains about 20 points across nine players, and his roster is worth 45 to 60 less by their measure.
+
+### Gear's worth
+
+`npm run measure -- gear --games 100`: every player of a 70 team in a full kit of real pieces of one rarity, rolled as packs roll them, perks and set bonuses included, against a plain 70 team, all AI at 0.5.
+
+| Kit | About, on each skater rating | Wins | Goals |
+| --- | --- | --- | --- |
+| Common, level 1 | +2 | 48% | 3.27 to 3.21 |
+| Rare, level 1 | +6 | 67% | 3.44 to 2.65 |
+| Epic, level 1 | +10 | 92% | 4.84 to 1.56 |
+| Legendary, level 1 | +15 | 97% | 5.60 to 1.63 |
+| Legendary, level 5 | +27 | 100% | 6.89 to 0.15 |
+
+The Phase 6 figure (+15 on every rating wins 73%) left perks and set bonuses out, and they are most of it: a full Epic kit wins nine games in ten. Nobody has a full kit early, but a franchise that plays long enough gets there. Not changed: how strong late gear should be is the owner's call.
+
+### The league over twenty seasons
+
+`npm run seasons -- --seeds 20 --years 20`, re-run after the removals of the subtraction round and this round's trade rule: no illegal roster and nobody over the cap in any year; the league's average stays between 70.6 and 74.9; the cautious manager is never in a fire sale, the balanced one has two franchises in one at year 20, and the spender lives in it as before, with four bail-outs across the twenty years (the last table had none).
+
+
 ## Change log
 
 ## The sponsor's target and the cup (2026-11-15)

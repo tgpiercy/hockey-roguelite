@@ -71,6 +71,19 @@ describe('what the town expects', () => {
     expect(expectationShort(f)).toContain('met');
   });
 
+  it('a season that ended early on strikes is not docked for the missed target as well', () => {
+    const f = started();
+    expect(expectationMet(f)).toBe(false);
+    f.season.outcome = 'eliminated';
+    expect(expectationFactor(f)).toBeCloseTo(1 - EXPECTATION_RULES.penalty);
+    f.season.outcome = 'struckOut';
+    expect(expectationFactor(f)).toBeCloseTo(1 - EXPECTATION_RULES.struckOutPenalty);
+    expect(EXPECTATION_RULES.struckOutPenalty).toBeLessThan(EXPECTATION_RULES.penalty);
+    // Meeting it still pays, however the season ended.
+    f.season.gamesWon = f.season.expectation!.wins;
+    expect(expectationFactor(f)).toBeCloseTo(1 + EXPECTATION_RULES.bonus);
+  });
+
   it('the sponsorship cheque is bigger for a target met than for one missed, by the rule', () => {
     const f = started();
     const missed = seasonEndBills(f).sponsorship;

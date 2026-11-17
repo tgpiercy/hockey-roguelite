@@ -10,11 +10,108 @@
   "good": "GOOD!",
   "finished": "THAT IS THE GAME. BACK TO THE CLUB.",
   "steps": [
-    { "id": "skate", "drill": "loose", "need": 1, "say": "LEFT STICK: SKATE TO THE PUCK", "why": "The red ring is you. The arrow is over whoever has the puck." },
-    { "id": "shoot", "drill": "attack", "need": 2, "say": "HOLD SHOOT TO WIND UP, LET GO TO FIRE", "why": "The longer the wind-up, the harder the shot. Point the stick at a corner of the net." },
-    { "id": "pass", "drill": "attack", "need": 2, "say": "TAP PASS: IT GOES TO THE DIAMOND", "why": "The diamond is under the team-mate your pass would go to." },
-    { "id": "oneTimer", "drill": "attack", "need": 1, "say": "PASS, THEN HOLD SHOOT BEFORE IT ARRIVES", "why": "A one-timer beats the goalie about three times as often as a shot off the carry." },
-    { "id": "poke", "drill": "defend", "need": 1, "say": "GET IN FRONT OF HIM AND TAP CHECK", "why": "A poke takes the puck from in front or beside him, inside the circle, never from behind." },
-    { "id": "body", "drill": "defend", "need": 1, "say": "HOLD CHECK, LET GO AS YOU REACH HIM", "why": "A body check knocks him off the puck. Come in fast and it puts him on the ice." }
-  ]
+    {
+      "id": "skate",
+      "drill": "loose",
+      "need": 1,
+      "say": "{move}: SKATE TO THE PUCK",
+      "why": "The red ring is you. The arrow is over whoever has the puck."
+    },
+    {
+      "id": "shoot",
+      "drill": "attack",
+      "need": 2,
+      "say": "HOLD {shoot} TO WIND UP, LET GO TO FIRE",
+      "why": "The longer the wind-up, the harder the shot. Point the stick at a corner of the net."
+    },
+    {
+      "id": "pass",
+      "drill": "attack",
+      "need": 2,
+      "say": "TAP {pass}: IT GOES TO THE DIAMOND",
+      "why": "The diamond is under the team-mate your pass would go to."
+    },
+    {
+      "id": "oneTimer",
+      "drill": "attack",
+      "need": 1,
+      "say": "{pass}, THEN HOLD {shoot} BEFORE IT ARRIVES",
+      "why": "Time runs slow while your pass is on its way, and the gold ring is round the man it is going to. A one-timer beats the goalie far more often than a shot off the carry."
+    },
+    {
+      "id": "poke",
+      "drill": "defend",
+      "need": 1,
+      "say": "GET IN FRONT OF HIM AND TAP {check}",
+      "why": "A poke takes the puck from in front or beside him, inside the circle, never from behind."
+    },
+    {
+      "id": "body",
+      "drill": "defend",
+      "need": 1,
+      "say": "HOLD {check}, LET GO AS YOU REACH HIM",
+      "why": "A body check knocks him off the puck. Come in fast and it puts him on the ice."
+    }
+  ],
+  "slowScale": 0.5,
+  "slowSteps": [
+    "oneTimer",
+    "giveGo"
+  ],
+  "controls": {
+    "pad": {
+      "move": "LEFT STICK",
+      "shoot": "SHOOT",
+      "pass": "PASS",
+      "check": "CHECK",
+      "switch": "SWITCH"
+    },
+    "keys": {
+      "move": "ARROW KEYS",
+      "shoot": "SPACE",
+      "pass": "Z",
+      "check": "X",
+      "switch": "C"
+    },
+    "touch": {
+      "move": "THE STICK ON THE LEFT",
+      "shoot": "SHOOT",
+      "pass": "PASS",
+      "check": "CHECK",
+      "switch": "SWITCH"
+    }
+  },
+  "second": {
+    "finished": "THOSE ARE THE REST OF THE MOVES. BACK TO THE CLUB.",
+    "steps": [
+      {
+        "id": "deke",
+        "drill": "attack",
+        "need": 2,
+        "say": "WITH THE PUCK, PRESS {switch}: A DEKE",
+        "why": "A deke goes round the nearest defender, and the check he is throwing misses. Use it as he reaches you."
+      },
+      {
+        "id": "fake",
+        "drill": "attack",
+        "need": 1,
+        "say": "HOLD {shoot}, THEN TAP {pass} BEFORE YOU LET GO",
+        "why": "A fake: the shot is called off and the goalie is stuck for a moment. Shoot again at once."
+      },
+      {
+        "id": "giveGo",
+        "drill": "attack",
+        "need": 1,
+        "say": "TAP {pass}, THEN TAP {pass} AGAIN WHILE IT IS ON ITS WAY",
+        "why": "A give and go: you keep your man, skate for the net, and the puck comes back to you."
+      },
+      {
+        "id": "block",
+        "drill": "defend",
+        "need": 1,
+        "say": "AWAY FROM THE PUCK, HOLD {check}: DOWN TO BLOCK",
+        "why": "Down on one knee between the shooter and the net you stop his shot. You can only shuffle while you are down."
+      }
+    ]
+  }
 }

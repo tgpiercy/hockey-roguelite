@@ -18,7 +18,7 @@
   "aiResignMaxAge": 35,
   "resignYears": [1, 2, 3, 4],
   "contract": { "youngMaxAge": 25, "youngPerYear": 0.05, "oldMinAge": 31, "oldPerYear": 0.05 },
-  "trade": { "positionShort": 3, "positionPlenty": 5, "positionNeed": 2, "positionMin": 2, "salaryPerMillion": 1.5, "youthCredit": 0.3, "agePenaltyFrom": 30, "agePenaltyPerYear": 1.5, "acceptMargin": 0 },
+  "trade": { "positionShort": 3, "positionPlenty": 5, "positionNeed": 2, "positionMin": 2, "salaryPerMillion": 1.5, "youthCredit": 0.3, "agePenaltyFrom": 30, "agePenaltyPerYear": 1.5, "acceptMargin": 0, "futurePerPoint": 1.5 },
   "deadline": {
     "offers": 3, "keepBest": 2,
     "veteranMinAge": 29, "veteranGain": 2, "veteranMaxGain": 8,
