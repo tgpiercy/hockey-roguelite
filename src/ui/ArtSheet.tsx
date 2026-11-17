@@ -23,6 +23,16 @@ import { PortraitFace } from './Portrait';
  * Every piece of drawn art on one page, opened with ?sheet. It exists so the art can be checked together:
  * that no icon is missing or unreadable at the size it is used, and that faces and crests vary.
  */
+/** The goalie's candidate stances, each in the poses a game shows. */
+const KEEPER_POSES: [string, Partial<PoseInput>][] = [
+  ['ready', {}],
+  ['glove save', { action: 'glove' }],
+  ['down', { down: true }],
+  ['kick save', { action: 'kick' }],
+  ['shuffle', { speed: 1, stride: Math.PI / 2 }],
+  ['facing left', { side: -1 }],
+];
+
 /** The on-ice figure in each pose worth checking. */
 const POSES: [string, PoseInput][] = [
   ['standing', STANDING],
@@ -129,6 +139,21 @@ export function ArtSheet() {
           <FigureArt pose={{ ...STANDING, view, speed: 1, stride: 1, action: 'hit' }} crest={teamCrest(league.teams[7]?.name ?? 'sheet')} skin={skinTone(0)} size={96} />
           <FigureArt pose={{ ...STANDING, view, action: 'tired' }} crest={teamCrest(league.teams[8]?.name ?? 'sheet')} skin={skinTone(1)} size={96} />
           <FigureArt pose={{ ...STANDING, view, speed: 0.5, stride: 1 }} crest={teamCrest(league.teams[1]?.name ?? 'sheet')} skin={skinTone(1)} size={96} who={{ hair: 'bald', beard: 'none', build: 'heavy', mark: 'mascot', costume: 'fox' }} />
+        </div>
+      ))}
+      <h2>Goalie stances</h2>
+      {look.figure.goalieStyles.map((style, v) => (
+        <div key={style.name} class="art-row figure-row">
+          <span class="figure-cell" style="min-width:110px">
+            <strong>{style.name}</strong>
+            <small>{v === look.figure.goalieStyle ? 'in the game now' : 'candidate'}</small>
+          </span>
+          {KEEPER_POSES.map(([name, pose], i) => (
+            <span key={name} class="figure-cell">
+              <FigureArt pose={{ ...STANDING, goalie: true, variant: v, ...pose }} who={{ hair: 'short', beard: 'none', build: 'tall' }} crest={teamCrest(league.teams[v]?.name ?? 'sheet')} skin={skinTone(v)} size={150} kit={i === 5 ? 'away' : 'home'} />
+              <small>{name}</small>
+            </span>
+          ))}
         </div>
       ))}
       <h2>Players on the ice</h2>

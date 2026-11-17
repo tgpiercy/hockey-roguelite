@@ -54,6 +54,8 @@ export interface PoseInput {
   glide?: boolean;
   /** Knocked flat on the ice by a big hit. */
   fallen?: boolean;
+  /** Which goalie stance to draw, for the art sheet's candidates: left out, the one in use. */
+  variant?: number;
   /** Which way he is seen: from the side (the usual), or from the front or behind when he skates down or up the rink. */
   view?: View;
   /** A pass just made, a poke or a hit being thrown, a deke, a tired glide; for a goalie, the glove thrown up. */
@@ -540,64 +542,101 @@ function sprawled(p: PoseInput, who: FigureLook): Built {
   return { shapes, hand: { x: near.hand[0], y: near.hand[1] }, stickEnd: null, nearArm: near.shapes.length };
 }
 
-/** A goalie facing right: wide, behind tall leg pads; on his knees with the pads along the ice when he is down. */
+/** One leg of a goalie: pants to the knee, then the big pad down the shin to the ice, over his skate. */
+function padLeg(hip: P, footX: number, lift: number, S: (typeof F.goalieStyles)[number], width: number): Shape[] {
+  const ankle: P = [footX, -B.ankle - lift];
+  const { mid: knee, end } = reach(hip, ankle, S.thigh, S.shin, -1);
+  const d = Math.hypot(knee[0] - end[0], knee[1] - end[1]) || 1;
+  const up: P = [(knee[0] - end[0]) / d, (knee[1] - end[1]) / d];
+  const across: P = [-up[1], up[0]];
+  const h = S.padWidth / 2;
+  const foot: P = [end[0], end[1] + B.ankle - 0.1];
+  const top: P = [knee[0] + up[0] * S.padTop, knee[1] + up[1] * S.padTop];
+  const on = (k: number, side: number): P => [foot[0] + (top[0] - foot[0]) * k + across[0] * h * side, foot[1] + (top[1] - foot[1]) * k + across[1] * h * side];
+  return [
+    taper('pants', hip, 0.44 * width, knee, 0.32),
+    ...boot(footX + 0.12, -lift),
+    poly('pad', smooth([on(0, -1), on(0.9, -1.06), on(1, -0.9), on(1, 0.9), on(0.9, 1.06), on(0, 1)], 3)),
+    limb('accent', on(0.78, -0.72), on(0.78, 0.72), 0.1, true),
+    limb('accent', on(0.3, -0.72), on(0.3, 0.72), 0.1, true),
+    limb('accent', on(0.36, 0), on(0.72, 0), 0.07, true),
+  ];
+}
+
+/**
+ * A goalie facing right, toward the shooter: knees bent, leaning into it, both hands in front of him.
+ * The catching glove is on his far hand, open and held out ahead of his chest; the blocker and the stick are
+ * on the near one, low in front. (An earlier drawing had the glove out behind his back, which no arm can do.)
+ */
 function goalie(p: PoseInput, who: FigureLook): Built {
+  const S = F.goalieStyles[p.variant ?? F.goalieStyle] ?? F.goalieStyles[0]!;
   const build = F.builds[who.build];
-  const hip: P = [0, p.down ? G.downHipY : G.hipY * build.legs];
-  const up: P = [Math.sin(G.lean), -Math.cos(G.lean)];
-  const out: P = [Math.cos(G.lean), Math.sin(G.lean)];
-  const wide = G.width * build.width;
-  const body = (u: number, v: number): P => [hip[0] + up[0] * u * G.spine + out[0] * v * wide, hip[1] + up[1] * u * G.spine + out[1] * v * wide];
+  const hip: P = p.down ? [0, G.downHipY] : [S.hipX, S.hipY * build.legs];
+  const lean = p.down ? S.lean * 0.5 : S.lean;
+  const up: P = [Math.sin(lean), -Math.cos(lean)];
+  const out: P = [Math.cos(lean), Math.sin(lean)];
+  const wide = S.width * build.width;
+  const body = (u: number, v: number): P => [hip[0] + up[0] * u * S.spine + out[0] * v * wide, hip[1] + up[1] * u * S.spine + out[1] * v * wide];
   const shoulder = body(0.9, 0.02);
   const shapes: Shape[] = [];
-  const half = G.padWidth / 2;
+  const half = S.padWidth / 2;
+  // Moving across his crease he shuffles: one pad forward and lifted a little, then the other.
+  const shuffle = !p.down && p.speed > 0 ? Math.sin(p.stride) : 0;
 
-  // The catching glove, on the far hand, held out behind him; thrown up and out for a glove save.
-  const lift = p.action === 'glove' ? 1 : 0;
-  const catcher = arm(body(0.9, -0.1), [hip[0] + G.catcher[0]! - lift * G.gloveOut, shoulder[1] + 0.5 + G.catcher[1]! - lift * G.gloveUp], 1, false);
-  shapes.push(...far(catcher.shapes.slice(0, 3)), ...far([circle('glove', catcher.hand, G.catchRadius)]), ...far([circle('pad', [catcher.hand[0] - 0.1, catcher.hand[1] - 0.08], G.catchRadius * 0.5, true)]));
-
+  // The far leg.
   if (p.down) {
-    shapes.push(...far([limb('pad', [-0.2, -half], [-G.downReach, -half + 0.02], G.padWidth)]));
-    shapes.push(limb('pad', [0.2, -half], [G.downReach, -half + 0.02], G.padWidth));
-    for (const x of [-G.downReach * 0.62, G.downReach * 0.62]) shapes.push(limb('accent', [x, -G.padWidth * 0.84], [x, -G.padWidth * 0.18], 0.12, true));
-    shapes.push(...boot(G.downReach - 0.1, 0).slice(0, 1));
+    // Down in the butterfly: knees on the ice in front of him, the pads lying along it behind.
+    shapes.push(...far([taper('pants', hip, 0.44 * build.width, [G.downKnee + 0.12, -half], 0.3), limb('pad', [G.downKnee + 0.22, -half], [G.downFoot + 0.3, -half + 0.02], S.padWidth)]));
   } else {
-    // Moving across his crease he shuffles: one pad forward and lifted a little, then the other.
-    const shuffle = p.speed > 0 ? Math.sin(p.stride) : 0;
-    for (const side of [-1, 1] as const) {
-      // A kick save: the near pad thrust out along the ice to meet the puck.
-      if (side === 1 && p.action === 'kick') {
-        shapes.push(limb('pad', [0.1, hip[1] + 0.3], [G.kickReach, -half], G.padWidth), limb('accent', [G.kickReach * 0.55, -half - 0.32], [G.kickReach * 0.7, -half + 0.2], 0.1, true), ...boot(G.kickReach + 0.2, 0).slice(0, 1));
-        continue;
-      }
-      const x = side * (G.padSpread + shuffle * G.shuffle * side);
-      const pad: Shape[] = [
-        ...boot(x + 0.14, 0),
-        poly('pad', smooth([[x - half, -0.12], [x - half - 0.03, -1.0], [x - half + 0.06, -1.0 - G.padTop], [x + half - 0.04, -1.0 - G.padTop], [x + half + 0.05, -1.0], [x + half, -0.12]], 3)),
-        limb('accent', [x - half * 0.75, -0.98], [x + half * 0.75, -0.98], 0.1, true),
-        limb('accent', [x - half * 0.75, -0.42], [x + half * 0.75, -0.42], 0.1, true),
-        limb('accent', [x, -0.9], [x, -0.5], 0.08, true),
-      ];
-      const lifted = Math.max(0, shuffle * side) * G.shuffleLift;
-      const raised = lifted > 0 ? mapPoints({ shapes: pad, hand: { x: 0, y: 0 }, stickEnd: null }, (px, py) => [px, py - lifted]).shapes : pad;
-      shapes.push(...(side === -1 ? far(raised) : raised));
-    }
+    shapes.push(...far(padLeg(hip, S.feet[0]! - shuffle * G.shuffle, Math.max(0, -shuffle) * G.shuffleLift, S, build.width)));
   }
+
+  // The catching glove, on the far hand: out in front, open to the shooter; thrown up and out for a glove save.
+  const lift = p.action === 'glove' ? 1 : 0;
+  const catcher = arm(body(0.88, -0.04), [shoulder[0] + S.catcher[0]! + lift * G.gloveOut, shoulder[1] + S.catcher[1]! - lift * G.gloveUp], 1, false);
+  const [cx, cy] = catcher.hand;
+  const r = S.catchRadius;
+  shapes.push(
+    ...far(catcher.shapes.slice(0, 3)),
+    ...far([
+      // The cuff, the pocket and the thumb: a trapper seen open.
+      poly('pad', [[cx - r * 0.9, cy + r * 0.1], [cx - r * 0.5, cy + r * 1.1], [cx + r * 0.2, cy + r * 0.9], [cx - r * 0.1, cy]]),
+      circle('glove', [cx + r * 0.15, cy - r * 0.1], r),
+      limb('glove', [cx - r * 0.5, cy - r * 0.5], [cx - r * 0.7, cy - r * 1.25], r * 0.5),
+      circle('pad', [cx + r * 0.3, cy - r * 0.15], r * 0.5, true),
+    ]),
+  );
+
   shapes.push(circle('pants', hip, 0.62 * build.width));
-  const headAt = body(0.9 + (B.neck + B.headRadius * 0.9) / G.spine, 0.08);
+
+  // The near leg.
+  if (p.down) {
+    shapes.push(taper('pants', hip, 0.46 * build.width, [G.downKnee, -half], 0.32), limb('pad', [G.downKnee + 0.1, -half], [G.downFoot, -half + 0.02], S.padWidth));
+    for (const k of [0.25, 0.7]) {
+      const x = G.downKnee + 0.1 + (G.downFoot - G.downKnee - 0.1) * k;
+      shapes.push(limb('accent', [x, -S.padWidth * 0.84], [x, -S.padWidth * 0.18], 0.1, true));
+    }
+    shapes.push(...boot(G.downFoot - 0.1, 0).slice(0, 1));
+  } else if (p.action === 'kick') {
+    // A kick save: the near pad thrust out along the ice to meet the puck.
+    shapes.push(limb('pad', [hip[0] + 0.2, hip[1] + 0.3], [G.kickReach, -half], S.padWidth), limb('accent', [G.kickReach * 0.55, -half - 0.32], [G.kickReach * 0.7, -half + 0.2], 0.1, true), ...boot(G.kickReach + 0.2, 0).slice(0, 1));
+  } else {
+    shapes.push(...padLeg(hip, S.feet[1]! + shuffle * G.shuffle, Math.max(0, shuffle) * G.shuffleLift, S, build.width));
+  }
+
+  const headAt = body(0.9 + (B.neck + B.headRadius * 0.9) / S.spine, 0.08);
   shapes.push(limb('skin', body(0.92, 0.03), between(body(0.92, 0.03), headAt, 0.7), 0.4));
   shapes.push(...jersey(p.pattern, body));
   shapes.push(...head(headAt, 0, true, who));
 
   // The blocker, on the hand that holds the stick.
-  const near = arm(shoulder, [hip[0] + G.blocker[0]!, shoulder[1] + 0.5 + G.blocker[1]!], 1, false);
+  const near = arm(shoulder, [shoulder[0] + S.blocker[0]!, shoulder[1] + S.blocker[1]!], 1, false);
   const [bx, by] = near.hand;
-  const w = G.blockerWidth / 2;
-  const h = G.blockerHeight / 2;
+  const w = (G.blockerWidth / 2) * S.blockerScale;
+  const h = (G.blockerHeight / 2) * S.blockerScale;
   const blocker: Shape[] = [...near.shapes.slice(0, 3), poly('pad', [[bx - w, by - h], [bx + w, by - h], [bx + w, by + h], [bx - w, by + h]]), limb('accent', [bx - w * 0.6, by - h * 0.5], [bx + w * 0.6, by - h * 0.5], 0.09, true)];
   shapes.push(...blocker);
-  return { shapes, hand: { x: near.hand[0], y: near.hand[1] }, stickEnd: { x: G.stickX, y: -F.bladeWidth }, nearArm: blocker.length };
+  return { shapes, hand: { x: near.hand[0], y: near.hand[1] }, stickEnd: { x: Math.max(G.stickX, bx + 0.9), y: -F.bladeWidth }, nearArm: blocker.length };
 }
 
 function mapPoints(raw: Raw, f: (x: number, y: number) => [number, number]): Raw {
