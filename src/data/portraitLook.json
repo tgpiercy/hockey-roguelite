@@ -1,0 +1,11 @@
+{
+  "ink": "#0b1220",
+  "skinShade": 0.2,
+  "hairShine": 0.35,
+  "dots": 0.16,
+  "faces": {
+    "round": { "cheek": 10.6, "jaw": 8.8, "chin": 4.6, "chinY": 35 },
+    "square": { "cheek": 10.8, "jaw": 10.3, "chin": 6.6, "chinY": 35.4 },
+    "long": { "cheek": 9.6, "jaw": 7.8, "chin": 4, "chinY": 37 }
+  }
+}

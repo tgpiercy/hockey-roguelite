@@ -25,12 +25,12 @@ describe('floating words', () => {
       { type: 'shot', player: 4, speed: 20, oneTimer: true } as SimEvent,
     ];
     expect(wordsFor(events)).toEqual([
-      { text: TEXTS.stolen, player: 0 },
-      { text: TEXTS.bigHit, player: 1 },
-      { text: TEXTS.denied, player: 2 },
-      { text: TEXTS.deked, player: 0 },
-      { text: TEXTS.blocked, player: 3 },
-      { text: TEXTS.oneTimer, player: 4 },
+      { text: TEXTS.stolen, kind: 'stolen', player: 0 },
+      { text: TEXTS.bigHit, kind: 'bigHit', player: 1 },
+      { text: TEXTS.denied, kind: 'denied', player: 2 },
+      { text: TEXTS.deked, kind: 'deked', player: 0 },
+      { text: TEXTS.blocked, kind: 'blocked', player: 3 },
+      { text: TEXTS.oneTimer, kind: 'oneTimer', player: 4 },
     ]);
   });
 

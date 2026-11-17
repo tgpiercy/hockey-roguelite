@@ -1,6 +1,7 @@
 import { teamCrest } from '../core/crest';
 import type { DressedTeam } from '../core/matchup';
 import { portraitOf } from '../core/portrait';
+import { burstPoints } from '../game/burst';
 import { CrestBadge } from './Crest';
 import { PortraitFace } from './Portrait';
 
@@ -27,7 +28,7 @@ function Starters({ team, colour }: { team: DressedTeam; colour: string }) {
       <div class="intro-cards">
         {starters.map((p) => (
           <span key={p.id} class="intro-card">
-            <PortraitFace portrait={portraitOf(p.id, p.age)} primary={colour} secondary={crest.secondary} size={40} />
+            <PortraitFace portrait={portraitOf(p.id, p.age)} primary={colour} secondary={crest.secondary} size={34} />
             <small>{p.name.split(' ').slice(-1)[0]}</small>
             <i>
               {p.position} {p.overall}
@@ -39,27 +40,47 @@ function Starters({ team, colour }: { team: DressedTeam; colour: string }) {
   );
 }
 
+const BURST = burstPoints('cover', 15, 0.24, 0.08)
+  .map(([x, y]) => `${(50 + x * 50).toFixed(1)},${(50 + y * 50).toFixed(1)}`)
+  .join(' ');
+
 /**
- * The introduction before a boss game: both teams' starters, the boss's named person and what his club
- * does. It sits over the rink for a few seconds before the puck drops; any press ends it.
+ * The introduction before a boss game, laid out as the cover of a comic: the boss's named person drawn
+ * large on a burst in his club's colour, the club's name across the top, what the club does in caption
+ * boxes, and both teams' starters along the bottom. It sits over the rink for a few seconds before the
+ * puck drops; any press ends it.
  */
 export function MatchIntro({ home, away, homeColour, awayColour, words }: { home: DressedTeam; away: DressedTeam; homeColour: string; awayColour: string; words: IntroWords }) {
+  const crest = teamCrest(away.name);
+  const [who, role] = words.person.split(', ');
   return (
-    <div class="intro">
-      <div class="intro-head">
-        <span>Tonight</span>
-        <b>{words.title}</b>
-        <i>{words.person}</i>
+    <div class="intro cover" style={{ '--boss': awayColour, '--boss2': crest.secondary }}>
+      <div class="cover-main">
+        <div class="cover-star">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <polygon class="cover-burst-ink" points={BURST} transform="translate(3 3)" />
+            <polygon class="cover-burst" points={BURST} />
+          </svg>
+          <PortraitFace portrait={portraitOf(`boss/${who}`, 38)} primary={awayColour} secondary={crest.secondary} size={112} />
+        </div>
+        <div class="cover-words">
+          <span class="cover-tag">Tonight!</span>
+          <b class="cover-title">{words.title}</b>
+          <i class="cover-person">
+            {who}
+            {role ? <small> · {role}</small> : null}
+          </i>
+          {words.lines.map((line) => (
+            <p key={line} class="cover-caption">
+              {line}
+            </p>
+          ))}
+        </div>
       </div>
       <div class="intro-teams">
         <Starters team={home} colour={homeColour} />
         <span class="intro-vs">vs</span>
         <Starters team={away} colour={awayColour} />
-      </div>
-      <div class="intro-lines">
-        {words.lines.map((line) => (
-          <p key={line}>{line}</p>
-        ))}
       </div>
       <small class="intro-skip">Any button to drop the puck</small>
     </div>

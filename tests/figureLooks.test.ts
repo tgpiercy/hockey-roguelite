@@ -9,41 +9,53 @@ const F = look.figure;
 type Limb = Extract<Shape, { kind: 'limb' }>;
 type Circle = Extract<Shape, { kind: 'circle' }>;
 
-const helmetOf = (fig: Figure): Circle => {
-  // Where his head is: the face, which the helmet sits on. (The helmet itself is a shell, not a circle.)
-  const h = fig.shapes.find((s) => s.tag === 'skin');
-  if (!h || h.kind !== 'circle') throw new Error('no head');
-  return h;
+type Poly = Extract<Shape, { kind: 'poly' }>;
+/** The middle of a many-sided piece and half its width. */
+const middle = (s: Poly): { x: number; y: number; r: number } => {
+  const xs = s.points.map((p) => p[0]);
+  const ys = s.points.map((p) => p[1]);
+  return { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2, r: (Math.max(...xs) - Math.min(...xs)) / 2 };
 };
-const faceOf = (fig: Figure): Circle => {
-  const face = fig.shapes.find((s) => s.tag === 'skin');
-  if (!face || face.kind !== 'circle') throw new Error('no face');
-  return face;
+/** Where his head is: his face, which the helmet sits on. */
+const helmetOf = (fig: Figure): { x: number; y: number; r: number } => {
+  const face = fig.shapes.find((s): s is Poly => s.tag === 'skin' && s.kind === 'poly');
+  if (!face) throw new Error('no head');
+  return middle(face);
 };
+const faceOf = helmetOf;
 const lowest = (fig: Figure): number => Math.max(...fig.shapes.map((s) => (s.kind === 'circle' ? s.y + s.r : s.kind === 'limb' ? Math.max(s.y1, s.y2) + s.w / 2 : Math.max(...s.points.map((p) => p[1])))));
 
-describe('the head is most of him', () => {
-  it('the head is more than half his height, and his face shows an eye and a mouth', () => {
+describe('the head is a head, not most of him', () => {
+  it('he stands more than three heads tall, and his face shows an eye, a brow and a mouth under the helmet', () => {
     const fig = figure(STANDING);
-    expect(faceOf(fig).r * 2).toBeGreaterThan(F.height * 0.5);
-    expect(fig.shapes.filter((s) => s.tag === 'eye').length).toBeGreaterThanOrEqual(2);
-    // The helmet does not cover the eye: the shell's lower edge, from brow to nape, passes above it.
-    const shell = fig.shapes.find((s) => s.tag === 'helmet');
-    if (!shell || shell.kind !== 'poly') throw new Error('no helmet shell');
-    const brow = shell.points[0]!;
-    const nape = shell.points[shell.points.length - 1]!;
+    const shell = fig.shapes.find((s): s is Poly => s.tag === 'helmet' && s.kind === 'poly');
+    if (!shell) throw new Error('no helmet shell');
+    const ys = [...shell.points.map((p) => p[1]), ...(fig.shapes.find((s): s is Poly => s.tag === 'skin' && s.kind === 'poly')?.points.map((p) => p[1]) ?? [])];
+    const headHeight = Math.max(...ys) - Math.min(...ys);
+    expect(F.height / headHeight).toBeGreaterThan(3);
+    expect(F.height / headHeight).toBeLessThan(4.5);
+    expect(fig.shapes.filter((s) => s.tag === 'eye').length).toBeGreaterThanOrEqual(3);
+    // The eye is on the face, in front of its middle, and below the helmet's brow.
     const eye = fig.shapes.find((s) => s.tag === 'eye') as Circle;
-    const edgeAtEye = nape[1] + ((eye.x - nape[0]) / (brow[0] - nape[0])) * (brow[1] - nape[1]);
-    expect(eye.y - eye.r).toBeGreaterThan(edgeAtEye);
-    // The brow is in front of the face and the nape behind it.
-    expect(brow[0]).toBeGreaterThan(faceOf(fig).x);
-    expect(nape[0]).toBeLessThan(faceOf(fig).x);
+    expect(eye.x).toBeGreaterThan(faceOf(fig).x);
+    expect(eye.y).toBeGreaterThan(Math.min(...shell.points.map((p) => p[1])) + headHeight * 0.4);
+    // He is drawn in profile: the nose stands out in front of the helmet's brow.
+    const face = fig.shapes.find((s): s is Poly => s.tag === 'skin' && s.kind === 'poly')!;
+    expect(Math.max(...face.points.map((p) => p[0]))).toBeGreaterThan(Math.max(...shell.points.map((p) => p[0])));
+  });
+
+  it('the arm and leg on his far side are marked as such, and nothing else is', () => {
+    const fig = figure(STANDING);
+    const farTags = new Set(fig.shapes.filter((s) => s.far).map((s) => s.tag));
+    expect([...farTags].sort()).toEqual(['accent', 'blade', 'glove', 'jersey', 'pants', 'skate', 'sock']);
+    expect(fig.shapes.filter((s) => s.far && (s.tag === 'skin' || s.tag === 'helmet'))).toHaveLength(0);
+    expect(fig.shapes.filter((s) => s.tag === 'skate' && s.far)).toHaveLength(1);
   });
 });
 
 describe('what is particular to a player', () => {
   const of = (who: Partial<FigureLook>): Figure => figure(STANDING, { ...PLAIN_LOOK, ...who });
-  const widthOf = (fig: Figure): number => fig.shapes.filter((s): s is Limb => s.kind === 'limb' && s.tag === 'jersey').reduce((widest, s) => Math.max(widest, s.w), 0);
+  const widthOf = (fig: Figure): number => fig.shapes.filter((s): s is Poly => s.kind === 'poly' && s.tag === 'jersey').reduce((widest, s) => Math.max(widest, middle(s).r), 0);
 
   it('a heavy build is wider than a slight one and a tall one stands taller; the head is the same for all', () => {
     expect(widthOf(of({ build: 'heavy' }))).toBeGreaterThan(widthOf(of({ build: 'regular' })));
@@ -68,7 +80,9 @@ describe('what is particular to a player', () => {
   it('the helmet has an ear piece, a chin strap and vents; a skater has a visor and a goalie bars', () => {
     const skater = figure(STANDING);
     const keeper = figure({ ...STANDING, goalie: true });
-    expect(skater.shapes.filter((s) => s.tag === 'helmet').length).toBe(2);
+    // A skater's helmet is one shell; a goalie's has a chin guard as well.
+    expect(skater.shapes.filter((s) => s.tag === 'helmet').length).toBe(1);
+    expect(keeper.shapes.filter((s) => s.tag === 'helmet').length).toBe(2);
     expect(skater.shapes.filter((s) => s.tag === 'visor' && s.kind === 'limb').length).toBe(2);
     expect(keeper.shapes.filter((s) => s.tag === 'visor' && s.kind === 'limb').length).toBe(0);
     // Ear hole, two vents and a strap on both; the goalie has his bars as well.
@@ -92,9 +106,9 @@ describe('what is particular to a player', () => {
       const shapes = withStick(fig, end, 1);
       return shapes.slice(shapes.findIndex((s) => s.tag === 'stick') + 2).map((s) => s.tag);
     };
-    expect(after(of({}))).toEqual(['jersey', 'accent', 'glove']);
-    expect(after(of({ mark: 'captain' }))).toEqual(['jersey', 'accent', 'mark', 'glove']);
-    expect(after(figure({ ...STANDING, goalie: true }))).toEqual(['pad']);
+    expect(after(of({}))).toEqual(['jersey', 'jersey', 'accent', 'glove', 'glove']);
+    expect(after(of({ mark: 'captain' }))).toEqual(['jersey', 'jersey', 'accent', 'mark', 'glove', 'glove']);
+    expect(after(figure({ ...STANDING, goalie: true }))).toEqual(['jersey', 'jersey', 'accent', 'pad', 'accent']);
   });
 
   it('a different look has a different key, and the same look the same one', () => {

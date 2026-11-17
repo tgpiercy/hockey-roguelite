@@ -3,7 +3,7 @@ import type { PlayerRecord } from '../core/player';
 import type { Franchise } from '../core/season';
 import gearData from '../data/gear.json';
 import { GearArt } from './GearArt';
-import { KindLines, RatingBar } from './parts';
+import { KindLines, PlayerCard, RatingBar } from './parts';
 
 const ratingNames = gearData.ratingNames as Record<string, string>;
 export const slotName = (slot: string): string => (gearData.slotNames as Record<string, string>)[slot] ?? slot;
@@ -69,6 +69,7 @@ export function GearedRatings({ f, player }: { f: Franchise; player: PlayerRecor
   const progress = setProgress(items);
   return (
     <div class="ratings">
+      <PlayerCard player={player} />
       <KindLines player={player} />
       {Object.keys(base).map((key) => (
         <RatingBar

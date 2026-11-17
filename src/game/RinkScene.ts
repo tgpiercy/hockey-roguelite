@@ -19,7 +19,8 @@ import { activeLabels } from '../sim/conditions';
 import { passPreview } from '../sim/pass';
 import { inkOn } from '../core/teamColours';
 import { STEPS_PER_SECOND } from '../sim/clock';
-import { newlyInForce, wordsFor } from './floatWords';
+import { burstPoints, placed, popScale } from './burst';
+import { newlyInForce, wordsFor, type FloatKind } from './floatWords';
 import { copyWorld, goalOfTheGame, Recorder, type Clip, type GoalNote } from './replay';
 import { isMascot, mascotPlayer } from '../sim/mascot';
 import type { Tuning } from '../sim/tuning';
@@ -192,7 +193,11 @@ export class RinkScene extends Phaser.Scene {
   /** Things that happened before the first frame (a mascot there from the opening faceoff), to be told with it. */
   private pending: SimEvent[] = [];
   /** Words rising from the play, and the text objects that show them. */
-  private floats: { text: string; x: number; y: number; age: number; item: boolean }[] = [];
+  private floats: { text: string; x: number; y: number; age: number; kind: FloatKind | null }[] = [];
+  /** The jagged shapes behind shouted words, kept by their words. */
+  private readonly burstShapes = new Map<string, [number, number][]>();
+  /** Where the shapes behind the rising words are drawn: under the words, over everything else. */
+  private wordArt!: Phaser.GameObjects.Graphics;
   private floatTexts: Phaser.GameObjects.Text[] = [];
   /** The conditional items in force for the human's team last frame, to notice new ones. */
   private inForce: ReadonlySet<string> = new Set();
@@ -269,17 +274,18 @@ export class RinkScene extends Phaser.Scene {
     this.labels = this.world.players.map(() => this.add.text(0, 0, '', { fontFamily: look.font, color: c.debugText }).setOrigin(0.5, 1).setVisible(false).setDepth(DEPTH.labels));
 
     this.hud = this.add.graphics();
+    this.wordArt = this.add.graphics().setDepth(DEPTH.hud);
     this.nameTexts = [0, 1].map(() => this.add.text(0, 0, '', { ...heading, color: c.text }).setOrigin(0.5, 0.5));
     this.scoreTexts = [0, 1].map(() => this.add.text(0, 0, '', { ...heading, color: c.text }).setOrigin(0.5, 0.5));
     this.clockTextObject = this.add.text(0, 0, '', { ...heading, color: c.accent }).setOrigin(0.5, 0.5);
     this.barLabels = [0, 1, 2].map(() => this.add.text(0, 0, '', { ...heading, color: c.dim }).setOrigin(0, 0.5));
     this.bigText = this.add
-      .text(0, 0, '', { ...heading, color: c.text })
+      .text(0, 0, '', { ...heading, fontStyle: 'bold italic', color: c.text })
       .setOrigin(0.5, 0.5)
       .setVisible(false);
     this.powerText = this.add.text(0, 0, '', { ...heading, color: c.text }).setOrigin(1, 0.5);
     this.replayText = this.add.text(0, 0, 'REPLAY', { ...heading, color: c.accent }).setOrigin(0, 0).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
-    this.floatTexts = Array.from({ length: look.floatWords.most }, () => this.add.text(0, 0, '', { ...heading, color: look.floatWords.colour }).setOrigin(0.5, 1).setDepth(DEPTH.hud).setStroke(c.panel, 4).setVisible(false));
+    this.floatTexts = Array.from({ length: look.floatWords.most }, () => this.add.text(0, 0, '', { ...heading, fontStyle: 'bold italic', color: look.floatWords.colour }).setOrigin(0.5, 0.5).setDepth(DEPTH.hud).setVisible(false));
     this.pullText = this.add.text(0, 0, '', { ...heading, color: c.accent }).setOrigin(0.5, 1).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
     this.callText = this.add.text(0, 0, '', { ...heading, color: c.text }).setOrigin(0.5, 0).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
     this.commentator = new Commentator(this.options.seed);
@@ -415,7 +421,7 @@ export class RinkScene extends Phaser.Scene {
           if ((this.options.hints?.() || this.lesson) && controlled >= 0) {
             for (const word of this.failWatch.note(stepped, controlled, this.world.tick * STEP_SECONDS)) {
               const who = this.world.players[word.player];
-              if (who) this.floatWord(word.text, who.pos.x, who.pos.y, false);
+              if (who) this.floatWord(word.text, who.pos.x, who.pos.y, null);
             }
           }
           for (const e of stepped) {
@@ -431,12 +437,12 @@ export class RinkScene extends Phaser.Scene {
     // Words rise from the play for the moves worth naming, and for an artifact of yours coming into force.
     for (const word of wordsFor(happened)) {
       const who = this.world.players[word.player];
-      if (who) this.floatWord(word.text, who.pos.x, who.pos.y, false);
+      if (who) this.floatWord(word.text, who.pos.x, who.pos.y, word.kind);
     }
     if (this.world.human) {
       const noted = newlyInForce(this.world, this.world.human.team, this.inForce);
       this.inForce = noted.now;
-      for (const name of noted.fresh) this.floatWord(name.toUpperCase(), this.world.puck.pos.x, this.world.puck.pos.y, true);
+      for (const name of noted.fresh) this.floatWord(name.toUpperCase(), this.world.puck.pos.x, this.world.puck.pos.y, null);
     }
     for (const e of happened) {
       if (e.type === 'goal') {
@@ -605,7 +611,7 @@ export class RinkScene extends Phaser.Scene {
     const went = lessonAdvance(lesson, stepped, controlled, this.world);
     if (went !== 'none') {
       const me = this.world.human ? this.world.players[this.world.human.controlled] : undefined;
-      if (me) this.floatWord(LESSON_WORDS.good, me.pos.x, me.pos.y, true);
+      if (me) this.floatWord(LESSON_WORDS.good, me.pos.x, me.pos.y, null);
       this.lessonStage = this.clock + LESSON_TIMING.stageSeconds;
       if (went === 'step') {
         if (lessonOver(lesson)) {
@@ -659,17 +665,43 @@ export class RinkScene extends Phaser.Scene {
   }
 
   /** The big message in the middle of the ice, if any. */
-  /** Starts a word rising from a spot on the ice (in metres). The oldest gives way when there are too many. */
-  private floatWord(text: string, x: number, y: number, item: boolean): void {
+  /**
+   * Starts a word rising from a spot on the ice (in metres): a shouted word of some kind, on a comic burst,
+   * or (with no kind) the name of an item coming into force. The oldest gives way when there are too many.
+   */
+  private floatWord(text: string, x: number, y: number, kind: FloatKind | null): void {
     if (this.floats.length >= look.floatWords.most) this.floats.shift();
-    this.floats.push({ text, x, y, age: 0, item });
+    this.floats.push({ text, x, y, age: 0, kind });
   }
 
-  /** Moves the rising words on and puts them on the screen. */
+  /** The jagged shape for these words: worked out once and kept. */
+  private burstFor(words: string, spec: { spikes: number; depth: number; jitter: number }): [number, number][] {
+    let shape = this.burstShapes.get(words);
+    if (!shape) {
+      shape = burstPoints(words, spec.spikes, spec.depth, spec.jitter);
+      this.burstShapes.set(words, shape);
+    }
+    return shape;
+  }
+
+  /** A comic burst: its hard shadow, its ink edge, then its colour. `size` is the height of the letters on it. */
+  private drawBurst(g: Phaser.GameObjects.Graphics, shape: readonly [number, number][], x: number, y: number, rx: number, ry: number, size: number, fill: string, spec: { tilt: number; edge: number; shadow: number; ink: string }, alpha: number): void {
+    const edge = size * spec.edge;
+    const drop = size * spec.shadow;
+    g.fillStyle(colour(spec.ink), alpha);
+    g.fillPoints(placed(shape, x + drop, y + drop, rx + edge, ry + edge, spec.tilt) as Phaser.Math.Vector2[], true);
+    g.fillPoints(placed(shape, x, y, rx + edge, ry + edge, spec.tilt) as Phaser.Math.Vector2[], true);
+    g.fillStyle(colour(fill), alpha);
+    g.fillPoints(placed(shape, x, y, rx, ry, spec.tilt) as Phaser.Math.Vector2[], true);
+  }
+
+  /** Moves the rising words on and puts them on the screen, each shouted word on its burst. */
   private drawFloats(real: number): void {
     const fw = look.floatWords;
+    const B = fw.burst;
     this.floats = this.floats.filter((w) => (w.age += real) < fw.seconds);
     const size = Math.max(10, this.scale.height * fw.size);
+    this.wordArt.clear();
     this.floatTexts.forEach((label, i) => {
       const w = this.floats[i];
       if (!w) {
@@ -677,12 +709,25 @@ export class RinkScene extends Phaser.Scene {
         return;
       }
       const k = w.age / fw.seconds;
+      const alpha = k < 0.7 ? 1 : (1 - k) / 0.3;
+      const pop = this.options.calm ? 1 : popScale(w.age, B.popSeconds, B.pop);
+      const x = this.sx(w.x);
+      const y = this.sy(w.y) - this.zoom * (2.4 + fw.rise * k);
       label.setText(w.text);
-      label.setFontSize(size);
-      label.setColor(w.item ? fw.itemColour : fw.colour);
-      label.setPosition(this.sx(w.x), this.sy(w.y) - this.zoom * (1.6 + fw.rise * k));
-      label.setAlpha(k < 0.7 ? 1 : (1 - k) / 0.3);
+      label.setFontSize(size * pop);
+      label.setPosition(x, y);
+      label.setAlpha(alpha);
       label.setVisible(true);
+      if (w.kind) {
+        label.setColor(B.ink);
+        label.setStroke(B.ink, 0);
+        label.setAngle(B.tilt);
+        this.drawBurst(this.wordArt, this.burstFor(w.text, B), x, y, label.width * B.wide, size * pop * B.tall, size, fw.fills[w.kind], B, alpha);
+      } else {
+        label.setColor(fw.itemColour);
+        label.setStroke(B.ink, Math.max(3, size * 0.3));
+        label.setAngle(0);
+      }
     });
   }
 
@@ -1612,29 +1657,50 @@ export class RinkScene extends Phaser.Scene {
       // The goal banner sits in the upper part of the rink, clear of the scorer and the net-front.
       const cy = this.originY - t.rink.width * this.zoom * (goal ? look.goalBannerLift : 0.3);
       if (goal) {
-        // The band and the word slide in from the left and settle.
-        const k = this.full ? Math.min(1, this.bannerAge / look.bannerSlideSeconds) : 1;
-        const eased = 1 - (1 - k) ** 3;
-        const bandW = width * eased;
+        // A comic burst in the scoring team's colour, with rays behind it, that lands with a bump.
+        const GB = look.goalBurst;
         const scorer = this.effects.cheering;
-        // The band's edges wear the scoring team's second colour, which always shows against the dark band.
-        const band = scorer === null ? c.accent : this.crests[scorer].secondary;
-        g.fillStyle(colour(c.panel), 0.9);
-        g.fillRect(0, cy - size * 0.75, bandW, size * 1.5);
-        g.fillStyle(colour(band));
-        g.fillRect(0, cy - size * 0.75, bandW, Math.max(4, size * 0.1));
-        g.fillRect(0, cy + size * 0.75 - Math.max(4, size * 0.1), bandW, Math.max(4, size * 0.1));
-        this.bigText.setPosition(width / 2 - (1 - eased) * width * 0.6, cy);
-        this.bigText.setColor(c.accent);
-        if (scorer !== null) {
-          drawCrest(g, this.crests[scorer], width / 2 - (1 - eased) * width * 0.6 - this.bigText.width / 2 - size * 0.7, cy, size * 1.05);
+        const pop = this.full && !this.options.calm ? popScale(this.bannerAge, GB.popSeconds, GB.pop) : 1;
+        const fill = scorer === null ? c.accent : this.crests[scorer].primary;
+        const second = scorer === null ? c.text : this.crests[scorer].secondary;
+        this.bigText.setFontSize(size * pop);
+        this.bigText.setAngle(GB.tilt);
+        this.bigText.setColor('#ffffff');
+        this.bigText.setStroke(GB.ink, Math.max(4, size * GB.stroke));
+        // The crest sits to the left of the word, inside the burst.
+        const crestRoom = scorer === null ? 0 : size * 1.2 * pop;
+        const cx = width / 2;
+        this.bigText.setPosition(cx + crestRoom / 2, cy);
+        const rx = (this.bigText.width + crestRoom) * GB.wide + size * 0.5 * pop;
+        const ry = size * pop * GB.tall;
+        if (this.full) {
+          // Rays out from behind the burst, as far as the boards.
+          g.fillStyle(colour(second), GB.rayAlpha);
+          const reach = width * 0.6 * pop;
+          for (let i = 0; i < GB.rays; i++) {
+            const a = (i / GB.rays) * TAU + (GB.tilt * Math.PI) / 180;
+            g.fillTriangle(cx, cy, cx + Math.cos(a - GB.rayWidth) * reach, cy + Math.sin(a - GB.rayWidth) * reach * 0.45, cx + Math.cos(a + GB.rayWidth) * reach, cy + Math.sin(a + GB.rayWidth) * reach * 0.45);
+          }
         }
+        const shape = this.burstFor('GOAL!', GB);
+        this.drawBurst(g, shape, cx, cy, rx * 1.08, ry * 1.12, size, second, GB, 1);
+        g.fillStyle(colour(fill));
+        g.fillPoints(placed(shape, cx, cy, rx, ry, GB.tilt) as Phaser.Math.Vector2[], true);
+        if (scorer !== null) drawCrest(g, this.crests[scorer], cx - this.bigText.width / 2 - crestRoom / 2 + size * 0.1, cy, size * 1.05 * pop);
       } else {
+        // Anything else is said in a caption box, as the narrator of a comic speaks.
+        const CAP = look.caption;
+        this.bigText.setAngle(0);
+        this.bigText.setStroke(CAP.ink, 0);
         this.bigText.setPosition(width / 2, cy);
-        const w = this.bigText.width + size * 1.6;
-        g.fillStyle(colour(c.panel), 0.88);
-        g.fillRoundedRect(width / 2 - w / 2, cy - size * 0.85, w, size * 1.7, size * 0.85);
-        this.bigText.setColor(c.text);
+        const w = this.bigText.width + size * 1.4;
+        const h = size * 1.6;
+        g.fillStyle(colour(CAP.ink));
+        g.fillRect(width / 2 - w / 2 + size * CAP.shadow, cy - h / 2 + size * CAP.shadow, w, h);
+        g.fillRect(width / 2 - w / 2 - size * CAP.edge, cy - h / 2 - size * CAP.edge, w + size * CAP.edge * 2, h + size * CAP.edge * 2);
+        g.fillStyle(colour(CAP.fill));
+        g.fillRect(width / 2 - w / 2, cy - h / 2, w, h);
+        this.bigText.setColor(CAP.ink);
       }
     }
   }

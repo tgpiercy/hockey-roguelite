@@ -10,7 +10,11 @@ export interface FloatWord {
   text: string;
   /** The player it rises from. */
   player: number;
+  /** Which kind of word it is, which decides the colour of the burst behind it. */
+  kind: FloatKind;
 }
+
+export type FloatKind = keyof typeof look.floatWords.texts;
 
 const TEXTS = look.floatWords.texts;
 
@@ -19,14 +23,14 @@ export function wordsFor(events: readonly SimEvent[]): FloatWord[] {
   const out: FloatWord[] = [];
   for (const e of events) {
     if (e.type === 'check') {
-      if (e.success && e.windUp) out.push({ text: TEXTS.denied, player: e.player });
-      else if (e.success && e.big) out.push({ text: TEXTS.bigHit, player: e.player });
-      else if (e.success && e.kind === 'poke') out.push({ text: TEXTS.stolen, player: e.player });
-      else if (e.evaded) out.push({ text: TEXTS.deked, player: e.target });
+      if (e.success && e.windUp) out.push({ text: TEXTS.denied, kind: 'denied', player: e.player });
+      else if (e.success && e.big) out.push({ text: TEXTS.bigHit, kind: 'bigHit', player: e.player });
+      else if (e.success && e.kind === 'poke') out.push({ text: TEXTS.stolen, kind: 'stolen', player: e.player });
+      else if (e.evaded) out.push({ text: TEXTS.deked, kind: 'deked', player: e.target });
     } else if (e.type === 'block') {
-      out.push({ text: TEXTS.blocked, player: e.player });
+      out.push({ text: TEXTS.blocked, kind: 'blocked', player: e.player });
     } else if (e.type === 'shot' && e.oneTimer) {
-      out.push({ text: TEXTS.oneTimer, player: e.player });
+      out.push({ text: TEXTS.oneTimer, kind: 'oneTimer', player: e.player });
     }
   }
   return out;

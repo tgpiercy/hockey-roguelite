@@ -123,11 +123,38 @@ export function KindLines({ player }: { player: PlayerRecord }) {
   );
 }
 
-/** A player's individual ratings as bars, shown in the side panel for whoever is focused. */
+const POSITION_NAMES: Record<string, string> = { F: 'Forward', D: 'Defence', G: 'Goalie' };
+
+/**
+ * A player as a trading card: his face large on a slash of the colour he wears, his name, what he is,
+ * and his overall rating and grade. It heads his ratings wherever they are shown.
+ */
+export function PlayerCard({ player }: { player: PlayerRecord }) {
+  const wearing = useContext(WearingContext)(player.id);
+  const kind = kindOf(player.position, player.ratings);
+  return (
+    <div class="pcard" style={{ '--card': wearing.primary, '--card2': wearing.secondary }}>
+      <Face player={player} size={56} />
+      <div class="pcard-words">
+        <b>{player.name}</b>
+        <span>
+          {POSITION_NAMES[player.position] ?? player.position} · {kind.name} · {player.age}
+        </span>
+      </div>
+      <span class="pcard-ovr">
+        <b>{player.overall}</b>
+        <i>{player.grade}</i>
+      </span>
+    </div>
+  );
+}
+
+/** A player's card and his individual ratings as bars, shown in the side panel for whoever is focused. */
 export function Ratings({ player }: { player: PlayerRecord }) {
   const ratings = player.ratings as unknown as Record<string, number>;
   return (
     <div class="ratings">
+      {player.id !== MASCOT_ID && <PlayerCard player={player} />}
       <KindLines player={player} />
       {Object.keys(ratings).map((key) => (
         <RatingBar key={key} name={ratingNames[key] ?? key} value={ratings[key] as number} />

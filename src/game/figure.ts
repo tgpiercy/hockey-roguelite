@@ -6,18 +6,20 @@ import look from '../data/rinkLook.json';
 const F = look.figure;
 const B = F.body;
 const G = F.goalie;
-const H = F.helmet;
 
 /** What a shape of the figure is, which decides its colour. */
 export type Tag = 'skin' | 'hair' | 'eye' | 'helmet' | 'visor' | 'cage' | 'jersey' | 'accent' | 'glove' | 'pants' | 'sock' | 'skate' | 'blade' | 'pad' | 'stick' | 'mark';
 
 export const TAGS: readonly Tag[] = ['skin', 'hair', 'eye', 'helmet', 'visor', 'cage', 'jersey', 'accent', 'glove', 'pants', 'sock', 'skate', 'blade', 'pad', 'stick', 'mark'];
 
-/** One piece of the figure. A limb is a thick line with round ends. `bare` pieces get no outline round them. */
+/**
+ * One piece of the figure. A limb is a thick line with round ends. `bare` pieces get no outline round them;
+ * `far` pieces are on the side of him away from us, and are drawn a shade darker.
+ */
 export type Shape =
-  | { kind: 'circle'; tag: Tag; x: number; y: number; r: number; bare?: boolean }
-  | { kind: 'limb'; tag: Tag; x1: number; y1: number; x2: number; y2: number; w: number; bare?: boolean }
-  | { kind: 'poly'; tag: Tag; points: [number, number][]; bare?: boolean };
+  | { kind: 'circle'; tag: Tag; x: number; y: number; r: number; bare?: boolean; far?: boolean }
+  | { kind: 'limb'; tag: Tag; x1: number; y1: number; x2: number; y2: number; w: number; bare?: boolean; far?: boolean }
+  | { kind: 'poly'; tag: Tag; points: [number, number][]; bare?: boolean; far?: boolean };
 
 /** Something a player is doing for a moment, which changes how he is drawn. */
 export type Action = 'pass' | 'poke' | 'hit' | 'deke' | 'tired' | 'glove';
@@ -63,289 +65,303 @@ export interface Figure {
   stickEnd: { x: number; y: number } | null;
   /** The highest point of the figure (a negative y). */
   top: number;
+  /** How many pieces at the end of the list are his near arm, which the stick goes behind. */
+  nearArm: number;
 }
 
 export const STANDING: PoseInput = { side: 1, stride: 0, speed: 0, windUp: 0, goalie: false, down: false, tilt: 0, pattern: 'hoop' };
 
 type Raw = Pick<Figure, 'shapes' | 'hand' | 'stickEnd'>;
 
-const circle = (tag: Tag, x: number, y: number, r: number, bare = false): Shape => ({ kind: 'circle', tag, x, y, r, ...(bare ? { bare } : {}) });
-const limb = (tag: Tag, x1: number, y1: number, x2: number, y2: number, w: number, bare = false): Shape => ({ kind: 'limb', tag, x1, y1, x2, y2, w, ...(bare ? { bare } : {}) });
-const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
+type P = [number, number];
 
-/** A skate at a foot: the boot, and the steel under it. */
-function skate(x: number, y: number): Shape[] {
+const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
+const circle = (tag: Tag, at: P, r: number, bare = false): Shape => ({ kind: 'circle', tag, x: at[0], y: at[1], r, ...(bare ? { bare } : {}) });
+const limb = (tag: Tag, a: P, b: P, w: number, bare = false): Shape => ({ kind: 'limb', tag, x1: a[0], y1: a[1], x2: b[0], y2: b[1], w, ...(bare ? { bare } : {}) });
+const poly = (tag: Tag, points: P[], bare = false): Shape => ({ kind: 'poly', tag, points, ...(bare ? { bare } : {}) });
+const between = (a: P, b: P, t: number): P => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+const far = (shapes: Shape[]): Shape[] => shapes.map((s) => ({ ...s, far: true }));
+
+/** A limb that is thicker at one end than the other: the outline round two circles. */
+function taper(tag: Tag, a: P, ra: number, b: P, rb: number): Shape {
+  const d = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  if (d <= Math.abs(ra - rb) + 1e-3) return ra >= rb ? circle(tag, a, ra) : circle(tag, b, rb);
+  const base = Math.atan2(b[1] - a[1], b[0] - a[0]);
+  const phi = Math.acos((ra - rb) / d);
+  const points: P[] = [];
+  const steps = 6;
+  for (let i = 0; i <= steps; i++) {
+    const at = base + phi + ((2 * Math.PI - 2 * phi) * i) / steps;
+    points.push([a[0] + Math.cos(at) * ra, a[1] + Math.sin(at) * ra]);
+  }
+  for (let i = 0; i <= steps; i++) {
+    const at = base - phi + (2 * phi * i) / steps;
+    points.push([b[0] + Math.cos(at) * rb, b[1] + Math.sin(at) * rb]);
+  }
+  return poly(tag, points);
+}
+
+/** A closed curve through the points given, as a many-sided shape. */
+function smooth(points: P[], per = 4): P[] {
+  const n = points.length;
+  const out: P[] = [];
+  for (let i = 0; i < n; i++) {
+    const [p0, p1, p2, p3] = [points[(i - 1 + n) % n]!, points[i]!, points[(i + 1) % n]!, points[(i + 2) % n]!];
+    for (let k = 0; k < per; k++) {
+      const t = k / per;
+      const at = (j: 0 | 1): number => 0.5 * (2 * p1[j] + (p2[j] - p0[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t * t + (3 * p1[j] - p0[j] - 3 * p2[j] + p3[j]) * t * t * t);
+      out.push([at(0), at(1)]);
+    }
+  }
+  return out;
+}
+
+/** A stripe round a limb from `a` to `b`: the part between `from` and `to` of the way along. */
+function band(tag: Tag, a: P, ra: number, b: P, rb: number, from: number, to: number): Shape {
+  const d = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+  const n: P = [-(b[1] - a[1]) / d, (b[0] - a[0]) / d];
+  const edge = (t: number, side: number): P => {
+    const [x, y] = between(a, b, t);
+    const r = ra + (rb - ra) * t;
+    return [x + n[0] * r * side, y + n[1] * r * side];
+  };
+  return poly(tag, [edge(from, 1), edge(to, 1), edge(to, -1), edge(from, -1)], true);
+}
+
+/**
+ * Two bones from `root` reaching for `target`: where the joint between them is, and where the end comes
+ * to (the target, or as near as the bones reach). `bend` says which way the joint sticks out.
+ */
+function reach(root: P, target: P, first: number, second: number, bend: 1 | -1): { mid: P; end: P } {
+  const dx = target[0] - root[0];
+  const dy = target[1] - root[1];
+  const d = Math.hypot(dx, dy) || 1e-6;
+  const span = Math.max(Math.abs(first - second) + 1e-3, Math.min(d, (first + second) * 0.995));
+  const base = Math.atan2(dy, dx);
+  const corner = Math.acos(Math.max(-1, Math.min(1, (first * first + span * span - second * second) / (2 * first * span))));
+  const at = base + bend * corner;
+  return { mid: [root[0] + Math.cos(at) * first, root[1] + Math.sin(at) * first], end: [root[0] + (dx / d) * span, root[1] + (dy / d) * span] };
+}
+
+/** A skate with its foot on the ice at (x, y): the boot and the steel. */
+function boot(x: number, y: number): Shape[] {
+  const at = (u: number, v: number): P => [x + u, y + v];
   return [
-    limb('skate', x - B.bootBack, y - B.bootHeight, x + B.bootFront, y - B.bootHeight, B.bootWidth),
-    limb('blade', x - B.bootBack - B.bladeOver, y, x + B.bootFront + B.bladeOver, y, F.bladeWidth, true),
+    poly('skate', [at(-0.26, -0.1), at(-0.25, -0.5), at(0.06, -0.52), at(0.15, -0.32), at(0.46, -0.27), at(0.59, -0.15), at(0.57, -0.08), at(-0.26, -0.08)]),
+    limb('blade', at(-0.32, -0.02), at(0.62, -0.02), F.bladeWidth, true),
   ];
 }
 
-/** The hair that shows below and behind the helmet, at the nape of the neck. */
-function hairBehind(x: number, y: number, style: FigureLook['hair']): Shape[] {
+/** One leg from the hip to the ice: hockey pants to the knee, a striped sock over the shin pad, a skate. */
+function leg(hip: P, foot: P, thigh: number, shin: number, width: number): Shape[] {
+  const ankle: P = [foot[0], foot[1] - B.ankle];
+  const { mid: knee, end } = reach(hip, ankle, thigh, shin, -1);
+  return [
+    taper('sock', knee, B.kneeRadius, end, B.ankleRadius),
+    band('accent', knee, B.kneeRadius, end, B.ankleRadius, 0.42, 0.56),
+    band('accent', knee, B.kneeRadius, end, B.ankleRadius, 0.64, 0.72),
+    taper('pants', hip, B.thighRadius * width, between(hip, knee, B.pantsTo), B.kneeRadius * 1.1),
+    ...boot(end[0], end[1] + B.ankle),
+  ];
+}
+
+/** An arm from the shoulder to a glove at `target`, bent at the elbow, with a stripe round the forearm. */
+function arm(root: P, target: P, width: number, captain: boolean): { shapes: Shape[]; hand: P } {
+  const { mid: elbow, end: hand } = reach(root, target, B.upperArm, B.foreArm, 1);
+  const shoulder = B.shoulderRadius * Math.sqrt(width);
+  const shapes: Shape[] = [taper('jersey', root, shoulder, elbow, B.elbowRadius), taper('jersey', elbow, B.elbowRadius, between(elbow, hand, 0.8), B.wristRadius), band('accent', elbow, B.elbowRadius, hand, B.wristRadius, 0.22, 0.46)];
+  if (captain) shapes.push(band('mark', root, shoulder, elbow, B.elbowRadius, 0.5, 0.78));
+  shapes.push(taper('glove', between(elbow, hand, 0.62), B.wristRadius + 0.1, hand, B.fist * 0.86), circle('glove', hand, B.fist));
+  return { shapes, hand };
+}
+
+/** The hair that shows below the back of the helmet, in the head's own units. */
+function hairBehind(style: FigureLook['hair'], at: (x: number, y: number) => P, r: number): Shape[] {
   switch (style) {
     case 'bald':
       return [];
     case 'buzz':
-      return [circle('hair', x - 0.7, y + 0.5, 0.26)];
+      return [circle('hair', at(-0.62, 0.42), 0.2 * r)];
     case 'flow':
-      return [circle('hair', x - 0.78, y + 0.5, 0.42), limb('hair', x - 0.86, y + 0.6, x - 1.0, y + 1.25, 0.46)];
+      return [circle('hair', at(-0.74, 0.42), 0.36 * r), limb('hair', at(-0.8, 0.5), at(-0.98, 1.05), 0.4 * r)];
     case 'curly':
-      return [circle('hair', x - 0.86, y + 0.36, 0.32), circle('hair', x - 0.78, y + 0.74, 0.34), circle('hair', x - 0.5, y + 0.98, 0.28)];
-    case 'side':
-      return [circle('hair', x - 0.8, y + 0.52, 0.36)];
+      return [circle('hair', at(-0.84, 0.32), 0.28 * r), circle('hair', at(-0.76, 0.66), 0.3 * r), circle('hair', at(-0.5, 0.86), 0.24 * r)];
     default:
-      return [circle('hair', x - 0.78, y + 0.5, 0.4)];
+      return [circle('hair', at(-0.72, 0.42), 0.32 * r)];
   }
-}
-
-/** A beard or a moustache, drawn on the face. */
-function beardOn(x: number, y: number, beard: FigureLook['beard']): Shape[] {
-  if (beard === 'full') return [circle('hair', x + 0.42, y + 0.74, 0.46, true), limb('hair', x - 0.2, y + 0.9, x + 0.5, y + 1.02, 0.3, true)];
-  if (beard === 'stubble') return [limb('hair', x + 0.05, y + 0.98, x + 0.7, y + 0.86, 0.13, true)];
-  if (beard === 'moustache') return [limb('hair', x + 0.56, y + 0.6, x + 0.98, y + 0.58, 0.14, true)];
-  return [];
-}
-
-/** Points along an arc round a centre, from one angle to another (degrees, y down the screen), a point every `step` degrees. */
-function arc(cx: number, cy: number, radius: number, from: number, to: number, step = 15): [number, number][] {
-  const out: [number, number][] = [];
-  const n = Math.max(1, Math.round(Math.abs(to - from) / step));
-  for (let i = 0; i <= n; i++) {
-    const a = ((from + ((to - from) * i) / n) * Math.PI) / 180;
-    out.push([cx + Math.cos(a) * radius, cy + Math.sin(a) * radius]);
-  }
-  return out;
-}
-
-/** A row of short limbs along an arc: a stripe that follows the curve of the shell. */
-function stripeAlong(cx: number, cy: number, radius: number, from: number, to: number, width: number): Shape[] {
-  const points = arc(cx, cy, radius, from, to, 20);
-  return points.slice(1).map(([x2, y2], i) => limb('accent', points[i]![0], points[i]![1], x2, y2, width, true));
 }
 
 /**
- * The helmet, drawn over the head at (x, y): a shell whose edge runs from the brow down to the nape, an ear
- * piece with its hole, a stripe over the crown, two vents and a chin strap; for a skater, a clear visor in
- * front of the eye. (The owner chose it from three drawn candidates.)
+ * The head, seen from the side: a face in profile with a brow, a nose and a jaw, his beard and the hair at
+ * his nape, and over it the helmet, with a visor for a skater and a cage and chin guard for a goalie.
+ * A mascot has a round head with ears and a snout, and no helmet.
  */
-function helmet(x: number, y: number, caged: boolean): Shape[] {
+function head(centre: P, tilt: number, caged: boolean, who: FigureLook): Shape[] {
   const r = B.headRadius;
-  const cx = x - H.back;
-  const cy = y - H.up;
-  const out: Shape[] = [{ kind: 'poly', tag: 'helmet', points: arc(cx, cy, r * H.scale, H.browAngle, H.napeAngle) }];
-  out.push(limb('helmet', x - H.earX - 0.06, y + H.earTop, x - H.earX, y + H.earBottom, H.earWidth));
-  out.push(circle('cage', x - H.earX, y + H.earBottom - 0.1, H.earHole, true));
-  out.push(...stripeAlong(cx, cy, r * H.stripeRadius, -55, -150, B.stripeWidth));
-  for (const a of H.vents) {
-    const [[vx, vy]] = arc(cx, cy, r * H.ventRadius, a, a) as [[number, number]];
-    out.push(limb('cage', vx, vy, vx + 0.2, vy - 0.1, H.strapWidth, true));
-  }
-  if (!caged) {
-    out.push(limb('visor', x + 1.0, y - 0.36, x + 1.16, y + 0.1, H.visorWidth, true));
-    out.push(limb('visor', x + 1.16, y + 0.1, x + 0.98, y + 0.52, H.visorWidth, true));
-  }
-  out.push(limb('cage', x - 0.12, y + 0.62, x + 0.5, y + 1.0, H.strapWidth, true));
-  return out;
-}
-
-/**
- * The head, which is most of him. The head is the face; the helmet is a cap over the top and back of it,
- * so the face shows: one big eye with a glint, a mouth, whatever beard he wears, his hair at the nape.
- * A goalie has bars across the face. A mascot wears no helmet and has ears.
- */
-function head(x: number, y: number, caged: boolean, who: FigureLook): Shape[] {
-  const r = B.headRadius;
+  const cos = Math.cos(tilt);
+  const sin = Math.sin(tilt);
+  const at = (x: number, y: number): P => [centre[0] + (x * cos - y * sin) * r, centre[1] + (x * sin + y * cos) * r];
   if (who.mark === 'mascot') {
     return [
-      circle('mark', x - B.earSpread, y - r * 0.82, B.earRadius),
-      circle('mark', x + B.earSpread * 0.7, y - r * 0.9, B.earRadius),
-      circle('mark', x, y, r),
-      circle('skin', x + 0.42, y + 0.42, r * 0.5, true),
-      circle('eye', x + 0.58, y + 0.06, B.eyeRadius, true),
-      circle('visor', x + 0.65, y - 0.01, B.glint, true),
-      circle('eye', x + 0.86, y + 0.38, 0.13, true),
-      limb('eye', x + 0.46, y + 0.7, x + 0.84, y + 0.66, 0.08, true),
+      circle('mark', at(-0.6, -1.05), 0.42 * r),
+      circle('mark', at(0.5, -1.15), 0.42 * r),
+      circle('mark', at(0, -0.1), 1.2 * r),
+      circle('skin', at(0.62, 0.3), 0.56 * r, true),
+      circle('eye', at(0.5, -0.3), 0.17 * r, true),
+      circle('visor', at(0.56, -0.36), 0.06 * r, true),
+      circle('eye', at(1.08, 0.16), 0.14 * r, true),
+      limb('eye', at(0.6, 0.56), at(0.98, 0.5), 0.07 * r, true),
     ];
   }
-  const out: Shape[] = [...hairBehind(x, y, who.hair), circle('skin', x, y, r)];
-  // A side parting shows a lock under the front of the helmet.
-  if (who.hair === 'side' || who.hair === 'flow') out.push(circle('hair', x + 0.42, y - 0.3, 0.22, true));
-  out.push(...beardOn(x, y, who.beard));
-  out.push(...helmet(x, y, caged));
+  const out: Shape[] = [...hairBehind(who.hair, at, r)];
+  out.push(
+    poly('skin', [at(-0.3, 0.3), at(-0.2, 0.78), at(0.4, 1.02), at(0.68, 0.94), at(0.76, 0.7), at(0.72, 0.5), at(0.98, 0.42), at(0.82, 0.1), at(0.84, -0.14), at(0.6, -0.5), at(-0.3, -0.5)]),
+  );
+  if (who.beard === 'full') out.push(poly('hair', [at(-0.22, 0.42), at(0.3, 0.6), at(0.7, 0.56), at(0.76, 0.7), at(0.68, 0.94), at(0.4, 1.06), at(-0.22, 0.82)], true));
+  else if (who.beard === 'stubble') out.push(limb('hair', at(-0.08, 0.76), at(0.5, 0.94), 0.1 * r, true));
+  else if (who.beard === 'moustache') out.push(limb('hair', at(0.54, 0.52), at(0.8, 0.54), 0.11 * r, true));
+  if (who.hair === 'side' || who.hair === 'flow') out.push(circle('hair', at(0.5, -0.22), 0.16 * r, true));
+  out.push(circle('eye', at(0.6, 0.1), 0.1 * r, true), limb('eye', at(0.42, -0.08), at(0.78, 0), 0.06 * r, true), limb('eye', at(0.54, 0.7), at(0.74, 0.68), 0.05 * r, true));
+
+  // The helmet: a shell from the brow over the crown to the nape, cut away round the ear.
+  out.push(poly('helmet', smooth([at(0.9, -0.22), at(0.84, -0.66), at(0.36, -1.04), at(-0.38, -1.03), at(-0.98, -0.54), at(-1.0, 0.1), at(-0.52, 0.44), at(-0.14, 0.3), at(-0.06, -0.1), at(0.4, -0.2)])));
+  const crown: P[] = [at(0.64, -0.7), at(0.22, -0.88), at(-0.3, -0.87), at(-0.72, -0.6)];
+  for (let i = 1; i < crown.length; i++) out.push(limb('accent', crown[i - 1]!, crown[i]!, 0.15 * r, true));
+  out.push(limb('cage', at(0.02, -0.5), at(0.22, -0.56), 0.06 * r, true), limb('cage', at(-0.42, -0.46), at(-0.22, -0.52), 0.06 * r, true), circle('cage', at(-0.4, 0.12), 0.1 * r, true));
   if (caged) {
-    for (const k of [0, 0.3, 0.6]) out.push(limb('cage', x + 0.2, y + 0.02 + k, x + 1.1, y + 0.1 + k, B.cageWidth, true));
-    for (const k of [0.4, 0.75]) out.push(limb('cage', x + k, y - 0.05, x + k + 0.06, y + 0.85, B.cageWidth, true));
-    out.push(circle('eye', x + 0.6, y + 0.22, 0.13, true));
+    out.push(poly('helmet', [at(-0.24, 0.5), at(0.3, 0.74), at(0.86, 0.7), at(0.8, 1.0), at(0.34, 1.14), at(-0.28, 0.88)]));
+    for (const y of [-0.12, 0.16, 0.44]) out.push(limb('cage', at(0.3, y - 0.04), at(1.04, y + 0.06), 0.06 * r, true));
+    for (const x of [0.52, 0.8, 1.04]) out.push(limb('cage', at(x, -0.16), at(x, 0.7), 0.06 * r, true));
   } else {
-    out.push(circle('eye', x + 0.62, y + 0.3, B.eyeRadius, true));
-    out.push(circle('visor', x + 0.69, y + 0.23, B.glint, true));
-    out.push(limb('eye', x + 0.5, y + 0.78, x + 0.86, y + 0.72, 0.08, true));
+    out.push(limb('visor', at(0.92, -0.22), at(1.1, 0.12), 0.07 * r, true), limb('visor', at(1.1, 0.12), at(0.98, 0.4), 0.07 * r, true));
+    out.push(limb('cage', at(-0.3, 0.42), at(0.3, 0.92), 0.06 * r, true));
   }
   return out;
 }
 
-/** A team's jersey pattern across a body from waist to chest. */
-function patternOn(pattern: JerseyPattern, waist: [number, number], chest: [number, number], width: number): Shape[] {
-  const [wx, wy] = waist;
-  const [cx, cy] = chest;
-  if (pattern === 'hoop') {
-    const mx = (wx + cx) / 2;
-    const my = (wy + cy) / 2;
-    return [limb('accent', mx - width * 0.36, my, mx + width * 0.36, my, B.patternWidth, true)];
-  }
-  if (pattern === 'yoke') return [limb('accent', cx - width * 0.3, cy, cx + width * 0.3, cy, B.patternWidth * 1.5, true)];
-  return [limb('accent', wx - width * 0.25, wy, cx + width * 0.25, cy, B.patternWidth, true)];
-}
-
-/** An arm from shoulder to glove, with a stripe round the sleeve. `band` adds a captain's band above it. */
-function arm(sx: number, sy: number, hx: number, hy: number, width: number, band: boolean): Shape[] {
-  const at = (k: number): [number, number] => [sx + (hx - sx) * k, sy + (hy - sy) * k];
-  const [ax, ay] = at(0.55);
-  const [bx, by] = at(0.7);
-  const out: Shape[] = [limb('jersey', sx, sy, hx, hy, width), limb('accent', ax, ay, bx, by, width, true)];
-  if (band) {
-    const [cx, cy] = at(0.2);
-    const [dx, dy] = at(0.36);
-    out.push(limb('mark', cx, cy, dx, dy, width, true));
-  }
-  out.push(circle('glove', hx, hy, B.gloveRadius));
+/** The jersey over the body, from the hem to the shoulders, with the team's pattern on it. */
+function jersey(pattern: PoseInput['pattern'], at: (u: number, v: number) => P): Shape[] {
+  const out: Shape[] = [poly('jersey', smooth([at(-0.14, -0.38), at(0.4, -0.43), at(0.9, -0.4), at(1.08, -0.16), at(1.06, 0.14), at(0.9, 0.42), at(0.5, 0.5), at(0.12, 0.46), at(-0.16, 0.38)]))];
+  out.push(limb('accent', at(-0.03, -0.3), at(-0.05, 0.32), 0.13, true));
+  if (pattern === 'hoop') out.push(limb('accent', at(0.46, -0.33), at(0.46, 0.4), 0.17, true));
+  else if (pattern === 'yoke') out.push(poly('accent', [at(0.8, -0.36), at(0.96, -0.3), at(1.03, -0.12), at(1.01, 0.12), at(0.92, 0.32), at(0.78, 0.38)], true));
+  else out.push(limb('accent', at(0.16, -0.28), at(0.88, 0.32), 0.17, true));
   return out;
 }
+
+type Built = Raw & { nearArm: number };
 
 /** A skater facing right, in his own units before scaling. */
-function skater(p: PoseInput, who: FigureLook): Raw {
+function skater(p: PoseInput, who: FigureLook): Built {
   const build = F.builds[who.build];
   const speed = clamp01(p.speed);
   const wind = clamp01(p.windUp);
   const swing = Math.sin(p.stride);
-  const reach = B.strideReach * (B.stanceShare + (1 - B.stanceShare) * speed);
   const act = p.action;
-  const lean = speed * B.lean + (act === 'poke' ? B.pokeLean : act === 'hit' ? B.hitLean : act === 'deke' ? B.dekeLean : act === 'tired' ? B.tiredLean : 0);
-  const drop = (p.kneel ? B.kneelDrop : 0) + (act === 'hit' ? B.hitDrop : act === 'tired' ? B.tiredDrop : 0);
-  // A longer-legged build stands taller: everything above the feet rises with the hips.
-  const rise = B.hipY * (build.legs - 1);
-  const hipY = B.hipY + rise + drop;
-  const shY = B.shoulderY + rise + drop;
-  const width = B.torsoWidth * build.width;
-  const armW = B.armWidth * Math.sqrt(build.width);
+  const drop = B.crouch * speed + (p.kneel ? B.kneelDrop : 0) + (act === 'hit' ? B.hitDrop : act === 'tired' ? B.tiredDrop : 0);
+  const lean = p.cheer ? 0 : B.lean + speed * B.speedLean + (act === 'poke' ? B.pokeLean : act === 'hit' ? B.hitLean : act === 'deke' ? B.dekeLean : act === 'tired' ? B.tiredLean : 0);
+  const hip: P = [-Math.sin(lean) * 0.4, B.hipY * build.legs + drop];
+  const up: P = [Math.sin(lean), -Math.cos(lean)];
+  const out: P = [Math.cos(lean), Math.sin(lean)];
+  // A point on the body: `u` of the way up the spine, `v` body-widths in front of it.
+  const body = (u: number, v: number): P => [hip[0] + up[0] * u * B.spine + out[0] * v * build.width, hip[1] + up[1] * u * B.spine + out[1] * v * build.width];
+  const shoulder = body(0.9, 0.02);
   const shapes: Shape[] = [];
 
-  // Legs: the far one first. Whichever foot is behind is lifted a little off the ice.
-  for (const leg of [-1, 1]) {
-    const footX = swing * reach * leg;
-    const footY = -B.footLift * Math.max(0, -swing * leg) * speed;
-    const hipX = B.hipSpread * leg;
-    const kneeX = (hipX + footX) / 2 + B.kneeForward;
-    const kneeY = (hipY + footY) / 2;
-    shapes.push(limb('pants', hipX, hipY, kneeX, kneeY, B.thighWidth * build.width));
-    shapes.push(limb('sock', kneeX, kneeY, footX, footY - B.ankleHeight, B.shinWidth));
-    // A hoop round the sock.
-    const mx = (kneeX + footX) / 2;
-    const my = (kneeY + footY - B.ankleHeight) / 2;
-    shapes.push(limb('accent', mx - 0.02, my - 0.06, mx + 0.02, my + 0.06, B.shinWidth, true));
-    shapes.push(...skate(footX, footY));
-  }
+  // The far leg, then the far arm; whichever foot is behind is lifted a little off the ice.
+  const stride = B.strideReach * (0.35 + 0.65 * speed);
+  const foot = (side: 1 | -1): P => [side * B.stance + swing * stride * side, -B.footLift * Math.max(0, -swing * side) * speed];
+  shapes.push(...far(leg([hip[0] - 0.06, hip[1]], foot(-1), B.thigh * build.legs, B.shin * build.legs, build.width)));
 
-  // Hands on the stick: the top hand near the chest, the lower hand out in front.
-  const top = { x: lean + B.topHandX - wind * B.windBack, y: rise + drop + B.topHandY - wind * B.windUp + swing * B.armSwing * speed };
-  const low = { x: lean + B.lowHandX - wind * B.windBack * 0.6, y: rise + drop + B.lowHandY - wind * B.windUp - swing * B.armSwing * speed };
+  // Hands on the stick: the lower hand out in front, the top hand above and behind it.
+  let low: P = [hip[0] + B.lowHand[0]! + (lean - B.lean) * 0.5, hip[1] + B.lowHand[1]! - swing * B.armSwing * speed];
+  let top: P = [low[0] + B.topHand[0]!, low[1] + B.topHand[1]! + 2 * swing * B.armSwing * speed];
+  low = [low[0] - wind * B.windBack * 0.75, low[1] - wind * B.windUp];
+  top = [top[0] - wind * B.windBack, top[1] - wind * B.windUp * 0.85];
   if (p.cheer) {
-    top.x = lean - B.cheerBack;
-    top.y = B.cheerHandY + rise;
-    low.x = lean + B.cheerFront;
-    low.y = B.cheerHandY + rise - 0.1;
+    top = [shoulder[0] - B.cheerOut, shoulder[1] - B.cheerUp];
+    low = [shoulder[0] + B.cheerOut + 0.1, shoulder[1] - B.cheerUp - 0.06];
   } else if (p.mateCheer) {
-    top.x = lean - B.cheerBack * 0.9;
-    top.y = B.mateCheerY + rise;
+    top = [shoulder[0] - B.cheerOut * 0.7, shoulder[1] - B.cheerUp];
   } else if (act === 'pass') {
-    // The follow-through: both hands pushed out along the ice toward where the puck went.
-    low.x += B.passReach;
-    low.y += B.passDrop;
-    top.x += B.passReach * 0.7;
-    top.y += B.passDrop * 0.5;
+    low = [low[0] + B.passReach, low[1] + 0.2];
+    top = [top[0] + B.passReach * 0.7, top[1] + 0.12];
   } else if (act === 'poke') {
-    low.x += B.pokeReach;
-    low.y += B.passDrop;
-    top.x += B.pokeReach * 0.5;
+    low = [low[0] + B.pokeReach, low[1] + 0.2];
+    top = [top[0] + B.pokeReach * 0.5, top[1] + 0.1];
   } else if (act === 'hit') {
-    // Shoulder down, hands tucked in.
-    low.x = lean + 0.35;
-    low.y = shY + 0.55;
-    top.x = lean + 0.05;
-    top.y = shY + 0.6;
+    low = [shoulder[0] + 0.34, shoulder[1] + 0.66];
+    top = [shoulder[0] + 0.08, shoulder[1] + 0.7];
   } else if (act === 'deke') {
-    low.x += 0.1;
-    low.y -= B.dekeLift;
-    top.y -= B.dekeLift * 0.6;
+    low = [low[0] + 0.12, low[1] - 0.3];
+    top = [top[0], top[1] - 0.18];
   } else if (act === 'tired') {
-    // Bent over, the stick across his knees.
-    low.y = B.tiredHandY + rise;
-    top.y = B.tiredHandY + rise - 0.15;
+    low = [hip[0] + 0.7, hip[1] + 0.62];
+    top = [hip[0] + 0.5, hip[1] + 0.5];
   }
-  shapes.push(...arm(lean - 0.1, shY + 0.2, top.x, top.y, armW, false));
+  shapes.push(...far(arm(body(0.9, -0.06), top, build.width, false).shapes));
 
-  shapes.push(limb('pants', 0, hipY + 0.02, lean * 0.3, hipY - 0.22, width * 0.9));
-  const waist: [number, number] = [lean * 0.3, hipY - 0.22];
-  const chest: [number, number] = [lean * 0.7, shY + 0.18];
-  shapes.push(limb('jersey', waist[0], waist[1], chest[0], chest[1], width));
-  shapes.push(...patternOn(p.pattern, waist, chest, width));
-  shapes.push(...head(lean * B.headLean + B.headForward, B.headY + rise + drop, false, who));
+  shapes.push(...leg([hip[0] + 0.06, hip[1]], foot(1), B.thigh * build.legs, B.shin * build.legs, build.width));
+  shapes.push(circle('pants', hip, B.hipRadius * build.width));
+  const headAt = body(0.9 + (B.neck + B.headRadius * 0.92) / B.spine, 0.1);
+  shapes.push(limb('skin', body(0.92, 0.04), between(body(0.92, 0.04), headAt, 0.7), 0.4));
+  shapes.push(...jersey(p.pattern, body));
+  shapes.push(...head(headAt, (lean - B.lean) * B.headTilt, false, who));
 
-  shapes.push(...arm(lean + 0.1, shY + 0.2, low.x, low.y, armW, who.mark === 'captain'));
-  return { shapes, hand: low, stickEnd: null };
+  const near = arm(shoulder, low, build.width, who.mark === 'captain');
+  shapes.push(...near.shapes);
+  return { shapes, hand: { x: near.hand[0], y: near.hand[1] }, stickEnd: null, nearArm: near.shapes.length };
 }
 
-/** A goalie facing right: wide, in big pads; on his knees with the pads spread when he is down. */
-function goalie(p: PoseInput, who: FigureLook): Raw {
+/** A goalie facing right: wide, behind tall leg pads; on his knees with the pads along the ice when he is down. */
+function goalie(p: PoseInput, who: FigureLook): Built {
   const build = F.builds[who.build];
+  const hip: P = [0, p.down ? G.downHipY : G.hipY * build.legs];
+  const up: P = [Math.sin(G.lean), -Math.cos(G.lean)];
+  const out: P = [Math.cos(G.lean), Math.sin(G.lean)];
+  const wide = G.width * build.width;
+  const body = (u: number, v: number): P => [hip[0] + up[0] * u * G.spine + out[0] * v * wide, hip[1] + up[1] * u * G.spine + out[1] * v * wide];
+  const shoulder = body(0.9, 0.02);
   const shapes: Shape[] = [];
-  const rise = p.down ? 0 : G.hipY * (build.legs - 1);
-  const hipY = (p.down ? G.downHipY : G.hipY) + rise;
-  const shY = hipY - G.torsoLength;
+  const half = G.padWidth / 2;
+
+  // The catching glove, on the far hand, held out behind him; thrown up and out for a glove save.
+  const lift = p.action === 'glove' ? 1 : 0;
+  const catcher = arm(body(0.9, -0.1), [hip[0] + G.catcher[0]! - lift * G.gloveOut, shoulder[1] + 0.5 + G.catcher[1]! - lift * G.gloveUp], 1, false);
+  shapes.push(...far(catcher.shapes.slice(0, 3)), ...far([circle('glove', catcher.hand, G.catchRadius)]), ...far([circle('pad', [catcher.hand[0] - 0.1, catcher.hand[1] - 0.08], G.catchRadius * 0.5, true)]));
+
   if (p.down) {
-    shapes.push(limb('pad', -0.2, -G.padWidth / 2, -G.downReach, -G.padWidth / 2 + 0.02, G.padWidth));
-    shapes.push(limb('pad', 0.2, -G.padWidth / 2, G.downReach, -G.padWidth / 2 + 0.02, G.padWidth));
-    for (const x of [-G.downReach * 0.6, G.downReach * 0.6]) shapes.push(limb('accent', x, -G.padWidth * 0.82, x, -G.padWidth * 0.2, G.padStripe, true));
+    shapes.push(...far([limb('pad', [-0.2, -half], [-G.downReach, -half + 0.02], G.padWidth)]));
+    shapes.push(limb('pad', [0.2, -half], [G.downReach, -half + 0.02], G.padWidth));
+    for (const x of [-G.downReach * 0.62, G.downReach * 0.62]) shapes.push(limb('accent', [x, -G.padWidth * 0.84], [x, -G.padWidth * 0.18], 0.12, true));
+    shapes.push(...boot(G.downReach - 0.1, 0).slice(0, 1));
   } else {
-    for (const leg of [-1, 1]) {
-      const x = G.padSpread * leg;
-      shapes.push(limb('pad', x * 0.8, hipY + 0.1, x, -G.padWidth / 2, G.padWidth));
-      shapes.push(limb('accent', x - 0.3, -0.62, x + 0.3, -0.62, G.padStripe, true));
-      shapes.push(limb('accent', x - 0.3, -0.3, x + 0.3, -0.3, G.padStripe, true));
-      shapes.push(...skate(x + 0.12, 0));
+    for (const side of [-1, 1] as const) {
+      const x = side * G.padSpread;
+      const pad: Shape[] = [
+        ...boot(x + 0.14, 0),
+        poly('pad', smooth([[x - half, -0.12], [x - half - 0.03, -1.0], [x - half + 0.06, -1.0 - G.padTop], [x + half - 0.04, -1.0 - G.padTop], [x + half + 0.05, -1.0], [x + half, -0.12]], 3)),
+        limb('accent', [x - half * 0.75, -0.98], [x + half * 0.75, -0.98], 0.1, true),
+        limb('accent', [x - half * 0.75, -0.42], [x + half * 0.75, -0.42], 0.1, true),
+        limb('accent', [x, -0.9], [x, -0.5], 0.08, true),
+      ];
+      shapes.push(...(side === -1 ? far(pad) : pad));
     }
   }
-  // The catching glove, held out behind the body; thrown up and out for a glove save.
-  const up = p.action === 'glove' ? 1 : 0;
-  const catcher = { x: -G.catchX - up * G.gloveOut, y: shY + G.catchDrop - up * G.gloveUp };
-  shapes.push(limb('jersey', -0.1, shY + 0.2, catcher.x, catcher.y, B.armWidth));
-  shapes.push(circle('glove', catcher.x, catcher.y, G.catchRadius));
-  shapes.push(circle('pad', catcher.x - 0.12, catcher.y - 0.1, G.catchRadius * 0.5, true));
-
-  shapes.push(limb('pants', 0, hipY, 0, hipY - 0.2, G.pantsWidth * build.width));
-  const waist: [number, number] = [0, hipY - 0.2];
-  const chest: [number, number] = [0.1, shY + 0.18];
-  shapes.push(limb('jersey', waist[0], waist[1], chest[0], chest[1], G.torsoWidth * build.width));
-  shapes.push(...patternOn(p.pattern, waist, chest, G.torsoWidth * build.width));
-  shapes.push(...head(G.headForward, shY - G.headRise, true, who));
+  shapes.push(circle('pants', hip, 0.62 * build.width));
+  const headAt = body(0.9 + (B.neck + B.headRadius * 0.9) / G.spine, 0.08);
+  shapes.push(limb('skin', body(0.92, 0.03), between(body(0.92, 0.03), headAt, 0.7), 0.4));
+  shapes.push(...jersey(p.pattern, body));
+  shapes.push(...head(headAt, 0, true, who));
 
   // The blocker, on the hand that holds the stick.
-  const blocker = { x: G.blockerX, y: shY + G.blockerDrop };
-  shapes.push(limb('jersey', 0.2, shY + 0.2, blocker.x, blocker.y, B.armWidth));
+  const near = arm(shoulder, [hip[0] + G.blocker[0]!, shoulder[1] + 0.5 + G.blocker[1]!], 1, false);
+  const [bx, by] = near.hand;
   const w = G.blockerWidth / 2;
   const h = G.blockerHeight / 2;
-  shapes.push({
-    kind: 'poly',
-    tag: 'pad',
-    points: [
-      [blocker.x - w, blocker.y - h],
-      [blocker.x + w, blocker.y - h],
-      [blocker.x + w, blocker.y + h],
-      [blocker.x - w, blocker.y + h],
-    ],
-  });
-  return { shapes, hand: blocker, stickEnd: { x: G.stickX, y: -F.bladeWidth } };
+  const blocker: Shape[] = [...near.shapes.slice(0, 3), poly('pad', [[bx - w, by - h], [bx + w, by - h], [bx + w, by + h], [bx - w, by + h]]), limb('accent', [bx - w * 0.6, by - h * 0.5], [bx + w * 0.6, by - h * 0.5], 0.09, true)];
+  shapes.push(...blocker);
+  return { shapes, hand: { x: near.hand[0], y: near.hand[1] }, stickEnd: { x: G.stickX, y: -F.bladeWidth }, nearArm: blocker.length };
 }
 
 function mapPoints(raw: Raw, f: (x: number, y: number) => [number, number]): Raw {
@@ -388,19 +404,22 @@ function topOf(shapes: readonly Shape[]): number {
 const SCALE = F.height / -topOf(skater(STANDING, PLAIN_LOOK).shapes);
 
 /**
- * The figure in a pose: an upright big-headed cartoon player seen from the side, as a list of shapes to
- * paint back to front. It is built facing right, then mirrored to face left and tipped over if he is off
- * balance, so the two directions are exact mirror images. `who` is what is particular to the player.
+ * The player in a pose, drawn as a comic figure seen from the side: a body with a shaped jersey, arms and
+ * legs that bend at the elbow and knee, a face in profile under the helmet, and the far arm and leg in
+ * shadow. A list of shapes to paint back to front. It is built facing right, then mirrored to face left and
+ * tipped over if he is off balance, so the two directions are exact mirror images. `who` is what is
+ * particular to the player. (The owner chose it from three drawn candidates.)
  */
 export function figure(pose: PoseInput, who: FigureLook = PLAIN_LOOK): Figure {
-  let raw = scaled(pose.goalie ? goalie(pose, who) : skater(pose, who), SCALE);
+  const built = pose.goalie ? goalie(pose, who) : skater(pose, who);
+  let raw: Raw = scaled(built, SCALE);
   if (pose.side === -1) raw = mapPoints(raw, (x, y) => [-x, y]);
   if (pose.tilt !== 0) {
     const cos = Math.cos(pose.tilt * pose.side);
     const sin = Math.sin(pose.tilt * pose.side);
     raw = mapPoints(raw, (x, y) => [x * cos - y * sin, x * sin + y * cos]);
   }
-  return { ...raw, top: topOf(raw.shapes) };
+  return { ...raw, top: topOf(raw.shapes), nearArm: built.nearArm };
 }
 
 /** A few letters that name a look, for telling one player's pictures from another's. */
@@ -472,20 +491,7 @@ export function withStick(fig: Figure, end: { x: number; y: number }, side: 1 | 
     { kind: 'limb', tag: 'stick', x1: butt.x, y1: butt.y, x2: end.x, y2: end.y, w: F.stickWidth, bare: true },
     { kind: 'limb', tag: 'stick', x1: end.x, y1: end.y, x2: end.x + side * F.bladeLength, y2: end.y, w: F.stickWidth * 1.4, bare: true },
   ];
-  // Behind the near arm: its sleeve, stripe, glove and (for a captain) band are the last pieces.
-  const last = fig.shapes[fig.shapes.length - 1];
-  const near = last && last.kind === 'poly' ? 1 : nearArmPieces(fig.shapes);
-  const at = Math.max(0, fig.shapes.length - near);
+  // Behind the near arm, which is the last pieces of the list.
+  const at = Math.max(0, fig.shapes.length - fig.nearArm);
   return [...fig.shapes.slice(0, at), ...stick, ...fig.shapes.slice(at)];
-}
-
-/** How many pieces at the end of a skater's list are his near arm: the sleeve, its stripe, the glove, and a band if he has one. */
-function nearArmPieces(shapes: readonly Shape[]): number {
-  let n = 0;
-  for (let i = shapes.length - 1; i >= 0; i--) {
-    n += 1;
-    const s = shapes[i] as Shape;
-    if (s.tag === 'jersey' && s.kind === 'limb') break;
-  }
-  return n;
 }

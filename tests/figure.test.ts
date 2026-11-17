@@ -26,15 +26,21 @@ function box(shapes: readonly Shape[]): { left: number; right: number; top: numb
   }
   return { left: Math.min(...xs), right: Math.max(...xs), top: Math.min(...ys), bottom: Math.max(...ys) };
 }
-const skates = (fig: Figure): Limb[] => fig.shapes.filter((s): s is Limb => s.kind === 'limb' && s.tag === 'skate');
-const mid = (s: Limb | undefined): number => (s ? (s.x1 + s.x2) / 2 : Number.NaN);
-const helmetOf = (fig: Figure): Extract<Shape, { kind: 'circle' }> => {
-  // Where his head is: the face, which the helmet sits on. (The helmet itself is a shell, not a circle.)
-  const h = fig.shapes.find((s) => s.tag === 'skin');
-  if (!h || h.kind !== 'circle') throw new Error('no head');
-  return h;
+type Poly = Extract<Shape, { kind: 'poly' }>;
+/** The middle of a many-sided piece and half its width. */
+const middle = (s: Poly): { x: number; y: number; r: number } => {
+  const xs = s.points.map((p) => p[0]);
+  const ys = s.points.map((p) => p[1]);
+  return { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2, r: (Math.max(...xs) - Math.min(...xs)) / 2 };
 };
-
+/** Where his head is: his face, which the helmet sits on. */
+const helmetOf = (fig: Figure): { x: number; y: number; r: number } => {
+  const face = fig.shapes.find((s): s is Poly => s.tag === 'skin' && s.kind === 'poly');
+  if (!face) throw new Error('no head');
+  return middle(face);
+};
+const skates = (fig: Figure): Poly[] => fig.shapes.filter((s): s is Poly => s.kind === 'poly' && s.tag === 'skate');
+const mid = (s: Poly | undefined): number => (s ? middle(s).x : Number.NaN);
 describe('the on-ice figure', () => {
   it('stands on his feet at the origin, exactly as tall as the table says, with the head on top', () => {
     const fig = figure(STANDING);
@@ -48,7 +54,7 @@ describe('the on-ice figure', () => {
     if (!shell || shell.kind !== 'poly') throw new Error('no helmet shell');
     expect(Math.min(...shell.points.map((p) => p[1]))).toBeCloseTo(b.top);
     const head = helmetOf(fig);
-    expect(head.y - head.r).toBeGreaterThan(b.top);
+    expect(head.y).toBeGreaterThan(b.top);
   });
 
   it('facing left is the exact mirror of facing right', () => {
@@ -79,7 +85,9 @@ describe('the on-ice figure', () => {
     // One foot ahead and one behind, and they swap half a stride later.
     expect(mid(forward[0])).toBeLessThan(mid(forward[1]));
     expect(mid(back[0])).toBeGreaterThan(mid(back[1]));
-    expect(mid(level[0])).toBeCloseTo(mid(level[1]));
+    // In the middle of a stride the feet are as far apart as when he stands.
+    const standing = skates(figure(STANDING));
+    expect(mid(level[1]) - mid(level[0])).toBeCloseTo(mid(standing[1]) - mid(standing[0]));
     // A faster skater strides longer.
     const slow = skates(figure({ ...STANDING, stride: Math.PI / 2, speed: 0 }));
     expect(mid(forward[1]) - mid(forward[0])).toBeGreaterThan(mid(slow[1]) - mid(slow[0]));
@@ -126,7 +134,7 @@ describe('the on-ice figure', () => {
     const shapes = withStick(fig, end, 1);
     expect(shapes).toHaveLength(fig.shapes.length + 2);
     const at = shapes.findIndex((s) => s.tag === 'stick');
-    expect(at).toBe(fig.shapes.length - 3);
+    expect(at).toBe(fig.shapes.length - fig.nearArm);
     const shaft = shapes[at] as Limb;
     expect(shaft.x2).toBe(end.x);
     expect(shaft.y2).toBe(end.y);
