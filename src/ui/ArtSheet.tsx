@@ -38,17 +38,6 @@ const KEEPER_POSES: [string, Partial<PoseInput>][] = [
   ['facing left', { side: -1 }],
 ];
 
-/** The poses each skater candidate is shown in. */
-const SKATER_POSES: [string, Partial<PoseInput>][] = [
-  ['standing', {}],
-  ['stride', { stride: Math.PI / 2, speed: 1 }],
-  ['mid stride', { stride: Math.PI, speed: 1 }],
-  ['wind-up', { windUp: 1 }],
-  ['follow-through', { action: 'shot' }],
-  ['stop', { action: 'stop', speed: 0.5 }],
-  ['from the front', { view: 'front', speed: 0.6, stride: 1 }],
-];
-
 /** The on-ice figure in each pose worth checking. */
 const POSES: [string, PoseInput][] = [
   ['standing', STANDING],
@@ -65,6 +54,8 @@ const POSES: [string, PoseInput][] = [
   ['goalie kick', { ...STANDING, goalie: true, action: 'kick' }],
   ['goalie shuffle', { ...STANDING, goalie: true, speed: 1, stride: Math.PI / 2 }],
   ['flat on the ice', { ...STANDING, fallen: true }],
+  ['follow-through', { ...STANDING, action: 'shot' }],
+  ['hard stop', { ...STANDING, action: 'stop', speed: 0.5 }],
   ['goal', { ...STANDING, cheer: true }],
   ['his mate scored', { ...STANDING, mateCheer: true }],
   ['kneeling', { ...STANDING, kneel: true }],
@@ -166,20 +157,6 @@ export function ArtSheet() {
           </span>
         ))}
       </div>
-      <h2>Skater candidates</h2>
-      {look.figure.skaterStyles.map((style, v) => (
-        <div key={style.name} class="art-row figure-row">
-          <span class="figure-cell" style="min-width:110px">
-            <strong>{style.name}</strong>
-          </span>
-          {SKATER_POSES.map(([name, pose]) => (
-            <span key={name} class="figure-cell">
-              <FigureArt pose={{ ...STANDING, variant: v, ...pose }} crest={teamCrest(league.teams[v]?.name ?? 'sheet')} skin={skinTone(v)} size={120} />
-              <small>{name}</small>
-            </span>
-          ))}
-        </div>
-      ))}
       <h2>Players on the ice</h2>
       <div class="art-row figure-row">
         {POSES.map(([name, pose], i) => (

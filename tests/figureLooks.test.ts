@@ -215,12 +215,6 @@ describe('poses for what he is doing', () => {
     expect(helmetOf(doing('stop')).x).toBeLessThan(helmetOf(still).x);
   });
 
-  it("a candidate body is drawn only when asked for: the game's own figure is unchanged after one", () => {
-    const before = JSON.stringify(figure(STANDING).shapes);
-    expect(JSON.stringify(figure({ ...STANDING, variant: 2 }).shapes)).not.toBe(before);
-    expect(JSON.stringify(figure(STANDING).shapes)).toBe(before);
-  });
-
   it('a glove save throws the catching glove up', () => {
     const glove = (fig: Figure): number => Math.min(...fig.shapes.filter((s): s is Circle => s.tag === 'glove' && s.kind === 'circle').map((s) => s.y));
     const standing = figure({ ...STANDING, goalie: true });

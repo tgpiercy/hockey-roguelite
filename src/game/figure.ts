@@ -6,8 +6,7 @@ import { darken, lighten } from '../core/teamColours';
 import look from '../data/rinkLook.json';
 
 const F = look.figure;
-/** The body's numbers: the game's own, or a candidate's laid over them while one is being drawn for the art sheet. */
-let B: typeof F.body = F.body;
+const B = F.body;
 const G = F.goalie;
 
 /** What a shape of the figure is, which decides its colour. */
@@ -57,8 +56,6 @@ export interface PoseInput {
   glide?: boolean;
   /** Knocked flat on the ice by a big hit. */
   fallen?: boolean;
-  /** Which candidate to draw, for the art sheet: left out, the one in use. */
-  variant?: number;
   /** A goalie: how near the play is, from 0 (at the other end: he stands easy) to 1 (in his end: set). Left out, set. */
   alert?: number;
   /** Which way he is seen: from the side (the usual), or from the front or behind when he skates down or up the rink. */
@@ -580,7 +577,7 @@ function padLeg(hip: P, footX: number, lift: number, S: (typeof F.goalieStyles)[
  * on the near one, low in front. (An earlier drawing had the glove out behind his back, which no arm can do.)
  */
 function goalie(p: PoseInput, who: FigureLook): Built {
-  const S = F.goalieStyles[p.variant ?? F.goalieStyle] ?? F.goalieStyles[0]!;
+  const S = F.goalieStyles[F.goalieStyle] ?? F.goalieStyles[0]!;
   const build = F.builds[who.build];
   const act = p.action;
   // With the play at the other end he stands easy: taller, less bent, the glove down by his side.
@@ -718,7 +715,6 @@ const SCALE = F.height / -topOf(skater(STANDING, PLAIN_LOOK).shapes);
  */
 export function figure(pose: PoseInput, who: FigureLook = PLAIN_LOOK): Figure {
   const view = pose.goalie ? 'side' : (pose.view ?? 'side');
-  B = !pose.goalie && pose.variant !== undefined ? { ...F.body, ...(F.skaterStyles[pose.variant] as Partial<typeof F.body>) } : F.body;
   const built = pose.goalie ? goalie(pose, who) : pose.fallen ? sprawled(pose, who) : view === 'side' ? skater(pose, who) : upright(pose, who, view === 'back');
   let raw: Raw = scaled(built, SCALE);
   if (pose.side === -1) raw = mapPoints(raw, (x, y) => [-x, y]);

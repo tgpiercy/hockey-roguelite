@@ -278,12 +278,12 @@
       "thigh": 0.88,
       "shin": 0.86,
       "ankle": 0.34,
-      "hipY": -1.98,
-      "crouch": 0.08,
-      "lean": 0.24,
-      "speedLean": 0.26,
-      "stance": 0.22,
-      "strideReach": 0.74,
+      "hipY": -1.86,
+      "crouch": 0.2,
+      "lean": 0.36,
+      "speedLean": 0.3,
+      "stance": 0.32,
+      "strideReach": 0.86,
       "footLift": 0.34,
       "shoulderRadius": 0.37,
       "elbowRadius": 0.25,
@@ -495,52 +495,7 @@
         "name": "ready"
       }
     ],
-    "goalieStyle": 0,
-    "skaterStyles": [
-      {
-        "name": "A as now"
-      },
-      {
-        "name": "B big head",
-        "headRadius": 0.62,
-        "neck": 0.12,
-        "spine": 0.96
-      },
-      {
-        "name": "C long legs",
-        "thigh": 0.98,
-        "shin": 0.96,
-        "hipY": -2.14,
-        "spine": 0.94,
-        "headRadius": 0.48
-      },
-      {
-        "name": "D broad",
-        "shoulderRadius": 0.46,
-        "thighRadius": 0.48,
-        "hipRadius": 0.52,
-        "fist": 0.32,
-        "elbowRadius": 0.3,
-        "kneeRadius": 0.34
-      },
-      {
-        "name": "E low and fast",
-        "lean": 0.36,
-        "crouch": 0.2,
-        "hipY": -1.86,
-        "stance": 0.32,
-        "strideReach": 0.86,
-        "speedLean": 0.3
-      },
-      {
-        "name": "F upright",
-        "lean": 0.1,
-        "crouch": 0.02,
-        "speedLean": 0.16,
-        "hipY": -2.04,
-        "stance": 0.16
-      }
-    ]
+    "goalieStyle": 0
   },
   "bigPuckScale": 1.6,
   "practiceWord": "PRACTICE",
