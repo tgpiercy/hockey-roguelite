@@ -905,6 +905,22 @@ Stepping out still trades the lone shot for the pass: at 1.5 the carrier loses a
 - The two stand-ins have moved far apart on Pro: the one that only carries and shoots almost never wins the title now, and the one that passes wins three in four. A person is somewhere between, and nearer the passer the better he gets. The difficulties were not re-set: which stand-in Pro is set against is the owner's call.
 - Rookie was kept where it was for the newcomer by two things: opponents at the bottom of the scale hardly block (`blockEagerness` from 0), and below `holdBackFrom` they do not hold a man back. Without them the newcomer cleared the first region 77% of the time.
 
+### How far a season gets, by region (2026-11-17)
+
+30 seasons each, with every change of this round and the next in (`npm run measure -- seasons`, which now reports each region and the playoffs). A sample this size swings about 9 points, and more between runs: Pro for the passer read 73% titles a day earlier and 47% here, with nothing between that should have moved it so far.
+
+| Difficulty, stand-in | Region 1 | Region 2 | Region 3 and the playoffs | Title |
+| --- | --- | --- | --- | --- |
+| Pro, passer | 100% | 67% | 53% | 47% |
+| Pro, script (carries and shoots) | 90% | 60% | 27% | 10% |
+| Pro, newcomer | 17% | | 0% | 0% |
+| All-Star, passer | 97% | 60% | 50% | 37% |
+| All-Star, script | 77% | 37% | 10% | 0% |
+
+- The second region is where most seasons end, on both difficulties and for both stand-ins. A season that clears the third region reaches the playoffs every time.
+- All-Star can be won by passing (about one title in three) and not by carrying alone. It is a step harder than Pro, not a wall.
+- The owner's own Pro games (a first region of three one-goal games, a 4-3 loss to open the second) sit between the two stand-ins, where a person should be.
+
 ### Trading
 
 `tests/fleece.test.ts` plays a manager who does nothing but trade, taking whatever gains most.
