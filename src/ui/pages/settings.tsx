@@ -83,6 +83,10 @@ export function settingsPages(app: AppCtx): ComponentChildren {
             icon: 'target',
             detail: 'The help your shots, passes, checks and goalie are given, each of which you can turn down or off, and what the opponents are not given.',
           }),
+          tile('signs', 'Signs on the rink', 'What every ring, bar and arrow means', () => go({ name: 'signs' }), {
+            icon: 'report',
+            detail: 'The marks on the ice and the scoreboard, each with a drawing and what it is telling you, and the marks that give away a boss\'s trick.',
+          }),
           tile('switching', 'Player switching', prefs.holdSwitch ? 'Hold' : 'Automatic', () => changePrefs({ ...prefs, holdSwitch: !prefs.holdSwitch }), {
             detail: 'Automatic: you always control whoever of yours has the puck. Hold: you keep your skater until you press switch, and a team-mate who gets the puck plays it himself.',
           }),

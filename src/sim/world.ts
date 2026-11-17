@@ -203,7 +203,7 @@ function newTeamState(powerups: (PowerupSpec | null)[], style: string | null, he
 }
 
 /** Scrimmage reset: the line on the ice back to its starting spots, goalies home, puck loose at centre. */
-function lineUp(world: World, t: Tuning): void {
+export function lineUp(world: World, t: Tuning): void {
   for (const p of onIce(world)) {
     if (p.role === 'skater') {
       const [x, y] = world.lineup === 'solo' ? [-Math.abs(t.game.skaterStartX), 0] : startSpot(p.team, p.slot, t);

@@ -5,7 +5,9 @@ import { teamCrest, type Crest } from '../core/crest';
 import { lighten } from '../core/teamColours';
 import look from '../data/rinkLook.json';
 import { braced, checkRules } from '../sim/check';
-import { HINT_TIMING, hintDone, hintFor, hintText, type HintCounts, type HintId } from './hints';
+import { FailWatch, HINT_TIMING, hintDone, hintFor, hintText, type HintCounts, type HintId } from './hints';
+import { LESSON_TIMING, LESSON_WORDS, lessonAdvance, lessonLine, lessonOver, lessonStep, newLesson, type Lesson } from './lesson';
+import { stageDrill, type Drill } from '../sim/drill';
 import { benchDoor, lineEnergy, mayPull } from '../sim/lines';
 import { onFire } from '../sim/momentum';
 import { forfeitResult, gameResult, type GameResult } from '../sim/match';
@@ -99,6 +101,8 @@ export interface RinkSceneOptions {
   replays?: () => boolean;
   /** Told when a replay starts (true) and ends (false). */
   onReplay?: (on: boolean) => void;
+  /** True for the first skate: the practice rink with a lesson run on it, which ends the game when it is done. */
+  lesson?: boolean;
   /** Called each time the player does a move a hint is about. */
   onHintDone?: (id: string) => void;
   /** Called with the result when the game ends, to show the summary. */
@@ -148,6 +152,11 @@ export class RinkScene extends Phaser.Scene {
   private commentator!: Commentator;
   private callText!: Phaser.GameObjects.Text;
   private callUntil = 0;
+  /** The first skate, if this is one; when the next situation is to be set up; and when the whole thing ends. */
+  private lesson: Lesson | null = null;
+  private lessonStage: number | null = null;
+  private lessonEnd: number | null = null;
+  private failWatch = new FailWatch();
   /** The hint on screen, how long it has been up, and the wait before the next one. */
   private hint: HintId | null = null;
   private hintShown = 0;
@@ -270,6 +279,10 @@ export class RinkScene extends Phaser.Scene {
     this.pullText = this.add.text(0, 0, '', { ...heading, color: c.accent }).setOrigin(0.5, 1).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
     this.callText = this.add.text(0, 0, '', { ...heading, color: c.text }).setOrigin(0.5, 0).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
     this.commentator = new Commentator(this.options.seed);
+    if (this.options.lesson) {
+      this.lesson = newLesson();
+      this.stage('loose', this.options.tuning());
+    }
     this.hintText2 = this.add.text(0, 0, '', { ...heading, color: RET.colour2 }).setOrigin(0.5, 1).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
     for (const item of [this.hud, ...this.nameTexts, ...this.scoreTexts, this.clockTextObject, ...this.barLabels, this.bigText, this.powerText]) item.setDepth(DEPTH.hud);
     this.events.once('destroy', () => {
@@ -360,7 +373,12 @@ export class RinkScene extends Phaser.Scene {
         // A beat with nothing moving, so the hit or the goal lands.
         this.freeze -= real;
       } else {
-        this.leftover += real * (this.slow > 0 ? fx.goalSlowScale : 1);
+        if (this.lessonHold) {
+          const fr = controls.frame;
+          const touched = Math.hypot(fr.moveX, fr.moveY) > LESSON_TIMING.startStick || fr.shoot || fr.pass || fr.check || fr.switchPlayer || fr.sprint;
+          if (touched) this.lessonHold = false;
+        }
+        this.leftover += this.lessonHold ? 0 : real * (this.slow > 0 ? fx.goalSlowScale : 1);
         this.slow = Math.max(0, this.slow - real);
         while (this.leftover >= STEP_SECONDS) {
           const controlled = this.world.human ? this.world.human.controlled : -1;
@@ -386,6 +404,14 @@ export class RinkScene extends Phaser.Scene {
               this.startReplay(clip);
               this.leftover = 0;
               break;
+            }
+          }
+          if (this.lesson) this.stepLesson(stepped, controlled);
+          if (controlled >= 0 && controls.frame.switchPlayer && this.world.human && this.world.human.controlled !== controlled && this.world.puck.carrier !== this.world.human.controlled) this.countHint('switchTo');
+          if ((this.options.hints?.() || this.lesson) && controlled >= 0) {
+            for (const word of this.failWatch.note(stepped, controlled, this.world.tick * STEP_SECONDS)) {
+              const who = this.world.players[word.player];
+              if (who) this.floatWord(word.text, who.pos.x, who.pos.y, false);
             }
           }
           for (const e of stepped) {
@@ -436,6 +462,36 @@ export class RinkScene extends Phaser.Scene {
         this.callText.setText(call.text.toUpperCase());
         this.callUntil = this.clock + COMMENTARY_SHOW_SECONDS;
         this.options.onCall?.(call.text, call.priority);
+      }
+    }
+    // The lesson: the next situation is set up a moment after the last move, and the game ends a moment after the last step.
+    if (this.lesson && this.world.phase === 'play') {
+      if (!this.lessonSaid) {
+        this.lessonSaid = true;
+        this.sayWhy();
+      }
+      if (this.lessonStage !== null && this.clock >= this.lessonStage) {
+        this.lessonStage = null;
+        const step = lessonStep(this.lesson);
+        const mine = this.world.human ? this.world.human.team : 0;
+        const carrier = this.world.puck.carrier === null ? null : this.world.players[this.world.puck.carrier];
+        // A new step always starts from its own situation; a step half done only when the puck has got away.
+        if (step && (this.lesson.count === 0 || step.drill === 'defend' || !carrier || carrier.team !== mine || carrier.role !== 'skater')) this.stage(step.drill, t);
+      }
+      // The puck with the wrong side for a while (his, in a defending step; theirs, in any other): start the situation again.
+      const now = lessonStep(this.lesson);
+      const holder = this.world.puck.carrier === null ? null : this.world.players[this.world.puck.carrier];
+      const mineNow = this.world.human ? this.world.human.team : 0;
+      const wrong = now !== null && holder !== null && holder !== undefined && holder.role === 'skater' && (holder.team === mineNow) === (now.drill === 'defend');
+      this.lessonWrong = wrong && this.lessonStage === null ? this.lessonWrong + real : 0;
+      if (now && this.lessonWrong >= LESSON_TIMING.resetSeconds) {
+        this.lessonWrong = 0;
+        this.stage(now.drill, t);
+      }
+      if (this.lessonEnd !== null && this.clock >= this.lessonEnd && !this.done) {
+        this.done = true;
+        this.options.onDone(gameResult(this.world));
+        return;
       }
     }
     const giveGo = Boolean(this.world.human?.giveGo);
@@ -516,6 +572,47 @@ export class RinkScene extends Phaser.Scene {
     if (!clip || this.replay) return false;
     this.startReplay(clip);
     return true;
+  }
+
+  private lessonSaid = false;
+  private lessonWrong = 0;
+
+  /** Sets a situation up, and holds the play still until the person moves the stick or presses a button: nobody loses the puck while reading. */
+  private stage(drill: Drill, t: Tuning): void {
+    stageDrill(this.world, t, drill);
+    this.lessonHold = true;
+    this.lessonWrong = 0;
+  }
+
+  private lessonHold = false;
+
+  /** The lesson's sentence of why, where the commentary goes. */
+  private sayWhy(): void {
+    const step = this.lesson ? lessonStep(this.lesson) : null;
+    if (!step) return;
+    this.callText.setText(step.why.toUpperCase());
+    this.callUntil = this.clock + LESSON_TIMING.whySeconds;
+  }
+
+  /** Counts a step of the simulation toward the lesson, and after a goal sets the situation up again. */
+  private stepLesson(stepped: readonly SimEvent[], controlled: number): void {
+    const lesson = this.lesson;
+    if (!lesson || lessonOver(lesson)) return;
+    const went = lessonAdvance(lesson, stepped, controlled, this.world);
+    if (went !== 'none') {
+      const me = this.world.human ? this.world.players[this.world.human.controlled] : undefined;
+      if (me) this.floatWord(LESSON_WORDS.good, me.pos.x, me.pos.y, true);
+      this.lessonStage = this.clock + LESSON_TIMING.stageSeconds;
+      if (went === 'step') {
+        if (lessonOver(lesson)) {
+          this.lessonStage = null;
+          this.lessonEnd = this.clock + LESSON_TIMING.doneSeconds;
+          this.callUntil = 0;
+        } else this.sayWhy();
+      }
+    }
+    // A goal lines everyone up with the puck loose: put the step's own situation back.
+    if (stepped.some((e) => e.type === 'goal') && this.lessonStage === null && this.lessonEnd === null) this.lessonStage = this.clock + LESSON_TIMING.stageSeconds * 2;
   }
 
   /** Gives the game up: it ends now as a loss for the human's team, without the summary screen. */
@@ -1034,6 +1131,13 @@ export class RinkScene extends Phaser.Scene {
         g.lineStyle(Math.max(2, unit * look.passMark.width), colour(marked));
         for (const [ax, ay, bx, by] of diamond) g.lineBetween(ax, ay, bx, by);
       }
+      if (p === controlled && world.match.practice && world.puck.carrier !== null && world.players[world.puck.carrier]?.team !== p.team) {
+        // On the practice rink: how far his poke reaches, as a circle the puck must be inside.
+        const rules = checkRules(world, p, t);
+        const reach = rules.pokeSureReach > 0 ? rules.pokeSureReach : t.check.pokeRange;
+        g.lineStyle(Math.max(1.5, unit * 0.1), colour(RET.colour), 0.55);
+        g.strokeCircle(x, y, reach * z);
+      }
       const second = world.human2 !== null && world.human2.controlled === p.id && p !== controlled;
       const ringColour = p === controlled ? RET.colour : second ? RET.colour2 : null;
       if (ringColour !== null) {
@@ -1344,6 +1448,8 @@ export class RinkScene extends Phaser.Scene {
     const prompt =
       humanTeam === null
         ? ''
+        : this.lesson
+          ? lessonLine(this.lesson)
         : world.human?.giveGo
           ? 'GIVE AND GO  ·  SHOOT OR CHECK TO CANCEL'
           : world.teams[humanTeam].pulled
@@ -1358,7 +1464,8 @@ export class RinkScene extends Phaser.Scene {
     this.pullText.setVisible(prompt !== '');
     if (prompt !== '') {
       this.pullText.setText(prompt);
-      this.pullText.setFontSize(Math.max(10, height * 0.034));
+      // The lesson's line is what the screen is for: it is drawn larger than a hint.
+      this.pullText.setFontSize(Math.max(10, height * (this.lesson ? LESSON_TIMING.lineSize : 0.034)));
       this.pullText.setPosition(width / 2, height - look.marginPixels - 44);
     }
     // Player two's hint, in his ring's colour, on the line above player one's.

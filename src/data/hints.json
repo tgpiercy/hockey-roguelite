@@ -8,7 +8,20 @@
   "blockLane": 2,
   "pokeNear": 1.3,
   "hitNear": 5,
+  "shootRange": 14,
+  "switchGap": 3,
+  "whiffNear": 7,
+  "lateSeconds": 0.9,
+  "fail": {
+    "far": "TOO FAR: GET CLOSER",
+    "behind": "NOT FROM BEHIND",
+    "turned": "FACE THE PUCK",
+    "late": "HOLD SHOOT SOONER"
+  },
   "hints": {
+    "shoot": "HOLD SHOOT, LET GO: SHOT",
+    "pass": "TAP PASS: IT GOES TO THE DIAMOND",
+    "switchTo": "PRESS SWITCH: TAKE THE NEAREST SKATER",
     "oneTimer": "HOLD SHOOT AS THE PASS ARRIVES: ONE-TIMER",
     "fake": "TAP PASS WHILE WINDING UP: FAKE",
     "block": "HOLD CHECK IN THE SHOOTING LANE: BLOCK",

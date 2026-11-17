@@ -244,6 +244,8 @@ export type SimEvent =
   | { type: 'talent'; player: number; id: string }
   | { type: 'shot'; speed: number; player: number; oneTimer?: boolean }
   | { type: 'deke'; player: number }
+  /** A person threw a check with the carrier out of reach altogether: nothing happened. */
+  | { type: 'whiff'; player: number; /** From his stick hand to the puck. */ metres: number; /** The puck was near enough: he was facing the wrong way. */ turned?: boolean }
   | { type: 'fake'; player: number }
   | { type: 'block'; player: number }
   | { type: 'tip'; player: number }
@@ -253,7 +255,7 @@ export type SimEvent =
   | { type: 'post' }
   | { type: 'pickup'; player: number; /** He was the one the pass was meant for. */ pass?: boolean }
   | { type: 'save'; goalie: number; frozen: boolean }
-  | { type: 'check'; player: number; target: number; kind: 'body' | 'poke'; success: boolean; big?: boolean; /** The carrier's deke slipped it. */ evaded?: boolean; /** It caught him winding up a shot that could not have been saved. */ windUp?: boolean };
+  | { type: 'check'; player: number; target: number; kind: 'body' | 'poke'; success: boolean; big?: boolean; /** The carrier's deke slipped it. */ evaded?: boolean; /** Why a person's own poke took nothing: the stick was short of the puck, or he reached from behind the carrier. */ miss?: 'far' | 'behind'; /** It caught him winding up a shot that could not have been saved. */ windUp?: boolean };
 
 /** A person playing: his team, the skater he controls, and what his buttons were doing. */
 export interface Human {

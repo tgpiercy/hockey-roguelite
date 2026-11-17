@@ -20,13 +20,12 @@ function fullWords(kind: AssistKind): string {
 
 /** The two questions a new player is asked before the first game, and the page that says how you are helped. */
 export function welcomePages(app: AppCtx): ComponentChildren | undefined {
-  const { screen, screenKey, go, after, f, message, prefs, changePrefs, setFirstRun, tile } = app;
+  const { screen, screenKey, go, after, f, message, prefs, changePrefs, tile } = app;
 
   if (screen.name === 'switching') {
     const pick = (hold: boolean): void => {
       changePrefs({ ...prefs, holdSwitch: hold });
-      setFirstRun(false);
-      go({ name: 'home' }, 'You can change the difficulty between seasons and player switching at any time, both under Settings.');
+      go({ name: 'firstSkate' });
     };
     return (
       <Menu

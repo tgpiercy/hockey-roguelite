@@ -1,3 +1,4 @@
+import { startLesson } from './teach';
 import { opened, OPENS_WHEN } from '../../core/opening';
 import { assistStrengths } from '../../core/assists';
 import { charterOpen } from '../../core/achievements';
@@ -156,6 +157,11 @@ export function playPages(app: AppCtx): ComponentChildren | undefined {
                   },
                 },
               ]),
+          tile('lesson', 'First skate', 'The moves, one at a time', () => startLesson(app), {
+            icon: 'training',
+            wide: true,
+            detail: 'About two minutes on the practice rink: skate, shoot, pass, one-timer, poke check and body check, each asked for once or twice with a line saying what it is for. It ends by itself.',
+          }),
           tile(
             'practice',
             'Practice rink',
@@ -177,7 +183,7 @@ export function playPages(app: AppCtx): ComponentChildren | undefined {
             {
               icon: 'training',
               wide: true,
-              detail: `Skate, shoot, pass and check against ${opponents[0]?.name ?? 'the weakest team'} for as long as you like: no clock, no periods, nothing recorded. ${practicePowerups.map((p) => p.name).join(' and ')} are loaded on the powerup buttons, and the hints run whatever your setting. Leave from the pause menu.`,
+              detail: `Skate, shoot, pass and check against ${opponents[0]?.name ?? 'the weakest team'} for as long as you like: no clock, no periods, nothing recorded. ${practicePowerups.map((p) => p.name).join(' and ')} are loaded on the powerup buttons, and the hints run whatever your setting. A thin circle shows how far your poke check reaches. Leave from the pause menu.`,
             },
           ),
           {

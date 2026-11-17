@@ -65,6 +65,8 @@ export type Screen =
   | { name: 'difficulty'; fresh: boolean; first?: boolean }
   | { name: 'switching' }
   | { name: 'assists' }
+  | { name: 'firstSkate' }
+  | { name: 'signs' }
   | { name: 'rewards'; shown: number }
   | { name: 'jersey' }
   | { name: 'saves' }

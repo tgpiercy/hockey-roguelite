@@ -1,0 +1,20 @@
+{
+  "opponentLevel": 0,
+  "stageSeconds": 1.6,
+  "resetSeconds": 3.5,
+  "looseShare": 0.5,
+  "startStick": 0.3,
+  "lineSize": 0.05,
+  "whySeconds": 7,
+  "doneSeconds": 4,
+  "good": "GOOD!",
+  "finished": "THAT IS THE GAME. BACK TO THE CLUB.",
+  "steps": [
+    { "id": "skate", "drill": "loose", "need": 1, "say": "LEFT STICK: SKATE TO THE PUCK", "why": "The red ring is you. The arrow is over whoever has the puck." },
+    { "id": "shoot", "drill": "attack", "need": 2, "say": "HOLD SHOOT TO WIND UP, LET GO TO FIRE", "why": "The longer the wind-up, the harder the shot. Point the stick at a corner of the net." },
+    { "id": "pass", "drill": "attack", "need": 2, "say": "TAP PASS: IT GOES TO THE DIAMOND", "why": "The diamond is under the team-mate your pass would go to." },
+    { "id": "oneTimer", "drill": "attack", "need": 1, "say": "PASS, THEN HOLD SHOOT BEFORE IT ARRIVES", "why": "A one-timer beats the goalie about three times as often as a shot off the carry." },
+    { "id": "poke", "drill": "defend", "need": 1, "say": "GET IN FRONT OF HIM AND TAP CHECK", "why": "A poke takes the puck from in front or beside him, inside the circle, never from behind." },
+    { "id": "body", "drill": "defend", "need": 1, "say": "HOLD CHECK, LET GO AS YOU REACH HIM", "why": "A body check knocks him off the puck. Come in fast and it puts him on the ice." }
+  ]
+}

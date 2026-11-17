@@ -85,13 +85,13 @@ export function checkRules(world: World, p: Player, t: Tuning): CheckRules {
  * the carrier. A better checker against a worse puck-handler reaches a little further, and the other way about.
  * The same poke from the same spot always ends the same way.
  */
-function surePoke(world: World, checker: Player, carrier: Player, rules: CheckRules, swing: number): boolean {
+function pokeMiss(world: World, checker: Player, carrier: Player, rules: CheckRules, swing: number): 'far' | 'behind' | null {
   const reach = rules.pokeSureReach * (1 + swing);
-  if (dist(checker.pos, world.puck.pos) > reach) return false;
+  if (dist(checker.pos, world.puck.pos) > reach) return 'far';
   const moving = Math.hypot(carrier.vel.x, carrier.vel.y) > 0.5;
   const heading = moving ? Math.atan2(carrier.vel.y, carrier.vel.x) : carrier.facing;
   const toChecker = Math.atan2(checker.pos.y - carrier.pos.y, checker.pos.x - carrier.pos.x);
-  return Math.abs(wrapAngle(toChecker - heading)) <= (rules.pokeFrontArcDegrees * Math.PI) / 360;
+  return Math.abs(wrapAngle(toChecker - heading)) <= (rules.pokeFrontArcDegrees * Math.PI) / 360 ? null : 'behind';
 }
 
 /**
@@ -137,6 +137,11 @@ export function resolveCheck(world: World, p: Player, charged: boolean, t: Tunin
   const kind = checkKind(p, carrier, world, t, charged, speed);
   if (!kind) {
     p.checkCooldown = rules.missCooldownSeconds;
+    // A person is told he was nowhere near; the AI's misses are its own business.
+    if (humanOf(world, p.id) !== null) {
+      const metres = dist(p.pos, world.puck.pos);
+      events.push({ type: 'whiff', player: p.id, metres, ...(metres <= t.check.pokeRange ? { turned: true } : {}) });
+    }
     return;
   }
 
@@ -145,7 +150,9 @@ export function resolveCheck(world: World, p: Player, charged: boolean, t: Tunin
   const base = kind === 'body' ? t.check.bodyBaseChance + rules.bodyBonus : t.check.pokeBaseChance + rules.pokeBonus;
   // (The roll is always made, so the game's random stream is the same whoever is checking.)
   const roll = world.rng.chance(base + swing);
-  const rolled = kind === 'poke' && rules.pokeSureReach > 0 ? surePoke(world, p, carrier, rules, swing) : roll;
+  const sure = kind === 'poke' && rules.pokeSureReach > 0;
+  const miss = sure ? pokeMiss(world, p, carrier, rules, swing) : null;
+  const rolled = sure ? miss === null : roll;
   // Some gear makes a body check at high closing speed a big hit, which always frees the puck.
   const bigHit = kind === 'body' && p.fx.bigHitKnock > 0 && speed >= t.check.bigHitClosingSpeed;
   // A deke in progress slips the check. A spin move turns one that would have worked into one that does not.
@@ -176,5 +183,5 @@ export function resolveCheck(world: World, p: Player, charged: boolean, t: Tunin
       p.stats.hits += 1;
     }
   }
-  events.push({ type: 'check', player: p.id, target: carrier.id, kind, success, ...(big ? { big } : {}), ...(evaded ? { evaded } : {}), ...(success && windUp ? { windUp } : {}) });
+  events.push({ type: 'check', player: p.id, target: carrier.id, kind, success, ...(big ? { big } : {}), ...(evaded ? { evaded } : {}), ...(!success && miss ? { miss } : {}), ...(success && windUp ? { windUp } : {}) });
 }

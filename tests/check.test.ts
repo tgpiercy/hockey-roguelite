@@ -334,7 +334,7 @@ describe('check assist for the human', () => {
   it('a check that reaches nobody costs him only a short wait', () => {
     expect(a.missCooldownSeconds).toBeLessThan(sure.check.cooldownSeconds);
     const result = both((world) => place(world, ID.home1, -8, 0, 0), false);
-    expect(result.human).toEqual([]);
+    expect(result.human.filter((e) => e.type !== 'whiff')).toEqual([]);
     expect(player(result.humanWorld, ID.home1).checkCooldown).toBeCloseTo(a.missCooldownSeconds);
     expect(player(result.aiWorld, ID.home1).checkCooldown).toBeCloseTo(sure.check.cooldownSeconds);
   });
@@ -422,7 +422,7 @@ describe('poke check', () => {
     // Beyond the stick: nothing.
     const beyond = at(sure.check.pokeRange + 0.5);
     expect(checkKind(player(beyond, ID.home1), player(beyond, ID.away1), beyond, sure)).toBe(null);
-    expect(check(beyond)).toEqual([]);
+    expect(check(beyond).filter((e) => e.type !== 'whiff')).toEqual([]);
     expect(beyond.puck.carrier).toBe(ID.away1);
   });
 
@@ -435,7 +435,7 @@ describe('poke check', () => {
 
   it('does nothing when the puck is behind the checker', () => {
     const world = beside(-Math.PI / 2);
-    expect(check(world)).toEqual([]);
+    expect(check(world).filter((e) => e.type !== 'whiff')).toEqual([]);
     expect(world.puck.carrier).toBe(ID.away1);
   });
 });
@@ -443,7 +443,7 @@ describe('poke check', () => {
 describe('check limits', () => {
   it('out of range it does nothing, but still costs a wait: the short one for the human', () => {
     const world = setUp(6, 8);
-    expect(check(world)).toEqual([]);
+    expect(check(world).filter((e) => e.type !== 'whiff')).toEqual([]);
     expect(world.puck.carrier).toBe(ID.away1);
     expect(player(world, ID.home1).checkCooldown).toBeCloseTo(sure.checkAssist.missCooldownSeconds);
   });
@@ -452,7 +452,7 @@ describe('check limits', () => {
     const world = setUp(6, 8);
     const checker = player(world, ID.home1);
     // Out of range: nothing happens, but the cooldown starts.
-    expect(holdAndRelease(world, 0.05)).toEqual([]);
+    expect(holdAndRelease(world, 0.05).filter((e) => e.type !== 'whiff')).toEqual([]);
     place(world, ID.home1, -1.2, 0).vel = { x: 8, y: 0 };
     // Holding the button throws nothing by itself.
     const events: SimEvent[] = [];
@@ -469,9 +469,9 @@ describe('check limits', () => {
     const world = setUp(1.2, 8);
     giveTo(world, ID.home2);
     place(world, ID.home2, 0, 0);
-    expect(check(world)).toEqual([]);
+    expect(check(world).filter((e) => e.type !== 'whiff')).toEqual([]);
     giveTo(world, ID.home1);
-    expect(check(world)).toEqual([]);
+    expect(check(world).filter((e) => e.type !== 'whiff')).toEqual([]);
   });
 
   it('a strong checker beats a weak puck handler more often than the reverse', () => {

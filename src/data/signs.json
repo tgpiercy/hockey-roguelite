@@ -1,0 +1,19 @@
+{
+  "signs": [
+    { "id": "ring", "art": "ring", "name": "Red ring", "where": "Under a skater", "means": "The skater you control. The tick on the ring points the way he faces, which is where a shot or pass will go." },
+    { "id": "ring2", "art": "ring2", "name": "Blue double ring", "where": "Under a skater", "means": "The skater the second player controls, when two play." },
+    { "id": "arrow", "art": "arrow", "name": "Red arrow", "where": "Over a head", "means": "Whoever has the puck, on either team." },
+    { "id": "diamond", "art": "diamond", "name": "Diamond", "where": "Under a team-mate", "means": "The team-mate your pass would go to if you pressed pass now. Move the stick and it moves." },
+    { "id": "bar", "art": "bar", "name": "Yellow bar", "where": "Over your skater", "means": "A button being held. For shoot, the wind-up: full is the hardest shot. For pass, full is a saucer pass over sticks. For check, full is a body check and less is a poke." },
+    { "id": "reach", "art": "reach", "name": "Thin red circle", "where": "On the practice rink", "means": "How far your poke check reaches. The puck must be inside it, and you must not be behind the carrier." },
+    { "id": "word", "art": "word", "name": "Rising words", "where": "From a player", "means": "White words name a move that has just come off: a steal, a big hit, a block, a one-timer. Yellow words are the name of one of your artifacts coming into force. With hints on, white words also say why a check or a one-timer of yours missed." },
+    { "id": "momentum", "art": "momentum", "name": "Strip under a team's name", "where": "Scoreboard", "means": "Momentum. It fills with goals, big hits, one-timers, saves, blocks, steals and dekes that slip a check." },
+    { "id": "fire", "art": "fire", "name": "The strip full and flashing", "where": "Scoreboard", "means": "That team is on fire: for a short time its skaters are faster and shoot harder." },
+    { "id": "pips", "art": "pips", "name": "Dots under the clock", "where": "Scoreboard", "means": "The periods: filled for the ones played and the one being played." },
+    { "id": "energy", "art": "energy", "name": "Bars, bottom left", "where": "Corner of the screen", "means": "The top bar is your skater's sprint. Below it, the energy of each of your two lines: the ringed one is on the ice. A tired line skates and checks worse; press line change, or let the bench do it." },
+    { "id": "heavy", "art": "heavy", "name": "A boss: heavy pale ring", "where": "Under an opponent", "means": "He cannot be knocked down and shakes off a hit at once. Poke the puck off him." },
+    { "id": "wall", "art": "wall", "name": "A boss: pale bar beside a skater", "where": "Between him and the puck", "means": "He blocks shots standing up while the bar shows. Pass round him or move before you shoot." },
+    { "id": "flash", "art": "flash", "name": "A boss: flashing orange circle", "where": "Round an opponent", "means": "He is winding up a hit that will put you on the ice. Pass, or deke as he arrives." },
+    { "id": "lanes", "art": "lanes", "name": "A boss: faint lines from the carrier", "where": "To his team-mates", "means": "His passes cannot be picked off in the lane. Cover the man the pass is going to." }
+  ]
+}

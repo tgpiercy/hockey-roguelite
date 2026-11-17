@@ -49,6 +49,7 @@ import { rosterPages } from './pages/roster';
 import { playPages } from './pages/play';
 import { deadlinePages } from './pages/deadline';
 import { welcomePages } from './pages/welcome';
+import { teachPages } from './pages/teach';
 import { settingsPages } from './pages/settings';
 
 /**
@@ -414,6 +415,7 @@ export function App() {
     playPages(app) ??
     deadlinePages(app) ??
     welcomePages(app) ??
+    teachPages(app) ??
     settingsPages(app);
   return (
     <WearingContext.Provider value={wearing}>

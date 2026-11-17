@@ -140,12 +140,12 @@ describe('which hint is shown', () => {
 describe('what counts as doing a move', () => {
   it('each event of his own counts for its hint', () => {
     expect(hintDone({ type: 'shot', speed: 30, player: 0, oneTimer: true }, 0)).toBe('oneTimer');
-    expect(hintDone({ type: 'shot', speed: 30, player: 0 }, 0)).toBeNull();
+    expect(hintDone({ type: 'shot', speed: 30, player: 0 }, 0)).toBe('shoot');
     expect(hintDone({ type: 'fake', player: 0 }, 0)).toBe('fake');
     expect(hintDone({ type: 'block', player: 0 }, 0)).toBe('block');
     expect(hintDone({ type: 'deke', player: 0 }, 0)).toBe('deke');
     expect(hintDone({ type: 'pass', player: 0, target: 1, saucer: true }, 0)).toBe('saucer');
-    expect(hintDone({ type: 'pass', player: 0, target: 1, saucer: false }, 0)).toBeNull();
+    expect(hintDone({ type: 'pass', player: 0, target: 1, saucer: false }, 0)).toBe('pass');
     expect(hintDone({ type: 'check', player: 0, target: 7, kind: 'poke', success: false }, 0)).toBe('poke');
     expect(hintDone({ type: 'check', player: 0, target: 7, kind: 'body', success: true }, 0)).toBe('bodyCheck');
     expect(hintDone({ type: 'post' }, 0)).toBeNull();
