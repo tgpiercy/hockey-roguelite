@@ -968,3 +968,6 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 @keyframes xp-grow { from { width: var(--from); } to { width: var(--to); } }
 .reward-note { grid-column: 1 / -1; font-size: 12px; color: var(--dim); }
 @media (prefers-reduced-motion: reduce) { .rewards .arrive, .xp-fill { animation: none; } }
+/* A screen with one thing to press: the A button is drawn in the row, in place of a help line below it. */
+.menu-body.single .menu-item { gap: 10px; }
+.menu-body.single .menu-item .glyph { flex: none; width: 22px; height: 22px; font-size: 13px; }

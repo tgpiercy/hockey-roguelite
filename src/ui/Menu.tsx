@@ -145,6 +145,7 @@ export function Menu({ title, header, items, onBack, help, message, initialFocus
   const detail = items[current]?.detail;
   // The side panel appears on any screen that has facts of its own or an item with details.
   const side = Boolean(header) || items.some((item) => item.detail !== undefined);
+  const single = items.length === 1 && !onBack;
   return (
     <div class="menu">
       <div class="menu-top">
@@ -160,7 +161,7 @@ export function Menu({ title, header, items, onBack, help, message, initialFocus
         {chrome}
       </div>
       {message && <div class="menu-message">{message}</div>}
-      <div class={`menu-body${side ? ' two' : ''}${stack ? ' stack' : ''}`}>
+      <div class={`menu-body${side ? ' two' : ''}${stack ? ' stack' : ''}${single ? ' single' : ''}`}>
         <div class={`menu-list${columns ? ' grid' : ''}`} style={columns ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}>
           {items.map((item, i) => (
             <div
@@ -177,6 +178,7 @@ export function Menu({ title, header, items, onBack, help, message, initialFocus
                 }
               }}
             >
+              {single && <span class="glyph glyph-a">A</span>}
               {item.label}
             </div>
           ))}
@@ -188,7 +190,8 @@ export function Menu({ title, header, items, onBack, help, message, initialFocus
           </div>
         )}
       </div>
-      <Help text={help ?? (onBack ? 'A select · B back' : 'A select')} />
+      {/* One thing to press and no way back: the button is in the row itself, and a line saying so again is left out. */}
+      {!single && <Help text={help ?? (onBack ? 'A select · B back' : 'A select')} />}
     </div>
   );
 }
