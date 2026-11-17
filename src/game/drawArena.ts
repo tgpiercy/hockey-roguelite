@@ -20,6 +20,16 @@ interface Fan {
  * of each team's. They sway gently, and jump when the crowd is excited. Laid out once per screen size;
  * the same seed always seats the same crowd.
  */
+/**
+ * How each team's supporters feel, from the score: 1 when their side is ahead, -1 when it is behind by enough
+ * to hush them, 0 otherwise. The drawing sways a happy crowd more and lets a beaten one sit dim and still.
+ */
+export function crowdMoods(score: readonly [number, number]): [number, number] {
+  const lead = score[0] - score[1];
+  const of = (mine: number): number => (mine >= 1 ? 1 : mine <= -arena.mood.behindBy ? -1 : 0);
+  return [of(lead), of(-lead)];
+}
+
 export class Crowd {
   private fans: Fan[] = [];
   private key = '';
@@ -97,7 +107,7 @@ export class Crowd {
    * Draws the crowd. `excitement` is 0 to 1; `cheering` is the team whose fans are on their feet, or null.
    * `still` skips the movement, for the low-detail setting.
    */
-  draw(g: Phaser.GameObjects.Graphics, timeSeconds: number, excitement: number, cheering: 0 | 1 | null, teamColours: [string, string], still: boolean, noFlashes = false): void {
+  draw(g: Phaser.GameObjects.Graphics, timeSeconds: number, excitement: number, cheering: 0 | 1 | null, teamColours: [string, string], still: boolean, noFlashes = false, moods: readonly [number, number] = [0, 0]): void {
     const size = arena.fanSize;
     const neutrals = arena.neutralColours.map(colour);
     const teams = [colour(teamColours[0]), colour(teamColours[1])];
@@ -107,8 +117,11 @@ export class Crowd {
     for (const [index, fan] of this.fans.entries()) {
       const mine = fan.team !== -1 && fan.team === cheering;
       // Everyone sways a little; a cheering team's fans jump, and the rest stir with the noise.
-      const lift = still ? 0 : Math.abs(Math.sin(timeSeconds * (mine ? arena.jumpSpeed : arena.swaySpeed) + fan.phase)) * (mine ? arena.jumpPixels : arena.swayPixels * (0.4 + excitement));
-      g.fillStyle(fan.team === -1 ? (neutrals[fan.shade] as number) : (teams[fan.team] as number), fan.team === -1 ? 0.55 + excitement * 0.3 : 0.95);
+      // A side that is ahead is livelier; one well behind sits dim and still, until its own team scores.
+      const mood = fan.team === -1 ? 0 : (moods[fan.team] ?? 0);
+      const spirit = mine ? 1 : mood > 0 ? arena.mood.aheadSway : mood < 0 ? arena.mood.sagSway : 1;
+      const lift = still ? 0 : Math.abs(Math.sin(timeSeconds * (mine ? arena.jumpSpeed : arena.swaySpeed) + fan.phase)) * (mine ? arena.jumpPixels : arena.swayPixels * (0.4 + excitement) * spirit);
+      g.fillStyle(fan.team === -1 ? (neutrals[fan.shade] as number) : (teams[fan.team] as number), fan.team === -1 ? 0.55 + excitement * 0.3 : mood < 0 && !mine ? 0.95 * arena.mood.sagAlpha : 0.95);
       g.fillRect(fan.x - size / 2, fan.y - size / 2 - lift, size, size);
       if (flashes > 0 && (index * 7919 + moment * 104729) % this.fans.length < flashes) {
         g.fillStyle(colour(look.colours.light), 0.95);

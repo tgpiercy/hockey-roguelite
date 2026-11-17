@@ -39,7 +39,9 @@
     "shield": "#7fd4ff",
     "danger": "#ff2436",
     "mascot": "#ffd24a",
-    "glass": "#cfe8f7"
+    "glass": "#cfe8f7",
+    "kickPlate": "#f2c21a",
+    "boardShade": "#0a2142"
   },
   "font": "'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', system-ui, sans-serif",
   "marginPixels": 8,
@@ -124,7 +126,35 @@
     "benchJump": 0.9,
     "glideDrop": 1.2,
     "glideAfter": 0.18,
-    "kickSpeed": 1.0
+    "kickSpeed": 1.0,
+    "impact": {
+      "seconds": 0.3,
+      "size": 1.5,
+      "bigSize": 2.4,
+      "spikes": 8,
+      "depth": 0.5,
+      "jitter": 0.12,
+      "ink": "#0b1220",
+      "fill": "#ffffff",
+      "bigFill": "#ffd23f"
+    },
+    "speedLines": {
+      "fromSpeed": 10.6,
+      "count": 3,
+      "length": 1.5,
+      "gap": 0.42,
+      "behind": 0.7,
+      "alpha": 0.55,
+      "width": 0.09,
+      "height": 1.6
+    },
+    "hotShot": {
+      "fromShare": 0.82,
+      "seconds": 0.7,
+      "widthScale": 2.4,
+      "alpha": 0.85,
+      "side": 0.28
+    }
   },
   "arena": {
     "maxRows": 14,
@@ -177,7 +207,13 @@
       ]
     ],
     "homeFanShare": 0.62,
-    "flashesPerSecond": 9
+    "flashesPerSecond": 9,
+    "mood": {
+      "behindBy": 2,
+      "sagAlpha": 0.6,
+      "sagSway": 0.35,
+      "aheadSway": 1.5
+    }
   },
   "figure": {
     "height": 4.0,
@@ -316,20 +352,20 @@
     },
     "builds": {
       "slight": {
-        "width": 0.88,
-        "legs": 0.94
+        "width": 0.84,
+        "legs": 0.92
       },
       "regular": {
         "width": 1,
         "legs": 1
       },
       "heavy": {
-        "width": 1.2,
-        "legs": 1.02
+        "width": 1.26,
+        "legs": 1.0
       },
       "tall": {
-        "width": 1.04,
-        "legs": 1.16
+        "width": 1.02,
+        "legs": 1.2
       }
     },
     "actionSeconds": {
@@ -380,7 +416,27 @@
       "bodyY": -0.42,
       "headX": 1.0,
       "tilt": 1.25
-    }
+    },
+    "backNumber": {
+      "minUnit": 8,
+      "height": 2.3,
+      "size": 0.8
+    },
+    "faces": {
+      "round": {
+        "jaw": 0,
+        "chin": 0
+      },
+      "square": {
+        "jaw": 0.1,
+        "chin": 0.02
+      },
+      "long": {
+        "jaw": -0.04,
+        "chin": 0.12
+      }
+    },
+    "homeGloveDarken": 0.12
   },
   "bigPuckScale": 1.6,
   "practiceWord": "PRACTICE",
@@ -546,5 +602,20 @@
     "ink": "#0b1220",
     "edge": 0.07,
     "shadow": 0.1
+  },
+  "rinkDetail": {
+    "kickPlate": 0.18,
+    "boardShade": 0.55,
+    "boardShadeAlpha": 0.08,
+    "glassPosts": 2.4,
+    "glassPostAlpha": 0.5,
+    "meshGap": 0.32,
+    "meshAlpha": 0.55,
+    "sheenSeconds": 14,
+    "sheenAlpha": 0.16,
+    "sheenBands": 3,
+    "sheenWidth": 2.2,
+    "hazeFrom": 0.35,
+    "hazeAlpha": 0.07
   }
 }

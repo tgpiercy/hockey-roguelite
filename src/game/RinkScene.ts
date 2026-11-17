@@ -29,7 +29,7 @@ import type { Tuning } from '../sim/tuning';
 import type { SimEvent, World, MatchRules, InputFrame } from '../sim/types';
 import { NO_INPUT } from '../sim/types';
 import { createGame, step, STEP_SECONDS, type TeamSetup } from '../sim/world';
-import { Crowd } from './drawArena';
+import { Crowd, crowdMoods } from './drawArena';
 import { venueLook, type Venue } from './venue';
 import { drawCrest } from './drawCrest';
 import { FIGURE_BOX, paintFigure } from './drawFigure';
@@ -782,7 +782,7 @@ export class RinkScene extends Phaser.Scene {
     this.hud.clear();
     this.drawArena(t, width, height);
     this.drawRink(t);
-    this.effects.drawUnder(this.ice, this.view);
+    this.effects.drawUnder(this.ice, this.view, { length: t.rink.length, width: t.rink.width, periodSeconds: t.period.seconds });
     this.drawPlayers(t);
     this.drawPuck(t);
     this.effects.drawOver(this.top, this.view);
@@ -825,7 +825,7 @@ export class RinkScene extends Phaser.Scene {
       g.strokeRoundedRect(left - d, topEdge - d, w + d * 2, h + d * 2, corner + d);
     }
     this.crowd.layout(left, topEdge, w, h, corner, width, height, look.topBarPixels);
-    this.crowd.draw(g, this.clock, this.effects.excitement, this.effects.cheering, [this.teamColour(0), this.teamColour(1)], !this.full, this.options.calm === true);
+    this.crowd.draw(g, this.clock, this.effects.excitement, this.effects.cheering, [this.teamColour(0), this.teamColour(1)], !this.full, this.options.calm === true, crowdMoods(this.world.score));
   }
 
   /** The ice, its markings, the boards, the bench doors and the nets. */
@@ -941,6 +941,13 @@ export class RinkScene extends Phaser.Scene {
     }
     g.lineStyle(Math.max(1, wall * 0.2), colour(c.rail));
     g.strokeRoundedRect(this.sx(-hx), this.sy(-hy), t.rink.length * z, t.rink.width * z, corner);
+    // Depth: the far boards stand over the ice and shade a strip of it; a yellow kick plate runs round their foot.
+    const RD = look.rinkDetail;
+    g.fillStyle(colour(c.boardShade), RD.boardShadeAlpha);
+    g.fillRect(this.sx(-hx) + corner, this.sy(-hy), t.rink.length * z - corner * 2, RD.boardShade * z);
+    const plate = Math.max(1, RD.kickPlate * z);
+    g.lineStyle(plate, colour(c.kickPlate), 0.9);
+    g.strokeRoundedRect(this.sx(-hx) + plate, this.sy(-hy) + plate, t.rink.length * z - plate * 2, t.rink.width * z - plate * 2, Math.max(0, corner - plate));
 
     // Glass above the boards: a pale band outside them, with a few glints of light along the top and bottom.
     const pane = wall * 0.9;
@@ -950,6 +957,14 @@ export class RinkScene extends Phaser.Scene {
     for (let k = 0; k < look.glassGlints; k++) {
       const gx0 = this.sx(-hx + corner / z + ((k + 0.5) / look.glassGlints) * (t.rink.length - (2 * corner) / z));
       for (const edge of [this.sy(-hy) - wall * 0.5 - pane * 0.5, this.sy(hy) + wall * 0.5 + pane * 0.5]) g.lineBetween(gx0 - pane * 1.6, edge, gx0 + pane * 0.4, edge);
+    }
+
+    // The posts that hold the glass, along the straights.
+    if (this.full) {
+      g.lineStyle(Math.max(1, wall * 0.16), colour(c.rail), RD.glassPostAlpha);
+      for (let x = -straight; x <= straight + 0.01; x += RD.glassPosts) {
+        for (const [edge, dir] of [[this.sy(-hy) - wall * 0.5, -1], [this.sy(hy) + wall * 0.5, 1]] as const) g.lineBetween(this.sx(x), edge, this.sx(x), edge + dir * pane);
+      }
     }
 
     // Bench doors: a gap in the top boards in each team's colour.
@@ -975,6 +990,12 @@ export class RinkScene extends Phaser.Scene {
       const bulge = this.full && sinceGoal < fx.netBulgeSeconds ? fx.netBulge * Math.sin((sinceGoal / fx.netBulgeSeconds) * Math.PI) : 0;
       const out = side === 0 ? -1 : 1;
       const bx = (x: number): number => (Math.abs(x) > gx + 0.05 ? x + out * bulge : x);
+      // The mesh: a lattice of cord across the top of the net, seen from above.
+      const mouth = t.net.mouthWidth / 2;
+      const back = out * (gx + t.net.depth);
+      g.lineStyle(Math.max(1, line * 0.5), colour(c.net), look.rinkDetail.meshAlpha);
+      for (let y = -mouth + look.rinkDetail.meshGap; y < mouth - 0.01; y += look.rinkDetail.meshGap) g.lineBetween(this.sx(out * gx), this.sy(y), this.sx(bx(back)), this.sy(y));
+      for (let k = look.rinkDetail.meshGap; k < t.net.depth - 0.01; k += look.rinkDetail.meshGap) g.lineBetween(this.sx(out * (gx + k)), this.sy(-mouth), this.sx(out * (gx + k)), this.sy(mouth));
       g.lineStyle(Math.max(1.5, line), colour(c.net));
       for (const [a, b] of net.netting) g.lineBetween(this.sx(bx(a.x)), this.sy(a.y), this.sx(bx(b.x)), this.sy(b.y));
       g.fillStyle(colour(c.post));
@@ -1301,11 +1322,14 @@ export class RinkScene extends Phaser.Scene {
 
       // A number on his chest, when he is drawn big enough to read one.
       if (number) {
-        const show = unit >= look.numberMinRadius && !down;
+        // Seen from behind, his number is on his back, and is shown at a smaller size than the chest's.
+        const onBack = view === 'back' && !fallen && unit >= FIG.backNumber.minUnit;
+        const show = (unit >= look.numberMinRadius && !down) || onBack;
         number.setVisible(show);
         if (show) {
-          number.setFontSize(unit * 0.7);
-          number.setPosition(x, y - unit * FIG.numberHeight);
+          number.setFontSize(unit * (onBack ? FIG.backNumber.size : 0.7));
+          number.setPosition(x, y - unit * (onBack ? FIG.backNumber.height : FIG.numberHeight));
+          number.setDepth(DEPTH.players + 0.9);
           number.setAlpha(alpha);
           number.setColor(crest.trim);
         }

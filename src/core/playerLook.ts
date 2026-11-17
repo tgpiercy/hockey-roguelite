@@ -2,7 +2,7 @@ import data from '../data/playerLook.json';
 import type { MascotKind } from './mascotKind';
 import { kindOf } from './playerKind';
 import type { PlayerRecord } from './player';
-import { portraitOf, type Beard, type HairStyle } from './portrait';
+import { portraitOf, type Beard, type FaceShape, type HairStyle } from './portrait';
 
 /** How heavily a player is built: it changes his body on the ice, never his head. */
 export type Build = 'slight' | 'regular' | 'heavy' | 'tall';
@@ -19,6 +19,8 @@ export interface PlayerLook {
   hair: HairStyle;
   beard: Beard;
   build: Build;
+  /** The shape of his face, from his portrait: it shows as his jaw under the helmet. */
+  face?: FaceShape;
   /** A captain's band, or a mascot's costume head. */
   mark?: 'captain' | 'mascot';
   /** Which costume a mascot wears. */
@@ -37,7 +39,7 @@ export function buildOf(player: Pick<PlayerRecord, 'position' | 'ratings'>): Bui
 /** A player's look on the ice: the same every time for the same player at the same age. */
 export function lookOf(player: Pick<PlayerRecord, 'id' | 'age' | 'position' | 'ratings'>): PlayerLook {
   const face = portraitOf(player.id, player.age);
-  return { skin: face.skin, hairColour: face.hairColour, hair: face.hairStyle, beard: face.beard, build: buildOf(player) };
+  return { skin: face.skin, hairColour: face.hairColour, hair: face.hairStyle, beard: face.beard, build: buildOf(player), face: face.face };
 }
 
 /** A team's looks in the order it is dressed, with a captain's band on its best skater. */

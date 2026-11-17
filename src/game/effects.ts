@@ -1,11 +1,15 @@
 import type * as Phaser from 'phaser';
 import { createRng } from '../core/rng';
 import look from '../data/rinkLook.json';
+import { burstPoints, placed } from './burst';
 import type { Tuning } from '../sim/tuning';
 import type { SimEvent, World } from '../sim/types';
 
 const fx = look.effects;
 const colour = (hex: string): number => Number.parseInt(hex.slice(1), 16);
+
+/** The star drawn where a hit lands: one jagged shape, stretched to size. */
+const IMPACT = burstPoints('impact', fx.impact.spikes, fx.impact.depth, fx.impact.jitter);
 
 /** How the scene turns rink metres into screen pixels. */
 export interface View {
@@ -50,8 +54,16 @@ interface Ring {
 export class Effects {
   private readonly rng = createRng('effects');
   private marks: Mark[] = [];
+  /** Seconds of play on this sheet of ice since it was last made. */
+  private sheet = 0;
   private particles: Particle[] = [];
   private rings: Ring[] = [];
+  /** Comic stars where a hit landed: a spot, how old it is, and whether the hit was a big one. */
+  private stars: { x: number; y: number; age: number; big: boolean }[] = [];
+  /** Skaters going flat out this moment, for the lines drawn streaming behind them. */
+  private fast: { x: number; y: number; dx: number; dy: number }[] = [];
+  /** Seconds left of the puck's trail burning bright after a hard shot or a one-timer. */
+  private hot = 0;
   private confetti: Confetto[] = [];
   /** True while a player has been losing speed long enough to be gliding. */
   gliding(id: number): boolean {
@@ -88,7 +100,10 @@ export class Effects {
 
     for (const e of events) {
       // A fresh sheet for each period.
-      if (e.type === 'period') this.marks = [];
+      if (e.type === 'period') {
+        this.marks = [];
+        this.sheet = 0;
+      }
       if (e.type === 'goal') {
         // The light goes on behind the net that was scored on.
         this.goalLight[e.team === 0 ? 1 : 0] = fx.goalLightSeconds;
@@ -115,6 +130,9 @@ export class Effects {
         if (target) {
           this.addRing(target.pos.x, target.pos.y, e.kind === 'body' ? fx.hitRingSize : fx.hitRingSize * 0.6, look.colours.accent);
           if (e.kind === 'body') {
+            // A star between the two of them, where the hit landed.
+            const hitter = players[e.player];
+            if (this.full) this.stars.push({ x: hitter ? (hitter.pos.x + target.pos.x) / 2 : target.pos.x, y: hitter ? (hitter.pos.y + target.pos.y) / 2 : target.pos.y, age: 0, big: e.big === true });
             this.spray(target.pos.x, target.pos.y, fx.hitSpray);
             this.shake = Math.max(this.shake, fx.hitShake * (e.big ? fx.bigHitShakeScale : 1));
           }
@@ -133,6 +151,8 @@ export class Effects {
         this.excitement = Math.max(this.excitement, 0.5);
       } else if (e.type === 'shot') {
         this.excitement = Math.max(this.excitement, Math.min(0.6, e.speed / t.shot.maxSpeed));
+        // A hard shot or a one-timer leaves a bright streak with lines either side of it.
+        if (e.oneTimer || e.speed >= t.shot.maxSpeed * fx.hotShot.fromShare) this.hot = fx.hotShot.seconds;
       }
     }
 
@@ -149,6 +169,7 @@ export class Effects {
       else this.padsDown.set(id, left - dt);
     }
 
+    if (world.phase === 'play') this.sheet += dt;
     // Strides, skate marks and snow from hard stops.
     this.markTimer += dt;
     const dropMark = this.markTimer >= fx.markEverySeconds;
@@ -204,6 +225,18 @@ export class Effects {
     this.confetti = this.confetti.filter((bit) => bit.age < bit.life);
     for (const r of this.rings) r.age += dt;
     this.rings = this.rings.filter((r) => r.age < r.life);
+    for (const star of this.stars) star.age += dt;
+    this.stars = this.stars.filter((star) => star.age < fx.impact.seconds);
+    this.hot = Math.max(0, this.hot - dt);
+    // Who is going flat out, and which way: lines stream out behind them.
+    this.fast = [];
+    if (this.full) {
+      for (const p of players) {
+        if (!p.onIce || p.role !== 'skater') continue;
+        const speed = Math.hypot(p.vel.x, p.vel.y);
+        if (speed >= fx.speedLines.fromSpeed) this.fast.push({ x: p.pos.x, y: p.pos.y, dx: p.vel.x / speed, dy: p.vel.y / speed });
+      }
+    }
   }
 
   private addRing(x: number, y: number, size: number, hex: string): void {
@@ -219,18 +252,60 @@ export class Effects {
     }
   }
 
-  /** Marks cut into the ice: drawn under the players. */
-  drawUnder(g: Phaser.GameObjects.Graphics, view: View): void {
+  /** The fresh sheet's shine, the haze of a worn one, and the marks cut into the ice: drawn under the players. */
+  drawUnder(g: Phaser.GameObjects.Graphics, view: View, rink?: { length: number; width: number; periodSeconds: number }): void {
+    if (rink && this.full) {
+      const R = look.rinkDetail;
+      const hx = rink.length / 2;
+      const hy = rink.width / 2;
+      // A new sheet shines for the first seconds of a period: bands of light across it that fade.
+      const fresh = 1 - this.sheet / R.sheenSeconds;
+      if (fresh > 0) {
+        g.fillStyle(colour(look.colours.light), R.sheenAlpha * fresh);
+        for (let k = 0; k < R.sheenBands; k++) {
+          const x = -hx * 0.7 + (k / Math.max(1, R.sheenBands - 1)) * hx * 1.4;
+          g.fillPoints([{ x: view.sx(x - R.sheenWidth), y: view.sy(hy * 0.92) }, { x: view.sx(x), y: view.sy(hy * 0.92) }, { x: view.sx(x + hy * 0.6), y: view.sy(-hy * 0.92) }, { x: view.sx(x + hy * 0.6 - R.sheenWidth), y: view.sy(-hy * 0.92) }] as Phaser.Math.Vector2[], true);
+        }
+      }
+      // Late in a period the sheet is dull with snow, most where the play is: in front of each net and at centre.
+      const worn = Math.max(0, this.sheet / rink.periodSeconds - R.hazeFrom) / (1 - R.hazeFrom);
+      if (worn > 0) {
+        g.fillStyle(colour(look.colours.mark), R.hazeAlpha * Math.min(1, worn));
+        for (const x of [-hx * 0.72, 0, hx * 0.72]) g.fillEllipse(view.sx(x), view.sy(0), rink.length * 0.24 * view.zoom, rink.width * 0.62 * view.zoom);
+      }
+    }
     const width = Math.max(1, fx.markWidth * view.zoom);
     for (const mark of this.marks) {
       g.lineStyle(width, colour(look.colours.mark), Math.max(fx.wearAlpha, fx.markAlpha * (1 - mark.age / fx.markSeconds)));
       g.lineBetween(view.sx(mark.x1), view.sy(mark.y1), view.sx(mark.x2), view.sy(mark.y2));
     }
+    const hot = this.hot > 0;
     for (let i = 1; i < this.trail.length; i++) {
       const a = this.trail[i - 1]!;
       const b = this.trail[i]!;
-      g.lineStyle(Math.max(1.5, fx.trailWidth * view.zoom), colour(look.colours.puck), fx.trailAlpha * (1 - b.age / fx.trailSeconds));
+      const fade = 1 - b.age / fx.trailSeconds;
+      g.lineStyle(Math.max(1.5, fx.trailWidth * view.zoom) * (hot ? fx.hotShot.widthScale : 1), colour(hot ? look.colours.accent : look.colours.puck), (hot ? fx.hotShot.alpha : fx.trailAlpha) * fade);
       g.lineBetween(view.sx(a.x), view.sy(a.y), view.sx(b.x), view.sy(b.y));
+      if (hot) {
+        // Speed lines either side of a hard shot's streak.
+        const length = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+        const nx = (-(b.y - a.y) / length) * fx.hotShot.side;
+        const ny = ((b.x - a.x) / length) * fx.hotShot.side;
+        g.lineStyle(Math.max(1, fx.trailWidth * view.zoom * 0.6), colour(look.colours.light), 0.7 * fade);
+        for (const k of [-1, 1]) g.lineBetween(view.sx(a.x + nx * k), view.sy(a.y + ny * k), view.sx(b.x + nx * k), view.sy(b.y + ny * k));
+      }
+    }
+    // Lines streaming out behind a skater going flat out, at about the height of his body.
+    const SL = fx.speedLines;
+    g.lineStyle(Math.max(1, SL.width * view.zoom), colour(look.colours.light), SL.alpha);
+    for (const p of this.fast) {
+      for (let k = 0; k < SL.count; k++) {
+        const across = (k - (SL.count - 1) / 2) * SL.gap;
+        const x = p.x - p.dx * SL.behind - p.dy * across;
+        const y = p.y - p.dy * SL.behind + p.dx * across - SL.height * 0.5;
+        const reach = SL.length * (k === Math.floor(SL.count / 2) ? 1 : 0.7);
+        g.lineBetween(view.sx(x), view.sy(y), view.sx(x - p.dx * reach), view.sy(y - p.dy * reach));
+      }
     }
   }
 
@@ -250,6 +325,19 @@ export class Effects {
       const k = r.age / r.life;
       g.lineStyle(Math.max(1.5, 0.12 * view.zoom), colour(r.hex), 1 - k);
       g.strokeCircle(view.sx(r.x), view.sy(r.y), r.size * view.zoom * (0.3 + 0.7 * k));
+    }
+    // A comic star where a hit landed: it bursts out and is gone.
+    const I = fx.impact;
+    for (const star of this.stars) {
+      const k = star.age / I.seconds;
+      const size = (star.big ? I.bigSize : I.size) * view.zoom * (0.45 + 0.55 * Math.min(1, k * 3));
+      const alpha = k < 0.6 ? 1 : (1 - k) / 0.4;
+      const x = view.sx(star.x);
+      const y = view.sy(star.y) - view.zoom * 1.2;
+      g.fillStyle(colour(I.ink), alpha);
+      g.fillPoints(placed(IMPACT, x, y, size * 1.14, size * 0.92, 0) as Phaser.Math.Vector2[], true);
+      g.fillStyle(colour(star.big ? I.bigFill : I.fill), alpha);
+      g.fillPoints(placed(IMPACT, x, y, size, size * 0.8, 0) as Phaser.Math.Vector2[], true);
     }
   }
 }

@@ -2,7 +2,7 @@ import type { Crest, JerseyPattern } from '../core/crest';
 import { mascotLook, type MascotKind } from '../core/mascotKind';
 import type { PlayerLook } from '../core/playerLook';
 import mascotData from '../data/mascotLook.json';
-import { lighten } from '../core/teamColours';
+import { darken, lighten } from '../core/teamColours';
 import look from '../data/rinkLook.json';
 
 const F = look.figure;
@@ -62,7 +62,7 @@ export interface PoseInput {
 }
 
 /** The parts of a player's look that change the shapes drawn. (His colours are in `figureColours`.) */
-export type FigureLook = Pick<PlayerLook, 'hair' | 'beard' | 'build' | 'mark' | 'costume'>;
+export type FigureLook = Pick<PlayerLook, 'hair' | 'beard' | 'build' | 'mark' | 'costume' | 'face'>;
 
 /** A player with nothing particular about him: short hair, no beard, an ordinary build. */
 export const PLAIN_LOOK: FigureLook = { hair: 'short', beard: 'none', build: 'regular' };
@@ -256,8 +256,10 @@ function head(centre: P, tilt: number, caged: boolean, who: FigureLook): Shape[]
   const at = (x: number, y: number): P => [centre[0] + (x * cos - y * sin) * r, centre[1] + (x * sin + y * cos) * r];
   if (who.mark === 'mascot') return mascotHead(centre, tilt, who.costume ?? 'bear');
   const out: Shape[] = [...hairBehind(who.hair, at, r)];
+  const J = F.faces[who.face ?? 'round'];
   out.push(
-    poly('skin', [at(-0.3, 0.3), at(-0.2, 0.78), at(0.4, 1.02), at(0.68, 0.94), at(0.76, 0.7), at(0.72, 0.5), at(0.98, 0.42), at(0.82, 0.1), at(0.84, -0.14), at(0.6, -0.5), at(-0.3, -0.5)]),
+    // His jaw and chin are his own: squarer, or longer, as his portrait has them.
+    poly('skin', [at(-0.3, 0.3), at(-0.2 - J.jaw, 0.78 + J.jaw * 0.6), at(0.4, 1.02 + J.chin), at(0.68 + J.jaw * 0.4, 0.94 + J.chin), at(0.76, 0.7), at(0.72, 0.5), at(0.98, 0.42), at(0.82, 0.1), at(0.84, -0.14), at(0.6, -0.5), at(-0.3, -0.5)]),
   );
   if (who.beard === 'full') out.push(poly('hair', [at(-0.22, 0.42), at(0.3, 0.6), at(0.7, 0.56), at(0.76, 0.7), at(0.68, 0.94), at(0.4, 1.06), at(-0.22, 0.82)], true));
   else if (who.beard === 'stubble') out.push(limb('hair', at(-0.08, 0.76), at(0.5, 0.94), 0.1 * r, true));
@@ -405,7 +407,8 @@ function headAhead(centre: P, back: boolean, who: FigureLook): Shape[] {
     else for (const side of [-1, 1]) out.push(circle('hair', at(side * 0.84, 0.36), (long ? 0.3 : 0.18) * r));
   }
   if (!back) {
-    out.push(poly('skin', smooth([at(-0.74, -0.2), at(-0.7, 0.45), at(-0.36, 0.95), at(0.36, 0.95), at(0.7, 0.45), at(0.74, -0.2), at(0, -0.6)], 3)));
+    const J = F.faces[who.face ?? 'round'];
+    out.push(poly('skin', smooth([at(-0.74, -0.2), at(-0.7 - J.jaw * 0.5, 0.45 + J.jaw), at(-0.36 - J.jaw, 0.95 + J.chin), at(0.36 + J.jaw, 0.95 + J.chin), at(0.7 + J.jaw * 0.5, 0.45 + J.jaw), at(0.74, -0.2), at(0, -0.6)], 3)));
     if (who.beard === 'full') out.push(poly('hair', [at(-0.68, 0.38), at(-0.36, 0.98), at(0.36, 0.98), at(0.68, 0.38), at(0.3, 0.6), at(-0.3, 0.6)], true));
     else if (who.beard === 'stubble') out.push(limb('hair', at(-0.34, 0.86), at(0.34, 0.86), 0.1 * r, true));
     else if (who.beard === 'moustache') out.push(limb('hair', at(-0.24, 0.52), at(0.24, 0.52), 0.11 * r, true));
@@ -500,6 +503,8 @@ function upright(p: PoseInput, who: FigureLook, back: boolean): Built {
   if (p.pattern === 'hoop') body.push(limb('accent', [-0.46 * w, chestY], [0.46 * w, chestY], 0.17, true));
   else if (p.pattern === 'yoke') body.push(poly('accent', [[-0.6 * w, shY + 0.14], [-0.4 * w, shY - 0.06], [0.4 * w, shY - 0.06], [0.6 * w, shY + 0.14], [0.3 * w, shY + 0.3], [-0.3 * w, shY + 0.3]], true));
   else body.push(limb('accent', [-0.4 * w, shY + 0.14], [0.4 * w, hip[1] - 0.3], 0.17, true));
+  // A captain's patch on his chest, seen from the front.
+  if (!back && who.mark === 'captain') body.push(circle('mark', [sx + 0.3 * w, shY + 0.34], 0.13, true));
   const headAt: P = [sx, shY - B.neck - B.headRadius * 0.86];
   const arms = [...leftArm.shapes, ...rightArm.shapes];
   // From the front his arms and gloves are before his body; from behind, beyond it.
@@ -656,7 +661,7 @@ export function figure(pose: PoseInput, who: FigureLook = PLAIN_LOOK): Figure {
 
 /** A few letters that name a look, for telling one player's pictures from another's. */
 export function lookKey(who: FigureLook): string {
-  return `${who.build}.${who.hair}.${who.beard}.${who.mark ?? ''}.${who.costume ?? ''}`;
+  return `${who.build}.${who.hair}.${who.beard}.${who.mark ?? ''}.${who.costume ?? ''}.${who.face ?? ''}`;
 }
 
 /**
@@ -713,7 +718,8 @@ export function figureColours(crest: Crest, goalie: boolean, skin: string, kit: 
     helmet: lighten(crest.primary, goalie ? F.goalieHelmetLighten : F.helmetLighten),
     jersey: goalie ? lighten(crest.primary, look.goalieLighten) : crest.primary,
     accent: crest.secondary,
-    glove: F.colours.glove,
+    // Gloves in the club's second colour, a shade darker, so a home side is known by its hands as well.
+    glove: darken(crest.secondary, F.homeGloveDarken),
     pants: F.colours.pants,
     sock: crest.secondary,
     ...paws,
