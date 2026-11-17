@@ -67,7 +67,7 @@ export class Effects {
   /** Seconds each player has been losing speed: past a moment of it he is gliding, and takes no strides. */
   readonly slowing = new Map<number, number>();
   /** What each player has just done (a pass, a poke, a hit; a goalie's glove save), and the seconds it is still shown for. */
-  readonly action = new Map<number, { kind: 'pass' | 'poke' | 'hit' | 'glove'; left: number }>();
+  readonly action = new Map<number, { kind: 'pass' | 'poke' | 'hit' | 'glove' | 'kick'; left: number }>();
   /** Seconds left of each goalie's pads being down after a save, by player id. */
   readonly padsDown = new Map<number, number>();
   /** Seconds left of the red light behind each net: index 0 is the left net. */
@@ -125,6 +125,11 @@ export class Effects {
         this.padsDown.set(e.goalie, fx.padsDownSeconds);
         // A puck he holds is a glove save; one he kicks out, a pad save.
         if (e.frozen) this.action.set(e.goalie, { kind: 'glove', left: look.figure.actionSeconds.glove });
+        else {
+          // Moving across his crease when it hit him, he kicked it out with a pad; set, he dropped to his knees.
+          const keeper = players[e.goalie];
+          if (keeper && Math.hypot(keeper.vel.x, keeper.vel.y) >= fx.kickSpeed) this.action.set(e.goalie, { kind: 'kick', left: look.figure.actionSeconds.kick });
+        }
         this.excitement = Math.max(this.excitement, 0.5);
       } else if (e.type === 'shot') {
         this.excitement = Math.max(this.excitement, Math.min(0.6, e.speed / t.shot.maxSpeed));

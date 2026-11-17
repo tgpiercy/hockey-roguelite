@@ -35,7 +35,7 @@ import { drawCrest } from './drawCrest';
 import { FIGURE_BOX, paintFigure } from './drawFigure';
 import { Effects, type View } from './effects';
 import type { PlayerLook } from '../core/playerLook';
-import { facingSide, figure, figureColours, lookKey, PLAIN_LOOK, skinTone, withStick, type Action, type FigureLook, type PoseInput } from './figure';
+import { facingSide, figure, figureColours, lookKey, PLAIN_LOOK, skinTone, viewOf, withStick, type Action, type FigureLook, type PoseInput, type View as Seen } from './figure';
 import { InputReader, type Controls } from './input';
 
 const colour = (hex: string): number => Number.parseInt(hex.slice(1), 16);
@@ -217,6 +217,9 @@ export class RinkScene extends Phaser.Scene {
   private pullText!: Phaser.GameObjects.Text;
   /** Which way each player faced on screen last frame: left or right. */
   private readonly sides = new Map<number, 1 | -1>();
+  /** How each player on the ice is seen now, and when he last turned. */
+  private readonly views = new Map<number, Seen>();
+  private readonly turnedAt = new Map<number, number>();
   /** After a pause: the action buttons are ignored until all are let go, so the press that resumed does not also pass. */
   private holdButtons = false;
   private holdLeft = 0;
@@ -1049,6 +1052,7 @@ export class RinkScene extends Phaser.Scene {
         number?.setVisible(false);
         this.sprites[i]?.setVisible(false);
         this.sides.delete(p.id);
+        this.views.delete(p.id);
         continue;
       }
       const x = this.sx(p.pos.x);
@@ -1060,18 +1064,28 @@ export class RinkScene extends Phaser.Scene {
       // A staggered skater, or one heading to the bench, is drawn faded.
       const alpha = p.stagger > 0 || p.leaving ? 0.45 : 1;
       const crest = this.crests[p.team];
-      const side = facingSide(p.facing, this.sides.get(p.id));
+      const sideBefore = this.sides.get(p.id);
+      const side = facingSide(p.facing, sideBefore);
       this.sides.set(p.id, side);
+      // Skating down or up the rink he is seen from the front or from behind; a goalie is always side-on.
+      const viewBefore = this.views.get(p.id);
+      const view: Seen = goalie ? 'side' : viewOf(p.facing, viewBefore);
+      this.views.set(p.id, view);
+      // A turn (to the other side, or from one view to another) is drawn as a quick squeeze, not one sudden change.
+      if ((sideBefore !== undefined && sideBefore !== side) || (viewBefore !== undefined && viewBefore !== view)) this.turnedAt.set(p.id, this.clock);
       const acting = this.effects.action.get(p.id)?.kind;
       // A glove save keeps him on his feet with the glove up; any other save puts the pads down.
-      const down = goalie && acting !== 'glove' && (this.effects.padsDown.get(p.id) ?? 0) > 0;
+      const down = goalie && acting !== 'glove' && acting !== 'kick' && (this.effects.padsDown.get(p.id) ?? 0) > 0;
       const speed = Math.min(1, Math.hypot(p.vel.x, p.vel.y) / FIG.fullSpeed);
       const stride = this.effects.stride.get(p.id) ?? 0;
       // The pose is rounded to one of a few steps, so the same few pictures are reused instead of painting him every frame.
-      const speedStep = goalie ? 0 : Math.round(speed * FIG.speedSteps);
+      // A goalie moving across his crease shuffles; otherwise he stands.
+      const shuffling = goalie && !down && Math.hypot(p.vel.x, p.vel.y) >= FIG.goalie.shuffleSpeed;
+      const speedStep = goalie ? (shuffling ? 1 : 0) : Math.round(speed * FIG.speedSteps);
       // Standing or gliding slowly he takes no strides, so there is one picture of it.
       const glide = !goalie && speedStep > 0 && this.effects.gliding(p.id);
-      const strideStep = goalie || speedStep === 0 || glide ? 0 : Math.round((((stride % TAU) + TAU) % TAU) / TAU * FIG.poseSteps) % FIG.poseSteps;
+      const steps = goalie ? FIG.goalie.shuffleSteps : FIG.poseSteps;
+      const strideStep = speedStep === 0 || glide ? 0 : Math.round((((stride % TAU) + TAU) % TAU) / TAU * steps) % steps;
       // The stick stays up for the moment of a fake.
       const wound = !goalie && (p.fake > 0 || (p.charge > 0 && chargeFraction(p.charge, t) > FIG.windUpAt)) ? 1 : 0;
       const kneel = !goalie && braced(world, p, t);
@@ -1081,8 +1095,8 @@ export class RinkScene extends Phaser.Scene {
       const mateCheer = !goalie && !cheer && world.phase === 'goal' && scorer !== undefined && scorer.team === p.team;
       // What he is doing this moment, most telling first: a hit or a poke thrown, a pass made, a deke, a tired glide.
       const action: Action | undefined = goalie
-        ? acting === 'glove'
-          ? 'glove'
+        ? acting === 'glove' || acting === 'kick'
+          ? acting
           : undefined
         : cheer || mateCheer || kneel || wound
           ? undefined
@@ -1097,13 +1111,17 @@ export class RinkScene extends Phaser.Scene {
       const own = this.options.looks?.[p.team]?.[p.id - p.team * 7];
       const costumed = !goalie && isMascot(world, p);
       const who: FigureLook = costumed ? { hair: 'bald', beard: 'none', build: 'heavy', mark: 'mascot', costume: mascotKind(this.options.names[p.team]) } : (own ?? PLAIN_LOOK);
+      // Flat on the ice after a big hit: a pose of his own, not a standing man turned over.
+      const fallen = !goalie && p.knockedDown && p.stagger > 0;
       const pose: PoseInput = {
         side: 1,
-        stride: (strideStep / FIG.poseSteps) * TAU,
+        stride: (strideStep / steps) * TAU,
         speed: speedStep / FIG.speedSteps,
         windUp: wound,
         goalie,
         down,
+        ...(view !== 'side' ? { view } : {}),
+        ...(fallen ? { fallen } : {}),
         tilt: 0,
         pattern: crest.pattern,
         cheer,
@@ -1113,7 +1131,7 @@ export class RinkScene extends Phaser.Scene {
         ...(action ? { action } : {}),
       };
       const skin = own?.skin ?? skinTone(p.id);
-      const key = `figure-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${own?.hairColour ?? ''}-${lookKey(who)}-${strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}${mateCheer ? '-mate' : ''}${kneel ? '-kneel' : ''}${glide ? '-glide' : ''}${action ? `-${action}` : ''}`;
+      const key = `figure-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${own?.hairColour ?? ''}-${lookKey(who)}-${view}-${strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}${mateCheer ? '-mate' : ''}${kneel ? '-kneel' : ''}${glide ? '-glide' : ''}${fallen ? '-fallen' : ''}${action ? `-${action}` : ''}`;
       if (!this.textures.exists(key)) {
         const canvas = document.createElement('canvas');
         paintFigure(canvas, figure(pose, who).shapes, figureColours(crest, goalie, skin, this.options.whiteTeam === p.team ? 'away' : 'home', own?.hairColour, who.costume), pixels);
@@ -1267,14 +1285,16 @@ export class RinkScene extends Phaser.Scene {
         g.lineBetween(x + piece.x1 * unit, y + piece.y1 * unit, x + piece.x2 * unit, y + piece.y2 * unit);
       }
 
+      const sinceTurn = this.clock - (this.turnedAt.get(p.id) ?? -Infinity);
+      const squeeze = this.options.calm || sinceTurn >= FIG.front.turnSeconds ? 1 : FIG.front.turnSquash + (1 - FIG.front.turnSquash) * (sinceTurn / FIG.front.turnSeconds);
       const sprite = this.sprites[i];
       sprite
         ?.setTexture(key)
         .setOrigin(0.5, FIGURE_BOX.feetY / FIGURE_BOX.height)
         .setPosition(x, y)
-        .setScale(unit / pixels)
+        .setScale((unit / pixels) * squeeze, unit / pixels)
         .setFlipX(side === -1)
-        .setRotation(p.stagger > 0 ? (p.knockedDown ? FIG.knockdownTilt : FIG.staggerTilt) * side : 0)
+        .setRotation(p.stagger > 0 && !p.knockedDown ? FIG.staggerTilt * side : 0)
         .setAlpha(alpha)
         .setDepth(DEPTH.players + (p.pos.y + t.rink.width) / (t.rink.width * 4))
         .setVisible(true);

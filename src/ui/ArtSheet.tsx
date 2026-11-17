@@ -36,6 +36,9 @@ const POSES: [string, PoseInput][] = [
   ['goalie down', { ...STANDING, goalie: true, down: true }],
   ['goalie left', { ...STANDING, goalie: true, side: -1, pattern: 'sash' }],
   ['goalie glove', { ...STANDING, goalie: true, action: 'glove' }],
+  ['goalie kick', { ...STANDING, goalie: true, action: 'kick' }],
+  ['goalie shuffle', { ...STANDING, goalie: true, speed: 1, stride: Math.PI / 2 }],
+  ['flat on the ice', { ...STANDING, fallen: true }],
   ['goal', { ...STANDING, cheer: true }],
   ['his mate scored', { ...STANDING, mateCheer: true }],
   ['kneeling', { ...STANDING, kneel: true }],
@@ -112,6 +115,20 @@ export function ArtSheet() {
           {Array.from({ length: look.figure.poseSteps }, (_, i) => (
             <FigureArt key={i} pose={{ ...STANDING, stride: (i / look.figure.poseSteps) * Math.PI * 2, speed }} crest={teamCrest(league.teams[2]?.name ?? 'sheet')} skin={skinTone(1)} size={84} />
           ))}
+        </div>
+      ))}
+      <h2>Coming toward us and going away: a stride, then the poses</h2>
+      {(['front', 'back'] as const).map((view) => (
+        <div key={view} class="art-row figure-row">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <FigureArt key={i} pose={{ ...STANDING, view, stride: (i / 6) * Math.PI * 2, speed: 1, pattern: (['hoop', 'yoke', 'sash'] as const)[i % 3]! }} crest={teamCrest(league.teams[2 + (i % 2)]?.name ?? 'sheet')} skin={skinTone(i)} size={96} kit={i % 2 === 0 ? 'home' : 'away'} />
+          ))}
+          <FigureArt pose={{ ...STANDING, view }} crest={teamCrest(league.teams[4]?.name ?? 'sheet')} skin={skinTone(1)} size={96} who={{ hair: 'flow', beard: 'full', build: 'heavy', mark: 'captain' }} />
+          <FigureArt pose={{ ...STANDING, view, windUp: 1 }} crest={teamCrest(league.teams[5]?.name ?? 'sheet')} skin={skinTone(2)} size={96} />
+          <FigureArt pose={{ ...STANDING, view, cheer: true }} crest={teamCrest(league.teams[6]?.name ?? 'sheet')} skin={skinTone(3)} size={96} />
+          <FigureArt pose={{ ...STANDING, view, speed: 1, stride: 1, action: 'hit' }} crest={teamCrest(league.teams[7]?.name ?? 'sheet')} skin={skinTone(0)} size={96} />
+          <FigureArt pose={{ ...STANDING, view, action: 'tired' }} crest={teamCrest(league.teams[8]?.name ?? 'sheet')} skin={skinTone(1)} size={96} />
+          <FigureArt pose={{ ...STANDING, view, speed: 0.5, stride: 1 }} crest={teamCrest(league.teams[1]?.name ?? 'sheet')} skin={skinTone(1)} size={96} who={{ hair: 'bald', beard: 'none', build: 'heavy', mark: 'mascot', costume: 'fox' }} />
         </div>
       ))}
       <h2>Players on the ice</h2>

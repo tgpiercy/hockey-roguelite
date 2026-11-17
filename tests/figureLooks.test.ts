@@ -7,7 +7,7 @@ import { teamCrest } from '../src/core/crest';
 import { MASCOT_KINDS, mascotKind, mascotLook } from '../src/core/mascotKind';
 import mascotData from '../src/data/mascotLook.json';
 import names from '../src/data/names.json';
-import { ACTIONS, figure, figureColours, lookKey, PLAIN_LOOK, STANDING, withStick, type Figure, type FigureLook, type Shape } from '../src/game/figure';
+import { ACTIONS, figure, figureColours, lookKey, PLAIN_LOOK, STANDING, viewOf, withStick, type Figure, type FigureLook, type Shape } from '../src/game/figure';
 
 const F = look.figure;
 type Limb = Extract<Shape, { kind: 'limb' }>;
@@ -167,7 +167,7 @@ describe('poses for what he is doing', () => {
 
   it('every action changes the picture, and each is mirror-exact left and right', () => {
     for (const action of ACTIONS) {
-      const pose = { ...STANDING, action, goalie: action === 'glove' };
+      const pose = { ...STANDING, action, goalie: action === 'glove' || action === 'kick' };
       const right = figure(pose);
       const { action: _none, ...plain } = pose;
       expect(JSON.stringify(right.shapes), action).not.toBe(JSON.stringify(figure(plain).shapes));
@@ -234,7 +234,7 @@ describe('a mascot wears the costume of his club', () => {
       // A tail, where he has one, is behind him.
       const tails = figure(STANDING, who).shapes.length - figure(STANDING, { ...who, costume: 'bear' }).shapes.length;
       if (K.tail !== 'none' && K.ears === 'round' && K.snout === 'short') expect(tails).toBeGreaterThan(0);
-      for (const action of ACTIONS) expect(figure({ ...STANDING, action, goalie: action === 'glove' }, who).shapes.length).toBeGreaterThan(10);
+      for (const action of ACTIONS) expect(figure({ ...STANDING, action, goalie: action === 'glove' || action === 'kick' }, who).shapes.length).toBeGreaterThan(10);
       expect(lookKey(who)).toContain(kind);
     }
     expect(drawn.size).toBeGreaterThanOrEqual(MASCOT_KINDS.length - 1);
@@ -252,3 +252,74 @@ describe('a mascot wears the costume of his club', () => {
     }
   });
 });
+
+describe('seen from the front, from behind, and flat on the ice', () => {
+  it('heading down the screen he is seen from the front, up it from behind, across it from the side', () => {
+    expect(viewOf(0, undefined)).toBe('side');
+    expect(viewOf(Math.PI, undefined)).toBe('side');
+    expect(viewOf(Math.PI / 2, undefined)).toBe('front');
+    expect(viewOf(-Math.PI / 2, undefined)).toBe('back');
+  });
+
+  it('he keeps the view he has until he has clearly turned out of it', () => {
+    const V = F.front;
+    const between = Math.acos((V.enter + V.leave) / 2);
+    // On the way in he is still side-on; once in, the same heading keeps him square on.
+    expect(viewOf(between, 'side')).toBe('side');
+    expect(viewOf(between, undefined)).toBe('side');
+    expect(viewOf(between, 'front')).toBe('front');
+    expect(viewOf(-between, 'back')).toBe('back');
+    expect(viewOf(Math.acos(V.leave + 0.05), 'front')).toBe('side');
+    expect(V.leave).toBeGreaterThan(V.enter);
+  });
+
+  it('from the front he shows a face with two eyes; from behind none, and his arms are beyond his body', () => {
+    const front = figure({ ...STANDING, view: 'front' });
+    const back = figure({ ...STANDING, view: 'back' });
+    expect(front.shapes.filter((s) => s.tag === 'skin' && s.kind === 'poly')).toHaveLength(1);
+    expect(front.shapes.filter((s) => s.tag === 'eye' && s.kind === 'circle')).toHaveLength(2);
+    expect(back.shapes.filter((s) => s.tag === 'eye')).toHaveLength(0);
+    expect(back.shapes.filter((s) => s.tag === 'glove').every((s) => s.far)).toBe(true);
+    expect(front.shapes.filter((s) => s.tag === 'glove').some((s) => s.far)).toBe(false);
+    // Both stand as tall as the side view, on the ice, and are drawn with both skates.
+    for (const fig of [front, back]) {
+      expect(fig.top).toBeLessThan(-F.height * 0.85);
+      expect(fig.top).toBeGreaterThan(-F.height * 1.15);
+      expect(fig.shapes.filter((s) => s.tag === 'skate')).toHaveLength(2);
+    }
+  });
+
+  it('seen square on, his legs push out to either side in turn', () => {
+    const feet = (stride: number): number[] => figure({ ...STANDING, view: 'front', speed: 1, stride }).shapes.filter((s): s is Poly => s.tag === 'skate' && s.kind === 'poly').map((s) => middle(s).x);
+    const [leftA, rightA] = feet(Math.PI / 2) as [number, number];
+    const [leftB, rightB] = feet((3 * Math.PI) / 2) as [number, number];
+    expect(rightA).toBeGreaterThan(rightB);
+    expect(leftB).toBeLessThan(leftA);
+    // Standing, the picture does not depend on where his stride was.
+    expect(figure({ ...STANDING, view: 'front', stride: 1 }).shapes).toEqual(figure({ ...STANDING, view: 'front', stride: 4 }).shapes);
+  });
+
+  it('a goalie is always side-on, whatever view is asked for', () => {
+    expect(figure({ ...STANDING, goalie: true, view: 'front' }).shapes).toEqual(figure({ ...STANDING, goalie: true }).shapes);
+  });
+
+  it('flat on the ice he is low and long, not a standing man turned over', () => {
+    const down = figure({ ...STANDING, fallen: true });
+    const up = figure(STANDING);
+    expect(down.top).toBeGreaterThan(up.top / 2);
+    const xs = down.shapes.flatMap((s) => (s.kind === 'poly' ? s.points.map((q) => q[0]) : s.kind === 'circle' ? [s.x] : [s.x1, s.x2]));
+    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(-up.top * 0.8);
+    expect(down.shapes.some((s) => s.tag === 'helmet')).toBe(true);
+  });
+
+  it('a goalie moving across his crease shuffles, and kicks a pad out for a kick save', () => {
+    const still = figure({ ...STANDING, goalie: true });
+    const a = figure({ ...STANDING, goalie: true, speed: 1, stride: Math.PI / 2 });
+    const b = figure({ ...STANDING, goalie: true, speed: 1, stride: (3 * Math.PI) / 2 });
+    expect(JSON.stringify(a.shapes)).not.toBe(JSON.stringify(still.shapes));
+    expect(JSON.stringify(a.shapes)).not.toBe(JSON.stringify(b.shapes));
+    const reach = (fig: Figure): number => Math.max(...fig.shapes.filter((s): s is Extract<Shape, { kind: 'limb' }> => s.kind === 'limb' && s.tag === 'pad').map((s) => Math.max(s.x1, s.x2)), 0);
+    expect(reach(figure({ ...STANDING, goalie: true, action: 'kick' }))).toBeGreaterThan(reach(still) + 0.5);
+  });
+});
+

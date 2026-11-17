@@ -24,8 +24,11 @@ export type Shape =
   | { kind: 'poly'; tag: Tag; points: [number, number][]; bare?: boolean; far?: boolean };
 
 /** Something a player is doing for a moment, which changes how he is drawn. */
-export type Action = 'pass' | 'poke' | 'hit' | 'deke' | 'tired' | 'glove';
-export const ACTIONS: readonly Action[] = ['pass', 'poke', 'hit', 'deke', 'tired', 'glove'];
+/** How a skater is seen: side-on, coming toward us, or going away. */
+export type View = 'side' | 'front' | 'back';
+
+export type Action = 'pass' | 'poke' | 'hit' | 'deke' | 'tired' | 'glove' | 'kick';
+export const ACTIONS: readonly Action[] = ['pass', 'poke', 'hit', 'deke', 'tired', 'glove', 'kick'];
 
 export interface PoseInput {
   /** Which way he faces on screen: 1 is right, -1 is left. */
@@ -49,6 +52,10 @@ export interface PoseInput {
   kneel?: boolean;
   /** Gliding on both skates: he keeps his lean for his speed but takes no strides. */
   glide?: boolean;
+  /** Knocked flat on the ice by a big hit. */
+  fallen?: boolean;
+  /** Which way he is seen: from the side (the usual), or from the front or behind when he skates down or up the rink. */
+  view?: View;
   /** A pass just made, a poke or a hit being thrown, a deke, a tired glide; for a goalie, the glove thrown up. */
   action?: Action;
   pattern: JerseyPattern;
@@ -173,8 +180,8 @@ function leg(hip: P, foot: P, thigh: number, shin: number, width: number, pitch 
 }
 
 /** An arm from the shoulder to a glove at `target`, bent at the elbow, with a stripe round the forearm. */
-function arm(root: P, target: P, width: number, captain: boolean): { shapes: Shape[]; hand: P } {
-  const { mid: elbow, end: hand } = reach(root, target, B.upperArm, B.foreArm, 1);
+function arm(root: P, target: P, width: number, captain: boolean, bend: 1 | -1 = 1): { shapes: Shape[]; hand: P } {
+  const { mid: elbow, end: hand } = reach(root, target, B.upperArm, B.foreArm, bend);
   const shoulder = B.shoulderRadius * Math.sqrt(width);
   const shapes: Shape[] = [taper('jersey', root, shoulder, elbow, B.elbowRadius), taper('jersey', elbow, B.elbowRadius, between(elbow, hand, 0.8), B.wristRadius), band('accent', elbow, B.elbowRadius, hand, B.wristRadius, 0.22, 0.46)];
   if (captain) shapes.push(band('mark', root, shoulder, elbow, B.elbowRadius, 0.5, 0.78));
@@ -359,6 +366,175 @@ function skater(p: PoseInput, who: FigureLook): Built {
   return { shapes, hand: { x: near.hand[0], y: near.hand[1] }, stickEnd: null, nearArm: near.shapes.length };
 }
 
+const V = F.front;
+
+/** A skate seen from the front or from behind: the toe cap or the heel, and the steel end-on under it. */
+function bootAhead(x: number, y: number): Shape[] {
+  const at = (u: number, v: number): P => [x + u, y + v];
+  return [poly('skate', [at(-0.17, -0.5), at(0.17, -0.5), at(0.21, -0.14), at(0.12, -0.05), at(-0.12, -0.05), at(-0.21, -0.14)]), limb('blade', at(0, -0.06), at(0, 0), F.bladeWidth, true)];
+}
+
+/** The head from the front: the face under the helmet, or the helmet's back with the hair below it. */
+function headAhead(centre: P, back: boolean, who: FigureLook): Shape[] {
+  const r = B.headRadius;
+  const at = (x: number, y: number): P => [centre[0] + x * r, centre[1] + y * r];
+  if (who.mark === 'mascot') {
+    const K = mascotLook(who.costume ?? 'bear');
+    const m = mascotData.headScale;
+    const to = (x: number, y: number): P => [centre[0] + x * r * m, centre[1] + (y - 0.3) * r * m];
+    const out: Shape[] = [];
+    for (const side of [-1, 1]) {
+      if (K.ears === 'pointed' || K.ears === 'tufts') out.push(poly('fur', [to(side * 0.95, -0.5), to(side * 0.85, -1.7), to(side * 0.2, -0.95)]));
+      else if (K.ears === 'antlers') out.push(limb('muzzle', to(side * 0.5, -0.9), to(side * 1.1, -1.7), 0.17 * r * m), limb('muzzle', to(side * 0.85, -1.35), to(side * 1.4, -1.4), 0.14 * r * m));
+      else if (K.ears === 'crest') out.push(limb('fur', to(side * 0.15, -1.0), to(side * 0.4, -1.75), 0.24 * r * m));
+      else out.push(circle('fur', to(side * 0.82, -0.88), (K.ears === 'small' ? 0.27 : 0.4) * r * m));
+    }
+    out.push(circle('fur', to(0, -0.1), 1.15 * r * m));
+    if (back) return out;
+    if (K.stripe) for (const side of [-1, 1]) out.push(limb('eye', to(side * 0.42, -0.8), to(side * 0.5, 0.35), 0.34 * r * m, true));
+    if (K.snout === 'beak') out.push(poly('mark', [to(-0.3, 0.05), to(0.3, 0.05), to(0, K.ears === 'tufts' ? 0.6 : 0.95)]));
+    else out.push(circle('muzzle', to(0, 0.42), (K.snout === 'long' ? 0.5 : 0.56) * r * m), circle('eye', to(0, 0.2), 0.16 * r * m, true), limb('eye', to(-0.25, 0.6), to(0.25, 0.6), 0.07 * r * m, true));
+    for (const side of [-1, 1]) out.push({ ...circle('pad', to(side * 0.42, -0.3), 0.27 * r * m), bare: true }, circle('eye', to(side * 0.38, -0.28), 0.13 * r * m, true), limb('eye', to(side * 0.72, -0.72), to(side * 0.18, -0.52), 0.1 * r * m, true));
+    return out;
+  }
+  const out: Shape[] = [];
+  // Hair showing at the sides (from the front) or across the nape (from behind).
+  if (who.hair !== 'bald') {
+    const long = who.hair === 'flow' || who.hair === 'curly';
+    if (back) out.push(limb('hair', at(-0.7, 0.5), at(0.7, 0.5), (long ? 0.7 : 0.4) * r));
+    else for (const side of [-1, 1]) out.push(circle('hair', at(side * 0.84, 0.36), (long ? 0.3 : 0.18) * r));
+  }
+  if (!back) {
+    out.push(poly('skin', smooth([at(-0.74, -0.2), at(-0.7, 0.45), at(-0.36, 0.95), at(0.36, 0.95), at(0.7, 0.45), at(0.74, -0.2), at(0, -0.6)], 3)));
+    if (who.beard === 'full') out.push(poly('hair', [at(-0.68, 0.38), at(-0.36, 0.98), at(0.36, 0.98), at(0.68, 0.38), at(0.3, 0.6), at(-0.3, 0.6)], true));
+    else if (who.beard === 'stubble') out.push(limb('hair', at(-0.34, 0.86), at(0.34, 0.86), 0.1 * r, true));
+    else if (who.beard === 'moustache') out.push(limb('hair', at(-0.24, 0.52), at(0.24, 0.52), 0.11 * r, true));
+    for (const side of [-1, 1]) out.push(circle('eye', at(side * 0.3, 0.12), 0.1 * r, true), limb('eye', at(side * 0.46, -0.06), at(side * 0.14, 0), 0.06 * r, true));
+    out.push(limb('eye', at(-0.14, 0.7), at(0.14, 0.7), 0.05 * r, true));
+  } else {
+    out.push(limb('skin', at(-0.2, 0.75), at(0.2, 0.75), 0.4 * r));
+  }
+  // The helmet: from the front a dome over the brow with the ears covered; from behind the whole of it.
+  out.push(
+    back
+      ? poly('helmet', smooth([at(-0.98, 0.2), at(-1.02, -0.4), at(-0.62, -0.96), at(0, -1.08), at(0.62, -0.96), at(1.02, -0.4), at(0.98, 0.2), at(0.5, 0.55), at(-0.5, 0.55)], 3))
+      : poly('helmet', smooth([at(-0.98, 0.25), at(-1.02, -0.4), at(-0.62, -0.96), at(0, -1.08), at(0.62, -0.96), at(1.02, -0.4), at(0.98, 0.25), at(0.8, 0.12), at(0.72, -0.24), at(0, -0.34), at(-0.72, -0.24), at(-0.8, 0.12)], 3)),
+  );
+  out.push(limb('accent', at(0, -1.0), at(0, back ? 0.3 : -0.42), 0.16 * r, true));
+  if (back) {
+    for (const side of [-1, 1]) out.push(limb('cage', at(side * 0.45, -0.5), at(side * 0.45, -0.3), 0.06 * r, true));
+    return out;
+  }
+  if (who.hair === 'side' || who.hair === 'flow') out.push(circle('hair', at(0.3, -0.28), 0.14 * r, true));
+  out.push(limb('visor', at(-0.74, -0.2), at(-0.56, 0.3), 0.07 * r, true), limb('visor', at(-0.56, 0.3), at(0.56, 0.3), 0.07 * r, true), limb('visor', at(0.56, 0.3), at(0.74, -0.2), 0.07 * r, true));
+  for (const side of [-1, 1]) out.push(limb('cage', at(side * 0.76, 0.3), at(side * 0.2, 0.96), 0.06 * r, true));
+  return out;
+}
+
+/**
+ * A skater coming toward us or going away, when he skates down or up the rink: the same man seen square
+ * on. His legs push out to either side in turn, his shoulders are across the picture, and he holds his stick
+ * across his body with the blade out to one side. From behind, his arms and stick are beyond his body.
+ */
+function upright(p: PoseInput, who: FigureLook, back: boolean): Built {
+  const build = F.builds[who.build];
+  const speed = clamp01(p.speed);
+  const wind = clamp01(p.windUp);
+  const act = p.action;
+  const going = speed <= 0 || p.glide ? 0 : B.slowStride + (1 - B.slowStride) * speed;
+  const bob = B.bob * going * Math.cos(2 * p.stride);
+  const drop = B.crouch * speed + bob + (p.kneel ? B.kneelDrop : 0) + (act === 'hit' ? B.hitDrop : act === 'tired' ? B.tiredDrop : 0);
+  // Leaning into his skating, he is seen from further over the top: his body looks shorter.
+  const lean = p.cheer ? 0 : speed * B.speedLean + (act === 'hit' ? B.hitLean : act === 'tired' ? B.tiredLean : 0);
+  const spine = B.spine * (1 - V.squash * Math.min(1, lean / (B.speedLean + B.hitLean)));
+  const w = build.width;
+  // He sways toward the leg that is pushing.
+  const hip: P = [V.sway * going * Math.sin(p.stride), B.hipY * build.legs + drop];
+  const shY = hip[1] - spine * 0.9;
+  // His shoulders follow his hips part of the way.
+  const sx = hip[0] * 0.6;
+  const shapes: Shape[] = [];
+
+  // Legs: each pushes out to its side through half the stride and is drawn back in through the other half.
+  for (const side of [-1, 1] as const) {
+    const at = p.stride + (side === 1 ? 0 : Math.PI);
+    const out = Math.max(0, Math.sin(at)) * going;
+    const foot: P = [side * (V.foot + V.push * out), -V.lift * Math.max(0, -Math.sin(at)) * going];
+    const top: P = [hip[0] + side * V.hip * w, hip[1]];
+    const ankle: P = [foot[0], foot[1] - B.ankle];
+    const knee: P = [(top[0] + ankle[0]) / 2 + side * 0.06, (top[1] + ankle[1]) / 2];
+    shapes.push(taper('sock', knee, B.kneeRadius, ankle, B.ankleRadius), band('accent', knee, B.kneeRadius, ankle, B.ankleRadius, 0.42, 0.56), band('accent', knee, B.kneeRadius, ankle, B.ankleRadius, 0.64, 0.72));
+    shapes.push(taper('pants', top, B.thighRadius * w, between(top, knee, B.pantsTo), B.kneeRadius * 1.1), ...bootAhead(foot[0], foot[1]));
+  }
+  if (who.mark === 'mascot' && back) shapes.push(...tail([0.3, hip[1] + 0.2], who.costume ?? 'bear'));
+  shapes.push(limb('pants', [hip[0] - V.hip * w, hip[1]], [hip[0] + V.hip * w, hip[1]], B.hipRadius * 2 * 0.9));
+
+  // Hands: the lower one out to the side his stick is on, the top one across his body.
+  let low: P = [V.lowHand[0]!, hip[1] + V.lowHand[1]!];
+  let top: P = [V.topHand[0]!, hip[1] + V.topHand[1]!];
+  low = [low[0] + wind * V.windOut, low[1] - wind * V.windUp];
+  top = [top[0] + wind * V.windOut, top[1] - wind * V.windUp * 0.8];
+  if (p.cheer) {
+    low = [V.cheerOut, shY - V.cheerUp];
+    top = [-V.cheerOut, shY - V.cheerUp];
+  } else if (p.mateCheer) {
+    top = [-V.cheerOut, shY - V.cheerUp];
+  } else if (act === 'pass' || act === 'poke') {
+    low = [low[0] + 0.12, low[1] + (act === 'poke' ? 0.34 : 0.22)];
+    top = [top[0] + 0.1, top[1] + 0.16];
+  } else if (act === 'hit') {
+    low = [0.25, shY + 0.6];
+    top = [-0.2, shY + 0.62];
+  } else if (act === 'deke') {
+    low = [low[0] + 0.2, low[1] - 0.25];
+  } else if (act === 'tired') {
+    low = [0.38, hip[1] + 0.6];
+    top = [-0.38, hip[1] + 0.6];
+  }
+  const leftArm = arm([-V.shoulder * w + sx, shY + 0.12], top, w, false);
+  // Elbows out to the sides, away from his body.
+  const rightArm = arm([V.shoulder * w + sx, shY + 0.12], low, w, who.mark === 'captain', -1);
+  const body: Shape[] = [poly('jersey', smooth([[-0.46 * w + hip[0], hip[1] - 0.08], [-0.56 * w + sx, (hip[1] + shY) / 2], [-0.7 * w + sx, shY + 0.16], [-0.44 * w + sx, shY - 0.08], [0.44 * w + sx, shY - 0.08], [0.7 * w + sx, shY + 0.16], [0.56 * w + sx, (hip[1] + shY) / 2], [0.46 * w + hip[0], hip[1] - 0.08]], 3))];
+  body.push(limb('accent', [-0.38 * w, hip[1] - 0.12], [0.38 * w, hip[1] - 0.12], 0.13, true));
+  const chestY = (hip[1] + shY) / 2;
+  if (p.pattern === 'hoop') body.push(limb('accent', [-0.46 * w, chestY], [0.46 * w, chestY], 0.17, true));
+  else if (p.pattern === 'yoke') body.push(poly('accent', [[-0.6 * w, shY + 0.14], [-0.4 * w, shY - 0.06], [0.4 * w, shY - 0.06], [0.6 * w, shY + 0.14], [0.3 * w, shY + 0.3], [-0.3 * w, shY + 0.3]], true));
+  else body.push(limb('accent', [-0.4 * w, shY + 0.14], [0.4 * w, hip[1] - 0.3], 0.17, true));
+  const headAt: P = [sx, shY - B.neck - B.headRadius * 0.86];
+  const arms = [...leftArm.shapes, ...rightArm.shapes];
+  // From the front his arms and gloves are before his body; from behind, beyond it.
+  if (back) shapes.push(...far(arms), ...body, ...headAhead(headAt, true, who));
+  else shapes.push(...body, ...headAhead(headAt, false, who), ...arms);
+  return { shapes, hand: { x: rightArm.hand[0], y: rightArm.hand[1] }, stickEnd: null, nearArm: back ? shapes.length : arms.length };
+}
+
+/**
+ * A skater flat on the ice after a big hit: on his front, head up, one arm out ahead and his legs trailing.
+ * He is drawn this way and not as a standing man turned on his side.
+ */
+function sprawled(p: PoseInput, who: FigureLook): Built {
+  const D = F.fallen;
+  const w = F.builds[who.build].width;
+  const y = D.bodyY;
+  const shapes: Shape[] = [];
+  // Legs trailing behind him, one a little bent.
+  shapes.push(...far([taper('pants', [-0.5, y], B.thighRadius * w, [-1.15, y - 0.1], B.kneeRadius), taper('sock', [-1.15, y - 0.1], B.kneeRadius, [-1.75, y - 0.42], B.ankleRadius), ...boot(-1.85, y - 0.2, -1.2)]));
+  shapes.push(taper('pants', [-0.5, y + 0.05], B.thighRadius * w, [-1.2, y + 0.12], B.kneeRadius), taper('sock', [-1.2, y + 0.12], B.kneeRadius, [-1.95, y + 0.14], B.ankleRadius), band('accent', [-1.2, y + 0.12], B.kneeRadius, [-1.95, y + 0.14], B.ankleRadius, 0.4, 0.56), ...boot(-2.1, y + 0.36, -1.45));
+  // The far arm thrown out ahead of him.
+  shapes.push(...far(arm([0.45, y - 0.2], [1.45, y + 0.1], w, false).shapes));
+  // His body along the ice.
+  shapes.push(circle('pants', [-0.5, y], B.hipRadius * w));
+  shapes.push(poly('jersey', smooth([[-0.5, y - 0.42 * w], [0.1, y - 0.5 * w], [0.62, y - 0.42 * w], [0.74, y], [0.62, y + 0.36], [0.1, y + 0.4], [-0.5, y + 0.36]], 3)));
+  if (p.pattern === 'yoke') shapes.push(limb('accent', [0.5, y - 0.3], [0.5, y + 0.28], 0.17, true));
+  else shapes.push(limb('accent', [0.05, y - 0.36], [0.05, y + 0.3], 0.17, true));
+  shapes.push(limb(who.mark === 'mascot' ? 'fur' : 'skin', [0.62, y - 0.12], [0.86, y - 0.3], 0.38));
+  shapes.push(...head([D.headX, y - 0.42], D.tilt * 0.35, false, who));
+  // The near arm propping him up.
+  const near = arm([0.5, y - 0.1], [1.05, y + 0.32], w, who.mark === 'captain');
+  shapes.push(...near.shapes);
+  return { shapes, hand: { x: near.hand[0], y: near.hand[1] }, stickEnd: null, nearArm: near.shapes.length };
+}
+
 /** A goalie facing right: wide, behind tall leg pads; on his knees with the pads along the ice when he is down. */
 function goalie(p: PoseInput, who: FigureLook): Built {
   const build = F.builds[who.build];
@@ -382,8 +558,15 @@ function goalie(p: PoseInput, who: FigureLook): Built {
     for (const x of [-G.downReach * 0.62, G.downReach * 0.62]) shapes.push(limb('accent', [x, -G.padWidth * 0.84], [x, -G.padWidth * 0.18], 0.12, true));
     shapes.push(...boot(G.downReach - 0.1, 0).slice(0, 1));
   } else {
+    // Moving across his crease he shuffles: one pad forward and lifted a little, then the other.
+    const shuffle = p.speed > 0 ? Math.sin(p.stride) : 0;
     for (const side of [-1, 1] as const) {
-      const x = side * G.padSpread;
+      // A kick save: the near pad thrust out along the ice to meet the puck.
+      if (side === 1 && p.action === 'kick') {
+        shapes.push(limb('pad', [0.1, hip[1] + 0.3], [G.kickReach, -half], G.padWidth), limb('accent', [G.kickReach * 0.55, -half - 0.32], [G.kickReach * 0.7, -half + 0.2], 0.1, true), ...boot(G.kickReach + 0.2, 0).slice(0, 1));
+        continue;
+      }
+      const x = side * (G.padSpread + shuffle * G.shuffle * side);
       const pad: Shape[] = [
         ...boot(x + 0.14, 0),
         poly('pad', smooth([[x - half, -0.12], [x - half - 0.03, -1.0], [x - half + 0.06, -1.0 - G.padTop], [x + half - 0.04, -1.0 - G.padTop], [x + half + 0.05, -1.0], [x + half, -0.12]], 3)),
@@ -391,7 +574,9 @@ function goalie(p: PoseInput, who: FigureLook): Built {
         limb('accent', [x - half * 0.75, -0.42], [x + half * 0.75, -0.42], 0.1, true),
         limb('accent', [x, -0.9], [x, -0.5], 0.08, true),
       ];
-      shapes.push(...(side === -1 ? far(pad) : pad));
+      const lifted = Math.max(0, shuffle * side) * G.shuffleLift;
+      const raised = lifted > 0 ? mapPoints({ shapes: pad, hand: { x: 0, y: 0 }, stickEnd: null }, (px, py) => [px, py - lifted]).shapes : pad;
+      shapes.push(...(side === -1 ? far(raised) : raised));
     }
   }
   shapes.push(circle('pants', hip, 0.62 * build.width));
@@ -457,7 +642,8 @@ const SCALE = F.height / -topOf(skater(STANDING, PLAIN_LOOK).shapes);
  * particular to the player. (The owner chose it from three drawn candidates.)
  */
 export function figure(pose: PoseInput, who: FigureLook = PLAIN_LOOK): Figure {
-  const built = pose.goalie ? goalie(pose, who) : skater(pose, who);
+  const view = pose.goalie ? 'side' : (pose.view ?? 'side');
+  const built = pose.goalie ? goalie(pose, who) : pose.fallen ? sprawled(pose, who) : view === 'side' ? skater(pose, who) : upright(pose, who, view === 'back');
   let raw: Raw = scaled(built, SCALE);
   if (pose.side === -1) raw = mapPoints(raw, (x, y) => [-x, y]);
   if (pose.tilt !== 0) {
@@ -481,6 +667,18 @@ export function facingSide(facing: number, previous: 1 | -1 | undefined): 1 | -1
   const across = Math.cos(facing);
   if (previous !== undefined && Math.abs(across) < F.sideDeadBand) return previous;
   return across >= 0 ? 1 : -1;
+}
+
+/**
+ * How a skater is seen from the way he faces: from the front when he heads down the screen, from behind when
+ * he heads up it, side-on otherwise. He keeps the view he had until he has clearly turned out of it, so he
+ * does not flicker between two.
+ */
+export function viewOf(facing: number, previous: View | undefined): View {
+  const across = Math.abs(Math.cos(facing));
+  const upright = previous !== undefined && previous !== 'side' ? across < V.leave : across < V.enter;
+  if (!upright) return 'side';
+  return Math.sin(facing) >= 0 ? 'front' : 'back';
 }
 
 /** Which jersey a team wears: its colour at home, white on the road. */
