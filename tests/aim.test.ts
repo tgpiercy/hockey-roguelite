@@ -45,6 +45,30 @@ describe('aim assist', () => {
     expect(assistedAim(world, shooter, Math.PI, t)).toBe(Math.PI);
   });
 
+  it('a one-timer goes at the net wherever the stick points, since it is let go as the pass arrives', () => {
+    const world = setUp(0.5);
+    const shooter = player(world, ID.home1);
+    // The stick points straight back up the ice: an ordinary shot is left alone, a one-timer is not.
+    expect(assistedAim(world, shooter, Math.PI, t)).toBe(Math.PI);
+    expect(assistedAim(world, shooter, Math.PI, t, true)).toBeCloseTo(angleTo(world, -corner), 6);
+    expect(assistedAim(world, shooter, -Math.PI / 2, t, true)).toBeCloseTo(angleTo(world, -corner), 6);
+    // With the aim help off it is still his own to aim.
+    const off = cloneTuning();
+    off.aimAssist.strength = 0;
+    expect(assistedAim(world, shooter, Math.PI, off, true)).toBe(Math.PI);
+  });
+
+  it('in play, a first-touch shot with the stick pointing away still goes toward the net', () => {
+    const world = setUp(0.5);
+    const shooter = player(world, ID.home1);
+    // As if a pass had just arrived with shoot held: the one-timer window is open and the shot goes on release.
+    shooter.oneTimer = t.shot.oneTimerWindow;
+    step(world, { ...NO_INPUT, shoot: true, moveX: -1 }, t);
+    step(world, { ...NO_INPUT, moveX: -1 }, t);
+    expect(world.puck.carrier).toBeNull();
+    expect(world.puck.vel.x).toBeGreaterThan(10);
+  });
+
   it('does nothing from behind the goal line', () => {
     const world = setUp(0.5);
     world.puck.pos = { x: gx + 1.5, y: 3 };

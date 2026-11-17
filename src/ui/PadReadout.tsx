@@ -57,7 +57,7 @@ export function PadReadout() {
             </b>
           </span>
           <span>
-            Left stick: <b>{stick}</b> · Buttons: <b>{hasCustomPadMap() ? 'set up by you' : 'standard layout'}</b>
+            Left stick: <b>{stick}</b> · Other axes: <b>{pad ? pad.axes.slice(2).map((v) => v.toFixed(1)).join(', ') || 'none' : ''}</b> ({pad?.mapping === 'standard' ? 'usual layout' : 'unusual layout'}) · Buttons: <b>{hasCustomPadMap() ? 'set up by you' : 'standard layout'}</b>
           </span>
         </>
       ) : (

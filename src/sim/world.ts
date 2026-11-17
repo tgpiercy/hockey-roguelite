@@ -486,11 +486,11 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
       p.shootHeld = true;
       input = { ...input, shoot: false };
     }
-    // The skater the human controls gets aim assist; the AI aims for itself.
-    const assist = humanOf(world, p.id) ? (aim: number) => assistedAim(world, p, aim, t) : undefined;
-    const fx = currentFx(p, t);
     // A shot let go just after receiving a pass is a one-timer: fully wound up, and harder still with the right gear.
     const oneTimer = p.oneTimer > 0;
+    // The skater the human controls gets aim assist; the AI aims for itself.
+    const assist = humanOf(world, p.id) ? (aim: number) => assistedAim(world, p, aim, t, oneTimer) : undefined;
+    const fx = currentFx(p, t);
     const woundUp = chargeFraction(p.charge, t) >= 1;
     // The human's shots also stray less: part of the aim assist.
     const steady = assist && t.aimAssist.strength > 0 ? { spreadScale: 1 - Math.min(1, t.aimAssist.strength) * (1 - t.aimAssist.spreadScale) } : {};

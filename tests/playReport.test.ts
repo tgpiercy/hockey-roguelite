@@ -5,7 +5,7 @@ import { putOnIce } from '../src/sim/lines';
 import { cloneTuning } from '../src/sim/tuning';
 import { NO_INPUT } from '../src/sim/types';
 import { createWorld, step } from '../src/sim/world';
-import { scrollPixels } from '../src/ui/menuScroll';
+import { lookPush, scrollPixels } from '../src/ui/menuScroll';
 import { ID, player } from './helpers';
 
 const t = cloneTuning();
@@ -45,9 +45,22 @@ describe('the right stick scrolls a menu', () => {
     expect(scrollPixels(1, 0)).toBe(0);
   });
 
-  it('reads an axis of its own, not the one that moves the menu', () => {
-    expect(controls.axes.lookY).not.toBe(controls.axes.moveY);
-    expect(controls.axes.lookY).not.toBe(controls.axes.moveX);
+  it('is read on whichever axis the controller sends it, never one that moves the menu', () => {
+    for (const axis of controls.menuScroll.axes) {
+      expect(axis).not.toBe(controls.axes.moveX);
+      expect(axis).not.toBe(controls.axes.moveY);
+    }
+    // The standard layout: left stick, right stick.
+    expect(lookPush([0, 0, 0, 0.8], [], true)).toBeCloseTo(0.8);
+    expect(lookPush([0, 0, 0, -0.5], [], true)).toBeCloseTo(-0.5);
+    expect(lookPush([0, 0, 0.9, 0], [], true)).toBe(0);
+    // A phone that lists a trigger between the sticks, resting at -1: the stick is on a later axis.
+    const rest = [0, 0, -1, 0, 0, -1];
+    expect(lookPush([0, 0, -1, 0, 0.7, -1], rest, false)).toBeCloseTo(0.7);
+    expect(lookPush([0, 0, -1, 0, 0, -1], rest, false)).toBe(0);
+    // The left stick alone scrolls nothing.
+    expect(lookPush([1, -1, 0, 0], [0, 0, 0, 0], false)).toBe(0);
+    expect(lookPush([0.3, 0.2], [0, 0], true)).toBe(0);
   });
 });
 

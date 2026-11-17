@@ -1,7 +1,7 @@
 import controls from '../data/controls.json';
 import { readGamepad } from '../game/gamepad';
 import { bindingDown, padMap, type PadAction } from '../game/padMap';
-import { scrollPixels } from './menuScroll';
+import { lookPush, scrollPixels } from './menuScroll';
 
 export type MenuAction = 'up' | 'down' | 'left' | 'right' | 'confirm' | 'back';
 
@@ -47,6 +47,8 @@ class MenuInput {
   private confirmWasDown = true;
   private backWasDown = true;
   private lastPoll = 0;
+  /** Where each of the controller's axes rested when it was first read, by controller. */
+  private readonly rest = new Map<string, number[]>();
 
   constructor() {
     window.addEventListener('keydown', (e) => {
@@ -92,7 +94,8 @@ class MenuInput {
       const x = pad.axes[controls.axes.moveX] ?? 0;
       const y = pad.axes[controls.axes.moveY] ?? 0;
       // The right stick scrolls whatever on the screen has more to read than fits.
-      const scroll = scrollPixels(pad.axes[controls.axes.lookY] ?? 0, Math.min(0.1, (now - this.lastPoll) / 1000));
+      if (!this.rest.has(pad.id)) this.rest.set(pad.id, [...pad.axes]);
+      const scroll = scrollPixels(lookPush(pad.axes, this.rest.get(pad.id) ?? [], pad.mapping === 'standard'), Math.min(0.1, (now - this.lastPoll) / 1000));
       if (scroll !== 0) scrollable()?.scrollBy(0, scroll);
 
       const direction: MenuAction | null =

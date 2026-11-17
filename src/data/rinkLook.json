@@ -348,9 +348,9 @@
   "bigPuckScale": 1.6,
   "practiceWord": "PRACTICE",
   "replay": {
-    "beforeSeconds": 3.2,
-    "afterSeconds": 0.7,
-    "speed": 0.5,
+    "beforeSeconds": 1.8,
+    "afterSeconds": 0.5,
+    "speed": 0.6,
     "keepSeconds": 7
   },
   "floatWords": {

@@ -3,8 +3,7 @@
   "triggerThreshold": 0.3,
   "axes": {
     "moveX": 0,
-    "moveY": 1,
-    "lookY": 3
+    "moveY": 1
   },
   "buttons": {
     "pass": 0,
@@ -165,6 +164,12 @@
   },
   "menuScroll": {
     "deadzone": 0.25,
-    "pixelsPerSecond": 700
+    "pixelsPerSecond": 700,
+    "standardAxis": 3,
+    "axes": [
+      3,
+      4,
+      5
+    ]
   }
 }
