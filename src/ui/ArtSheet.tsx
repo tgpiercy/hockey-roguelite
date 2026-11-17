@@ -40,19 +40,6 @@ const KEEPER_POSES: [string, Partial<PoseInput>][] = [
 
 /** The headings a turning skater is shown at, in degrees: 0 is to the right, 90 down the screen. */
 const HEADINGS = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
-/** The poses each candidate cut is shown in: the last three small, as on a phone. */
-const INK_POSES: Partial<PoseInput>[] = [
-  { stride: 1.2, speed: 0.8 },
-  { windUp: 1 },
-  { view: 'front', speed: 0.6, stride: 1 },
-  { goalie: true },
-  { action: 'hit', speed: 1, stride: 1 },
-  { view: 'quarter', speed: 0.8, stride: 2.4 },
-  { stride: 1.2, speed: 0.8 },
-  { goalie: true, side: -1 },
-  { view: 'back', speed: 0.6, stride: 2 },
-];
-
 /** The on-ice figure in each pose worth checking. */
 const POSES: [string, PoseInput][] = [
   ['standing', STANDING],
@@ -188,17 +175,6 @@ export function ArtSheet() {
           );
         })}
       </div>
-      <h2>Cut: seven ways to draw him</h2>
-      {look.figure.candidates.cuts.map((cut, v) => (
-        <div key={cut.name} class="art-row figure-row">
-          <span class="figure-cell" style="min-width:130px">
-            <strong>{cut.name}</strong>
-          </span>
-          {INK_POSES.map((pose, k) => (
-            <FigureArt key={k} pose={{ ...STANDING, ...pose, variant: v }} crest={teamCrest(league.teams[k % 6]?.name ?? 'sheet')} skin={skinTone(k)} size={k >= 6 ? 44 : 104} ink={cut.ink} kit={k === 3 ? 'away' : 'home'} />
-          ))}
-        </div>
-      ))}
       <h2>Players on the ice</h2>
       <div class="art-row figure-row">
         {POSES.map(([name, pose], i) => (

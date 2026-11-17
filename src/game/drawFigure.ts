@@ -66,11 +66,71 @@ function celPiece(ctx: CanvasRenderingContext2D, s: Shape, colour: string, ink: 
   ctx.restore();
 }
 
+/** A second canvas the size of the one being painted, for working a shadow out before it is laid on. */
+let scratch: HTMLCanvasElement | null = null;
+
+/**
+ * Several pieces of one colour as a single shape: one line round the lot, one colour, and one shadow and one
+ * lit edge worked out for the whole of it. Nothing shows where an upper arm meets a forearm, or a hip a thigh,
+ * so he reads as drawn in one go and not as beads on a string.
+ */
+function celGroup(ctx: CanvasRenderingContext2D, group: readonly Shape[], colour: string, ink: typeof INK, pixelsPerUnit: number): void {
+  for (const s of group) piece(ctx, s, F.colours.outline, ink.inner);
+  for (const s of group) piece(ctx, s, colour, 0);
+  const main = ctx.canvas;
+  scratch ??= document.createElement('canvas');
+  if (scratch.width !== main.width || scratch.height !== main.height) {
+    scratch.width = main.width;
+    scratch.height = main.height;
+  }
+  const sc = scratch.getContext('2d');
+  if (!sc) return;
+  /** The part of the whole shape that the same shape, moved by (dx, dy), does not cover, in one colour. */
+  const edge = (dx: number, dy: number, fill: string, dots: number): void => {
+    sc.setTransform(1, 0, 0, 1, 0, 0);
+    sc.globalCompositeOperation = 'source-over';
+    sc.clearRect(0, 0, main.width, main.height);
+    sc.setTransform(pixelsPerUnit, 0, 0, pixelsPerUnit, main.width / 2, FIGURE_BOX.feetY * pixelsPerUnit);
+    sc.fillStyle = fill;
+    for (const s of group) {
+      sc.beginPath();
+      add(sc, s, 0);
+      sc.fill();
+    }
+    sc.globalCompositeOperation = 'destination-out';
+    for (const s of group) {
+      sc.beginPath();
+      add(sc, s, 0, dx, dy);
+      sc.fill();
+    }
+    if (dots > 0) {
+      // A comic's shading: the shadow is kept only where a grid of dots falls.
+      sc.globalCompositeOperation = 'destination-in';
+      sc.beginPath();
+      const w = FIGURE_BOX.width;
+      for (let y = -FIGURE_BOX.feetY, row = 0; y < FIGURE_BOX.height; y += dots * 0.87, row++) {
+        for (let x = -w / 2 + (row % 2) * dots * 0.5; x < w / 2; x += dots) {
+          sc.moveTo(x + dots * 0.36, y);
+          sc.arc(x, y, dots * 0.36, 0, Math.PI * 2);
+        }
+      }
+      sc.fill();
+    }
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(scratch as HTMLCanvasElement, 0, 0);
+    ctx.restore();
+  };
+  edge(-ink.shadeX, -ink.shadeY, darken(colour, ink.shadeDark), ink.dots);
+  if (ink.rim > 0) edge(ink.shadeX * 0.5, ink.shadeY * 0.5, lighten(colour, ink.rim), 0);
+}
+
 /**
  * Paints a figure facing right into a canvas of its own, `pixelsPerUnit` pixels to one footprint radius,
  * as a comic figure: a heavy line round the whole silhouette, then each piece with a thin line round it,
  * its colour, its shadow and its lit edge; pieces on his far side a shade darker. The rink keeps these as
  * textures, one per pose, so a player costs one picture to draw instead of dozens of shapes every frame.
+ * With `merge`, neighbouring pieces of one colour are painted as a single shape.
  */
 export function paintFigure(canvas: HTMLCanvasElement, shapes: readonly Shape[], colours: Record<Tag, string>, pixelsPerUnit: number, inkOver: Partial<typeof INK> = {}): void {
   const ink = { ...INK, ...inkOver };
@@ -82,9 +142,18 @@ export function paintFigure(canvas: HTMLCanvasElement, shapes: readonly Shape[],
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   for (const s of shapes) if (!s.bare) piece(ctx, s, F.colours.outline, ink.outline);
-  for (const s of shapes) {
-    if (!s.bare) piece(ctx, s, F.colours.outline, ink.inner);
+  for (let i = 0; i < shapes.length; i++) {
+    const s = shapes[i]!;
     const colour = s.far ? darken(colours[s.tag], F.farDark) : colours[s.tag];
+    if (ink.merge && !s.bare && !FLAT.has(s.tag)) {
+      // The run of pieces that follow in the same colour, on the same side of him.
+      let end = i + 1;
+      while (end < shapes.length && shapes[end]!.tag === s.tag && !shapes[end]!.bare && Boolean(shapes[end]!.far) === Boolean(s.far)) end++;
+      celGroup(ctx, shapes.slice(i, end), colour, ink, pixelsPerUnit);
+      i = end - 1;
+      continue;
+    }
+    if (!s.bare) piece(ctx, s, F.colours.outline, ink.inner);
     if (FLAT.has(s.tag)) piece(ctx, s, colour, 0);
     else celPiece(ctx, s, colour, ink);
   }

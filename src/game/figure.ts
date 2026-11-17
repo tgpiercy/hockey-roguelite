@@ -56,8 +56,6 @@ export interface PoseInput {
   glide?: boolean;
   /** Knocked flat on the ice by a big hit. */
   fallen?: boolean;
-  /** Which candidate cut to draw him in, for the art sheet: left out, the game's own. */
-  variant?: number;
   /** A goalie: how near the play is, from 0 (at the other end: he stands easy) to 1 (in his end: set). Left out, set. */
   alert?: number;
   /** Which way he is seen: from the side (the usual), or from the front or behind when he skates down or up the rink. */
@@ -93,25 +91,8 @@ type Raw = Pick<Figure, 'shapes' | 'hand' | 'stickEnd'>;
 type P = [number, number];
 
 const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
-/** How the pieces are cut, while a candidate is being drawn for the art sheet: null is the game's own way (round). */
-let CUT: (typeof F.candidates.cuts)[number] | null = null;
-
-/** A round piece; or, cut, a many-sided one with a flat top. Eyes stay round. */
-const circle = (tag: Tag, at: P, r: number, bare = false): Shape => {
-  if (!CUT || CUT.sides < 3 || tag === 'eye') return { kind: 'circle', tag, x: at[0], y: at[1], r, ...(bare ? { bare } : {}) };
-  const n = CUT.sides;
-  const out = r / Math.cos(Math.PI / n) * 0.96;
-  return poly(tag, Array.from({ length: n }, (_, i): P => [at[0] + Math.cos(Math.PI / n + (2 * Math.PI * i) / n) * out, at[1] + Math.sin(Math.PI / n + (2 * Math.PI * i) / n) * out]), bare);
-};
-/** A round-ended bar; or, cut, a bar with square ends. */
-const limb = (tag: Tag, a: P, b: P, w: number, bare = false): Shape => {
-  if (!CUT || !CUT.flat) return { kind: 'limb', tag, x1: a[0], y1: a[1], x2: b[0], y2: b[1], w, ...(bare ? { bare } : {}) };
-  const d = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
-  const u: P = [(b[0] - a[0]) / d, (b[1] - a[1]) / d];
-  const n: P = [-u[1] * (w / 2), u[0] * (w / 2)];
-  const e = w * 0.25;
-  return poly(tag, [[a[0] - u[0] * e + n[0], a[1] - u[1] * e + n[1]], [b[0] + u[0] * e + n[0], b[1] + u[1] * e + n[1]], [b[0] + u[0] * e - n[0], b[1] + u[1] * e - n[1]], [a[0] - u[0] * e - n[0], a[1] - u[1] * e - n[1]]], bare);
-};
+const circle = (tag: Tag, at: P, r: number, bare = false): Shape => ({ kind: 'circle', tag, x: at[0], y: at[1], r, ...(bare ? { bare } : {}) });
+const limb = (tag: Tag, a: P, b: P, w: number, bare = false): Shape => ({ kind: 'limb', tag, x1: a[0], y1: a[1], x2: b[0], y2: b[1], w, ...(bare ? { bare } : {}) });
 const poly = (tag: Tag, points: P[], bare = false): Shape => ({ kind: 'poly', tag, points, ...(bare ? { bare } : {}) });
 const between = (a: P, b: P, t: number): P => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 const far = (shapes: Shape[]): Shape[] => shapes.map((s) => ({ ...s, far: true }));
@@ -120,13 +101,6 @@ const far = (shapes: Shape[]): Shape[] => shapes.map((s) => ({ ...s, far: true }
 function taper(tag: Tag, a: P, ra: number, b: P, rb: number): Shape {
   const d = Math.hypot(b[0] - a[0], b[1] - a[1]);
   if (d <= Math.abs(ra - rb) + 1e-3) return ra >= rb ? circle(tag, a, ra) : circle(tag, b, rb);
-  if (CUT && CUT.flat) {
-    // Cut: four straight edges, run a little past each joint so the pieces overlap.
-    const u: P = [(b[0] - a[0]) / d, (b[1] - a[1]) / d];
-    const n: P = [-u[1], u[0]];
-    const [ea, eb] = [ra * CUT.ext, rb * CUT.ext];
-    return poly(tag, [[a[0] - u[0] * ea + n[0] * ra, a[1] - u[1] * ea + n[1] * ra], [b[0] + u[0] * eb + n[0] * rb, b[1] + u[1] * eb + n[1] * rb], [b[0] + u[0] * eb - n[0] * rb, b[1] + u[1] * eb - n[1] * rb], [a[0] - u[0] * ea - n[0] * ra, a[1] - u[1] * ea - n[1] * ra]]);
-  }
   const base = Math.atan2(b[1] - a[1], b[0] - a[0]);
   const phi = Math.acos((ra - rb) / d);
   const points: P[] = [];
@@ -144,11 +118,6 @@ function taper(tag: Tag, a: P, ra: number, b: P, rb: number): Shape {
 
 /** A closed curve through the points given, as a many-sided shape. */
 function smooth(points: P[], per = 4): P[] {
-  // Cut: the corners are left as corners, or eased once.
-  if (CUT && CUT.smooth > 0) {
-    if (CUT.smooth === 1) return points;
-    per = CUT.smooth;
-  }
   const n = points.length;
   const out: P[] = [];
   for (let i = 0; i < n; i++) {
@@ -747,7 +716,6 @@ const SCALE = F.height / -topOf(skater(STANDING, PLAIN_LOOK).shapes);
 export function figure(pose: PoseInput, who: FigureLook = PLAIN_LOOK): Figure {
   const view = pose.goalie ? 'side' : (pose.view ?? 'side');
   const turned = view === 'quarter' || view === 'quarterBack';
-  CUT = pose.variant === undefined ? null : (F.candidates.cuts[pose.variant] ?? null);
   let built = pose.goalie ? goalie(pose, who) : pose.fallen ? sprawled(pose, who) : view === 'side' || turned ? skater(pose, who) : upright(pose, who, view === 'back');
   // Part-way between side-on and facing us (or away): the side view drawn narrower, with his far arm and leg
   // brought out from behind him, toward us when he is coming down the screen and away when he is going up it.
@@ -765,7 +733,6 @@ export function figure(pose: PoseInput, who: FigureLook = PLAIN_LOOK): Figure {
     const sin = Math.sin(pose.tilt * pose.side);
     raw = mapPoints(raw, (x, y) => [x * cos - y * sin, x * sin + y * cos]);
   }
-  CUT = null;
   return { ...raw, top: topOf(raw.shapes), nearArm: built.nearArm };
 }
 

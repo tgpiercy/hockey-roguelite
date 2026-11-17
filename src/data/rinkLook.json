@@ -278,12 +278,12 @@
       "thigh": 0.88,
       "shin": 0.86,
       "ankle": 0.34,
-      "hipY": -1.86,
-      "crouch": 0.2,
-      "lean": 0.36,
-      "speedLean": 0.3,
-      "stance": 0.32,
-      "strideReach": 0.86,
+      "hipY": -1.92,
+      "crouch": 0.14,
+      "lean": 0.3,
+      "speedLean": 0.28,
+      "stance": 0.27,
+      "strideReach": 0.8,
       "footLift": 0.34,
       "shoulderRadius": 0.37,
       "elbowRadius": 0.25,
@@ -409,12 +409,14 @@
     "tiredSpeed": 0.35,
     "maxTextures": 480,
     "ink": {
-      "outline": 0.1,
-      "inner": 0.04,
+      "outline": 0.15,
+      "inner": 0.05,
       "shadeX": -0.07,
       "shadeY": 0.1,
       "shadeDark": 0.3,
-      "rim": 0.14
+      "rim": 0.14,
+      "merge": true,
+      "dots": 0
     },
     "farDark": 0.24,
     "front": {
@@ -502,78 +504,6 @@
       "squeeze": 0.8,
       "farShift": 0.26,
       "farDrop": 0.05
-    },
-    "candidates": {
-      "cuts": [
-        {
-          "name": "A as now",
-          "sides": 0,
-          "flat": false,
-          "smooth": 0,
-          "ext": 0,
-          "ink": {}
-        },
-        {
-          "name": "B cut",
-          "sides": 6,
-          "flat": true,
-          "smooth": 1,
-          "ext": 0.55,
-          "ink": {}
-        },
-        {
-          "name": "C bevelled",
-          "sides": 8,
-          "flat": true,
-          "smooth": 2,
-          "ext": 0.6,
-          "ink": {}
-        },
-        {
-          "name": "D blocks",
-          "sides": 4,
-          "flat": true,
-          "smooth": 1,
-          "ext": 0.4,
-          "ink": {}
-        },
-        {
-          "name": "E cut, fine line",
-          "sides": 6,
-          "flat": true,
-          "smooth": 1,
-          "ext": 0.55,
-          "ink": {
-            "outline": 0.06,
-            "inner": 0.025,
-            "shadeDark": 0.36
-          }
-        },
-        {
-          "name": "F bevelled, fine line",
-          "sides": 8,
-          "flat": true,
-          "smooth": 2,
-          "ext": 0.6,
-          "ink": {
-            "outline": 0.06,
-            "inner": 0.025,
-            "shadeDark": 0.36
-          }
-        },
-        {
-          "name": "G cut, flat colour",
-          "sides": 6,
-          "flat": true,
-          "smooth": 1,
-          "ext": 0.55,
-          "ink": {
-            "shadeDark": 0.1,
-            "rim": 0.04,
-            "outline": 0.08
-          }
-        }
-      ]
     },
     "leanDegrees": 12,
     "leanFromSpeed": 0.25
