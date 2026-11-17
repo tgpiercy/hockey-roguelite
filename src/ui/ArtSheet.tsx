@@ -9,7 +9,7 @@ import { portraitOf } from '../core/portrait';
 import crestRules from '../data/crests.json';
 import gearData from '../data/gear.json';
 import look from '../data/rinkLook.json';
-import { skinTone, STANDING, type PoseInput } from '../game/figure';
+import { skinTone, STANDING, viewOf, type PoseInput } from '../game/figure';
 import { BUILDS, lookOf } from '../core/playerLook';
 import { CrestBadge } from './Crest';
 import { FigureArt } from './FigureArt';
@@ -36,6 +36,21 @@ const KEEPER_POSES: [string, Partial<PoseInput>][] = [
   ['down', { down: true }],
   ['getting up', { action: 'rise' }],
   ['facing left', { side: -1 }],
+];
+
+/** The headings a turning skater is shown at, in degrees: 0 is to the right, 90 down the screen. */
+const HEADINGS = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+/** The poses each candidate cut is shown in: the last three small, as on a phone. */
+const INK_POSES: Partial<PoseInput>[] = [
+  { stride: 1.2, speed: 0.8 },
+  { windUp: 1 },
+  { view: 'front', speed: 0.6, stride: 1 },
+  { goalie: true },
+  { action: 'hit', speed: 1, stride: 1 },
+  { view: 'quarter', speed: 0.8, stride: 2.4 },
+  { stride: 1.2, speed: 0.8 },
+  { goalie: true, side: -1 },
+  { view: 'back', speed: 0.6, stride: 2 },
 ];
 
 /** The on-ice figure in each pose worth checking. */
@@ -157,6 +172,33 @@ export function ArtSheet() {
           </span>
         ))}
       </div>
+      <h2>Turning</h2>
+      <p class="note">One skater going round from right, down the screen, to left, then up it and back to right: eight pictures and a lean.</p>
+      <div class="art-row figure-row">
+        {HEADINGS.map((deg) => {
+          const rad = (deg * Math.PI) / 180;
+          const view = viewOf(rad, undefined);
+          const side = Math.cos(rad) >= 0 ? 1 : -1;
+          const turn = view === 'front' || view === 'back' ? 0 : Math.sin(rad) * side * look.figure.leanDegrees * 0.8;
+          return (
+            <span key={deg} class="figure-cell">
+              <FigureArt pose={{ ...STANDING, stride: 1.2, speed: 0.8, side, view }} crest={teamCrest(league.teams[2]?.name ?? 'sheet')} skin={skinTone(1)} size={92} turn={turn} />
+              <small>{deg}°</small>
+            </span>
+          );
+        })}
+      </div>
+      <h2>Cut: seven ways to draw him</h2>
+      {look.figure.candidates.cuts.map((cut, v) => (
+        <div key={cut.name} class="art-row figure-row">
+          <span class="figure-cell" style="min-width:130px">
+            <strong>{cut.name}</strong>
+          </span>
+          {INK_POSES.map((pose, k) => (
+            <FigureArt key={k} pose={{ ...STANDING, ...pose, variant: v }} crest={teamCrest(league.teams[k % 6]?.name ?? 'sheet')} skin={skinTone(k)} size={k >= 6 ? 44 : 104} ink={cut.ink} kit={k === 3 ? 'away' : 'home'} />
+          ))}
+        </div>
+      ))}
       <h2>Players on the ice</h2>
       <div class="art-row figure-row">
         {POSES.map(([name, pose], i) => (

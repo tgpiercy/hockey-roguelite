@@ -72,7 +72,8 @@ function celPiece(ctx: CanvasRenderingContext2D, s: Shape, colour: string, ink: 
  * its colour, its shadow and its lit edge; pieces on his far side a shade darker. The rink keeps these as
  * textures, one per pose, so a player costs one picture to draw instead of dozens of shapes every frame.
  */
-export function paintFigure(canvas: HTMLCanvasElement, shapes: readonly Shape[], colours: Record<Tag, string>, pixelsPerUnit: number): void {
+export function paintFigure(canvas: HTMLCanvasElement, shapes: readonly Shape[], colours: Record<Tag, string>, pixelsPerUnit: number, inkOver: Partial<typeof INK> = {}): void {
+  const ink = { ...INK, ...inkOver };
   canvas.width = Math.ceil(FIGURE_BOX.width * pixelsPerUnit);
   canvas.height = Math.ceil(FIGURE_BOX.height * pixelsPerUnit);
   const ctx = canvas.getContext('2d');
@@ -80,11 +81,11 @@ export function paintFigure(canvas: HTMLCanvasElement, shapes: readonly Shape[],
   ctx.setTransform(pixelsPerUnit, 0, 0, pixelsPerUnit, canvas.width / 2, FIGURE_BOX.feetY * pixelsPerUnit);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  for (const s of shapes) if (!s.bare) piece(ctx, s, F.colours.outline, INK.outline);
+  for (const s of shapes) if (!s.bare) piece(ctx, s, F.colours.outline, ink.outline);
   for (const s of shapes) {
-    if (!s.bare) piece(ctx, s, F.colours.outline, INK.inner);
+    if (!s.bare) piece(ctx, s, F.colours.outline, ink.inner);
     const colour = s.far ? darken(colours[s.tag], F.farDark) : colours[s.tag];
     if (FLAT.has(s.tag)) piece(ctx, s, colour, 0);
-    else celPiece(ctx, s, colour, INK);
+    else celPiece(ctx, s, colour, ink);
   }
 }

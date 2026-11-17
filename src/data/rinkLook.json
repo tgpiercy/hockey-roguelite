@@ -440,7 +440,9 @@
       "cheerUp": 0.9,
       "turnSeconds": 0.12,
       "turnSquash": 0.55,
-      "sway": 0.1
+      "sway": 0.1,
+      "quarterEnter": 0.8,
+      "quarterLeave": 0.88
     },
     "fallen": {
       "bodyY": -0.42,
@@ -495,7 +497,86 @@
         "name": "ready"
       }
     ],
-    "goalieStyle": 0
+    "goalieStyle": 0,
+    "quarter": {
+      "squeeze": 0.8,
+      "farShift": 0.26,
+      "farDrop": 0.05
+    },
+    "candidates": {
+      "cuts": [
+        {
+          "name": "A as now",
+          "sides": 0,
+          "flat": false,
+          "smooth": 0,
+          "ext": 0,
+          "ink": {}
+        },
+        {
+          "name": "B cut",
+          "sides": 6,
+          "flat": true,
+          "smooth": 1,
+          "ext": 0.55,
+          "ink": {}
+        },
+        {
+          "name": "C bevelled",
+          "sides": 8,
+          "flat": true,
+          "smooth": 2,
+          "ext": 0.6,
+          "ink": {}
+        },
+        {
+          "name": "D blocks",
+          "sides": 4,
+          "flat": true,
+          "smooth": 1,
+          "ext": 0.4,
+          "ink": {}
+        },
+        {
+          "name": "E cut, fine line",
+          "sides": 6,
+          "flat": true,
+          "smooth": 1,
+          "ext": 0.55,
+          "ink": {
+            "outline": 0.06,
+            "inner": 0.025,
+            "shadeDark": 0.36
+          }
+        },
+        {
+          "name": "F bevelled, fine line",
+          "sides": 8,
+          "flat": true,
+          "smooth": 2,
+          "ext": 0.6,
+          "ink": {
+            "outline": 0.06,
+            "inner": 0.025,
+            "shadeDark": 0.36
+          }
+        },
+        {
+          "name": "G cut, flat colour",
+          "sides": 6,
+          "flat": true,
+          "smooth": 1,
+          "ext": 0.55,
+          "ink": {
+            "shadeDark": 0.1,
+            "rim": 0.04,
+            "outline": 0.08
+          }
+        }
+      ]
+    },
+    "leanDegrees": 12,
+    "leanFromSpeed": 0.25
   },
   "bigPuckScale": 1.6,
   "practiceWord": "PRACTICE",

@@ -1319,10 +1319,18 @@ export class RinkScene extends Phaser.Scene {
         const sweep = this.full && world.puck.carrier !== p.id ? Math.sin(stride * 0.5) * fx.stickSweep : 0;
         end = { x: (this.sx(blade.x) - x) / unit + sweep * side, y: (this.sy(blade.y) - y) / unit };
       }
-      for (const piece of withStick(fig, end, side)) {
+      // He tips into the way he is heading: forward down the screen, back up it. Square on to us he stays upright.
+      const leans = !goalie && !fallen && !cheer && view !== 'front' && view !== 'back' && speed >= FIG.leanFromSpeed;
+      const lean = leans ? Math.sin(p.facing) * side * ((FIG.leanDegrees * Math.PI) / 180) * speed : 0;
+      const leanCos = Math.cos(lean);
+      const leanSin = Math.sin(lean);
+      // The blade stays where the puck is: the stick is laid out as if he stood straight, then turned with him.
+      const upright = { x: end.x * leanCos + end.y * leanSin, y: -end.x * leanSin + end.y * leanCos };
+      for (const piece of withStick(fig, upright, side)) {
         if (piece.tag !== 'stick' || piece.kind !== 'limb') continue;
         g.lineStyle(Math.max(1.5, piece.w * unit), colour(c.stick), alpha);
-        g.lineBetween(x + piece.x1 * unit, y + piece.y1 * unit, x + piece.x2 * unit, y + piece.y2 * unit);
+        // The stick turns with him when he leans.
+        g.lineBetween(x + (piece.x1 * leanCos - piece.y1 * leanSin) * unit, y + (piece.x1 * leanSin + piece.y1 * leanCos) * unit, x + (piece.x2 * leanCos - piece.y2 * leanSin) * unit, y + (piece.x2 * leanSin + piece.y2 * leanCos) * unit);
       }
 
       const sinceTurn = this.clock - (this.turnedAt.get(p.id) ?? -Infinity);
@@ -1334,7 +1342,7 @@ export class RinkScene extends Phaser.Scene {
         .setPosition(x, y)
         .setScale((unit / pixels) * squeeze, unit / pixels)
         .setFlipX(side === -1)
-        .setRotation(p.stagger > 0 && !p.knockedDown ? FIG.staggerTilt * side : 0)
+        .setRotation(p.stagger > 0 && !p.knockedDown ? FIG.staggerTilt * side : lean)
         .setAlpha(alpha)
         .setDepth(DEPTH.players + (p.pos.y + t.rink.width) / (t.rink.width * 4))
         .setVisible(true);

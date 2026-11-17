@@ -289,13 +289,35 @@ describe('seen from the front, from behind, and flat on the ice', () => {
   it('he keeps the view he has until he has clearly turned out of it', () => {
     const V = F.front;
     const between = Math.acos((V.enter + V.leave) / 2);
-    // On the way in he is still side-on; once in, the same heading keeps him square on.
-    expect(viewOf(between, 'side')).toBe('side');
-    expect(viewOf(between, undefined)).toBe('side');
+    // On the way in he is still part-turned; once square on, the same heading keeps him square on.
+    expect(viewOf(between, 'side')).toBe('quarter');
+    expect(viewOf(between, undefined)).toBe('quarter');
     expect(viewOf(between, 'front')).toBe('front');
     expect(viewOf(-between, 'back')).toBe('back');
-    expect(viewOf(Math.acos(V.leave + 0.05), 'front')).toBe('side');
+    expect(viewOf(Math.acos(V.leave + 0.05), 'front')).toBe('quarter');
     expect(V.leave).toBeGreaterThan(V.enter);
+  });
+
+  it('on a diagonal he is part-turned, toward us going down the screen and away going up it, and keeps that until he has clearly left it', () => {
+    const V = F.front;
+    expect(viewOf(Math.PI / 4, undefined)).toBe('quarter');
+    expect(viewOf(-Math.PI / 4, undefined)).toBe('quarterBack');
+    expect(viewOf((3 * Math.PI) / 4, undefined)).toBe('quarter');
+    const edge = Math.acos((V.quarterEnter + V.quarterLeave) / 2);
+    expect(viewOf(edge, 'side')).toBe('side');
+    expect(viewOf(edge, 'quarter')).toBe('quarter');
+    expect(V.quarterLeave).toBeGreaterThan(V.quarterEnter);
+    expect(V.quarterEnter).toBeGreaterThan(V.leave);
+  });
+
+  it('the part-turned picture is the side view drawn narrower, with the far arm and leg brought out from behind him', () => {
+    const wide = (fig: Figure): number => Math.max(...fig.shapes.flatMap((s) => (s.kind === 'poly' ? s.points.map(([x]) => x) : s.kind === 'circle' ? [s.x + s.r] : [s.x1, s.x2]))) - Math.min(...fig.shapes.flatMap((s) => (s.kind === 'poly' ? s.points.map(([x]) => x) : s.kind === 'circle' ? [s.x - s.r] : [s.x1, s.x2])));
+    const side = figure(STANDING);
+    const turned = figure({ ...STANDING, view: 'quarter' });
+    expect(JSON.stringify(turned.shapes)).not.toBe(JSON.stringify(side.shapes));
+    expect(JSON.stringify(figure({ ...STANDING, view: 'quarterBack' }).shapes)).not.toBe(JSON.stringify(turned.shapes));
+    expect(wide(turned)).toBeLessThan(wide(side) * 1.02);
+    expect(turned.hand.x).toBeCloseTo(side.hand.x * F.quarter.squeeze);
   });
 
   it('from the front he shows a face with two eyes; from behind none, and his arms are beyond his body', () => {
