@@ -984,3 +984,30 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .menu-body.single .menu-item .glyph { width: 26px; height: 26px; font-size: 15px; }
 .summary-again .glyph { vertical-align: middle; margin: 0 4px 2px 0; }
 .summary-go { font-size: 17px; }
+
+/* The main menu: the game's name across the ice between a skater and a goalie, then the three ways in. */
+.landing { display: flex; flex-direction: column; gap: 8px; }
+.landing-art {
+  position: relative; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; min-height: 118px; padding: 4px 18px 0;
+  border: 2px solid var(--ink); border-radius: 6px; box-shadow: var(--hard); overflow: hidden; color: var(--team-ink);
+  background:
+    linear-gradient(180deg, transparent 0 82%, rgba(255, 255, 255, 0.92) 82% 100%),
+    linear-gradient(112deg, var(--team) 0%, var(--team) 46%, var(--team-deep) 46%, var(--team-deep) 54%, var(--panel-hi) 54%, var(--panel) 100%);
+}
+.landing-art::after { content: ''; position: absolute; left: 0; right: 0; bottom: 11px; height: 3px; background: var(--xbox-b); opacity: 0.7; }
+.landing-figure { position: relative; z-index: 1; flex: none; line-height: 0; }
+.landing-words { position: relative; z-index: 1; flex: 1; min-width: 0; align-self: center; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; padding-bottom: 26px; }
+.landing-words .title-emblem { margin-bottom: 2px; }
+.landing-mark {
+  font: 800 italic clamp(30px, 7vw, 50px)/0.9 var(--heading); letter-spacing: 0.06em; text-transform: uppercase; color: #fff;
+  text-shadow: 3px 3px 0 var(--ink), -1px -1px 0 var(--ink), 1px -1px 0 var(--ink), -1px 1px 0 var(--ink);
+  transform: rotate(-3deg);
+}
+.landing .title-tag { color: #fff; text-shadow: 1px 1px 0 var(--ink); }
+.landing .title-team { margin-top: 0; padding: 6px 12px; }
+.landing .title-team b { font-size: 17px; }
+.way { display: flex; align-items: center; gap: 12px; padding: 6px 2px; min-width: 0; }
+.way-text { display: flex; flex-direction: column; min-width: 0; }
+.way-text b { font: 800 italic 22px/1.05 var(--heading); letter-spacing: 0.06em; text-transform: uppercase; }
+.way-text span { font-size: 12px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+

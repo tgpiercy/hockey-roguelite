@@ -32,6 +32,7 @@ export type Screen =
   | { name: 'lineup' }
   | { name: 'pick'; line: 0 | 1; slot: number }
   | { name: 'exhibition' }
+  | { name: 'practice' }
   | { name: 'powerups' }
   | { name: 'load'; slot: number }
   | { name: 'artifacts' }
@@ -117,6 +118,9 @@ export const TILE_ICONS: Record<string, IconName> = {
   start: 'play',
   simulate: 'simulate',
   exhibition: 'exhibition',
+  career: 'prestige',
+  practice: 'training',
+  mainmenu: 'play',
   contracts: 'contracts',
   bailout: 'bailout',
 };

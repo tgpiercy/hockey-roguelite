@@ -108,6 +108,55 @@ export function playPages(app: AppCtx): ComponentChildren | undefined {
     );
   }
 
+  if (screen.name === 'practice') {
+    const opponents = league.teams.filter((x) => x.id !== league.userTeamId).sort((a, b) => teamStrength(league, a.id) - teamStrength(league, b.id));
+    return (
+      <Menu
+        key={screenKey}
+        remember="practice"
+        title="Practice"
+        header="The practice rink, and the two skates that teach the moves. Nothing here is recorded."
+        message={message}
+        onBack={() => go({ name: 'title' })}
+        items={[
+          tile('lesson', 'First skate', 'The moves, one at a time', () => startLesson(app), {
+            icon: 'training',
+            wide: true,
+            detail: 'About two minutes on the practice rink: skate, shoot, pass, one-timer, poke check and body check, each asked for once or twice with a line saying what it is for. It ends by itself.',
+          }),
+          tile('lesson2', 'Second skate', 'The later moves: deke, fake, give and go, block', () => startLesson(app, 'second'), {
+            icon: 'training',
+            detail: `About two minutes on the practice rink: ${lessons.second.steps.length} moves that come after the first skate, one at a time, each with a line saying what it is for.`,
+          }),
+          tile(
+            'practice',
+            'Practice rink',
+            'No clock, nothing at stake',
+            () => {
+              const opponent = opponents[0];
+              const homeTeam = dress(league, team);
+              const away = opponent ? dress(league, opponent) : null;
+              if (!opponent || !homeTeam || !away) return;
+              setPlaying(true);
+              const homeColour = jerseyColour(f);
+              playMatch({ periodSeconds: periodSecondsOf(f), assists: assistStrengths(f), home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, practice: true, powerups: practicePowerups, forfeitNote: 'Leave the practice rink?', ...(joined ? { second: 0 as const } : {}) }, () => {
+                setScreen({ name: 'practice' });
+                setMessage('Back from the practice rink.');
+                setPrefs(loadPrefs());
+                setPlaying(false);
+              });
+            },
+            {
+              icon: 'training',
+              wide: true,
+              detail: `Skate, shoot, pass and check against ${opponents[0]?.name ?? 'the weakest team'} for as long as you like: no clock, no periods, nothing recorded. ${practicePowerups.map((p) => p.name).join(' and ')} are loaded on the powerup buttons, and the hints run whatever your setting. A thin circle shows how far your poke check reaches. Leave from the pause menu.`,
+            },
+          ),
+        ]}
+      />
+    );
+  }
+
   if (screen.name === 'exhibition') {
     const mine = Math.round(teamStrength(league, team.id));
     const opponents = league.teams.filter((x) => x.id !== league.userTeamId).sort((a, b) => teamStrength(league, a.id) - teamStrength(league, b.id));
@@ -117,7 +166,7 @@ export function playPages(app: AppCtx): ComponentChildren | undefined {
         remember="exhibition"
         title="Exhibition"
         header={`Your team averages ${mine} overall. Weakest opponents first. Exhibition games do not count. ${joined ? (together === 'coop' ? 'Two players, on the same team.' : 'Two players, head to head: player 2 takes the team you choose.') : 'For two players, press a button on a second controller.'}`}
-        onBack={home}
+        onBack={() => go({ name: 'title' })}
         items={[
           ...(tourney && tournamentOpponent(tourney)
             ? [
@@ -169,39 +218,6 @@ export function playPages(app: AppCtx): ComponentChildren | undefined {
                   },
                 },
               ]),
-          tile('lesson', 'First skate', 'The moves, one at a time', () => startLesson(app), {
-            icon: 'training',
-            wide: true,
-            detail: 'About two minutes on the practice rink: skate, shoot, pass, one-timer, poke check and body check, each asked for once or twice with a line saying what it is for. It ends by itself.',
-          }),
-          tile('lesson2', 'Second skate', 'The later moves: deke, fake, give and go, block', () => startLesson(app, 'second'), {
-            icon: 'training',
-            detail: `About two minutes on the practice rink: ${lessons.second.steps.length} moves that come after the first skate, one at a time, each with a line saying what it is for.`,
-          }),
-          tile(
-            'practice',
-            'Practice rink',
-            'No clock, nothing at stake',
-            () => {
-              const opponent = opponents[0];
-              const homeTeam = dress(league, team);
-              const away = opponent ? dress(league, opponent) : null;
-              if (!opponent || !homeTeam || !away) return;
-              setPlaying(true);
-              const homeColour = jerseyColour(f);
-              playMatch({ periodSeconds: periodSecondsOf(f), assists: assistStrengths(f), home: homeTeam, away, homeColour, awayColour: teamColour(away.name, homeColour), rink: exRink, practice: true, powerups: practicePowerups, forfeitNote: 'Leave the practice rink?', ...(joined ? { second: 0 as const } : {}) }, () => {
-                setScreen({ name: 'home' });
-                setMessage('Back from the practice rink.');
-                setPrefs(loadPrefs());
-                setPlaying(false);
-              });
-            },
-            {
-              icon: 'training',
-              wide: true,
-              detail: `Skate, shoot, pass and check against ${opponents[0]?.name ?? 'the weakest team'} for as long as you like: no clock, no periods, nothing recorded. ${practicePowerups.map((p) => p.name).join(' and ')} are loaded on the powerup buttons, and the hints run whatever your setting. A thin circle shows how far your poke check reaches. Leave from the pause menu.`,
-            },
-          ),
           {
             key: 'mode',
             label: <OptionCard icon={exShootout ? 'target' : 'game'} name="Play" value={exShootout ? 'A shootout' : 'A game'} chip="Change" />,

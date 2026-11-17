@@ -134,10 +134,7 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
             card('settings', 'Settings', `${difficultyInfo(f.difficulty).name} · sound ${prefs.sound ? 'on' : 'off'}`, () => openGroup('settings'), {
               detail: 'Difficulty, sound, rink detail, save and load.',
             }),
-            card('exhibition', 'Exhibition', 'A game that does not count', () => go({ name: 'exhibition' }), {
-              disabled: !ready.ok,
-              detail: 'A one-off game against any team. Nothing is won or lost.',
-            }),
+            card('mainmenu', 'Main menu', 'Exhibition and practice', () => go({ name: 'title' }), { detail: 'Back to the main menu, where the exhibition games and the practice rink are. Your career is kept as it is.' }),
             ...(opened(f, 'weekly') ? [weeklyCard()] : []),
           ]}
         />
@@ -237,7 +234,7 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
       card('league', 'League', leagueStatus(), () => openGroup('league')),
       // Once there is a season behind you, the tile says when the save has no recent copy outside the phone.
       card('settings', 'Settings', (f.history ?? []).length > 0 && backupDue(lastExport(), Date.now()) ? 'Back up your save' : 'Sound, detail, save', () => openGroup('settings')),
-      card('exhibition', 'Exhibition', 'A game that does not count', () => go({ name: 'exhibition' })),
+      card('mainmenu', 'Main menu', 'Exhibition and practice', () => go({ name: 'title' })),
       ...(opened(f, 'weekly') ? [weeklyCard()] : []),
     ];
     const best = (players: PlayerRecord[]): PlayerRecord[] => [...players].sort((x, y) => y.overall - x.overall).slice(0, 3);

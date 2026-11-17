@@ -149,7 +149,7 @@ export function SignArt({ kind }: { kind: string }): ComponentChildren {
 }
 
 /** Starts the first skate: your team on the practice rink against the weakest club in the league, with the lesson run on it. */
-export function startLesson(app: AppCtx, which: 'first' | 'second' = 'first'): void {
+export function startLesson(app: AppCtx, which: 'first' | 'second' = 'first', back: 'home' | 'practice' = 'practice'): void {
   const { f, league, team, setPlaying, setScreen, setMessage, setPrefs } = app;
   const opponent = league.teams.filter((x) => x.id !== league.userTeamId).sort((a, b) => teamStrength(league, a.id) - teamStrength(league, b.id))[0];
   const homeTeam = dress(league, team);
@@ -161,8 +161,9 @@ export function startLesson(app: AppCtx, which: 'first' | 'second' = 'first'): v
   setPlaying(true);
   const homeColour = jerseyColour(f);
   playMatch({ assists: assistStrengths(f), home: homeTeam, away, level: lessons.opponentLevel, homeColour, awayColour: teamColour(away.name, homeColour), lesson: which, forfeitNote: which === 'first' ? 'Leave the first skate?' : 'Leave the second skate?' }, () => {
-    setScreen({ name: 'home' });
-    setMessage(which === 'first' ? 'Back from the first skate. It is under Exhibition whenever you want it again, beside the practice rink, with a second skate for the later moves.' : 'Back from the second skate. Both are under Exhibition whenever you want them again.');
+    // The skate offered at the first start leads on into the career; any other goes back to Practice.
+    setScreen(back === 'home' ? { name: 'home' } : { name: 'practice' });
+    setMessage(which === 'first' ? 'Back from the first skate. It is under Practice on the main menu whenever you want it again, beside the practice rink, with a second skate for the later moves.' : 'Back from the second skate. Both are under Practice on the main menu whenever you want them again.');
     setPrefs(loadPrefs());
     setPlaying(false);
   });
@@ -181,7 +182,7 @@ export function teachPages(app: AppCtx): ComponentChildren | undefined {
         items={[
           tile('take', 'Take the first skate', 'Six moves, two minutes', () => {
             setFirstRun(false);
-            startLesson(app);
+            startLesson(app, 'first', 'home');
           }, {
             icon: 'training',
             primary: true,
@@ -189,7 +190,7 @@ export function teachPages(app: AppCtx): ComponentChildren | undefined {
           }),
           tile('skip', 'Skip it', 'Straight to the club', () => {
             setFirstRun(false);
-            go({ name: 'home' }, 'The first skate is under Exhibition if you want it later. You can change the difficulty between seasons and player switching at any time, both under Settings.');
+            go({ name: 'home' }, 'The first skate is under Practice on the main menu if you want it later. You can change the difficulty between seasons and player switching at any time, both under Settings.');
           }, { icon: 'play', detail: 'You know your way round a hockey game. The hints during games still say what each move is the first few times it is on.' }),
         ]}
       />

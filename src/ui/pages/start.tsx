@@ -6,12 +6,19 @@ import type { ComponentChildren } from 'preact';
 import { difficultyInfo, type Franchise } from '../../core/season';
 import rules from '../../data/season.json';
 import gameInfo from '../../data/game.json';
-import { CrestBadge } from '../Crest';
-import { Menu } from '../Menu';
+import { teamCrest } from '../../core/crest';
+import { canPlay } from '../../core/roster';
+import { skinTone, STANDING } from '../../game/figure';
+import { FigureArt } from '../FigureArt';
+import { Icon, type IconName } from '../Icon';
+import { Menu, type MenuItem } from '../Menu';
 import type { AppCtx } from '../App';
 import { type Screen } from './shared';
 
-/** A finished weekly run, and the title screen. */
+/** The goalie on the main menu wears another club's colours: a made-up one, so it is nobody's rival in particular. */
+const RIVAL = teamCrest('Harbour Visitors');
+
+/** A finished weekly run, and the main menu. */
 export function startPages(app: AppCtx): ComponentChildren | undefined {
   const {
     firstRun, screen, message, mainRef, f, league, season, team, locked, myCrest, go,
@@ -57,40 +64,60 @@ export function startPages(app: AppCtx): ComponentChildren | undefined {
 
   if (screen.name === 'title') {
     const last = f.books[f.books.length - 1];
+    const ready = canPlay(league, team);
+    const career = firstRun
+      ? `${team.name}: a new club`
+      : `${team.name} · ${locked ? `season ${league.season}` : `before season ${league.season}`}`;
+    /** One of the three ways in: an icon, a name, a line under it. */
+    const way = (key: string, icon: IconName, name: string, line: string, detail: string, onSelect: () => void, disabled = false): MenuItem => ({
+      key,
+      label: (
+        <span class="way">
+          <Icon name={icon} size={34} />
+          <span class="way-text">
+            <b>{name}</b>
+            <span>{line}</span>
+          </span>
+        </span>
+      ),
+      detail,
+      disabled,
+      onSelect,
+    });
     return (
       <Menu
         key="title"
         stack
-        title={team.name}
+        columns={3}
+        title={gameInfo.title}
         header={
-          <div class="title-screen">
-            <div class="title-band">
-              {/* The emblem: three lines across the ice, and a puck. */}
-              <svg class="title-emblem" width="74" height="74" viewBox="0 0 64 64" aria-hidden="true">
-                <circle cx="32" cy="32" r="30" />
-                <path d="M14 40l14-22M24 46l14-28M34 50l14-26" />
-                <ellipse cx="46" cy="46" rx="6" ry="3" />
-              </svg>
-              <div class="title-words">
-                <div class="title-mark">{gameInfo.title}</div>
+          <div class="landing">
+            {/* The picture: a skater bearing down on a goalie, the name across the ice between them. */}
+            <div class="landing-art">
+              <span class="landing-figure left">
+                <FigureArt pose={{ ...STANDING, stride: Math.PI / 2, speed: 1, pattern: myCrest.pattern }} crest={myCrest} skin={skinTone(2)} size={104} />
+              </span>
+              <div class="landing-words">
+                <svg class="title-emblem" width="38" height="38" viewBox="0 0 64 64" aria-hidden="true">
+                  <circle cx="32" cy="32" r="30" />
+                  <path d="M14 40l14-22M24 46l14-28M34 50l14-26" />
+                  <ellipse cx="46" cy="46" rx="6" ry="3" />
+                </svg>
+                <div class="landing-mark">{gameInfo.title}</div>
                 <div class="title-tag">{gameInfo.tagline}</div>
                 {currentScreenPlan() === 'hint' && <div class="title-hint">For the full screen: Share, then Add to Home Screen.</div>}
               </div>
-            </div>
-            <div class="title-team">
-              <CrestBadge crest={myCrest} size={64} />
-              <div>
-                <b>{team.name}</b>
-                <span>
-                  {locked ? `Season ${league.season} in progress` : `Off-season before season ${league.season}`} · {difficultyInfo(f.difficulty).name}
-                </span>
-                <span>{last ? `Last season: ${last.wins} wins${last.champion ? ', champions' : ''}` : 'A new franchise'}</span>
-              </div>
+              <span class="landing-figure right">
+                <FigureArt pose={{ ...STANDING, goalie: true, side: -1 }} who={{ hair: 'short', beard: 'none', build: 'tall' }} crest={RIVAL} skin={skinTone(0)} size={98} kit="away" />
+              </span>
             </div>
           </div>
         }
-        help="A continue"
-        items={[{ key: 'continue', label: <b>{firstRun ? 'Start' : 'Continue'}</b>, onSelect: () => go(firstRun ? { name: 'difficulty', fresh: true, first: true } : { name: 'home' }) }]}
+        items={[
+          way('career', 'prestige', 'Career', career, `Your club, season after season: the run across the map, the roster, the money and the league. ${difficultyInfo(f.difficulty).name}. ${last ? `Last season: ${last.wins} wins${last.champion ? ', champions' : ''}.` : 'A new franchise.'}`, () => go(firstRun ? { name: 'difficulty', fresh: true, first: true } : { name: 'home' })),
+          way('exhibition', 'exhibition', 'Exhibition', 'One game, any team', ready.ok ? 'A one-off game, a shootout or a four-team tournament against any club, on any rink. One or two players. Nothing is won or lost.' : `Not yet: ${ready.reason}`, () => go({ name: 'exhibition' }), !ready.ok),
+          way('practice', 'training', 'Practice', 'The rink to yourself', ready.ok ? 'The practice rink with no clock, and the two skates that teach the moves one at a time.' : `Not yet: ${ready.reason}`, () => go({ name: 'practice' }), !ready.ok),
+        ]}
       />
     );
   }
