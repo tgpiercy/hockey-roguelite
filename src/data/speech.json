@@ -1,0 +1,51 @@
+{
+  "sample": "He shoots, he scores! What a goal for the home side.",
+  "mostChoices": 8,
+  "language": { "en-GB": 12, "en-US": 10, "en-CA": 11, "en-AU": 8, "en": 6 },
+  "hints": [
+    { "has": "natural", "score": 40 },
+    { "has": "neural", "score": 40 },
+    { "has": "enhanced", "score": 30 },
+    { "has": "premium", "score": 30 },
+    { "has": "online", "score": 18 },
+    { "has": "network", "score": 12 },
+    { "has": "google", "score": 10 },
+    { "has": "male", "score": 4 },
+    { "has": "compact", "score": -20 },
+    { "has": "espeak", "score": -40 },
+    { "has": "novelty", "score": -60 },
+    { "has": "whisper", "score": -60 }
+  ],
+  "delivery": {
+    "default": { "rate": 1.1, "pitch": 1, "volume": 0.9 },
+    "kinds": {
+      "goal": { "rate": 1.28, "pitch": 1.35, "volume": 1 },
+      "goalAssist": { "rate": 1.28, "pitch": 1.35, "volume": 1 },
+      "mascotOn": { "rate": 1.2, "pitch": 1.25, "volume": 1 },
+      "fire": { "rate": 1.16, "pitch": 1.2, "volume": 1 },
+      "bigHit": { "rate": 1.22, "pitch": 1.18, "volume": 1 },
+      "post": { "rate": 1.24, "pitch": 1.22, "volume": 1 },
+      "saveOneTimer": { "rate": 1.24, "pitch": 1.2, "volume": 1 },
+      "save": { "rate": 1.18, "pitch": 1.12, "volume": 0.95 },
+      "oneTimer": { "rate": 1.2, "pitch": 1.1, "volume": 0.95 },
+      "tip": { "rate": 1.18, "pitch": 1.1, "volume": 0.95 },
+      "block": { "rate": 1.14, "pitch": 1.04, "volume": 0.9 },
+      "pullOn": { "rate": 1.12, "pitch": 1.1, "volume": 0.95 },
+      "pullOff": { "rate": 1.04, "pitch": 0.98, "volume": 0.9 },
+      "fake": { "rate": 1.12, "pitch": 1.02, "volume": 0.85 },
+      "poke": { "rate": 1.12, "pitch": 1, "volume": 0.85 },
+      "freeze": { "rate": 1.02, "pitch": 0.95, "volume": 0.85 },
+      "mascotOff": { "rate": 1.02, "pitch": 0.96, "volume": 0.85 },
+      "period": { "rate": 0.98, "pitch": 0.92, "volume": 0.9 },
+      "final": { "rate": 1, "pitch": 0.96, "volume": 1 },
+      "opening": { "rate": 0.96, "pitch": 0.9, "volume": 0.95 }
+    },
+    "vary": 0.04,
+    "tenseRate": 0.05,
+    "tensePitch": 0.08,
+    "least": { "rate": 0.8, "pitch": 0.6 },
+    "most": { "rate": 1.5, "pitch": 1.7 }
+  },
+  "tense": { "fromPeriod": 3, "margin": 1 },
+  "announcerKinds": ["opening", "period", "final"]
+}

@@ -27,12 +27,14 @@ export interface Prefs {
   holdSwitch: boolean;
   /** Commentary during a game: none, a line of text, or the text read aloud as well. */
   commentary: 'off' | 'text' | 'voice';
+  /** The device voice that reads the commentary, by name; empty for the best the device has. */
+  voice: string;
   /** Music on the menus and at big moments, and how loud (0 to 1). */
   music: boolean;
   musicVolume: number;
 }
 
-export const DEFAULT_PREFS: Prefs = { sound: true, volume: 0.7, detail: 'full', touch: 'auto', hints: true, replays: true, holdSwitch: false, bigPuck: false, calm: false, rumble: true, fullscreen: true, commentary: 'text', music: true, musicVolume: 0.5 };
+export const DEFAULT_PREFS: Prefs = { sound: true, volume: 0.7, detail: 'full', touch: 'auto', hints: true, replays: true, holdSwitch: false, bigPuck: false, calm: false, rumble: true, fullscreen: true, commentary: 'text', voice: '', music: true, musicVolume: 0.5 };
 export const COMMENTARY_MODES: Prefs['commentary'][] = ['off', 'text', 'voice'];
 export const COMMENTARY_NAMES: Record<Prefs['commentary'], string> = { off: 'Off', text: 'Text', voice: 'Text and voice' };
 export const VOLUME_STEPS = [0.2, 0.4, 0.7, 1];
@@ -70,6 +72,7 @@ export function parsePrefs(raw: string | null): Prefs {
       bigPuck: typeof v.bigPuck === 'boolean' ? v.bigPuck : DEFAULT_PREFS.bigPuck,
       calm: typeof v.calm === 'boolean' ? v.calm : DEFAULT_PREFS.calm,
       commentary: v.commentary === 'off' || v.commentary === 'text' || v.commentary === 'voice' ? v.commentary : DEFAULT_PREFS.commentary,
+      voice: typeof v.voice === 'string' ? v.voice.slice(0, 120) : DEFAULT_PREFS.voice,
       music: typeof v.music === 'boolean' ? v.music : DEFAULT_PREFS.music,
       musicVolume: typeof v.musicVolume === 'number' && Number.isFinite(v.musicVolume) ? Math.max(0, Math.min(1, v.musicVolume)) : DEFAULT_PREFS.musicVolume,
     };

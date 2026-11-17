@@ -296,8 +296,8 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       looks: [teamLooks(home.players), teamLooks(away.players)],
       commentary: () => commentary !== 'off' && !lesson,
       ...(lesson ? { lesson } : {}),
-      onCall: (text, priority) => {
-        if (commentary === 'voice' && voiceVolume > 0) speak(text, priority, voiceVolume);
+      onCall: (text, priority, kind, tense) => {
+        if (commentary === 'voice' && voiceVolume > 0) speak(text, priority, voiceVolume, kind, tense, loadPrefs().voice);
       },
       hints: () => (lesson ? null : hintsOn || practice ? hintCounts : null),
       replays: () => loadPrefs().replays,

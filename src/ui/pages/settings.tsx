@@ -12,6 +12,7 @@ import { franchiseOf, fromSave, parseSave, toSave } from '../../core/save';
 import { periodSecondsOf, setPeriodSeconds, DIFFICULTIES, difficultyInfo, setDifficulty, abandonSeason } from '../../core/season';
 import rules from '../../data/season.json';
 import { gameAudio } from '../../game/audio';
+import { canSpeak, sayVoiceSample, voiceChoices } from '../../game/voice';
 import { Menu } from '../Menu';
 import { hasCustomPadMap } from '../../game/padMap';
 import { PadReadout } from '../PadReadout';
@@ -77,8 +78,22 @@ export function settingsPages(app: AppCtx): ComponentChildren {
           }),
           tile('commentary', 'Commentary', COMMENTARY_NAMES[prefs.commentary], () => changePrefs({ ...prefs, commentary: COMMENTARY_MODES[(COMMENTARY_MODES.indexOf(prefs.commentary) + 1) % COMMENTARY_MODES.length] as Prefs['commentary'] }), {
             icon: 'sound',
-            detail: 'Short lines for the big plays during a game. Text shows them on the rink; Text and voice also reads them aloud with this device\'s own voice, which differs from phone to phone.',
+            detail: 'Short lines for the big plays during a game. Text shows them on the rink; Text and voice also reads them aloud with one of this device\'s own voices: choose which below.',
           }),
+          ...(prefs.commentary === 'voice' && canSpeak()
+            ? [
+                tile('voice', 'Commentary voice', prefs.voice === '' || !voiceChoices().includes(prefs.voice) ? 'Best on this device' : prefs.voice, () => {
+                  // Step through the best voice and then each English voice the device has, and say a line in it.
+                  const choices = ['', ...voiceChoices()];
+                  const next = choices[(Math.max(0, choices.indexOf(prefs.voice)) + 1) % choices.length] as string;
+                  changePrefs({ ...prefs, voice: next });
+                  sayVoiceSample(next, prefs.sound ? prefs.volume : 0);
+                }, {
+                  icon: 'sound',
+                  detail: 'Which of this device\'s voices calls the game. Press to hear the next one. A goal is shouted, a save called quickly, the end of a period read out level; the radio announcer, at the opening and between periods, is a second voice where the device has one. More and better voices can be installed in the phone\'s own text-to-speech settings.',
+                }),
+              ]
+            : []),
           tile('assists', 'How you are helped', assistLine(f), () => go({ name: 'assists' }), {
             icon: 'target',
             detail: 'The help your shots, passes, checks and goalie are given, each of which you can turn down or off, and what the opponents are not given.',

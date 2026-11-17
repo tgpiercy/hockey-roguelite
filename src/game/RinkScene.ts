@@ -21,6 +21,7 @@ import { passPreview } from '../sim/pass';
 import { inkOn } from '../core/teamColours';
 import { STEPS_PER_SECOND } from '../sim/clock';
 import { awayFrom, burstPoints, covers, placed, popScale } from './burst';
+import { tenseNow } from './voicePlan';
 import { newlyInForce, wordsFor, type FloatKind } from './floatWords';
 import { copyWorld, goalOfTheGame, Recorder, type Clip, type GoalNote } from './replay';
 import { isMascot, mascotPlayer } from '../sim/mascot';
@@ -78,7 +79,8 @@ export interface RinkSceneOptions {
   /** Whether commentary lines are wanted now; left out, there is none. */
   commentary?: () => boolean;
   /** Called with each commentary line as it is shown, for the spoken voice. */
-  onCall?: (text: string, priority: number) => void;
+  /** A line of commentary to be said: its words, how much it matters, what kind of call it is, and whether the game is close and late. */
+  onCall?: (text: string, priority: number, kind: string, tense: boolean) => void;
   /** AI level per team, 0 to 1; null takes it from the tuning. */
   levels: [number | null, number | null];
   /** The powerups loaded on the human's two buttons. */
@@ -354,7 +356,7 @@ export class RinkScene extends Phaser.Scene {
       this.opened = true;
       this.callText.setText(this.options.opening.toUpperCase());
       this.callUntil = this.clock + COMMENTARY_SHOW_SECONDS * 1.6;
-      this.options.onCall?.(this.options.opening, 1);
+      this.options.onCall?.(this.options.opening, 1, 'opening', false);
     }
     // A replay takes over the screen until it ends or a button skips it; the game itself waits.
     if (this.replay) {
@@ -475,7 +477,7 @@ export class RinkScene extends Phaser.Scene {
       if (call) {
         this.callText.setText(call.text.toUpperCase());
         this.callUntil = this.clock + COMMENTARY_SHOW_SECONDS;
-        this.options.onCall?.(call.text, call.priority);
+        this.options.onCall?.(call.text, call.priority, call.kind, tenseNow(this.world.period, this.world.score, this.world.overtime));
       }
     }
     // The lesson: the next situation is set up a moment after the last move, and the game ends a moment after the last step.
