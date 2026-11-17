@@ -50,6 +50,9 @@ export const MenuCrest = createContext<ComponentChildren>(null);
 
 const remembered = new Map<string, number>();
 
+const FACE = new Set(['A', 'B', 'X', 'Y']);
+const SHOULDER = new Set(['LB', 'RB', 'LT', 'RT']);
+
 /** One line of help with the controller buttons drawn as glyphs: "A sign · B back". */
 function Help({ text }: { text: string }) {
   return (
@@ -57,10 +60,19 @@ function Help({ text }: { text: string }) {
       {text.split(' · ').map((part) => {
         const [first, ...rest] = part.split(' ');
         const words = rest.join(' ');
-        if (first === 'A' || first === 'B') {
+        // The face buttons in their Xbox colours; bumpers and triggers as dark keys.
+        if (first !== undefined && FACE.has(first)) {
           return (
             <span key={part}>
               <span class={`glyph glyph-${first.toLowerCase()}`}>{first}</span>
+              {words}
+            </span>
+          );
+        }
+        if (first !== undefined && SHOULDER.has(first)) {
+          return (
+            <span key={part}>
+              <span class="glyph glyph-key">{first}</span>
               {words}
             </span>
           );

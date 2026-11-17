@@ -155,10 +155,18 @@ export function GameSummary({ result, teams, crests, best }: Props) {
       </div>
       {best && (
         <div class="summary-again">
-          Goal of the game: {best.text}.{best.canWatch ? ' Press Shoot (Space) to watch it again.' : ''}
+          Goal of the game: {best.text}.
+          {best.canWatch && (
+            <>
+              {' '}
+              <span class="glyph glyph-x">X</span> watch it again
+            </>
+          )}
         </div>
       )}
-      <div class="summary-again">Press A, Z or Pass to continue</div>
+      <div class="summary-again summary-go">
+        <span class="glyph glyph-a">A</span> Continue
+      </div>
     </div>
   );
 }
