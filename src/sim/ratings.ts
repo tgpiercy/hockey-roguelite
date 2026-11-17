@@ -79,6 +79,8 @@ export interface GoalieEffects {
   reboundKeep: number;
   /** Shots that beat him which he saves anyway, per period. 0 unless a modifier changes it. */
   periodAutoSaves: number;
+  /** Shots that beat him which he saves anyway, in a whole game. Switched on by modifiers; none by default. */
+  gameAutoSaves: number;
   /** How fast he tires over a game: 1 at a stamina of 70. A tired goalie reacts slower. */
   drainScale: number;
 }
@@ -134,6 +136,7 @@ export function goalieEffects(r: GoalieRatings): GoalieEffects {
     freezeSpeed: at(g.reboundControl.freezeSpeed, r.reboundControl),
     reboundKeep: at(g.reboundControl.reboundKeep, r.reboundControl),
     periodAutoSaves: 0,
+    gameAutoSaves: 0,
     drainScale: at(g.stamina.drainScale, r.stamina),
   };
 }

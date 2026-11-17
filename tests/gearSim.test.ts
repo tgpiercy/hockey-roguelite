@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import sets from '../src/data/sets.json';
 import { resolveLoosePuck } from '../src/sim/contact';
 import type { Modifier } from '../src/sim/modifiers';
 import { stepPassing } from '../src/sim/pass';
@@ -205,5 +206,16 @@ describe('Brick Wall: the first shot that beats him each period is saved', () =>
   it('it only stops shots: a puck that is not a shot still counts', () => {
     const world = setUp(wall);
     expect(shootIn(world, null).some((e) => e.type === 'goal')).toBe(true);
+  });
+
+  it('the gear set gives one for the whole game, not one a period: it does not come back', () => {
+    const bonus = sets.find((x) => x.id === 'brick-wall')!.bonuses.find((b) => b.pieces === 3)!.modifiers as Modifier[];
+    expect(bonus).toEqual([{ stat: 'gameAutoSaves', op: 'add', value: 1 }]);
+    const world = setUp(bonus);
+    expect(shootIn(world).some((e) => e.type === 'goal')).toBe(false);
+    expect(shootIn(world).some((e) => e.type === 'goal')).toBe(true);
+    world.period = 2;
+    expect(shootIn(world).some((e) => e.type === 'goal')).toBe(true);
+    expect(world.score).toEqual([2, 0]);
   });
 });

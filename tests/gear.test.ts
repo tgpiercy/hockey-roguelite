@@ -134,17 +134,18 @@ describe('generating gear', () => {
   });
 
   it('rarer and higher-level pieces give more points per boost', () => {
-    expect(boostPoints(piece({ rarity: 'common' }))).toBe(2);
-    expect(boostPoints(piece({ rarity: 'rare' }))).toBe(3);
-    expect(boostPoints(piece({ rarity: 'epic' }))).toBe(4);
-    expect(boostPoints(piece({ rarity: 'legendary' }))).toBe(5);
-    expect(boostPoints(piece({ rarity: 'legendary', level: 5 }))).toBe(9);
+    const ladder = (['common', 'rare', 'epic', 'legendary'] as const).map((rarity) => boostPoints(piece({ rarity })));
+    expect(ladder).toEqual(gearData.rarities.map((r) => r.points));
+    for (let i = 1; i < ladder.length; i++) expect(ladder[i]).toBeGreaterThan(ladder[i - 1]!);
+    expect(boostPoints(piece({ rarity: 'legendary', level: 5 }))).toBe(ladder[3]! + 4 * gearData.pointsPerLevel);
+    expect(gearData.pointsPerLevel).toBeGreaterThan(0);
   });
 
   it('names and describes a piece in words', () => {
     const item = piece({ rarity: 'epic', set: 'sniper', boosts: ['shooting', 'passing'], perk: 'heavy-shot', level: 2 });
     expect(itemName(item)).toBe('Epic Sniper stick');
-    expect(itemSummary(item)).toBe('+5 Shooting, +5 Passing. Heavy shot: harder shots (level 2, perk 10% stronger)');
+    const points = boostPoints(item);
+    expect(itemSummary(item)).toBe(`+${points} Shooting, +${points} Passing. Heavy shot: harder shots (level 2, perk ${Math.round(gearData.perkPerLevel * 100)}% stronger)`);
   });
 });
 
@@ -305,8 +306,10 @@ describe('sets', () => {
     const wall = ['mask', 'legPads', 'blocker'].map((slot) => piece({ kind: 'goalie', set: 'brick-wall', slot, boosts: [], id: `bw-${slot}` }));
     expect(has(wall.slice(0, 1), 'reactionSeconds')).toBe(false);
     expect(has(wall.slice(0, 2), 'reactionSeconds')).toBe(true);
-    expect(has(wall.slice(0, 2), 'periodAutoSaves')).toBe(false);
-    expect(has(wall, 'periodAutoSaves')).toBe(true);
+    expect(has(wall.slice(0, 2), 'gameAutoSaves')).toBe(false);
+    expect(has(wall, 'gameAutoSaves')).toBe(true);
+    // Once a game, not once a period: a save every period was most of a game's goals, every game.
+    expect(has(wall, 'periodAutoSaves')).toBe(false);
     expect(gearData.slots.goalie).toHaveLength(3);
   });
 
@@ -380,8 +383,9 @@ describe('equipping', () => {
     const stick = give(f, { slot: 'stick', rarity: 'epic', boosts: ['shooting', 'passing'] }, 'a');
     equip(f, stick.id, skater.id);
     const after = dressUser(f)!;
-    expect(after.setup.skaters[index]!.shooting).toBe(before.setup.skaters[index]!.shooting + 4);
-    expect(after.setup.skaters[index]!.passing).toBe(before.setup.skaters[index]!.passing + 4);
+    expect(after.setup.skaters[index]!.shooting).toBe(Math.round(before.setup.skaters[index]!.shooting + boostPoints(stick)));
+    expect(after.setup.skaters[index]!.passing).toBe(Math.round(before.setup.skaters[index]!.passing + boostPoints(stick)));
+    expect(after.setup.skaters[index]!.shooting).toBeGreaterThan(before.setup.skaters[index]!.shooting);
     expect(after.setup.skaters[index]!.speed).toBe(before.setup.skaters[index]!.speed);
     const stored = playerOf(f.league, skater.id);
     expect({ overall: stored.overall, grade: stored.grade, capHit: stored.capHit, ratings: stored.ratings }).toEqual({
@@ -398,7 +402,8 @@ describe('equipping', () => {
     equip(f, stick.id, skater.id);
     const base = (playerOf(f.league, skater.id).ratings as { shooting: number }).shooting;
     const index = dressUser(f)!.players.findIndex((p) => p.id === skater.id);
-    expect(dressUser(f)!.setup.skaters[index]!.shooting).toBe(base + 5);
+    expect(dressUser(f)!.setup.skaters[index]!.shooting).toBe(Math.round(base + boostPoints(stick)));
+    expect(boostPoints(stick)).toBeGreaterThan(boostPoints({ ...stick, level: 1 }));
     expect(boostedRatings({ ...defaultSkaterRatings, shooting: 98 }, itemModifiers(stick)).shooting).toBe(gearData.maxRating);
   });
 
@@ -408,7 +413,8 @@ describe('equipping', () => {
     equip(f, perk.id, skater.id);
     const dressed = dressUser(f)!;
     const index = dressed.players.findIndex((p) => p.id === skater.id);
-    const quick = { stat: 'accelerationScale', op: 'mul', value: 1.04 };
+    const quick = perks.find((x) => x.id === 'quick-feet')!.epic.modifiers[0]!;
+    expect(quick.stat).toBe('accelerationScale');
     expect(dressed.setup.skaterModifiers![index]).toContainEqual(quick);
     expect(dressed.setup.skaterModifiers!.filter((m) => m.some((x) => x.stat === 'accelerationScale'))).toHaveLength(1);
     expect(dressed.setup.goalieModifiers).toEqual([]);
@@ -480,7 +486,7 @@ describe('gear and cash', () => {
     expect(f.ledger.gearWork).toBe(spent);
     expect(levelCost(item)).toBe(null);
     expect(levelUp(f, 'a').ok).toBe(false);
-    expect(boostPoints(item)).toBe(3 + 4);
+    expect(boostPoints(item)).toBe(gearData.rarities.find((r) => r.id === 'rare')!.points + 4 * gearData.pointsPerLevel);
   });
 });
 

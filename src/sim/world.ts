@@ -110,7 +110,7 @@ function createPlayer(id: number, team: 0 | 1, role: 'skater' | 'goalie', index:
     position: role === 'goalie' ? 'G' : (options.teams?.[team].positions?.[index] ?? 'F'),
     fx,
     baseFx: fx,
-    goalie: role === 'goalie' ? { fx: goalieFx, baseFx: goalieFx, seen: [], hold: 0, ignorePuck: 0, autoSavesLeft: 0, autoSavePeriod: 0, bitten: 0 } : null,
+    goalie: role === 'goalie' ? { fx: goalieFx, baseFx: goalieFx, seen: [], hold: 0, ignorePuck: 0, autoSavesLeft: 0, gameAutoSaved: 0, autoSavePeriod: 0, bitten: 0 } : null,
     ai: createAiMemory(),
     passCharge: 0,
     passHeld: false,
@@ -274,7 +274,7 @@ export function createGame(t: Tuning, seed: number | string, options: WorldOptio
   return world;
 }
 
-/** If the beaten goalie has an automatic save left this period, he makes it: the shot is frozen, not a goal. */
+/** If the beaten goalie has an automatic save left, this period or this game, he makes it: the shot is frozen, not a goal. */
 function autoSave(world: World, beaten: Player | null, t: Tuning, events: SimEvent[]): boolean {
   if (!beaten || !beaten.goalie || world.puck.shotBy === null || world.puck.unstoppable) return false;
   const state = beaten.goalie;
@@ -282,8 +282,10 @@ function autoSave(world: World, beaten: Player | null, t: Tuning, events: SimEve
     state.autoSavePeriod = world.period;
     state.autoSavesLeft = Math.round(state.fx.periodAutoSaves);
   }
-  if (state.autoSavesLeft <= 0) return false;
-  state.autoSavesLeft -= 1;
+  if (state.autoSavesLeft > 0) state.autoSavesLeft -= 1;
+  // None left this period: one of the few he has for the whole game, if any are left.
+  else if ((state.gameAutoSaved ?? 0) < Math.round(state.fx.gameAutoSaves)) state.gameAutoSaved = (state.gameAutoSaved ?? 0) + 1;
+  else return false;
   beaten.stats.saves += 1;
   givePuck(world, beaten);
   state.hold = t.goalie.holdSeconds;

@@ -911,7 +911,32 @@ Not measured: a person. The numbers say passing is now the better play by half a
 | Legendary, level 1 | +15 | 97% | 5.60 to 1.63 |
 | Legendary, level 5 | +27 | 100% | 6.89 to 0.15 |
 
-The Phase 6 figure (+15 on every rating wins 73%) left perks and set bonuses out, and they are most of it: a full Epic kit wins nine games in ten. Nobody has a full kit early, but a franchise that plays long enough gets there. Not changed: how strong late gear should be is the owner's call.
+The Phase 6 figure (+15 on every rating wins 73%) left perks and set bonuses out, and they are most of it: a full Epic kit wins nine games in ten. Taken apart (`--part ratings|perks|sets`), each of the three alone won about 73% for Epic and 82 to 93% for Legendary, and together they compound.
+
+**Reined in, on the owner's choice** (aim: full Epic about 70%, full Legendary about 80%). 160 games each:
+
+| Kit | About, on each skater rating | Wins | Goals |
+| --- | --- | --- | --- |
+| Common, level 1 | +1 | 52% | 3.36 to 3.17 |
+| Rare, level 1 | +3 | 57% | 3.44 to 2.90 |
+| Epic, level 1 | +4 | 71% | 3.78 to 2.54 |
+| Legendary, level 1 | +7.5 | 81% | 4.44 to 2.34 |
+| Legendary, level 5 | +10.5 | 89% | 4.11 to 1.24 |
+
+What changed:
+
+| | Was | Now |
+| --- | --- | --- |
+| Points a boost: Common, Rare, Epic, Legendary | 2, 3, 4, 5 | 1, 1.5, 1.75, 2.5 |
+| Points a level | 1 | 0.25 |
+| A perk's gain a level | 10% | 5% |
+| Every perk, and every set bonus that is a number | as written | about three tenths of it (rounded to tidy figures) |
+| Brick Wall, 3 pieces | saves the first goal of every period | saves the first goal of the game (`gameAutoSaves`) |
+
+- The automatic save each period was the worst of it: about three goals a game taken off, every game, for as long as the pieces were worn. The same ability is still an artifact (one season) and the Wall's trick.
+- The abilities a set of four switches on (big hits knock the puck loose, passes that cannot be picked off) are whole: they are what a set is for.
+- A piece's points are now fractions and the rating it gives is the rounded sum, so one Rare piece is +2 on a rating and two are +3.
+- Gear already owned is worth less from this change on; nothing in a save changes.
 
 ### The league over twenty seasons
 

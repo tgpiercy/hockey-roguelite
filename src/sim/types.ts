@@ -124,6 +124,8 @@ export interface GoalieState {
   ignorePuck: number;
   /** Automatic saves he has left this period, and the period that count belongs to. */
   autoSavesLeft: number;
+  /** How many of his once-a-game automatic saves he has made. */
+  gameAutoSaved: number;
   autoSavePeriod: number;
   /** Seconds left stuck where he is after biting on a shot fake. */
   bitten: number;

@@ -46,7 +46,7 @@ try {
     styles: () => measures.measureStyles(Math.max(40, games)),
     bosses: () => measures.measureBosses(Math.max(40, games)),
     rinks: () => measures.measureRinks(Math.max(40, games)),
-    gear: () => measures.measureGear(Math.max(40, games)),
+    gear: () => measures.measureGear(Math.max(40, games), String(option('part', 'all'))),
     carry: () => measures.measureCarry(games, level, who === 'idle' ? 'script' : who),
     seasons: () => {
       const r = checks.measureSeasons(games, difficulty, 'bench', who);

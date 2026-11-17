@@ -335,7 +335,7 @@ describe('real set bonuses on the ice', () => {
     expect(player(other, ID.home1).oneTimer).toBe(0);
   });
 
-  it('Sniper: a quick shot inside the window is as hard as a full wind-up, and 20% harder still', () => {
+  it('Sniper: a quick shot inside the window is as hard as a full wind-up, and harder still', () => {
     const shoot = (window: number, own: Modifier[]): number => {
       const world = createWorld(t, 'one-timer', { teams: [setup(own), setup()] });
       clearIce(world, [ID.home1]);
@@ -353,9 +353,11 @@ describe('real set bonuses on the ice', () => {
     const noSet = shoot(0.4, []);
     const power = player(createWorld(t, 'p', { teams: [setup(), setup()] }), ID.home1).fx.shotPower;
     expect(tap).toBeCloseTo(shotSpeed(0, power, t));
-    // Without the set it is still a one-timer: a full wind-up. The set makes it 20% harder on top.
+    // Without the set it is still a one-timer: a full wind-up. The set makes it harder on top, by what the table says.
+    const harder = sets.find((x) => x.id === 'sniper')!.bonuses[1]!.modifiers[0]!.value;
+    expect(harder).toBeGreaterThan(1);
     expect(noSet).toBeCloseTo(shotSpeed(t.shot.chargeTime, power, t) * t.shot.oneTimerPower);
-    expect(oneTimer).toBeCloseTo(shotSpeed(t.shot.chargeTime, power, t) * t.shot.oneTimerPower * 1.2);
+    expect(oneTimer).toBeCloseTo(shotSpeed(t.shot.chargeTime, power, t) * t.shot.oneTimerPower * harder);
     expect(oneTimer).toBeGreaterThan(tap * 1.5);
   });
 
@@ -412,7 +414,8 @@ describe('real set bonuses on the ice', () => {
     const plain = topSpeed([], false);
     const clear = topSpeed(bonus('burner'), false);
     const blocked = topSpeed(bonus('burner'), true);
-    expect(clear).toBeGreaterThan(plain * 1.08);
+    const faster = sets.find((x) => x.id === 'burner')!.bonuses[1]!.modifiers[0]!.value;
+    expect(clear).toBeGreaterThan(plain * (1 + (faster - 1) * 0.6));
     expect(blocked).toBeCloseTo(plain, 1);
   });
 

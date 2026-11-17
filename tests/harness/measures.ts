@@ -1,5 +1,5 @@
 import { bossInfo } from '../../src/core/bosses';
-import { abilityModifiers, boostedRatings, gearModifiers, generateItem } from '../../src/core/gear';
+import { abilityModifiers, boostedRatings, gearModifiers, generateItem, itemModifiers } from '../../src/core/gear';
 import { createRng } from '../../src/core/rng';
 import gearData from '../../src/data/gear.json';
 import { rinkInfo, rinkTuning } from '../../src/core/rinks';
@@ -191,8 +191,8 @@ export function measureCarry(n: number, level: number, who: Stand): string[] {
  * What gear is worth on the ice: a 70 team in which every player wears a full set of real pieces of one
  * rarity (rolled as packs roll them, with their perks and set bonuses), against a plain 70 team, all AI.
  */
-export function measureGear(n: number): string[] {
-  const lines = ['Gear: a 70 team wearing a piece in every slot against a plain 70 team, AI level 0.5'];
+export function measureGear(n: number, part: 'all' | 'ratings' | 'perks' | 'sets' = 'all'): string[] {
+  const lines = [`Gear (${part === 'all' ? 'everything it gives' : `${part} only`}): a 70 team wearing a piece in every slot against a plain 70 team, AI level 0.5`];
   const plain = uniformTeam(70);
   for (const [rarity, level] of [['common', 1], ['rare', 1], ['epic', 1], ['legendary', 1], ['legendary', gearData.maxLevel]] as const) {
     const rng = createRng(`gear-worth/${rarity}/${level}`);
@@ -205,7 +205,19 @@ export function measureGear(n: number): string[] {
           if (item.slot === slot) return { ...item, level };
         }
       });
-      return gearModifiers(items);
+      // To see what each part of gear is worth: the rating points alone, the perks alone, or the set bonuses alone.
+      const whole = gearModifiers(items);
+      if (part === 'all') return whole;
+      const points = whole.filter((m) => m.stat.startsWith('rating.'));
+      if (part === 'ratings') return points;
+      const perks = items.flatMap((item) => itemModifiers(item).filter((m) => !m.stat.startsWith('rating.')));
+      if (part === 'perks') return perks;
+      const rest = [...points, ...perks];
+      return whole.filter((m) => {
+        const at = rest.indexOf(m);
+        if (at >= 0) rest.splice(at, 1);
+        return at < 0;
+      });
     };
     const skaters = plain.skaters.map(() => kit('skater'));
     const goalie = kit('goalie');
