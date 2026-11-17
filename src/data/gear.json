@@ -43,9 +43,9 @@
     "reboundControl": "Rebounds"
   },
   "rarities": [
-    { "id": "common", "name": "Common", "chance": 0.6, "minBoosts": 1, "maxBoosts": 1, "points": 1, "perk": "", "setChance": 0.25, "scrap": 5, "levelCost": [10, 15, 20, 30] },
-    { "id": "rare", "name": "Rare", "chance": 0.28, "minBoosts": 2, "maxBoosts": 2, "points": 1.5, "perk": "", "setChance": 0.4, "scrap": 15, "levelCost": [20, 30, 45, 60] },
-    { "id": "epic", "name": "Epic", "chance": 0.1, "minBoosts": 2, "maxBoosts": 3, "points": 1.75, "perk": "epic", "setChance": 0.6, "scrap": 40, "levelCost": [40, 60, 90, 120] },
-    { "id": "legendary", "name": "Legendary", "chance": 0.02, "minBoosts": 3, "maxBoosts": 3, "points": 2.5, "perk": "legendary", "setChance": 0.8, "scrap": 100, "levelCost": [80, 120, 180, 240] }
+    { "id": "common", "name": "Common", "chance": 0.6, "minBoosts": 1, "maxBoosts": 1, "points": 1, "perk": "", "setChance": 0.25, "scrap": 5, "levelCost": [3, 4, 5, 8] },
+    { "id": "rare", "name": "Rare", "chance": 0.28, "minBoosts": 2, "maxBoosts": 2, "points": 1.5, "perk": "", "setChance": 0.4, "scrap": 15, "levelCost": [5, 8, 11, 15] },
+    { "id": "epic", "name": "Epic", "chance": 0.1, "minBoosts": 2, "maxBoosts": 3, "points": 1.75, "perk": "epic", "setChance": 0.6, "scrap": 40, "levelCost": [10, 15, 23, 30] },
+    { "id": "legendary", "name": "Legendary", "chance": 0.02, "minBoosts": 3, "maxBoosts": 3, "points": 2.5, "perk": "legendary", "setChance": 0.8, "scrap": 100, "levelCost": [20, 30, 45, 60] }
   ]
 }

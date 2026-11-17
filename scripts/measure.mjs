@@ -53,6 +53,7 @@ try {
       return [
         `Seasons: ${games} on ${difficulty}, the ${who} player, a new franchise, plain choices`,
         `  first region cleared ${Math.round(r.clearedFirstRegion * 100)}%   title ${Math.round(r.champions * 100)}%   wins ${r.wins.toFixed(1)} of ${r.played.toFixed(1)} games`,
+        `  how far: ${r.clearedRegions.map((share, i) => `region ${i + 1} ${Math.round((share ?? 0) * 100)}%`).join(', ')}, playoffs ${Math.round(r.playoffs * 100)}%, title ${Math.round(r.champions * 100)}%`,
         `  Pucks earned ${Math.round(r.pucksEarned)}, spent ${Math.round(r.pucksSpent)}, left ${Math.round(r.pucksLeft)}; shops reached ${r.shops.toFixed(1)}, could afford something at ${r.shopsBoughtAt.toFixed(1)}`,
       ];
     },

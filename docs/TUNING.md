@@ -872,9 +872,22 @@ Tried and taken out, each measured:
 | The marker stands in the passing lane | 4.2 | 8.8 | He does not intercept |
 | The man on the carrier cuts across to the lane | 6.8 | 6.05 | He is behind the carrier and cannot get there |
 | A weaker one-timer (`oneTimerPower` 1.0) | | 8.35 | The shot's speed is not what beats the goalie |
-| The goalie steps further out (`challengeDepth` 1.0, 1.5; the owner's idea) | 4.3, 3.65 | 8.8, 9.0 | It does cut the lone shot (to 10% at 1.5), and it leaves the goalie further from the pass. Left at 0.5; worth trying again now that goalies read the pass. |
+| The goalie steps further out (`challengeDepth` 1.0, 1.5; the owner's idea) | 4.3, 3.65 | 8.8, 9.0 | It does cut the lone shot (to 10% at 1.5), and it leaves the goalie further from the pass. Left at 0.5. Tried again on 2026-11-17 with goalies reading the pass (below): the same trade. |
 
 Not measured: a person. The numbers say passing is now the better play by half again, where the two were level.
+
+### The goalie stepping out, tried again (2026-11-17)
+
+With goalies reading the pass, 80 games each (all-AI: 120):
+
+| `challengeDepth` | Script: goals, its 6 to 10 m shot goes in | Passer: goals, its one-timer in front goes in | All-AI, goals a team |
+| --- | --- | --- | --- |
+| 0.5 (shipped) | 4.30, 14% | 7.10, 55% | 3.08 and 3.24 |
+| 1.0 | 4.86, 15% | 6.95, 61% | 2.92 and 3.31 |
+| 1.5 | 3.64, 10% | 7.60, 68% | 3.10 and 2.96 |
+| 0.5, and 1.0 more when the carrier has nobody of his within 9 m of the net | 4.67, 14% | 6.96, 59% | 3.15 and 3.17 |
+
+Stepping out still trades the lone shot for the pass: at 1.5 the carrier loses a goal in six and the passer's one-timer goes in 68% of the time in place of 55%. The carrier is already the weak play (3% of Pro titles) and the passer the strong one, so this would widen the gap. Stepping out only against a carrier with nobody to pass to did nothing: a team-mate is nearly always within reach of the net. Left at 0.5, and the conditional rule was not kept.
 
 ### What it does to the difficulties
 
@@ -931,6 +944,10 @@ What changed:
 | Points a boost: Common, Rare, Epic, Legendary | 2, 3, 4, 5 | 1, 1.5, 1.75, 2.5 |
 | Points a level | 1 | 0.25 |
 | A perk's gain a level | 10% | 5% |
+| What a level costs (points, times `cashPerPoint`): Common | 10, 15, 20, 30 | 3, 4, 5, 8 |
+| Rare | 20, 30, 45, 60 | 5, 8, 11, 15 |
+| Epic | 40, 60, 90, 120 | 10, 15, 23, 30 |
+| Legendary | 80, 120, 180, 240 | 20, 30, 45, 60 |
 | Every perk, and every set bonus that is a number | as written | about three tenths of it (rounded to tidy figures) |
 | Brick Wall, 3 pieces | saves the first goal of every period | saves the first goal of the game (`gameAutoSaves`) |
 
@@ -938,6 +955,7 @@ What changed:
 - The abilities a set of four switches on (big hits knock the puck loose, passes that cannot be picked off) are whole: they are what a set is for.
 - A piece's points are now fractions and the rating it gives is the rounded sum, so one Rare piece is +2 on a rating and two are +3.
 - Gear already owned is worth less from this change on; nothing in a save changes.
+- A level gives a quarter of what it gave, so on 2026-11-17 it was made to cost a quarter of what it cost: taking a Legendary piece from level 1 to 5 is $3.1M where it was $12.4M.
 
 ### The league over twenty seasons
 

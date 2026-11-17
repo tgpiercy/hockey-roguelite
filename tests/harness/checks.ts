@@ -132,6 +132,9 @@ export interface SeasonReport {
   /** Share that beat the first region's boss, and share that won the title. */
   clearedFirstRegion: number;
   champions: number;
+  /** Share that beat each region's boss, in order, and share that reached the playoffs. */
+  clearedRegions: number[];
+  playoffs: number;
   /** Average games won and played. */
   wins: number;
   played: number;
@@ -149,7 +152,7 @@ export interface SeasonReport {
  */
 export function measureSeasons(n: number, difficulty: string, seed: string, who: Stand = 'script'): SeasonReport {
   let t = cloneTuning();
-  const report: SeasonReport = { seasons: n, clearedFirstRegion: 0, champions: 0, wins: 0, played: 0, pucksEarned: 0, pucksSpent: 0, pucksLeft: 0, shops: 0, shopsBoughtAt: 0 };
+  const report: SeasonReport = { seasons: n, clearedFirstRegion: 0, champions: 0, clearedRegions: [], playoffs: 0, wins: 0, played: 0, pucksEarned: 0, pucksSpent: 0, pucksLeft: 0, shops: 0, shopsBoughtAt: 0 };
   for (let i = 0; i < n; i++) {
     const f = newFranchise(generateLeague(`${seed}-${i}`), difficulty);
     setDifficulty(f, difficulty);
@@ -166,6 +169,7 @@ export function measureSeasons(n: number, difficulty: string, seed: string, who:
       else if (game) {
         if (f.season.powerups[0]) setLoadout(f, 0, f.season.powerups[0]);
         const boss = game.kind === 'boss' && currentStop(f)?.region === 0;
+        const bossRegion = game.kind === 'boss' ? (currentStop(f)?.region ?? null) : null;
         const world = createGame(t, `${seed}-${i}/g${guard}`, { teams: [game.home.setup, game.away.setup], levels: [null, game.level], overtimeLimit: 300 });
         const bot = standIn(who, t, `${seed}-${i}/g${guard}`);
         for (let s = 0; s < 30 * 60 * STEPS_PER_SECOND && world.phase !== 'final'; s++) step(world, bot(world), t);
@@ -174,6 +178,7 @@ export function measureSeasons(n: number, difficulty: string, seed: string, who:
         const settled = result.winner === null ? { ...result, winner: 1 as const, score: [result.score[0], result.score[1] + 1] as [number, number] } : result;
         recordGame(f, settled);
         if (boss && settled.winner === 0) cleared = true;
+        if (bossRegion !== null && settled.winner === 0) report.clearedRegions[bossRegion] = (report.clearedRegions[bossRegion] ?? 0) + 1 / n;
       } else if (f.season.current === null) {
         const options = availableStops(f);
         if (options.length === 0) break;
@@ -199,6 +204,7 @@ export function measureSeasons(n: number, difficulty: string, seed: string, who:
     report.pucksLeft += f.season.currency / n;
     if (cleared) report.clearedFirstRegion += 1 / n;
     if (f.season.outcome === 'champion') report.champions += 1 / n;
+    if (f.season.outcome === 'champion' || f.season.outcome === 'eliminated') report.playoffs += 1 / n;
     report.wins += f.season.gamesWon / n;
     report.played += f.season.gamesPlayed / n;
   }
