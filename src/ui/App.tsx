@@ -1,3 +1,4 @@
+import { keptGame } from './keptGame';
 import { opened } from '../core/opening';
 import { assistStrengths } from '../core/assists';
 import { seasonRegions } from '../core/season';
@@ -66,6 +67,8 @@ function useApp() {
   const [faPosition, setFaPosition] = useState<PositionFilter>('all');
   const [gearFilter, setGearFilter] = useState(0);
   const [playing, setPlaying] = useState(false);
+  /** The score and period of a game kept from before for the game now waiting, or null. */
+  const [keptWords, setKeptWords] = useState<string | null>(null);
   /** Two players: whether a second controller has joined, and how the two will play. */
   const [joined, setJoined] = useState(false);
   const [together, setTogether] = useState<'coop' | 'versus'>('coop');
@@ -323,24 +326,41 @@ function useApp() {
     </span>
   );
 
+  /** Which game this is: one kept from before under the same name is picked up where it was. */
+  const gameKeyOf = (opponent: string): string => `${season.weekly ?? 'club'}/${season.seed}/${league.season}/${season.gamesPlayed}/${season.strikes}/${opponent}`;
+  // Whether the game waiting was begun before and kept: the game screen says so.
+  const waiting = playing ? null : matchup(f);
+  const waitingKey = waiting ? gameKeyOf(waiting.away.name) : null;
+  useEffect(() => {
+    let live = true;
+    if (!waitingKey) setKeptWords(null);
+    else void keptGame(waitingKey).then((world) => {
+      if (live) setKeptWords(world && world.phase !== 'final' ? `${world.score[0]}-${world.score[1]}, ${world.overtime ? 'overtime' : `period ${world.period}`}` : world ? 'the final horn has gone' : null);
+    });
+    return () => {
+      live = false;
+    };
+  }, [waitingKey]);
   /** Plays the game waiting at the current stop or playoff round. */
   const playSeasonGame = (): void => {
     const game = matchup(f);
     if (!game) return;
     setPlaying(true);
+    setKeptWords(null);
     const homeColour = jerseyColour(f);
+    const gameKey = gameKeyOf(game.away.name);
     // A second player who has joined plays on your team in a season game.
     // A boss is introduced before the puck drops: his club, his man, and what they do.
     const bossStop = game.kind === 'boss' ? currentStop(f) : null;
     const boss = bossStop?.bossId ? bossInfo(bossStop.bossId) : null;
-    playMatch({ ...(boss ? { intro: { title: boss.name, person: `${boss.person.name}, ${boss.person.role}`, lines: [boss.club, boss.trick] } } : {}), periodSeconds: periodSecondsOf(f), assists: assistStrengths(f), noTactics: !opened(f, 'tactics'), stage: season.phase === 'playoffs' ? seasonRegions(f) : (currentStop(f)?.region ?? 0), home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: homeGame(f, season.gamesPlayed + 1), ...(game.rink ? { rink: game.rink } : {}), ...(game.rules ? { rules: game.rules } : {}), opening: pregameLine(f), forfeitNote: 'Giving the game up counts as a loss, whatever the score.', ...(joined ? { second: 0 as const } : {}) }, (result) => {
+    void keptGame(gameKey).then((kept) => playMatch({ keep: gameKey, ...(kept ? { resume: kept } : {}), ...(boss ? { intro: { title: boss.name, person: `${boss.person.name}, ${boss.person.role}`, lines: [boss.club, boss.trick] } } : {}), periodSeconds: periodSecondsOf(f), assists: assistStrengths(f), noTactics: !opened(f, 'tactics'), stage: season.phase === 'playoffs' ? seasonRegions(f) : (currentStop(f)?.region ?? 0), home: game.home, away: game.away, level: game.level, powerups: game.powerups, homeColour, awayColour: teamColour(game.away.name, homeColour), userAtHome: homeGame(f, season.gamesPlayed + 1), ...(game.rink ? { rink: game.rink } : {}), ...(game.rules ? { rules: game.rules } : {}), opening: pregameLine(f), forfeitNote: 'Giving the game up counts as a loss, whatever the score.', ...(joined ? { second: 0 as const } : {}) }, (result) => {
       // A game with a second player on your team marks the season as one played together.
       if (joined) f.season.coop = true;
       showOutcome(recordGame(f, result));
       // The pause menu may have changed the sound or the controls.
       setPrefs(loadPrefs());
       setPlaying(false);
-    });
+    }));
   };
   /** After a season game, played or simulated: save, and step through what it earned. */
   const showOutcome = (outcome: ReturnType<typeof recordGame>): void => {
@@ -390,7 +410,7 @@ function useApp() {
     setMapFocus, trainee, setTrainee, prefs, setPrefs, changePrefs, commit, startOver, shown, f,
     league, season, team, locked, myCrest, barCrest, screenKey, go, after, weeklyOn,
     enterWeekly, leaveWeekly, home, top, openGroup, tile, weeklyCard, card, wearing, earlyLock,
-    bump, fireSale, cashLine, scouted, playSeasonGame, showOutcome, nameOf, loadoutLine,
+    bump, fireSale, cashLine, scouted, playSeasonGame, keptWords, showOutcome, nameOf, loadoutLine,
   };
 }
 

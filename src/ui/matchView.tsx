@@ -1,3 +1,5 @@
+import { dropGame, keepGame } from './keptGame';
+import type { World } from '../sim/types';
 import { assistTuning, type AssistKind } from '../core/assists';
 import { venueFor } from '../game/venue';
 import { readGamepad } from '../game/gamepad';
@@ -89,6 +91,10 @@ export interface MatchOptions {
   opening?: string;
   /** True for a practice in place of a game: endless, nothing settled. */
   practice?: boolean;
+  /** Which game this is, for a game that is kept while it is played so that it can be picked up after an interruption. */
+  keep?: string;
+  /** The game kept from before: play carries on from it, paused, in place of a new game. */
+  resume?: World;
   /** True for the first skate: a practice with a lesson run on it, which ends when the lesson does. */
   lesson?: boolean;
   /** How long a period lasts, in seconds. Left out, what the tuning says. */
@@ -105,7 +111,7 @@ export interface MatchOptions {
  * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening, practice, periodSeconds, intro, stage, assists, noTactics, lesson }: MatchOptions, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening, practice, periodSeconds, intro, stage, assists, noTactics, lesson, keep, resume }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
   // The rink's own numbers sit on top of whatever the tuning panel holds; worked out again only when that changes.
   const where = rinkInfo(shootout ? null : rink);
@@ -147,7 +153,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
   showTouch();
 
   // The introduction: the rink waits behind it for a few seconds, or until any press.
-  let introOn = intro !== undefined;
+  let introOn = intro !== undefined && !resume;
   const introBox = document.createElement('div');
   introBox.id = 'intro';
   let introTimer = 0;
@@ -162,7 +168,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
     render(null, introBox);
     introBox.remove();
   };
-  if (intro) {
+  if (intro && !resume) {
     document.body.append(introBox);
     render(<MatchIntro home={home} away={away} homeColour={homeColour ?? teamCrest(home.name).primary} awayColour={awayColour ?? teamCrest(away.name).primary} words={intro} />, introBox);
     introTimer = window.setTimeout(endIntro, look.introSeconds * 1000);
@@ -177,6 +183,15 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
     }, look.introGraceSeconds * 1000);
   }
 
+  // A game that is kept is written down when it is paused or hidden, every so often while it is played, and
+  // when it ends; and forgotten when the player leaves it.
+  const keepNow = (): void => {
+    if (keep && !left) keepGame(keep, scene.snapshot());
+  };
+  let left = false;
+  const keepTimer = keep ? window.setInterval(() => { if (!paused) keepNow(); }, look.keepGameSeconds * 1000) : 0;
+  if (keep) window.addEventListener('pagehide', keepNow);
+
   // Pausing: the game freezes and the pause menu, an ordinary menu screen, opens over the rink.
   let paused = false;
   let toggledAt = 0;
@@ -186,6 +201,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
     toggledAt = performance.now();
     gameAudio.hush(on);
     if (on) hush();
+    if (on) keepNow();
     document.body.classList.toggle('paused', on);
     if (on) {
       menuInput.start();
@@ -241,7 +257,10 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
   onPauseButton = () => pausePressed(0);
   // A locked phone or a switch to another app pauses the game.
   const onHidden = (): void => {
-    if (document.hidden) setPaused(true);
+    if (document.hidden) {
+      setPaused(true);
+      keepNow();
+    }
   };
   document.addEventListener('visibilitychange', onHidden);
   // So does a controller that drops out: nobody should lose a game to a flat battery.
@@ -283,7 +302,8 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       hints: () => (lesson ? null : hintsOn || practice ? hintCounts : null),
       replays: () => loadPrefs().replays,
       holdSwitch: loadPrefs().holdSwitch,
-      ...(opening ? { opening } : {}),
+      ...(opening && !resume ? { opening } : {}),
+      ...(resume ? { resume } : {}),
       // The summary steps aside while the goal of the game is shown again.
       onReplay: (on) => {
         summary.style.visibility = on ? 'hidden' : '';
@@ -295,6 +315,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       tuning: rinkTuned,
       rules: practice || lesson ? { practice: true } : shootout ? { shootout: SHOOTOUT } : { ...where.rules, ...(rules ?? {}) },
       bigPuck: loadPrefs().bigPuck,
+      calm: loadPrefs().calm,
       ...(stage !== undefined ? { venue: venueFor(stage) } : {}),
       onControls,
       paused: () => paused || introOn,
@@ -310,6 +331,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
         gameAudio.onFrame(seconds);
       },
       onResult: (result) => {
+        keepNow();
         music.sting(resultPiece(result.winner === 0));
         render(
           <GameSummary
@@ -328,6 +350,10 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
         );
       },
       onDone: (result) => {
+        left = true;
+        window.clearInterval(keepTimer);
+        window.removeEventListener('pagehide', keepNow);
+        if (keep) dropGame();
         document.removeEventListener('visibilitychange', onHidden);
         endIntro();
         window.removeEventListener('gamepaddisconnected', onPadGone);
@@ -354,6 +380,8 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
     scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
     scene,
   });
+  // A game picked up again starts paused, so nobody is dropped into the middle of a rush.
+  if (resume) window.setTimeout(() => setPaused(true), 0);
   // Local development only: lets a debugging session drive frames by hand.
   if (import.meta.env.DEV) (window as unknown as { __game: Phaser.Game }).__game = game;
 }

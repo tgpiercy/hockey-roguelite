@@ -97,12 +97,12 @@ export class Crowd {
    * Draws the crowd. `excitement` is 0 to 1; `cheering` is the team whose fans are on their feet, or null.
    * `still` skips the movement, for the low-detail setting.
    */
-  draw(g: Phaser.GameObjects.Graphics, timeSeconds: number, excitement: number, cheering: 0 | 1 | null, teamColours: [string, string], still: boolean): void {
+  draw(g: Phaser.GameObjects.Graphics, timeSeconds: number, excitement: number, cheering: 0 | 1 | null, teamColours: [string, string], still: boolean, noFlashes = false): void {
     const size = arena.fanSize;
     const neutrals = arena.neutralColours.map(colour);
     const teams = [colour(teamColours[0]), colour(teamColours[1])];
     // Cameras: a different handful of fans each moment, more of them the louder it is. No dice: the moment picks them.
-    const flashes = still ? 0 : Math.round(this.fans.length * this.venue.flashShare * excitement);
+    const flashes = still || noFlashes ? 0 : Math.round(this.fans.length * this.venue.flashShare * excitement);
     const moment = Math.floor(timeSeconds * arena.flashesPerSecond);
     for (const [index, fan] of this.fans.entries()) {
       const mine = fan.team !== -1 && fan.team === cheering;

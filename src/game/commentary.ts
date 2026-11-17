@@ -21,6 +21,8 @@ export interface CallContext {
   mascots?: [string | null, string | null];
   /** The score after the event. */
   score: [number, number];
+  /** True in overtime: a goal then is the winner. */
+  overtime?: boolean;
 }
 
 /** "2-1 Gulls", or "tied at 2". */
@@ -47,6 +49,8 @@ export function describe(e: SimEvent, ctx: CallContext): { kind: Kind; fill: Rec
       const goalie = named(e.goalie);
       return goalie ? { kind: e.frozen ? 'freeze' : 'save', fill: { name: goalie } } : null;
     }
+    case 'whiff':
+      return null;
     case 'check': {
       const who = named(e.player);
       if (!who || !e.success) return null;
@@ -86,39 +90,115 @@ export function describe(e: SimEvent, ctx: CallContext): { kind: Kind; fill: Rec
   }
 }
 
+/** What a goal means for the score: which kind of moment it is. */
+export type Moment = keyof typeof data.goal.moment;
+
+/**
+ * The moment a goal makes, from the score after it, who scored, how many that scorer now has, and whether
+ * it is overtime: the winner, a hat-trick, the first goal, a tie, a lead taken, a deficit cut to one, or nothing special.
+ */
+export function momentOf(after: [number, number], team: 0 | 1, scorerGoals: number, overtime: boolean): Moment {
+  const mine = after[team];
+  const theirs = after[1 - team] as number;
+  if (overtime) return 'winner';
+  if (scorerGoals === 3) return 'hatTrick';
+  if (mine + theirs === 1) return 'first';
+  if (mine === theirs) return 'ties';
+  if (mine === theirs + 1) return 'ahead';
+  if (mine === theirs - 1) return 'within';
+  return 'plain';
+}
+
+const fillIn = (line: string, fill: Record<string, string>): string => line.replace(/\{(\w+)\}/g, (_, key: string) => fill[key] ?? '');
+
 /**
  * Turns what happens on the ice into short lines. It picks the most important thing in each batch of
  * events, never says the same wording twice running for one kind of play, and keeps quiet for a moment
- * after each line unless something bigger happens.
+ * after each line unless something bigger happens. A goal's line is put together from parts: how it went
+ * in, who set it up, and what it does to the score. A few lines are said only once a game, and in a game
+ * that is no longer close only the big things are called.
  */
 export class Commentator {
   private readonly rng: Rng;
-  private readonly last = new Map<Kind, number>();
+  private readonly last = new Map<string, number>();
+  private readonly said = new Set<string>();
+  private readonly goals = new Map<number, number>();
   private quietUntil = 0;
   private current = 0;
+  /** How the last shot was taken, for the goal or the save that follows it. */
+  private shot: 'plain' | 'oneTimer' | 'tip' = 'plain';
 
   constructor(seed: string) {
     this.rng = createRng(`${seed}/commentary`);
   }
 
+  /** One of a list, never the one said last from the same list. */
+  private pick(list: string, options: readonly string[]): string {
+    let index = this.rng.int(0, options.length - 1);
+    if (options.length > 1 && index === this.last.get(list)) index = (index + 1) % options.length;
+    this.last.set(list, index);
+    return options[index] as string;
+  }
+
+  /** A goal's line: how it went in, then either what it means, or who set it up and the score. */
+  private goalText(e: Extract<SimEvent, { type: 'goal' }>, ctx: CallContext, fill: Record<string, string>): string {
+    const count = e.scorer === null ? 0 : (this.goals.get(e.scorer) ?? 0);
+    const moment = momentOf(ctx.score, e.team, count, ctx.overtime === true);
+    const all = { ...fill, team: ctx.teams[e.team], n: String(ctx.score[e.team]) };
+    const how = fillIn(this.pick(`how/${this.shot}`, data.goal.how[this.shot]), all);
+    const means = fillIn(this.pick(`moment/${moment}`, data.goal.moment[moment]), all);
+    // A moment worth naming is named; otherwise there is room for whoever made the pass.
+    const from = moment === 'plain' && fill.assist !== undefined && this.rng.chance(data.assistChance) ? ` ${fillIn(this.pick('from', data.goal.from), all)}` : '';
+    return `${how}${from} ${means}`;
+  }
+
   /** The line for these events at this time (seconds), or null to say nothing. */
   call(events: readonly SimEvent[], ctx: CallContext, now: number): Call | null {
     let best: { kind: Kind; fill: Record<string, string> } | null = null;
+    let bestEvent: SimEvent | null = null;
+    let shotBefore = this.shot;
     for (const e of events) {
+      // How the puck was last sent at the net, and how many each scorer has, are noted whatever is said.
+      if (e.type === 'shot') this.shot = e.oneTimer ? 'oneTimer' : 'plain';
+      else if (e.type === 'tip') this.shot = 'tip';
+      else if (e.type === 'goal' && e.scorer !== null) this.goals.set(e.scorer, (this.goals.get(e.scorer) ?? 0) + 1);
       const d = describe(e, ctx);
-      if (d && (!best || priorityOf(d.kind) > priorityOf(best.kind))) best = d;
+      if (d && (!best || priorityOf(d.kind) > priorityOf(best.kind))) {
+        best = d;
+        bestEvent = e;
+        shotBefore = this.shot;
+      }
+      // Once it is stopped or picked up, whatever comes next is a new shot.
+      if (e.type === 'save' || e.type === 'pickup') this.shot = 'plain';
     }
-    if (!best) return null;
+    if (!best || !bestEvent) return null;
     const priority = priorityOf(best.kind);
     // Still inside the last line: only something bigger may cut in.
     if (now < this.quietUntil && priority <= this.current) return null;
+    // A game that is no longer close: only the big things are called.
+    if (Math.abs(ctx.score[0] - ctx.score[1]) >= data.quietMargin && priority < data.quietBelow) return null;
+    // The small things are not called every time.
+    const often = (data.sayChance as Record<string, number>)[best.kind];
+    if (often !== undefined && !this.rng.chance(often)) return null;
 
-    const options = data.lines[best.kind];
-    let index = this.rng.int(0, options.length - 1);
-    if (options.length > 1 && index === this.last.get(best.kind)) index = (index + 1) % options.length;
-    this.last.set(best.kind, index);
     const fill = best.fill;
-    const text = (options[index] as string).replace(/\{(\w+)\}/g, (_, key: string) => fill[key] ?? '');
+    let text: string;
+    if (bestEvent.type === 'goal' && bestEvent.scorer !== null && fill.name !== undefined) {
+      this.shot = shotBefore;
+      text = this.goalText(bestEvent, ctx, fill);
+      this.shot = 'plain';
+    } else {
+      // A save from a one-timer has words of its own; and a few lines are kept to be said once a game.
+      const kind: Kind = best.kind === 'save' && shotBefore === 'oneTimer' ? 'saveOneTimer' : best.kind;
+      const once = ((data.once as Record<string, string[]>)[kind] ?? []).filter((line) => !this.said.has(line));
+      if (once.length > 0 && this.rng.chance(data.onceChance)) {
+        const line = once[this.rng.int(0, once.length - 1)] as string;
+        this.said.add(line);
+        text = fillIn(line, fill);
+      } else {
+        text = fillIn(this.pick(kind, data.lines[kind]), fill);
+      }
+    }
     this.quietUntil = now + data.minGapSeconds;
     this.current = priority;
     return { kind: best.kind, text, priority };

@@ -111,6 +111,10 @@ export function settingsPages(app: AppCtx): ComponentChildren {
                   : 'On a phone held sideways, your first touch hides the browser\'s address bar and keeps the screen sideways. Opened from the home screen there is no address bar at all.',
             },
           ),
+          tile('calm', 'Shake and flashes', prefs.calm ? 'Reduced' : 'On', () => changePrefs({ ...prefs, calm: !prefs.calm }), {
+            icon: 'report',
+            detail: 'Reduced: the screen does not shake on a goal or a hit, the crowd\'s cameras do not flash, and marks that pulse hold steady. Nothing about the play changes. Takes effect from your next game.',
+          }),
           tile(
             'rumble',
             'Rumble',

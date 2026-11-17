@@ -21,6 +21,8 @@ export interface Prefs {
   rumble: boolean;
   /** True: the puck is drawn larger, with a bright edge. */
   bigPuck: boolean;
+  /** True to leave out the screen shake, the camera flashes in the crowd and the pulsing marks. */
+  calm: boolean;
   /** True: you keep your skater until you press switch. False: control follows the puck to whoever of yours has it. */
   holdSwitch: boolean;
   /** Commentary during a game: none, a line of text, or the text read aloud as well. */
@@ -30,7 +32,7 @@ export interface Prefs {
   musicVolume: number;
 }
 
-export const DEFAULT_PREFS: Prefs = { sound: true, volume: 0.7, detail: 'full', touch: 'auto', hints: true, replays: true, holdSwitch: false, bigPuck: false, rumble: true, fullscreen: true, commentary: 'text', music: true, musicVolume: 0.5 };
+export const DEFAULT_PREFS: Prefs = { sound: true, volume: 0.7, detail: 'full', touch: 'auto', hints: true, replays: true, holdSwitch: false, bigPuck: false, calm: false, rumble: true, fullscreen: true, commentary: 'text', music: true, musicVolume: 0.5 };
 export const COMMENTARY_MODES: Prefs['commentary'][] = ['off', 'text', 'voice'];
 export const COMMENTARY_NAMES: Record<Prefs['commentary'], string> = { off: 'Off', text: 'Text', voice: 'Text and voice' };
 export const VOLUME_STEPS = [0.2, 0.4, 0.7, 1];
@@ -66,6 +68,7 @@ export function parsePrefs(raw: string | null): Prefs {
       fullscreen: typeof v.fullscreen === 'boolean' ? v.fullscreen : DEFAULT_PREFS.fullscreen,
       holdSwitch: typeof v.holdSwitch === 'boolean' ? v.holdSwitch : DEFAULT_PREFS.holdSwitch,
       bigPuck: typeof v.bigPuck === 'boolean' ? v.bigPuck : DEFAULT_PREFS.bigPuck,
+      calm: typeof v.calm === 'boolean' ? v.calm : DEFAULT_PREFS.calm,
       commentary: v.commentary === 'off' || v.commentary === 'text' || v.commentary === 'voice' ? v.commentary : DEFAULT_PREFS.commentary,
       music: typeof v.music === 'boolean' ? v.music : DEFAULT_PREFS.music,
       musicVolume: typeof v.musicVolume === 'number' && Number.isFinite(v.musicVolume) ? Math.max(0, Math.min(1, v.musicVolume)) : DEFAULT_PREFS.musicVolume,

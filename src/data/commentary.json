@@ -1,25 +1,214 @@
 {
   "minGapSeconds": 2.2,
   "showSeconds": 2.6,
-  "priority": { "goal": 5, "final": 5, "fire": 4, "pull": 4, "bigHit": 3, "save": 3, "post": 3, "oneTimer": 3, "block": 2, "tip": 3, "fake": 2, "freeze": 1, "poke": 1, "period": 4, "mascotOn": 5, "mascotOff": 2 },
+  "priority": {
+    "goal": 5,
+    "final": 5,
+    "fire": 4,
+    "pull": 4,
+    "bigHit": 3,
+    "save": 3,
+    "post": 3,
+    "oneTimer": 3,
+    "block": 2,
+    "tip": 3,
+    "fake": 2,
+    "freeze": 1,
+    "poke": 1,
+    "period": 4,
+    "mascotOn": 5,
+    "mascotOff": 2
+  },
   "lines": {
-    "goal": ["{name} scores! {score}", "Goal, {name}! {score}", "{name} finds the net. {score}", "He shoots, he scores! {name}. {score}", "{name} buries it! {score}"],
-    "goalAssist": ["{name}, from {assist}! {score}", "{assist} sets up {name}! {score}", "{name} finishes the pass from {assist}. {score}"],
-    "save": ["{name} shuts the door!", "What a save by {name}!", "{name} says no!", "Stopped by {name}!", "{name} stands tall!"],
-    "freeze": ["{name} holds on.", "{name} covers it up."],
-    "bigHit": ["Big hit by {name}!", "{name} flattens him!", "Crunch! {name} with the hit!", "{name} lays him out!"],
-    "poke": ["{name} pokes it free.", "Stolen by {name}."],
-    "post": ["Off the post!", "He rings the iron!", "Off the pipe and out!"],
-    "oneTimer": ["One-timer, {name}!", "{name} lets it go first time!", "{name} hammers the one-timer!"],
-    "fake": ["{name} with the fake...", "{name} pulls it back..."],
-    "block": ["{name} blocks the shot!", "{name} gets in front of it!", "Blocked by {name}!"],
-    "tip": ["Tipped by {name}!", "{name} gets a stick on it!"],
-    "fire": ["{team} are on fire!", "{team} have all the momentum!"],
-    "pullOn": ["{team} pull the goalie!", "Empty net for {team}!"],
-    "pullOff": ["{team} send the goalie back."],
-    "period": ["That is the end of the period. {score}"],
-    "mascotOn": ["{name} is in the building! The {team} mascot plays this period.", "Here comes {name}! The {team} send out their mascot.", "Look who it is: {name}, for the {team}!"],
-    "mascotOff": ["{name} heads back to the stands."],
-    "final": ["That is the game! {score}", "The final horn! {score}"]
+    "goal": [
+      "{name} scores! {score}",
+      "Goal, {name}! {score}",
+      "{name} finds the net. {score}",
+      "He shoots, he scores! {name}. {score}",
+      "{name} buries it! {score}"
+    ],
+    "goalAssist": [
+      "{name}, from {assist}! {score}",
+      "{assist} sets up {name}! {score}",
+      "{name} finishes the pass from {assist}. {score}"
+    ],
+    "save": [
+      "{name} shuts the door!",
+      "What a save by {name}!",
+      "{name} says no!",
+      "Stopped by {name}!",
+      "{name} stands tall!",
+      "{name} gets a pad on it!",
+      "Kicked out by {name}!",
+      "{name} was ready for that one.",
+      "Glove save, {name}!"
+    ],
+    "freeze": [
+      "{name} holds on.",
+      "{name} covers it up."
+    ],
+    "bigHit": [
+      "Big hit by {name}!",
+      "{name} flattens him!",
+      "Crunch! {name} with the hit!",
+      "{name} lays him out!",
+      "{name} steps into him!",
+      "That one shook the glass! {name}."
+    ],
+    "poke": [
+      "{name} pokes it free.",
+      "Stolen by {name}.",
+      "{name} lifts it off his stick.",
+      "Picked clean by {name}."
+    ],
+    "post": [
+      "Off the post!",
+      "He rings the iron!",
+      "Off the pipe and out!",
+      "Iron! So close.",
+      "It beats the goalie and not the post!"
+    ],
+    "oneTimer": [
+      "One-timer, {name}!",
+      "{name} lets it go first time!",
+      "{name} hammers the one-timer!",
+      "{name}, first time!"
+    ],
+    "fake": [
+      "{name} with the fake...",
+      "{name} pulls it back..."
+    ],
+    "block": [
+      "{name} blocks the shot!",
+      "{name} gets in front of it!",
+      "Blocked by {name}!",
+      "{name} pays the price to block it!"
+    ],
+    "tip": [
+      "Tipped by {name}!",
+      "{name} gets a stick on it!"
+    ],
+    "fire": [
+      "{team} are on fire!",
+      "{team} have all the momentum!"
+    ],
+    "pullOn": [
+      "{team} pull the goalie!",
+      "Empty net for {team}!"
+    ],
+    "pullOff": [
+      "{team} send the goalie back."
+    ],
+    "period": [
+      "That is the end of the period. {score}",
+      "The horn goes. {score}",
+      "To the dressing rooms. {score}"
+    ],
+    "mascotOn": [
+      "{name} is in the building! The {team} mascot plays this period.",
+      "Here comes {name}! The {team} send out their mascot.",
+      "Look who it is: {name}, for the {team}!"
+    ],
+    "mascotOff": [
+      "{name} heads back to the stands."
+    ],
+    "final": [
+      "That is the game! {score}",
+      "The final horn! {score}",
+      "It is over! {score}"
+    ],
+    "saveOneTimer": [
+      "{name} robs the one-timer!",
+      "{name} gets across in time!",
+      "First time, and {name} still has it!"
+    ]
+  },
+  "quietMargin": 4,
+  "quietBelow": 4,
+  "assistChance": 0.6,
+  "onceChance": 0.3,
+  "sayChance": {
+    "poke": 0.5,
+    "freeze": 0.5,
+    "fake": 0.6
+  },
+  "goal": {
+    "how": {
+      "plain": [
+        "{name} scores!",
+        "Goal, {name}!",
+        "{name} finds the net!",
+        "He shoots, he scores! {name}!",
+        "{name} buries it!",
+        "{name} puts it away!",
+        "In off the stick of {name}!",
+        "{name} beats him clean!"
+      ],
+      "oneTimer": [
+        "{name} one-times it home!",
+        "First time, {name}, and it is in!",
+        "{name} hammers it in off the pass!",
+        "One touch from {name}: goal!"
+      ],
+      "tip": [
+        "Tipped in by {name}!",
+        "{name} gets a stick on it and it is in!",
+        "A deflection! {name} scores!"
+      ]
+    },
+    "from": [
+      "From {assist}.",
+      "Set up by {assist}.",
+      "{assist} with the pass.",
+      "A fine feed from {assist}."
+    ],
+    "moment": {
+      "plain": [
+        "{score}"
+      ],
+      "first": [
+        "The first goal of the night. {score}",
+        "{team} open the scoring.",
+        "We have a first goal. {score}"
+      ],
+      "ties": [
+        "We are tied at {n}!",
+        "All square at {n}!",
+        "A tie game! {score}"
+      ],
+      "ahead": [
+        "{team} go in front! {score}",
+        "{team} take the lead. {score}",
+        "A lead for {team}! {score}"
+      ],
+      "within": [
+        "{team} are within one. {score}",
+        "A one-goal game! {score}",
+        "{team} are not done yet. {score}"
+      ],
+      "hatTrick": [
+        "That is a hat-trick for {name}! {score}",
+        "Three tonight for {name}! {score}"
+      ],
+      "winner": [
+        "{team} win it in overtime!",
+        "That is the game! {team} in overtime!"
+      ]
+    }
+  },
+  "once": {
+    "save": [
+      "{name} has been the difference tonight.",
+      "{name} is seeing everything."
+    ],
+    "bigHit": [
+      "They felt that one in the cheap seats! {name}."
+    ],
+    "post": [
+      "That post will ring until morning."
+    ],
+    "block": [
+      "{name} will be feeling that one tomorrow."
+    ]
   }
 }

@@ -129,7 +129,7 @@ export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs, tactics
           {
             key: 'touch',
             label: `On-screen controls: ${TOUCH_NAMES[prefs.touch]}`,
-            detail: TOUCH_NOTES[prefs.touch],
+            detail: `${TOUCH_NOTES[prefs.touch]} The game is made for a controller; the on-screen buttons do everything, with less finesse.`,
             onSelect: () => change({ ...prefs, touch: TOUCH_MODES[(TOUCH_MODES.indexOf(prefs.touch) + 1) % TOUCH_MODES.length] as Prefs['touch'] }),
           },
           { key: 'back', label: 'Back', onSelect: () => setPage('main') },

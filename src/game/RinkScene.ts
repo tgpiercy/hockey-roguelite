@@ -61,6 +61,8 @@ export interface RinkSceneOptions {
   holdSwitch?: boolean;
   /** Draw the puck larger, with a bright edge. */
   bigPuck?: boolean;
+  /** True to leave out the screen shake, the crowd's camera flashes and the pulsing of marks: they hold steady. */
+  calm?: boolean;
   /** The building the game is played in (`venues` in `rinkLook.json`); the standard look when not given. */
   venue?: string;
   /** The announcer's line as the game begins. Left out, he says nothing. */
@@ -101,6 +103,8 @@ export interface RinkSceneOptions {
   replays?: () => boolean;
   /** Told when a replay starts (true) and ends (false). */
   onReplay?: (on: boolean) => void;
+  /** A game kept from before, to be picked up where it was in place of a new one. */
+  resume?: World;
   /** True for the first skate: the practice rink with a lesson run on it, which ends the game when it is done. */
   lesson?: boolean;
   /** Called each time the player does a move a hint is about. */
@@ -244,7 +248,7 @@ export class RinkScene extends Phaser.Scene {
         .setAlpha(arena.iceAdvertAlpha),
     );
     this.g = this.add.graphics();
-    this.world = createGame(this.options.tuning(), this.options.seed, {
+    this.world = this.options.resume ?? createGame(this.options.tuning(), this.options.seed, {
       teams: this.options.teams,
       levels: this.options.levels,
       powerups: this.options.powerups,
@@ -253,7 +257,7 @@ export class RinkScene extends Phaser.Scene {
       ...(this.options.holdSwitch ? { holdSwitch: true } : {}),
     });
     if (this.options.second !== undefined) this.reader2 = new InputReader(1);
-    for (const team of [0, 1] as const) {
+    for (const team of this.options.resume ? [] : ([0, 1] as const)) {
       const visitor = mascotPlayer(this.world, team);
       if (visitor && isMascot(this.world, visitor)) this.pending.push({ type: 'mascot', team, player: visitor.id, arrived: true });
     }
@@ -455,7 +459,7 @@ export class RinkScene extends Phaser.Scene {
       const names = this.options.playerNames;
       const call = this.commentator.call(
         happened,
-        { name: (id) => names[id < 7 ? 0 : 1][id % 7] ?? null, teams: this.options.names, score: this.world.score, mascots: [this.mascotName(0), this.mascotName(1)] },
+        { name: (id) => names[id < 7 ? 0 : 1][id % 7] ?? null, teams: this.options.names, score: this.world.score, mascots: [this.mascotName(0), this.mascotName(1)], overtime: this.world.overtime },
         this.clock,
       );
       if (call) {
@@ -503,7 +507,7 @@ export class RinkScene extends Phaser.Scene {
     // Effects and sound only watch: they are told what happened and never touch the simulation.
     this.effects.update(this.world, happened, t, played);
     if (this.effects.shake > 0) {
-      if (this.full) this.cameras.main.shake(fx.shakeMs, this.effects.shake);
+      if (this.full && !this.options.calm) this.cameras.main.shake(fx.shakeMs, this.effects.shake);
       this.effects.shake = 0;
     }
     if (happened.length > 0) this.options.onEvents?.(happened, this.world, t);
@@ -613,6 +617,16 @@ export class RinkScene extends Phaser.Scene {
     }
     // A goal lines everyone up with the puck loose: put the step's own situation back.
     if (stepped.some((e) => e.type === 'goal') && this.lessonStage === null && this.lessonEnd === null) this.lessonStage = this.clock + LESSON_TIMING.stageSeconds * 2;
+  }
+
+  /** A mark's pulse, from -1 to 1; with the calm setting it holds at full instead of flashing. */
+  private pulse(perSecond: number, offset = 0): number {
+    return this.options.calm ? 1 : Math.sin(this.clock * perSecond + offset);
+  }
+
+  /** The game as it stands, for keeping. (A replay only borrows `world` while it is being drawn.) */
+  snapshot(): World {
+    return this.world;
   }
 
   /** Gives the game up: it ends now as a loss for the human's team, without the summary screen. */
@@ -748,7 +762,7 @@ export class RinkScene extends Phaser.Scene {
       g.strokeRoundedRect(left - d, topEdge - d, w + d * 2, h + d * 2, corner + d);
     }
     this.crowd.layout(left, topEdge, w, h, corner, width, height, look.topBarPixels);
-    this.crowd.draw(g, this.clock, this.effects.excitement, this.effects.cheering, [this.teamColour(0), this.teamColour(1)], !this.full);
+    this.crowd.draw(g, this.clock, this.effects.excitement, this.effects.cheering, [this.teamColour(0), this.teamColour(1)], !this.full, this.options.calm === true);
   }
 
   /** The ice, its markings, the boards, the bench doors and the nets. */
@@ -1050,7 +1064,7 @@ export class RinkScene extends Phaser.Scene {
 
       // A team on fire: a glow under each of its players.
       if (onFire(world, p.team)) {
-        g.fillStyle(colour(c.fire), 0.3 + 0.2 * Math.sin(this.clock * 12 + p.id));
+        g.fillStyle(colour(c.fire), 0.3 + 0.2 * this.pulse(12, p.id));
         g.fillEllipse(x, y, unit * FIG.shadowWidth * 2.9, unit * FIG.shadowHeight * 2.9);
       }
       // The Gale's burst: streaks behind him.
@@ -1110,7 +1124,7 @@ export class RinkScene extends Phaser.Scene {
       }
       // A skater whose every hit is a knock-down flashes while he is winding one up.
       if (!goalie && p.fx.alwaysKnockdown > 0 && p.checkCharge > 0) {
-        const pulse = 0.55 + 0.45 * Math.sin(this.clock * 30);
+        const pulse = 0.55 + 0.45 * this.pulse(30);
         this.top.lineStyle(Math.max(2, unit * 0.22), colour(c.fire), pulse);
         this.top.strokeCircle(x, y - unit * 1.6, unit * 2.4);
       }
@@ -1439,7 +1453,7 @@ export class RinkScene extends Phaser.Scene {
       const burning = onFire(world, team);
       const share = burning ? 1 : world.teams[team].heat;
       const barX = team === 0 ? left : left + boardW - nameW;
-      g.fillStyle(colour(burning ? c.fire : c.accent), burning ? 0.7 + 0.3 * Math.sin(this.clock * 12) : 0.9);
+      g.fillStyle(colour(burning ? c.fire : c.accent), burning ? 0.7 + 0.3 * this.pulse(12) : 0.9);
       g.fillRect(team === 0 ? barX : barX + nameW * (1 - share), y0 + boardH - 3, nameW * share, 3);
     }
 

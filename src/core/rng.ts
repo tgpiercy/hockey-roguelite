@@ -24,6 +24,16 @@ export interface Rng {
   fork(label: string): Rng;
   /** A separate generator that will give exactly the numbers this one is about to, without disturbing it. */
   clone(): Rng;
+  /** Where the generator has got to, as four numbers: with the seed, enough to make it again (`rngFrom`). */
+  state(): RngState;
+}
+
+/** A generator's place in its stream. */
+export type RngState = [number, number, number, number];
+
+/** The generator a seed and a noted state stand for: it gives exactly what the one noted was about to. */
+export function rngFrom(seed: string, state: RngState): Rng {
+  return generator(seed, state[0], state[1], state[2], state[3], false);
 }
 
 /** Hashes a string into four 32-bit seeds (xmur3). */
@@ -98,5 +108,6 @@ function generator(seedText: string, a0: number, b0: number, c0: number, d0: num
     },
     fork: (label) => createRng(`${seedText}/${label}`),
     clone: () => generator(seedText, a, b, c, d, false),
+    state: () => [a, b, c, d],
   };
 }

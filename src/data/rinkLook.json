@@ -406,6 +406,7 @@
   "openingLightSeconds": 1.8,
   "openingDark": 0.6,
   "frameWindowMs": 10000,
+  "keepGameSeconds": 10,
   "venueByStage": [
     "barn",
     "arena",

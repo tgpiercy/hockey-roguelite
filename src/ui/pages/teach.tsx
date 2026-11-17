@@ -174,7 +174,7 @@ export function teachPages(app: AppCtx): ComponentChildren | undefined {
       <Menu
         key={screenKey}
         title="A first skate?"
-        header={`About two minutes on the practice rink: ${lessons.steps.length} moves, one at a time, each with a line saying what it is for. Nothing is at stake and you can leave from the pause menu.`}
+        header={`About two minutes on the practice rink: ${lessons.steps.length} moves, one at a time, each with a line saying what it is for. Nothing is at stake and you can leave from the pause menu. The game is made for a controller: one paired with the phone is the best way to play. The on-screen buttons do everything, with less finesse.`}
         items={[
           tile('take', 'Take the first skate', 'Six moves, two minutes', () => {
             setFirstRun(false);

@@ -43,7 +43,7 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
     screen, setScreen, message, playing, joined, setJoined, together, rewards, mapFocus, setMapFocus,
     trainee, setTrainee, prefs, shown, f, league, season, team, myCrest, screenKey,
     go, after, home, top, openGroup, tile, weeklyCard, card, bump, fireSale,
-    cashLine, playSeasonGame, showOutcome, loadoutLine,
+    cashLine, playSeasonGame, keptWords, showOutcome, loadoutLine,
   } = app;
 
   // ---------------------------------------------------------------- home
@@ -343,7 +343,7 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
                   }, { wide: true, icon: 'team', detail: 'A second controller has joined: both of you play for your team, each with his own skater (yours has the red ring, his the blue). Press here to send player 2 away and play alone.' }),
                 ]
               : []),
-            tile('play', 'Play', game.elite ? 'Elite games must be played' : game.kind === 'game' ? 'Take the ice' : game.kind === 'boss' ? (bossLossEnds(f) && insuranceLeft(f) === 0 ? 'Lose and the season is over' : bossLossEnds(f) ? 'Insured for one loss' : 'Bosses must be played') : 'Playoff games must be played', playSeasonGame, { primary: true, wide: true }),
+            tile('play', keptWords ? 'Carry on' : 'Play', keptWords ? `The game you left: ${keptWords}` : game.elite ? 'Elite games must be played' : game.kind === 'game' ? 'Take the ice' : game.kind === 'boss' ? (bossLossEnds(f) && insuranceLeft(f) === 0 ? 'Lose and the season is over' : bossLossEnds(f) ? 'Insured for one loss' : 'Bosses must be played') : 'Playoff games must be played', playSeasonGame, { primary: true, wide: true, ...(keptWords ? { detail: 'This game was under way when you left it, and was kept. It opens paused, where it stopped.' } : {}) }),
             ...(canSimulate(f)
               ? [
                   tile('simulate', 'Simulate', 'Settle it without playing', () => showOutcome(simulateGame(f)), {
