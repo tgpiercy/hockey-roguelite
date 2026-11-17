@@ -888,6 +888,7 @@ Not measured: a person. The numbers say passing is now the better play by half a
 | Pro, script | 100%, 27% | 80%, 3% |
 | Pro, passer | not measured | 100%, 73% |
 
+- **A person, 2026-11-17:** the owner's first region on Pro went 4-3 lost in overtime, 3-2 won late, and a 4-3 win over the boss, and felt even. Pro is left as it is.
 - The two stand-ins have moved far apart on Pro: the one that only carries and shoots almost never wins the title now, and the one that passes wins three in four. A person is somewhere between, and nearer the passer the better he gets. The difficulties were not re-set: which stand-in Pro is set against is the owner's call.
 - Rookie was kept where it was for the newcomer by two things: opponents at the bottom of the scale hardly block (`blockEagerness` from 0), and below `holdBackFrom` they do not hold a man back. Without them the newcomer cleared the first region 77% of the time.
 

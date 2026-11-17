@@ -308,6 +308,7 @@ Open decisions and their recommended defaults are listed in the last section of 
 | 2026-11-17 | Gear is reined in | Chosen by the owner after the measurement: a full Epic kit won 92% and max-level Legendary 100%. Points, perks and numeric set bonuses are cut so that a full Epic kit wins about 70% and full Legendary about 80% (89% at max level); the goalie set's save is once a game, not once a period. Gear already owned is worth less from now on. | Owner's choice; the particular numbers are ours, from measurement |
 | 2026-11-17 | Pro is left where it is | The owner will play it with the new defending before it is re-set. | Owner's choice |
 | 2026-11-17 | From the owner's first region on the phone | The region felt even. A player knocked down just before a whistle stayed lying down for his shift: `putOnIce` now stands him up. The four reward screens are one, with the numbers and bars growing. The Pause button moved from the bottom centre, where it sat on the line-energy bars, to the top left. The right stick scrolls a menu. | Owner's play report |
+| 2026-11-17 | Pro stays where it is | The owner played Pro's first region on the phone after the defending changes: lost 4-3 in overtime, won 3-2 on a late goal, beat the boss 4-3. "Good fun balance." The boss's advantage was noticeable without an artifact to answer it, and not too hard: he had to play differently. Three games by one person, so a first reading and not a rate. | Owner's play |
 
 ## Open
 
