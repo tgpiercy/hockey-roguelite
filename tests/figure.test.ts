@@ -77,20 +77,33 @@ describe('the on-ice figure', () => {
     expect(left.hand.x).toBeCloseTo(-right.hand.x);
   });
 
-  it('the legs swing opposite ways through a stride and pass each other in the middle', () => {
-    const forward = skates(figure({ ...STANDING, stride: Math.PI / 2, speed: 1 }));
-    const back = skates(figure({ ...STANDING, stride: (3 * Math.PI) / 2, speed: 1 }));
-    const level = skates(figure({ ...STANDING, stride: Math.PI, speed: 1 }));
-    expect(forward).toHaveLength(2);
-    // One foot ahead and one behind, and they swap half a stride later.
-    expect(mid(forward[0])).toBeLessThan(mid(forward[1]));
-    expect(mid(back[0])).toBeGreaterThan(mid(back[1]));
-    // In the middle of a stride the feet are as far apart as when he stands.
-    const standing = skates(figure(STANDING));
-    expect(mid(level[1]) - mid(level[0])).toBeCloseTo(mid(standing[1]) - mid(standing[0]));
+  it('a stride is a cycle: the skate pushes back along the ice, then lifts and is carried forward', () => {
+    const at = (stride: number, speed = 1): Poly[] => skates(figure({ ...STANDING, stride, speed }));
+    const lowest = (s: Poly | undefined): number => (s ? Math.max(...s.points.map((p) => p[1])) : Number.NaN);
+    // The far leg's skate is the first in the list and the near leg's the second; they are half a stride apart.
+    const [start, quarter, half, threeQuarters] = [at(0), at(Math.PI / 2), at(Math.PI), at((3 * Math.PI) / 2)];
+    expect(start).toHaveLength(2);
+    expect(mid(start[1])).toBeGreaterThan(mid(start[0]));
+    expect(mid(half[1])).toBeLessThan(mid(half[0]));
+    // The near skate goes back through the first half of the stride, on the ice all the way.
+    expect(mid(quarter[1])).toBeLessThan(mid(start[1]));
+    expect(mid(half[1])).toBeLessThan(mid(quarter[1]));
+    expect(lowest(quarter[1])).toBeCloseTo(lowest(start[1]), 1);
+    // In the second half it is off the ice, coming forward, while the far skate is down and pushing.
+    expect(lowest(threeQuarters[1])).toBeLessThan(lowest(quarter[1]) - 0.1);
+    expect(lowest(quarter[0])).toBeLessThan(lowest(threeQuarters[0]) - 0.1);
     // A faster skater strides longer.
-    const slow = skates(figure({ ...STANDING, stride: Math.PI / 2, speed: 0 }));
-    expect(mid(forward[1]) - mid(forward[0])).toBeGreaterThan(mid(slow[1]) - mid(slow[0]));
+    const slow = at(0, 0.5);
+    expect(mid(start[1]) - mid(start[0])).toBeGreaterThan(mid(slow[1]) - mid(slow[0]));
+  });
+
+  it('standing or gliding he takes no strides: the picture is the same wherever his stride was', () => {
+    expect(figure({ ...STANDING, stride: 1 }).shapes).toEqual(figure({ ...STANDING, stride: 4 }).shapes);
+    const glide = { ...STANDING, speed: 1, glide: true };
+    expect(figure({ ...glide, stride: 1 }).shapes).toEqual(figure({ ...glide, stride: 4 }).shapes);
+    // Gliding fast he still leans as a fast skater does.
+    expect(helmetOf(figure(glide)).x).toBeGreaterThan(helmetOf(figure(STANDING)).x);
+    expect(figure(glide).shapes).not.toEqual(figure({ ...STANDING, speed: 1, stride: 1 }).shapes);
   });
 
   it('leans into his skating and winds up by drawing his hands back and up', () => {

@@ -53,12 +53,19 @@ export class Effects {
   private particles: Particle[] = [];
   private rings: Ring[] = [];
   private confetti: Confetto[] = [];
+  /** True while a player has been losing speed long enough to be gliding. */
+  gliding(id: number): boolean {
+    return (this.slowing.get(id) ?? 0) > look.effects.glideAfter;
+  }
+
   /** The two teams' colours, for the confetti: set by the scene. */
   teamColours: [string, string] = [look.colours.teamHome, look.colours.teamAway];
   private trail: { x: number; y: number; age: number }[] = [];
   private lastPos = new Map<number, { x: number; y: number; speed: number }>();
   /** How far through his stride each player is, in radians. */
   readonly stride = new Map<number, number>();
+  /** Seconds each player has been losing speed: past a moment of it he is gliding, and takes no strides. */
+  readonly slowing = new Map<number, number>();
   /** What each player has just done (a pass, a poke, a hit; a goalie's glove save), and the seconds it is still shown for. */
   readonly action = new Map<number, { kind: 'pass' | 'poke' | 'hit' | 'glove'; left: number }>();
   /** Seconds left of each goalie's pads being down after a save, by player id. */
@@ -147,8 +154,12 @@ export class Effects {
         continue;
       }
       const speed = Math.hypot(p.vel.x, p.vel.y);
-      this.stride.set(p.id, (this.stride.get(p.id) ?? this.rng.range(0, 6)) + speed * dt * fx.stridePerMetre);
       const last = this.lastPos.get(p.id);
+      // A man who is losing speed has stopped pushing: he glides, and his stride waits where it was.
+      const losing = last !== undefined && dt > 0 && (last.speed - speed) / dt > fx.glideDrop;
+      this.slowing.set(p.id, losing ? (this.slowing.get(p.id) ?? 0) + dt : 0);
+      if (!this.gliding(p.id)) this.stride.set(p.id, (this.stride.get(p.id) ?? this.rng.range(0, 6)) + speed * dt * fx.stridePerMetre);
+      else if (!this.stride.has(p.id)) this.stride.set(p.id, this.rng.range(0, 6));
       if (this.full && last) {
         if (dropMark && speed > fx.markMinSpeed && p.role === 'skater') {
           this.marks.push({ x1: last.x, y1: last.y, x2: p.pos.x, y2: p.pos.y, age: 0 });

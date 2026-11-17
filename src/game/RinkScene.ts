@@ -1053,8 +1053,10 @@ export class RinkScene extends Phaser.Scene {
       const speed = Math.min(1, Math.hypot(p.vel.x, p.vel.y) / FIG.fullSpeed);
       const stride = this.effects.stride.get(p.id) ?? 0;
       // The pose is rounded to one of a few steps, so the same few pictures are reused instead of painting him every frame.
-      const strideStep = goalie ? 0 : Math.round((((stride % TAU) + TAU) % TAU) / TAU * FIG.poseSteps) % FIG.poseSteps;
       const speedStep = goalie ? 0 : Math.round(speed * FIG.speedSteps);
+      // Standing or gliding slowly he takes no strides, so there is one picture of it.
+      const glide = !goalie && speedStep > 0 && this.effects.gliding(p.id);
+      const strideStep = goalie || speedStep === 0 || glide ? 0 : Math.round((((stride % TAU) + TAU) % TAU) / TAU * FIG.poseSteps) % FIG.poseSteps;
       // The stick stays up for the moment of a fake.
       const wound = !goalie && (p.fake > 0 || (p.charge > 0 && chargeFraction(p.charge, t) > FIG.windUpAt)) ? 1 : 0;
       const kneel = !goalie && braced(world, p, t);
@@ -1091,10 +1093,11 @@ export class RinkScene extends Phaser.Scene {
         cheer,
         mateCheer,
         kneel,
+        ...(glide ? { glide } : {}),
         ...(action ? { action } : {}),
       };
       const skin = own?.skin ?? skinTone(p.id);
-      const key = `figure-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${own?.hairColour ?? ''}-${lookKey(who)}-${strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}${mateCheer ? '-mate' : ''}${kneel ? '-kneel' : ''}${action ? `-${action}` : ''}`;
+      const key = `figure-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${own?.hairColour ?? ''}-${lookKey(who)}-${strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}${mateCheer ? '-mate' : ''}${kneel ? '-kneel' : ''}${glide ? '-glide' : ''}${action ? `-${action}` : ''}`;
       if (!this.textures.exists(key)) {
         const canvas = document.createElement('canvas');
         paintFigure(canvas, figure(pose, who).shapes, figureColours(crest, goalie, skin, this.options.whiteTeam === p.team ? 'away' : 'home', own?.hairColour), pixels);

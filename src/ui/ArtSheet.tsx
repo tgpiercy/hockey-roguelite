@@ -8,6 +8,7 @@ import { generateLeague } from '../core/generate';
 import { portraitOf } from '../core/portrait';
 import crestRules from '../data/crests.json';
 import gearData from '../data/gear.json';
+import look from '../data/rinkLook.json';
 import { skinTone, STANDING, type PoseInput } from '../game/figure';
 import { BUILDS, lookOf } from '../core/playerLook';
 import { CrestBadge } from './Crest';
@@ -36,6 +37,7 @@ const POSES: [string, PoseInput][] = [
   ['goal', { ...STANDING, cheer: true }],
   ['his mate scored', { ...STANDING, mateCheer: true }],
   ['kneeling', { ...STANDING, kneel: true }],
+  ['gliding', { ...STANDING, speed: 1, glide: true }],
   ['pass', { ...STANDING, stride: 1, speed: 0.6, action: 'pass' }],
   ['poke', { ...STANDING, stride: 1, speed: 0.6, action: 'poke' }],
   ['hit', { ...STANDING, stride: 1, speed: 1, action: 'hit' }],
@@ -99,6 +101,14 @@ export function ArtSheet() {
         <div class="art-row" key={rarity.id}>
           {GEAR_ART_SLOTS.map((slot) => (
             <GearArt key={slot} slot={slot} rarity={rarity.id} size={40} />
+          ))}
+        </div>
+      ))}
+      <h2>A stride, picture by picture, flat out and at half speed</h2>
+      {[1, 0.5].map((speed) => (
+        <div key={speed} class="art-row figure-row">
+          {Array.from({ length: look.figure.poseSteps }, (_, i) => (
+            <FigureArt key={i} pose={{ ...STANDING, stride: (i / look.figure.poseSteps) * Math.PI * 2, speed }} crest={teamCrest(league.teams[2]?.name ?? 'sheet')} skin={skinTone(1)} size={84} />
           ))}
         </div>
       ))}

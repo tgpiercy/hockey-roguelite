@@ -63,3 +63,38 @@ describe('the look tables behind the comic drawing', () => {
     expect(F.farDark).toBeLessThan(0.5);
   });
 });
+
+describe('a skater who is slowing down glides', () => {
+  it('his stride goes on while he holds his speed and waits while he loses it', async () => {
+    const { Effects } = await import('../src/game/effects');
+    const { createWorld } = await import('../src/sim/world');
+    const { cloneTuning } = await import('../src/sim/tuning');
+    const t = cloneTuning();
+    const world = createWorld(t, 'glide');
+    const fx = new Effects(false);
+    const me = world.players[0]!;
+    const dt = 1 / 60;
+    const run = (speedAt: (i: number) => number, steps: number): void => {
+      for (let i = 0; i < steps; i++) {
+        me.vel.x = speedAt(i);
+        me.vel.y = 0;
+        fx.update(world, [], t, dt);
+      }
+    };
+    run(() => 6, 30);
+    expect(fx.gliding(me.id)).toBe(false);
+    const before = fx.stride.get(me.id)!;
+    run(() => 6, 30);
+    expect(fx.stride.get(me.id)!).toBeGreaterThan(before);
+    // Losing three metres a second each second: after a moment he is gliding, and his stride stops where it was.
+    run((i) => 6 - (i + 1) * 3 * dt, 30);
+    expect(fx.gliding(me.id)).toBe(true);
+    const held = fx.stride.get(me.id)!;
+    run((i) => 4.5 - (i + 1) * 3 * dt, 20);
+    expect(fx.stride.get(me.id)!).toBe(held);
+    // He pushes again: the stride goes on.
+    run(() => 5, 5);
+    expect(fx.gliding(me.id)).toBe(false);
+    expect(fx.stride.get(me.id)!).toBeGreaterThan(held);
+  });
+});

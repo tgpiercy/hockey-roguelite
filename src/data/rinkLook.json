@@ -82,7 +82,7 @@
     "padsDownSeconds": 0.5,
     "crowdRest": 0.12,
     "crowdCalmPerSecond": 0.22,
-    "stridePerMetre": 1.5,
+    "stridePerMetre": 1.3,
     "strideReach": 0.42,
     "markEverySeconds": 0.08,
     "markMinSpeed": 2.5,
@@ -121,7 +121,9 @@
     "confettiSize": 0.2,
     "confettiFall": 5,
     "wearAlpha": 0.08,
-    "benchJump": 0.9
+    "benchJump": 0.9,
+    "glideDrop": 1.2,
+    "glideAfter": 0.18
   },
   "arena": {
     "maxRows": 14,
@@ -219,7 +221,7 @@
     },
     "textureScale": 3,
     "maxTexturePixels": 30,
-    "poseSteps": 8,
+    "poseSteps": 12,
     "speedSteps": 2,
     "windUpAt": 0.3,
     "awayKit": {
@@ -237,13 +239,13 @@
       "thigh": 0.88,
       "shin": 0.86,
       "ankle": 0.34,
-      "hipY": -1.86,
-      "crouch": 0.05,
+      "hipY": -1.98,
+      "crouch": 0.08,
       "lean": 0.24,
-      "speedLean": 0.2,
+      "speedLean": 0.26,
       "stance": 0.22,
-      "strideReach": 0.46,
-      "footLift": 0.24,
+      "strideReach": 0.74,
+      "footLift": 0.34,
       "shoulderRadius": 0.37,
       "elbowRadius": 0.25,
       "wristRadius": 0.2,
@@ -260,7 +262,7 @@
         -0.3,
         -0.5
       ],
-      "armSwing": 0.08,
+      "armSwing": 0.07,
       "windBack": 0.95,
       "windUp": 0.8,
       "cheerUp": 1.0,
@@ -275,7 +277,11 @@
       "tiredDrop": 0.16,
       "kneelDrop": 0.5,
       "headTilt": 0.5,
-      "pantsTo": 0.84
+      "pantsTo": 0.84,
+      "strideBack": 0.3,
+      "slowStride": 0.6,
+      "toeDown": 0.7,
+      "bob": 0.06
     },
     "goalie": {
       "hipY": -1.3,
@@ -328,7 +334,7 @@
     },
     "tiredBelow": 0.3,
     "tiredSpeed": 0.35,
-    "maxTextures": 320,
+    "maxTextures": 480,
     "ink": {
       "outline": 0.1,
       "inner": 0.04,

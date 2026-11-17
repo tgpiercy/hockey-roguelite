@@ -45,6 +45,8 @@ export interface PoseInput {
   mateCheer?: boolean;
   /** Down on one knee to block a shot: the whole body sits lower. */
   kneel?: boolean;
+  /** Gliding on both skates: he keeps his lean for his speed but takes no strides. */
+  glide?: boolean;
   /** A pass just made, a poke or a hit being thrown, a deke, a tired glide; for a goalie, the glove thrown up. */
   action?: Action;
   pattern: JerseyPattern;
@@ -143,9 +145,12 @@ function reach(root: P, target: P, first: number, second: number, bend: 1 | -1):
   return { mid: [root[0] + Math.cos(at) * first, root[1] + Math.sin(at) * first], end: [root[0] + (dx / d) * span, root[1] + (dy / d) * span] };
 }
 
-/** A skate with its foot on the ice at (x, y): the boot and the steel. */
-function boot(x: number, y: number): Shape[] {
-  const at = (u: number, v: number): P => [x + u, y + v];
+/** A skate whose sole would rest at (x, y) if it were flat: the boot and the steel, tipped toe-down by `pitch` radians about the ankle. */
+function boot(x: number, y: number, pitch = 0): Shape[] {
+  const cos = Math.cos(pitch);
+  const sin = Math.sin(pitch);
+  // Turned about the ankle, so the shin stays joined to it.
+  const at = (u: number, v: number): P => [x + u * cos - (v + B.ankle) * sin, y - B.ankle + u * sin + (v + B.ankle) * cos];
   return [
     poly('skate', [at(-0.26, -0.1), at(-0.25, -0.5), at(0.06, -0.52), at(0.15, -0.32), at(0.46, -0.27), at(0.59, -0.15), at(0.57, -0.08), at(-0.26, -0.08)]),
     limb('blade', at(-0.32, -0.02), at(0.62, -0.02), F.bladeWidth, true),
@@ -153,7 +158,7 @@ function boot(x: number, y: number): Shape[] {
 }
 
 /** One leg from the hip to the ice: hockey pants to the knee, a striped sock over the shin pad, a skate. */
-function leg(hip: P, foot: P, thigh: number, shin: number, width: number): Shape[] {
+function leg(hip: P, foot: P, thigh: number, shin: number, width: number, pitch = 0): Shape[] {
   const ankle: P = [foot[0], foot[1] - B.ankle];
   const { mid: knee, end } = reach(hip, ankle, thigh, shin, -1);
   return [
@@ -161,7 +166,7 @@ function leg(hip: P, foot: P, thigh: number, shin: number, width: number): Shape
     band('accent', knee, B.kneeRadius, end, B.ankleRadius, 0.42, 0.56),
     band('accent', knee, B.kneeRadius, end, B.ankleRadius, 0.64, 0.72),
     taper('pants', hip, B.thighRadius * width, between(hip, knee, B.pantsTo), B.kneeRadius * 1.1),
-    ...boot(end[0], end[1] + B.ankle),
+    ...boot(end[0], end[1] + B.ankle, pitch),
   ];
 }
 
@@ -256,9 +261,12 @@ function skater(p: PoseInput, who: FigureLook): Built {
   const build = F.builds[who.build];
   const speed = clamp01(p.speed);
   const wind = clamp01(p.windUp);
-  const swing = Math.sin(p.stride);
   const act = p.action;
-  const drop = B.crouch * speed + (p.kneel ? B.kneelDrop : 0) + (act === 'hit' ? B.hitDrop : act === 'tired' ? B.tiredDrop : 0);
+  // How much of a full stride he takes: none standing or gliding slowly, a shorter one at half speed.
+  const going = speed <= 0 || p.glide ? 0 : B.slowStride + (1 - B.slowStride) * speed;
+  // He sinks a little twice a stride, as each leg takes his weight.
+  const bob = B.bob * going * Math.cos(2 * p.stride);
+  const drop = B.crouch * speed + bob + (p.kneel ? B.kneelDrop : 0) + (act === 'hit' ? B.hitDrop : act === 'tired' ? B.tiredDrop : 0);
   const lean = p.cheer ? 0 : B.lean + speed * B.speedLean + (act === 'poke' ? B.pokeLean : act === 'hit' ? B.hitLean : act === 'deke' ? B.dekeLean : act === 'tired' ? B.tiredLean : 0);
   const hip: P = [-Math.sin(lean) * 0.4, B.hipY * build.legs + drop];
   const up: P = [Math.sin(lean), -Math.cos(lean)];
@@ -268,14 +276,21 @@ function skater(p: PoseInput, who: FigureLook): Built {
   const shoulder = body(0.9, 0.02);
   const shapes: Shape[] = [];
 
-  // The far leg, then the far arm; whichever foot is behind is lifted a little off the ice.
-  const stride = B.strideReach * (0.35 + 0.65 * speed);
-  const foot = (side: 1 | -1): P => [side * B.stance + swing * stride * side, -B.footLift * Math.max(0, -swing * side) * speed];
-  shapes.push(...far(leg([hip[0] - 0.06, hip[1]], foot(-1), B.thigh * build.legs, B.shin * build.legs, build.width)));
+  // A stride, for each leg half a turn apart: the skate pushes back along the ice from in front of him to
+  // behind, then lifts, toe down, and is carried forward again. Standing, his feet are simply apart.
+  const step = (side: 1 | -1): { foot: P; pitch: number } => {
+    const at = p.stride + (side === 1 ? 0 : Math.PI);
+    const lifted = Math.max(0, -Math.sin(at));
+    const x = side * B.stance * (1 - going) + going * (B.strideReach * Math.cos(at) - B.strideBack);
+    return { foot: [x, -B.footLift * lifted * going], pitch: B.toeDown * lifted * (0.5 - 0.5 * Math.cos(at)) * going };
+  };
+  const [farStep, nearStep] = [step(-1), step(1)];
+  const sway = Math.cos(p.stride) * B.armSwing * going;
+  shapes.push(...far(leg([hip[0] - 0.06, hip[1]], farStep.foot, B.thigh * build.legs, B.shin * build.legs, build.width, farStep.pitch)));
 
   // Hands on the stick: the lower hand out in front, the top hand above and behind it.
-  let low: P = [hip[0] + B.lowHand[0]! + (lean - B.lean) * 0.5, hip[1] + B.lowHand[1]! - swing * B.armSwing * speed];
-  let top: P = [low[0] + B.topHand[0]!, low[1] + B.topHand[1]! + 2 * swing * B.armSwing * speed];
+  let low: P = [hip[0] + B.lowHand[0]! + (lean - B.lean) * 0.5 - sway, hip[1] + B.lowHand[1]! + sway * 0.5];
+  let top: P = [low[0] + B.topHand[0]! + sway * 0.5, low[1] + B.topHand[1]!];
   low = [low[0] - wind * B.windBack * 0.75, low[1] - wind * B.windUp];
   top = [top[0] - wind * B.windBack, top[1] - wind * B.windUp * 0.85];
   if (p.cheer) {
@@ -301,7 +316,7 @@ function skater(p: PoseInput, who: FigureLook): Built {
   }
   shapes.push(...far(arm(body(0.9, -0.06), top, build.width, false).shapes));
 
-  shapes.push(...leg([hip[0] + 0.06, hip[1]], foot(1), B.thigh * build.legs, B.shin * build.legs, build.width));
+  shapes.push(...leg([hip[0] + 0.06, hip[1]], nearStep.foot, B.thigh * build.legs, B.shin * build.legs, build.width, nearStep.pitch));
   shapes.push(circle('pants', hip, B.hipRadius * build.width));
   const headAt = body(0.9 + (B.neck + B.headRadius * 0.92) / B.spine, 0.1);
   shapes.push(limb('skin', body(0.92, 0.04), between(body(0.92, 0.04), headAt, 0.7), 0.4));
