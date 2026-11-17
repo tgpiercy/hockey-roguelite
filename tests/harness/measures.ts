@@ -65,26 +65,37 @@ export function measureStyles(n: number): string[] {
     const r = runSeries(n, { ...uniformTeam(70), style: a }, { ...uniformTeam(70), style: b }, `styles-${a}-${b}`);
     lines.push(`  ${a} v ${b}: ${a} wins ${pct(r.winRateA)}, goals ${r.goalsPerGameA.toFixed(2)} to ${r.goalsPerGameB.toFixed(2)}, shots ${r.shotsPerGameA.toFixed(0)} to ${r.shotsPerGameB.toFixed(0)}`);
   }
+  // Each against a team with no leaning at all: how strong the style is in itself.
+  for (const a of ['rush', 'cycle', 'dump']) {
+    const r = runSeries(n, { ...uniformTeam(70), style: a }, uniformTeam(70), `styles-${a}-plain`);
+    lines.push(`  ${a} v no style: ${a} wins ${pct(r.winRateA)}, goals ${r.goalsPerGameA.toFixed(2)} to ${r.goalsPerGameB.toFixed(2)}, shots ${r.shotsPerGameA.toFixed(0)} to ${r.shotsPerGameB.toFixed(0)}`);
+  }
   lines.push(`  (style numbers: ${Object.entries(ai.styles).map(([id, s]) => `${id} pass ${s.pass} long ${s.longShot} dump ${s.dump}`).join('; ')})`);
   return lines;
 }
 
 /** Each boss's trick on a 70 team against a plain 70 team (AI on both sides), and the scripted player's 67 team against a 73 team with the trick. */
-export function measureBosses(n: number): string[] {
+export function measureBosses(n: number, who: Stand = 'script', only: string | null = null): string[] {
   const t = cloneTuning();
-  const lines = ['Bosses: the trick against a plain equal team (AI v AI), and the scripted player against it'];
+  const lines = [`Bosses: the trick against a plain equal team (AI v AI), and the ${who} against it`];
   for (const b of bosses) {
+    if (only !== null && b.id !== only) continue;
     const mods = bossInfo(b.id).modifiers as Modifier[];
     const r = runSeries(n, { ...uniformTeam(70), modifiers: mods }, uniformTeam(70), `boss-${b.id}`);
     let wins = 0;
+    let scored = 0;
+    let let_in = 0;
     const games = Math.max(10, Math.round(n * 0.4));
     for (let i = 0; i < games; i++) {
       const world = createGame(t, `bb-${b.id}-${i}`, { teams: [uniformTeam(67), { ...uniformTeam(73), modifiers: mods }], levels: [null, 0.5], overtimeLimit: 300 });
-      const bot = createNaivePlayer(t);
+      const bot = standIn(who, t, `bb-${b.id}-${i}`);
       for (let s = 0; s < 30 * 60 * STEPS_PER_SECOND && world.phase !== 'final'; s++) step(world, bot(world), t);
-      if (gameResult(world).winner === 0) wins++;
+      const result = gameResult(world);
+      if (result.winner === 0) wins++;
+      scored += result.score[0];
+      let_in += result.score[1];
     }
-    lines.push(`  ${b.id.padEnd(14)} trick wins ${pct(r.winRateA).padStart(4)}  goals ${r.goalsPerGameA.toFixed(2)} to ${r.goalsPerGameB.toFixed(2)}   script beats it ${pct(wins / games).padStart(4)} (${games} games; a boss's mascot is not in this)`);
+    lines.push(`  ${b.id.padEnd(14)} trick wins ${pct(r.winRateA).padStart(4)}  goals ${r.goalsPerGameA.toFixed(2)} to ${r.goalsPerGameB.toFixed(2)}   ${who} beats it ${pct(wins / games).padStart(4)}, ${(scored / games).toFixed(1)} to ${(let_in / games).toFixed(1)} (${games} games; a boss's mascot is not in this)`);
   }
   return lines;
 }
@@ -184,6 +195,96 @@ export function measureCarry(n: number, level: number, who: Stand): string[] {
   lines.push(`  carrying in their end: ${(carries / n).toFixed(1)} times a game, ${(carrySeconds / Math.max(1, carries)).toFixed(1)} s each; ended by a shot ${pct(ends.shot / Math.max(1, carries))}, by a check ${pct(ends.checked / Math.max(1, carries))}, otherwise ${pct(ends.other / Math.max(1, carries))}`);
   lines.push(`  checks thrown at his team: ${(checksAt / n).toFixed(1)} a game, ${pct(checksWon / Math.max(1, checksAt))} take the puck`);
   lines.push(`  of his shots: a defender between him and the net ${pct(guardNear / Math.max(1, humanShots))}, one down to block ${pct(bracedAtShot / Math.max(1, humanShots))}; shots blocked ${(blocks / n).toFixed(1)} a game`);
+  return lines;
+}
+
+/**
+ * The shape of play that goals come out of, for a stand-in's team and the AI team against it:
+ * how often a team-mate is open for a pass near the net while the stand-in carries in their end, and what
+ * becomes of rebounds (who gets to them, and how many are goals inside three seconds).
+ * With `who` 'idle' both teams are AI, which is the plain game with nobody's help in it.
+ */
+export function measureShape(n: number, level: number, who: Stand): string[] {
+  const t = cloneTuning();
+  const goalX = goalLineX(t);
+  const allAi = who === 'idle';
+  let carrySteps = 0;
+  let openSteps = 0;
+  let oneTimers = 0;
+  const goals: [number, number] = [0, 0];
+  // By the team that shot: rebounds, who got them, goals soon after.
+  const reb = [0, 1].map(() => ({ rebounds: 0, won: 0, lost: 0, goals: 0, tips: 0 }));
+  // By the team a goal ahead with a minute left: such games, goals it added, goals the other side got back.
+  const late = [0, 1].map(() => ({ games: 0, more: 0, tied: 0 }));
+  for (let g = 0; g < n; g++) {
+    const world = createGame(t, `shape-${g}`, { teams: [uniformTeam(allAi ? 70 : 67), uniformTeam(70)], levels: [allAi ? level : null, level], human: !allAi, overtimeLimit: 300 });
+    const player = allAi ? () => NO_INPUT : standIn(who, t, `shape-${g}`);
+    // A rebound waiting to be picked up: the team that shot, and the steps since.
+    let loose: { team: 0 | 1; age: number; taken: boolean } | null = null;
+    // The lead (team 0's) when the last minute of the last period began.
+    let lateLead: number | null = null;
+    for (let i = 0; i < 30 * 60 * STEPS_PER_SECOND && world.phase !== 'final'; i++) {
+      const carrier = world.puck.carrier === null ? undefined : world.players[world.puck.carrier];
+      if (carrier && carrier.team === 0 && carrier.role === 'skater' && carrier.pos.x > goalX - 12 && world.phase === 'play') {
+        carrySteps += 1;
+        const them = world.players.filter((o) => o.team === 1 && o.onIce && o.role === 'skater');
+        // Open: a team-mate within 7 m of the net and in front of it, nobody within 2 m of him, nobody within 0.8 m of the pass.
+        const open = world.players.some((m) => {
+          if (m.team !== 0 || !m.onIce || m.role !== 'skater' || m.id === carrier.id) return false;
+          if (Math.hypot(goalX - m.pos.x, m.pos.y) > 7 || m.pos.x > goalX - 1) return false;
+          if (them.some((o) => Math.hypot(o.pos.x - m.pos.x, o.pos.y - m.pos.y) < 2)) return false;
+          const len = Math.hypot(m.pos.x - carrier.pos.x, m.pos.y - carrier.pos.y) || 1;
+          return them.every((o) => {
+            const along = ((o.pos.x - carrier.pos.x) * (m.pos.x - carrier.pos.x) + (o.pos.y - carrier.pos.y) * (m.pos.y - carrier.pos.y)) / len;
+            if (along <= 0 || along >= len) return true;
+            return Math.abs((o.pos.x - carrier.pos.x) * (m.pos.y - carrier.pos.y) - (o.pos.y - carrier.pos.y) * (m.pos.x - carrier.pos.x)) / len > 0.8;
+          });
+        });
+        if (open) openSteps += 1;
+      }
+      if (lateLead === null && world.period === t.period.count && !world.overtime && world.clock <= ai.late.seconds) {
+        lateLead = world.score[0] - world.score[1];
+        if (Math.abs(lateLead) === 1) late[lateLead > 0 ? 0 : 1]!.games += 1;
+      }
+      const events = step(world, player(world), t);
+      if (loose) (loose as { age: number }).age += 1;
+      for (const e of events) {
+        if (e.type === 'shot' && e.oneTimer && world.players[e.player]?.team === 0) oneTimers += 1;
+        if (e.type === 'tip') reb[world.players[e.player]?.team ?? 0]!.tips += 1;
+        if (e.type === 'save' && !e.frozen) {
+          const shooters = (1 - (world.players[e.goalie]?.team ?? 0)) as 0 | 1;
+          reb[shooters]!.rebounds += 1;
+          loose = { team: shooters, age: 0, taken: false };
+        } else if (e.type === 'save') loose = null;
+        if (e.type === 'pickup' && loose && !loose.taken) {
+          const by = world.players[e.player];
+          if (by && by.role === 'skater') {
+            loose.taken = true;
+            if (by.team === loose.team) reb[loose.team]!.won += 1;
+            else reb[loose.team]!.lost += 1;
+          }
+        }
+        if (e.type === 'goal') {
+          if (lateLead !== null && Math.abs(lateLead) === 1 && world.period === t.period.count && !world.overtime) late[lateLead > 0 ? 0 : 1]![e.team === (lateLead > 0 ? 0 : 1) ? 'more' : 'tied'] += 1;
+          goals[e.team] += 1;
+          if (loose && e.team === loose.team && loose.age <= 3 * STEPS_PER_SECOND) reb[loose.team]!.goals += 1;
+          loose = null;
+        }
+      }
+      if (loose && loose.age > 3 * STEPS_PER_SECOND) loose = null;
+    }
+  }
+  const lines = [`The shape of play: ${n} games, ${allAi ? 'two AI teams of 70' : `the ${who} on a 67 team against a 70 team`}, level ${level}`];
+  lines.push(`  goals ${(goals[0] / n).toFixed(2)} to ${(goals[1] / n).toFixed(2)} a game`);
+  lines.push(`  team 0 carrying in their end: a team-mate open near the net ${pct(openSteps / Math.max(1, carrySteps))} of the time (${(carrySteps / n / STEPS_PER_SECOND).toFixed(0)} s a game); one-timers ${(oneTimers / n).toFixed(1)} a game`);
+  for (const team of [0, 1]) {
+    const r = reb[team]!;
+    lines.push(`  team ${team} shooting: rebounds ${(r.rebounds / n).toFixed(1)} a game; the shooters get ${pct(r.won / Math.max(1, r.rebounds))}, the defenders ${pct(r.lost / Math.max(1, r.rebounds))}; goals inside 3 s ${(r.goals / n).toFixed(2)} a game; tips ${(r.tips / n).toFixed(1)}`);
+  }
+  for (const team of [0, 1]) {
+    const l = late[team]!;
+    lines.push(`  team ${team} a goal up with ${ai.late.seconds} s left: ${l.games} games; it scored again ${(l.more / Math.max(1, l.games)).toFixed(2)} a game, the other side ${(l.tied / Math.max(1, l.games)).toFixed(2)}`);
+  }
   return lines;
 }
 

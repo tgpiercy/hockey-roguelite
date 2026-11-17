@@ -9,17 +9,22 @@
       {
         "stat": "coverRadius",
         "op": "mul",
-        "value": 1.2
+        "value": 1.12
       },
       {
         "stat": "reactionSeconds",
         "op": "mul",
-        "value": 0.85
+        "value": 0.9
       },
       {
         "stat": "periodAutoSaves",
         "op": "add",
         "value": 3
+      },
+      {
+        "stat": "shieldBurn",
+        "op": "add",
+        "value": 1
       }
     ],
     "trick": "Shields: their goalie stops the first three shots on goal of every period, whatever they are. Burn them with quick shots.",

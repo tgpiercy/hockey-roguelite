@@ -16,7 +16,7 @@ import { STEP_SECONDS } from './clock';
 import { resolveLoosePuck, separateBodies } from './contact';
 import { updateControl } from './control';
 import { afterGoal, levelFor, startFaceoff, stepBreak, stepFaceoff, tickClock } from './match';
-import { makeSave, recordPuck, stepGoalie, stepGoalieHold } from './goalie';
+import { makeSave, recordPuck, shieldsLeft, stepGoalie, stepGoalieHold } from './goalie';
 import { autoChange, benchDoor, callChange, currentFx, putOnIce, stepChanges, stepEnergy } from './lines';
 import { stepPassing } from './pass';
 import { applyModifiers, type Modifier, type PowerupSpec } from './modifiers';
@@ -278,11 +278,7 @@ export function createGame(t: Tuning, seed: number | string, options: WorldOptio
 function autoSave(world: World, beaten: Player | null, t: Tuning, events: SimEvent[]): boolean {
   if (!beaten || !beaten.goalie || world.puck.shotBy === null || world.puck.unstoppable) return false;
   const state = beaten.goalie;
-  if (state.autoSavePeriod !== world.period) {
-    state.autoSavePeriod = world.period;
-    state.autoSavesLeft = Math.round(state.fx.periodAutoSaves);
-  }
-  if (state.autoSavesLeft > 0) state.autoSavesLeft -= 1;
+  if (shieldsLeft(beaten, world) > 0) state.autoSavesLeft -= 1;
   // None left this period: one of the few he has for the whole game, if any are left.
   else if ((state.gameAutoSaved ?? 0) < Math.round(state.fx.gameAutoSaves)) state.gameAutoSaved = (state.gameAutoSaved ?? 0) + 1;
   else return false;

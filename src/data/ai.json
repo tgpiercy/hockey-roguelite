@@ -101,29 +101,46 @@
     "guardFromX": 0,
     "blockRange": 20,
     "blockSettle": 1.2,
-    "holdBackFrom": 0.3
+    "holdBackFrom": 0.3,
+    "scrambleRadius": 8,
+    "scrambleReach": 7,
+    "getOpenBack": 3,
+    "stretchX": 6,
+    "stretchAgainst": 2
   },
   "styles": {
     "rush": {
       "name": "Rush",
-      "describe": "They carry the puck straight at the net.",
+      "describe": "They carry the puck straight at the net, with a man racing ahead to the front of it.",
       "pass": 0.85,
-      "longShot": 0.85,
-      "dump": 0
+      "longShot": 0.7,
+      "dump": 0,
+      "netRun": true,
+      "carry": 0.7,
+      "check": 0.8,
+      "chasers": 1
     },
     "cycle": {
       "name": "Cycle",
-      "describe": "They work the puck round the zone to the point and the wing.",
-      "pass": 1.1,
+      "describe": "They hold the puck and work it round the zone to the point and the wing.",
+      "pass": 1.25,
       "longShot": 0.9,
-      "dump": 0
+      "dump": 0,
+      "netRun": false,
+      "carry": 1.5,
+      "check": 0.9,
+      "chasers": 1
     },
     "dump": {
       "name": "Dump and chase",
-      "describe": "They shoot the puck into the corner under pressure and go after it.",
+      "describe": "They shoot the puck into the corner under pressure, and two of them come after it hard.",
       "pass": 0.9,
-      "longShot": 0.85,
-      "dump": 0.15
+      "longShot": 1.1,
+      "dump": 0.25,
+      "netRun": false,
+      "carry": 1,
+      "check": 1.5,
+      "chasers": 2
     }
   },
   "tactics": {
@@ -191,5 +208,11 @@
     "manCheck": 1,
     "manCoverGoalSide": 0.12
   },
-  "mateCheckBoost": 1.3
+  "mateCheckBoost": 1.3,
+  "late": {
+    "seconds": 60,
+    "pushCheck": 1.4,
+    "pushChasers": 2,
+    "protectLead": 1
+  }
 }

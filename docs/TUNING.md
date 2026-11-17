@@ -1362,3 +1362,82 @@ Eight systems were removed and Pucks were cut (see `docs/DECISIONS.md`). Forty s
 - The money health check (`tests/club.test.ts`, 20 seasons, three styles) passes with the payroll limit gone because the careful automatic managers keep the same share-of-value prudence as their own rule. What a person does with a cap of room and no owner's limit was not measured.
 - Not re-measured after this round: Semi-Pro and All-Star seasons, the defence counts, `npm run seasons`.
 
+## The gameplay round (2026-11-17)
+
+Four parts, chosen by the owner: team-mates in attack, opponents that differ, loose pucks and rebounds, bosses you can answer. New measurement: `npm run measure -- shape` (a team-mate open near the net, what becomes of rebounds, the last minute of a one-goal game); `measure -- bosses` now takes any stand-in and one boss.
+
+### What was built
+
+| Part | What | Where |
+| --- | --- | --- |
+| Loose pucks | A loose puck within 8 m of either net is chased by a team's nearest two (the second from within 7 m). Not a shot on its way. | `scrambleRadius`, `scrambleReach` |
+| Team-mates | A man without the puck whose spot is covered tries either side and then a step out (3 m); a person's man at the net does it too. | `openSpot`, `getOpenBack` |
+| Team-mates | On a person's team, with two or more opponents in its half, the first helper goes long over centre. | `stretchX` 6, `stretchAgainst` 2 |
+| Styles | Rush: a man races to the net early, carriers hold the puck 0.7 as long, check 0.8, long shots 0.7. Cycle: hold 1.5 as long, pass 1.25, check 0.9. Dump and chase: two hunters in the other end, check 1.5, dump 0.25, long shots 1.1. | `styles` in `ai.json` |
+| The score | In the last 60 s of the last period an AI team a goal or more behind sends two after the puck and checks 1.4 times as readily; one ahead sits back and collapses. | `late` in `ai.json` |
+| The Wall | Shields are spent by any shot on goal (`shieldBurn`), as its card always said. Cover radius 1.2 to 1.12, reaction 0.85 to 0.9. | `bosses.json` |
+
+### Styles against each other (150 games a pairing, equal teams at 70)
+
+| Pairing | Before the round | After |
+| --- | --- | --- |
+| Rush v cycle | rush 44%, 3.19 to 3.42 | rush 57%, 4.11 to 3.77 |
+| Rush v dump | rush 60%, 3.13 to 2.62 | rush 65%, 3.95 to 3.26 |
+| Cycle v dump | cycle 64%, 3.52 to 2.83 | cycle 47%, 3.03 to 3.20 |
+| Rush v no style | | 57%, 4.18 to 3.54 |
+| Cycle v no style | | 47%, 3.34 to 3.59 |
+| Dump v no style | | 48%, 3.24 to 3.47 |
+
+A sample of 150 swings about four points. Rush is a little the strongest and its games have the most goals; dump and chase is no longer plainly the weakest (it takes 41 shots a game, most of them dumps). The run before the last two fixes had all six rows between 49 and 55%.
+
+### Rebounds, as found (200 all-AI games)
+
+About 12 a game for each side; the shooters get 47%, the defenders 52%; a goal inside three seconds 0.53 a game (one goal in six). That was judged healthy and the rebound's physics were left alone. The second chaser did not move these numbers; what it changes is that a person's line-mate goes for the rebound with him.
+
+### The last minute (200 all-AI games)
+
+In games with one side a goal up with 60 s left (about one game in three): the side ahead scored again 0.3 to 0.7 times a game and the side behind 0.6. Goals over the whole game did not move (3.2 a side), nor did the script's (4.70 to 3.02 with it, 4.72 to 3.02 without).
+
+### What it did to difficulty
+
+| Measure | Before the round | After |
+| --- | --- | --- |
+| All-AI, 200 games | 3.21 and 3.33 goals, overtime 16% | 3.43 and 3.23 |
+| Script, 200 games (a 67 team v 70, level 0.5) | 4.37 for, 2.83 against | 4.62 for, 2.88 against |
+| Passer, same | 7.22 for, 1.98 against (60 games) | 6.09 for, 2.58 against (200 games) |
+| Script's shots blocked | 4.6 a game | 3.3 |
+| Rookie, the newcomer, 30 seasons | first region 90%, title 7% | first region 97%, title 10% |
+| Pro, the passer, 30 seasons | title 47% (and 73% in an earlier run) | title 47%; first region 100%, second 73%, third 57% |
+| Pro, the script, 30 seasons | title 10% | title 3% (one season in 30 against three); first region 87%, second 57%, third 13% |
+
+Read as: no measurable change for the script or the newcomer; the passer scores about a goal less, mostly because a second defender now goes for the rebound. Thirty seasons swing about ten points, so the script's Pro title rate is not shown to have moved.
+
+### Tried and taken out, or cut back
+
+- **The stretch man on AI teams.** With it the script scored 5.03 to 5.19 against 4.37 before: the man gone long was a defender missing when the puck turned over. With it off, 4.53. It is now a person's team only.
+- **The second chaser going for a shot in flight.** Defenders left the shooting lane. A shot on its way is no longer a loose puck.
+- **Style extras and the late push on the easiest opponents.** With them the newcomer cleared Rookie's first region 67 to 70% of the time (30 seasons) against 90% before. Opponents below `holdBackFrom` now play none of it: 97%.
+
+### Bosses (100 all-AI games; the script 40 games each, its 67 team against a 73 team with the trick)
+
+| Boss | Trick wins, AI v AI | Script beats it | Before the round |
+| --- | --- | --- | --- |
+| The Wall | 80% | 10% | 100%, 0% |
+| Gale | 81% | 48% | 79%, 35% |
+| Hammers | 56% | 57% | 63%, 50% |
+| Marathon | 65% | 33% | 82%, 45% |
+| Marksmen | 52% | 63% | 65%, 50% |
+| Trappers | 73% | 63% | 63%, 48% |
+| Shadows | 56% | 75% | 44%, 78% |
+| Furnace | 48% | 70% | 64%, 68% |
+| Granite | 58% | 70% | 56%, 65% |
+| Night Shift | 70% | 53% | 65%, 50% |
+| Carnival | 60% | 70% | 52%, 73% |
+| Pickets | 59% | 53% | 60%, 57% |
+
+Forty games swing about eight points; this table was taken before the last two fixes.
+
+**The Wall.** Its card said the shields stop "the first three shots on goal of every period" and to "burn them with quick shots". The code spent a shield only on a shot that would have scored, so quick shots burned nothing: the trick won 100 of 100 all-AI games, 3.29 to 0.23, and the script never beat it. Now any save uses one up. With that alone: script 8%, passer 35%. With its goalie eased as well (60 games each): script 17%, passer 43%. It is still the hardest boss for a player who only carries in, and fair for one who passes. It stays out of the first region.
+
+**The Marathon.** The card says "pass through them". Three stand-ins, 60 games each, after the round: the script (carries) 30%, the passer 22%, the outlet stand-in (passes to the furthest man up the ice when pressed in its own half) 22%. Before the stretch man existed the passer won 18% and the outlet stand-in 5%, so having a man to pass to helps; but passing out of the press has not been shown to beat carrying through it. The script's 30 to 45% says the Marathon is no longer a boss that cannot be answered (it was 10% when it was kept out of the first region). The card's advice is unproven and was left as written.
+

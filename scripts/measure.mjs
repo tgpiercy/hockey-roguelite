@@ -8,6 +8,7 @@
 //   npm run measure -- seasons              whole seasons with a scripted player
 //   npm run measure -- gear                 what a full set of gear of each rarity is worth, all-AI
 //   npm run measure -- carry                where a stand-in's shots and goals come from, and how he is defended
+//   npm run measure -- shape                team-mates open at the net, and what becomes of rebounds (--player idle: two AI teams)
 //   npm run measure -- all                  everything above (slow)
 //
 // Options: --games N (default 40; seasons: number of seasons), --level L (default 0.5),
@@ -25,7 +26,7 @@ const level = Number(option('level', 0.5));
 const difficulty = String(option('difficulty', 'pro'));
 const who = String(option('player', 'script'));
 
-const NAMES = ['defence', 'breakaways', 'styles', 'bosses', 'rinks', 'seasons', 'carry', 'gear'];
+const NAMES = ['defence', 'breakaways', 'styles', 'bosses', 'rinks', 'seasons', 'carry', 'gear', 'shape'];
 if (what !== 'all' && !NAMES.includes(what)) {
   console.log(`Usage: npm run measure -- <${NAMES.join('|')}|all> [--games N] [--level L] [--difficulty D] [--player script|novice|passer|idle]`);
   process.exit(what === 'help' ? 0 : 1);
@@ -44,10 +45,11 @@ try {
     ],
     breakaways: () => measures.measureBreakaways(Math.max(20, games)),
     styles: () => measures.measureStyles(Math.max(40, games)),
-    bosses: () => measures.measureBosses(Math.max(40, games)),
+    bosses: () => measures.measureBosses(Math.max(40, games), who === 'idle' ? 'script' : who, option('boss', null)),
     rinks: () => measures.measureRinks(Math.max(40, games)),
     gear: () => measures.measureGear(Math.max(40, games), String(option('part', 'all'))),
     carry: () => measures.measureCarry(games, level, who === 'idle' ? 'script' : who),
+    shape: () => measures.measureShape(games, level, who),
     seasons: () => {
       const r = checks.measureSeasons(games, difficulty, 'bench', who);
       return [

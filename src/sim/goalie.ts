@@ -120,12 +120,26 @@ export function stepGoalie(g: Player, world: World, t: Tuning, dt: number): void
  * The puck has reached the goalie. A slow enough puck is frozen (he holds it);
  * a faster one is kicked out as a rebound.
  */
+/** The automatic saves a goalie has left this period, counted afresh when a new period has begun. */
+export function shieldsLeft(g: Player, world: World): number {
+  const state = g.goalie!;
+  if (state.autoSavePeriod !== world.period) {
+    state.autoSavePeriod = world.period;
+    state.autoSavesLeft = Math.round(state.fx.periodAutoSaves);
+  }
+  return state.autoSavesLeft;
+}
+
 export function makeSave(g: Player, world: World, t: Tuning, events: SimEvent[]): void {
   const state = g.goalie!;
   const puck = world.puck;
   const speed = Math.hypot(puck.vel.x, puck.vel.y);
   const shooter = puck.shotBy === null ? undefined : world.players[puck.shotBy];
-  if (shooter && shooter.team !== g.team) g.stats.saves += 1;
+  if (shooter && shooter.team !== g.team) {
+    g.stats.saves += 1;
+    // Shields that are spent by any shot on goal: a save he made by himself uses one up too.
+    if (state.fx.shieldBurn > 0 && shieldsLeft(g, world) > 0) state.autoSavesLeft -= 1;
+  }
   puck.shotBy = null;
 
   if (speed <= state.fx.freezeSpeed) {

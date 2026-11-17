@@ -193,11 +193,57 @@ export function createPasserPlayer(t: Tuning, reactionSeconds = 0.25): (world: W
   };
 }
 
+/** The numbers of the stand-in that passes out of trouble in its own half. */
+export const OUTLET = {
+  /** An opponent this near (metres) is pressure. */
+  pressRange: 5,
+  /** The team-mate passed to is at least this far up the ice from him (metres). */
+  ahead: 4,
+};
+
+/**
+ * The passer, with one more habit: carrying in its own half with an opponent close, it passes to the team-mate
+ * furthest up the ice. It is the stated answer to a team that sends everyone after the puck.
+ */
+export function createOutletPlayer(t: Tuning, reactionSeconds = 0.25): (world: World) => InputFrame {
+  const base = createPasserPlayer(t, reactionSeconds);
+  let passing = 0;
+  return (world: World): InputFrame => {
+    const input = base(world);
+    const me = world.human ? world.players[world.human.controlled] : undefined;
+    if (!me || world.phase !== 'play' || world.puck.carrier !== me.id || me.pos.x >= 0) {
+      passing = 0;
+      return input;
+    }
+    const pressed = world.players.some((o) => o.team !== me.team && o.onIce && o.role === 'skater' && Math.hypot(o.pos.x - me.pos.x, o.pos.y - me.pos.y) < OUTLET.pressRange);
+    const mate = world.players.filter((o) => o.team === me.team && o.onIce && o.role === 'skater' && o.id !== me.id && o.pos.x >= me.pos.x + OUTLET.ahead).sort((a, b) => b.pos.x - a.pos.x)[0];
+    if (!pressed || !mate) {
+      passing = 0;
+      return input;
+    }
+    const dx = mate.pos.x - me.pos.x;
+    const dy = mate.pos.y - me.pos.y;
+    const d = Math.hypot(dx, dy) || 1;
+    // With somebody standing in the lane the pass is held long enough to be lifted over him.
+    const blocked = world.players.some((o) => {
+      if (o.team === me.team || !o.onIce || o.role !== 'skater') return false;
+      const along = ((o.pos.x - me.pos.x) * dx + (o.pos.y - me.pos.y) * dy) / d;
+      return along > 0 && along < d && Math.abs((o.pos.x - me.pos.x) * dy - (o.pos.y - me.pos.y) * dx) / d < 1.2;
+    });
+    const hold = blocked ? Math.ceil(t.pass.saucerHoldTime * STEPS_PER_SECOND) + 2 : PASSER.passSteps;
+    passing += 1;
+    const out: InputFrame = { ...NO_INPUT, moveX: dx / d, moveY: dy / d, pass: passing <= hold };
+    if (passing > hold + 2) passing = 0;
+    return out;
+  };
+}
+
 /** Who sits in the person's seat for a measurement: the script, a newcomer, one who plays the pass, or nobody touching the controls. */
-export type Stand = 'script' | 'novice' | 'passer' | 'idle';
+export type Stand = 'script' | 'novice' | 'passer' | 'outlet' | 'idle';
 
 export function standIn(who: Stand, t: Tuning, seed: string): (world: World) => InputFrame {
   if (who === 'novice') return createNovicePlayer(t, seed);
+  if (who === 'outlet') return createOutletPlayer(t);
   if (who === 'passer') return createPasserPlayer(t);
   if (who === 'idle') return () => NO_INPUT;
   return createNaivePlayer(t);

@@ -79,9 +79,29 @@ export interface Style {
   pass: number;
   longShot: number;
   dump: number;
+  /** The first man without the puck races to the front of the net before the puck is in the zone. */
+  netRun?: boolean;
+  /** How long a carrier holds the puck before he must do something with it, as a multiple. */
+  carry?: number;
+  /** How readily they throw a check, as a multiple. */
+  check?: number;
+  /** How many of them go after a carrier in his own end. */
+  chasers?: number;
 }
 
 const NO_STYLE: Style = { name: '', describe: '', pass: 1, longShot: 1, dump: 0 };
+
+/**
+ * What the score tells a team with nobody at the controls to do late in the last period: behind, it pushes
+ * (two men after the puck, quicker to check); ahead, it protects (waits at its blue line and packs the slot).
+ * A team a person plays on is told what to do by him.
+ */
+export function lateMood(world: World, team: 0 | 1, t: Tuning): 'push' | 'protect' | null {
+  if (world.rules !== 'game' || world.overtime || world.period < t.period.count || world.clock > data.late.seconds) return null;
+  if (humansOn(world, team).length > 0) return null;
+  const lead = world.score[team] - world.score[otherTeam(team)];
+  return lead <= -1 ? 'push' : lead >= data.late.protectLead ? 'protect' : null;
+}
 
 /** The style a team's AI skaters play, or no leaning at all. */
 export function styleOf(world: World, team: 0 | 1): Style {
@@ -122,7 +142,7 @@ function nearestTo(players: Player[], point: Vec): Player | null {
  * - backcheck: the other team has it and he is caught up ice of the puck
  * - defend: the other team has it and he is goal-side, or it is loose in his own half and a teammate is chasing
  */
-export function chooseState(world: World, p: Player, _t: Tuning): AiState {
+export function chooseState(world: World, p: Player, t: Tuning): AiState {
   const puck = world.puck;
   const carrier = carrierOf(world);
   const dir = attackDir(p.team);
@@ -137,8 +157,19 @@ export function chooseState(world: World, p: Player, _t: Tuning): AiState {
   if (puck.passTarget === p.id) return 'chase';
   const mates = availableSkaters(world, p.team);
   const passedToMate = mates.some((m) => m.id === puck.passTarget);
-  if (!passedToMate && nearestTo(mates, puck.pos)?.id === p.id) return 'chase';
+  if (!passedToMate) {
+    const first = nearestTo(mates, puck.pos);
+    if (first?.id === p.id) return 'chase';
+    // A loose puck in front of either net is a scramble: the next nearest man goes for it too, if he is close.
+    // (A shot on its way is not a loose puck: the men in its lane stay there.)
+    if (first && puck.shotBy === null && scramble(puck.pos, t) && dist(p.pos, puck.pos) <= P.scrambleReach && nearestTo(mates.filter((s) => s.id !== first.id), puck.pos)?.id === p.id) return 'chase';
+  }
   return dir * puck.pos.x < 0 ? 'defend' : 'support';
+}
+
+/** True if this spot is in front of one of the nets, near enough that a loose puck there is a chance for somebody. */
+export function scramble(at: Vec, t: Tuning): boolean {
+  return dist(at, ownNet(0, t)) <= P.scrambleRadius || dist(at, ownNet(1, t)) <= P.scrambleRadius;
 }
 
 /** True if this spot is inside the zone `team` attacks: past the blue line at the far end. */
@@ -190,6 +221,23 @@ export function laneClear(world: World, team: 0 | 1, a: Vec, b: Vec): boolean {
   return skatersOf(world, otherTeam(team)).every((o) => distToSegment(o.pos, a, b) > P.laneClearance);
 }
 
+/**
+ * Where a man without the puck stands to be passed to: his spot if the pass is on there, or else the first
+ * place near it where it is (to one side, the other, or a step out from the net).
+ */
+export function openSpot(world: World, team: 0 | 1, from: Vec, spot: Vec, t: Tuning): Vec {
+  const opponents = skatersOf(world, otherTeam(team));
+  const covered = (s: Vec): boolean => !laneClear(world, team, from, s) || opponents.some((o) => dist(o.pos, s) < P.openRadius);
+  if (!covered(spot)) return spot;
+  const limit = t.rink.width / 2 - 1.5;
+  const out = -attackDir(team) * P.getOpenBack;
+  for (const [dx, dy] of [[0, P.getOpenShift], [0, -P.getOpenShift], [out, 0], [out, P.getOpenShift], [out, -P.getOpenShift]] as const) {
+    const alt = { x: spot.x + dx, y: Math.max(-limit, Math.min(limit, spot.y + dy)) };
+    if (!covered(alt)) return alt;
+  }
+  return spot;
+}
+
 function aimAt(m: AiMemory, from: Vec, to: Vec, errorDegrees: number, world: World): void {
   const angle = Math.atan2(to.y - from.y, to.x - from.x) + (world.rng.range(-1, 1) * errorDegrees * Math.PI) / 180;
   m.aimX = Math.cos(angle);
@@ -215,6 +263,7 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   const range = dist(puck, net);
   const inFront = dir * (net.x - puck.x) > 1;
   const style = styleOf(world, p.team);
+  const maxCarry = P.maxCarrySeconds * (style.carry ?? 1);
   m.plant = false;
   m.passTo = null;
   // A defender on him and able to check: sometimes he dekes.
@@ -232,7 +281,7 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
     const goalie = goalieOf(world, otherTeam(p.team));
     const side = goalie ? (goalie.pos.y > 0 ? -1 : 1) : world.rng.chance(0.5) ? 1 : -1;
     const corner: Vec = { x: net.x, y: side * (t.net.mouthWidth / 2 - P.cornerInset) };
-    if (laneClear(world, p.team, puck, corner) || m.carryTime > P.maxCarrySeconds) {
+    if (laneClear(world, p.team, puck, corner) || m.carryTime > maxCarry) {
       aimAt(m, puck, corner, lv.aimErrorDegrees, world);
       // A pass just received is fired first-touch: it counts as fully wound up anyway.
       // The marksman always winds up fully: that is the shot that cannot be saved.
@@ -299,7 +348,7 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   // front of the net he holds up further out instead of crowding him, until he has held the puck too long.
   const front = postSpot('netFront', p.team, puck, t);
   const filled = mates.some((mate) => dist(mate.pos, front) < P.postFilledRadius);
-  const holdUp = filled && inZone(p.team, puck.x) && m.carryTime <= P.maxCarrySeconds;
+  const holdUp = filled && inZone(p.team, puck.x) && m.carryTime <= maxCarry;
   const slotX = net.x - dir * (holdUp ? P.holdDepth : P.slotDistance);
   const halfWidth = holdUp ? P.wingY : P.slotHalfWidth;
   let y = Math.max(-halfWidth, Math.min(halfWidth, p.pos.y));
@@ -309,7 +358,7 @@ function planAttack(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   goTo(m, slotX, y, range > lv.shootRange * 1.5);
 }
 
-function planSupport(world: World, p: Player, t: Tuning): void {
+function planSupport(world: World, p: Player, t: Tuning, sharp: boolean): void {
   const dir = attackDir(p.team);
   const carrier = carrierOf(world);
 
@@ -329,8 +378,10 @@ function planSupport(world: World, p: Player, t: Tuning): void {
   // When a person carries it up the ice, his first helper does not wait for the zone: he goes to the front of
   // the net at once, hard, to be there for the rebound or the one-timer. (Crash sends both; the other tactics have their own ideas.)
   const attack = world.teams[p.team].tactics?.attack ?? 'balanced';
-  if (carrier && attack === 'balanced' && humanOf(world, carrier.id) !== null && helpers[0]?.id === p.id && dir * ref.x > P.netRunFromX) {
-    const front = postSpot('netFront', p.team, ref, t);
+  // A rushing team does the same for whoever of theirs carries it.
+  if (carrier && ((attack === 'balanced' && humanOf(world, carrier.id) !== null) || (sharp && styleOf(world, p.team).netRun === true)) && helpers[0]?.id === p.id && dir * ref.x > P.netRunFromX) {
+    // Once the puck is in the zone he does not stand behind a defender: he finds where the pass is on.
+    const front = inZone(p.team, ref.x) ? openSpot(world, p.team, ref, postSpot('netFront', p.team, ref, t), t) : postSpot('netFront', p.team, ref, t);
     goTo(p.ai, front.x, front.y, !inZone(p.team, p.pos.x));
     return;
   }
@@ -343,19 +394,8 @@ function planSupport(world: World, p: Player, t: Tuning): void {
       const crash = world.teams[p.team].tactics?.attack === 'crash';
       let spot = postSpot(crash ? 'netFront' : post, p.team, ref, t);
       if (crash && helpers[1]?.id === p.id) spot = { x: spot.x, y: spot.y === 0 ? P.farPostY : -spot.y };
-      // Get open: if a defender is on the spot, or stands in the lane from the puck, slide to one side where the pass is on.
-      const opponents = skatersOf(world, otherTeam(p.team));
-      const covered = (s: Vec): boolean => !laneClear(world, p.team, ref, s) || opponents.some((o) => dist(o.pos, s) < P.openRadius);
-      if (covered(spot)) {
-        const limit = t.rink.width / 2 - 1.5;
-        for (const shift of [P.getOpenShift, -P.getOpenShift]) {
-          const alt = { x: spot.x, y: Math.max(-limit, Math.min(limit, spot.y + shift)) };
-          if (!covered(alt)) {
-            spot = alt;
-            break;
-          }
-        }
-      }
+      // Get open: if a defender is on the spot, or stands in the lane from the puck, move to where the pass is on.
+      spot = openSpot(world, p.team, ref, spot, t);
       goTo(p.ai, spot.x, spot.y);
       return;
     }
@@ -364,6 +404,15 @@ function planSupport(world: World, p: Player, t: Tuning): void {
   // The first helper goes ahead into the far lane; any other trails behind the play as the safety valve.
   if (helpers[0]?.id === p.id || helpers.length === 1) {
     const lane = Math.abs(ref.y) < 1 ? (p.pos.y >= 0 ? 1 : -1) : ref.y > 0 ? -1 : 1;
+    // Breaking out against a forecheck: with the puck in our half and two or more of theirs in it too, he does
+    // not wait a few strides ahead, inside the press. He goes long, over centre, to be the pass that beats it.
+    const pressers = skatersOf(world, otherTeam(p.team)).filter((o) => dir * o.pos.x < 0).length;
+    // Only on a team a person plays on: he is the one who can see the long pass, and a team with nobody at the
+    // controls that sent a man away gave up more than it gained (measured).
+    if (carrier && humansOn(world, p.team).length > 0 && dir * ref.x < 0 && pressers >= P.stretchAgainst) {
+      goTo(p.ai, dir * P.stretchX, lane * P.supportLaneY, true);
+      return;
+    }
     goTo(p.ai, clampX(ref.x + dir * P.supportAhead), lane * P.supportLaneY);
     return;
   }
@@ -384,6 +433,13 @@ function wantsBlock(world: World, p: Player, carrier: Player, spot: Vec, net: Ve
   if (dist(p.pos, carrier.pos) < t.block.minCarrierDistance) return false;
   // Once down he stays down while it still applies; getting down is a matter of how sharp he is.
   return p.ai.brace || world.rng.chance(lv.blockEagerness);
+}
+
+/** How many of a team go after a carrier in his own end: its style's number, or two when it is behind late on. */
+function chasersOf(world: World, team: 0 | 1, t: Tuning, lv: AiLevel): number {
+  // The dullest opponents (the easiest difficulty) never hunt in twos.
+  if (humansOn(world, team).length > 0 || lv.blockEagerness < P.holdBackFrom) return 1;
+  return Math.max(styleOf(world, team).chasers ?? 1, lateMood(world, team, t) === 'push' ? data.late.pushChasers : 1);
 }
 
 function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
@@ -410,7 +466,8 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
   const nearest = nearestTo(mates, carrier.pos);
   // A carrier close in front of the net is the danger: the presser comes hard and checks more readily.
   const danger = dist(carrier.pos, net) < P.slotDangerRadius;
-  const defence = world.teams[p.team].tactics?.defence ?? 'balanced';
+  const mood = lv.blockEagerness >= P.holdBackFrom ? lateMood(world, p.team, t) : null;
+  const defence = mood === 'protect' ? 'collapse' : (world.teams[p.team].tactics?.defence ?? 'balanced');
   const away = dist(carrier.pos, net) || 1;
   const k = Math.min(P.guardDepth, away * 0.6) / away;
   const guardSpot: Vec = { x: net.x + (carrier.pos.x - net.x) * k, y: net.y + (carrier.pos.y - net.y) * k };
@@ -456,6 +513,16 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
       return;
     }
   }
+  // A team that hunts in twos (dump and chase, or any team behind late on) sends a second man at a carrier in his own end.
+  if (!second && presser && chasersOf(world, p.team, t, lv) >= 2 && dir * carrier.pos.x > 0) {
+    second = nearestTo(mates.filter((s) => s.id !== presser.id && s.id !== lastMan?.id), carrier.pos);
+    if (second?.id === p.id) {
+      m.follow = 'carrier';
+      m.sprint = true;
+      m.wantCheck = world.rng.chance(lv.checkEagerness);
+      return;
+    }
+  }
   const free = mates.filter((s) => s.id !== presser?.id && s.id !== second?.id && s.id !== lastMan?.id);
   // Collapse: everyone but the presser packs the slot in front of the net.
   if (defence === 'collapse' && inZone(carrier.team, carrier.pos.x)) {
@@ -498,7 +565,11 @@ function planDefend(world: World, p: Player, t: Tuning, lv: AiLevel): void {
 /** Reconsiders: picks the state and what to do in it. */
 export function think(world: World, p: Player, t: Tuning, level: AiLevel): void {
   // The AI skaters on a team a person plays on go for the check more readily: the person cannot be everywhere.
-  const lv = humansOn(world, p.team).length > 0 ? { ...level, checkEagerness: Math.min(1, level.checkEagerness * data.mateCheckBoost) } : level;
+  // The dullest opponents (the easiest difficulty) play no style beyond how they pass and shoot, and do not read the score.
+  const sharp = level.blockEagerness >= P.holdBackFrom;
+  const mood = sharp ? lateMood(world, p.team, t) : null;
+  const eager = humansOn(world, p.team).length > 0 ? data.mateCheckBoost : !sharp ? 1 : (styleOf(world, p.team).check ?? 1) * (mood === 'push' ? data.late.pushCheck : 1);
+  const lv = eager === 1 ? level : { ...level, checkEagerness: Math.min(1, level.checkEagerness * eager) };
   const m = p.ai;
   m.state = chooseState(world, p, t);
   m.wantCheck = false;
@@ -512,7 +583,7 @@ export function think(world: World, p: Player, t: Tuning, level: AiLevel): void 
     return;
   }
   // Forecheck, as the team is told: with the other team carrying in its own end, they may sit back at the blue line.
-  const forecheck = world.teams[p.team].tactics?.forecheck ?? 'balanced';
+  const forecheck = mood === 'protect' ? 'sit' : (world.teams[p.team].tactics?.forecheck ?? 'balanced');
   if (forecheck === 'sit' && pressed && pressed.team !== p.team && pressed.role === 'skater' && attackDir(p.team) * pressed.pos.x > 0 && (m.state === 'defend' || m.state === 'backcheck')) {
     goTo(m, -attackDir(p.team) * P.zoneLineX, spread(world, p) * P.retreatY);
     return;
@@ -522,7 +593,7 @@ export function think(world: World, p: Player, t: Tuning, level: AiLevel): void 
       planAttack(world, p, t, lv);
       break;
     case 'support':
-      planSupport(world, p, t);
+      planSupport(world, p, t, sharp);
       break;
     case 'chase':
       m.follow = 'puck';
