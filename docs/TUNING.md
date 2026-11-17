@@ -1441,3 +1441,48 @@ Forty games swing about eight points; this table was taken before the last two f
 
 **The Marathon.** The card says "pass through them". Three stand-ins, 60 games each, after the round: the script (carries) 30%, the passer 22%, the outlet stand-in (passes to the furthest man up the ice when pressed in its own half) 22%. Before the stretch man existed the passer won 18% and the outlet stand-in 5%, so having a man to pass to helps; but passing out of the press has not been shown to beat carrying through it. The script's 30 to 45% says the Marathon is no longer a boss that cannot be answered (it was 10% when it was kept out of the first region). The card's advice is unproven and was left as written.
 
+## The balance round (2026-11-17, second)
+
+Three findings from the gameplay round's measurements, chosen by the owner: passing against carrying, Rookie's later regions, Pucks and the shops.
+
+### Passing against carrying
+
+| | Script (carries) | Passer | Its one-timer from 3 to 6 m in front | All-AI |
+| --- | --- | --- | --- | --- |
+| Before | 4.62 for, 2.88 against | 6.09 for, 2.58 against | 51% go in | 3.43 and 3.23 |
+| A marked one-timer strays | 4.62 for, 2.99 against | 5.21 for, 2.85 against | 40% go in | 3.33 and 3.17 |
+
+200 games each. The rule (`oneTimerCrowd`): a first-touch shot gets up to 16 degrees of extra scatter for an opposing skater within 2.2 m of the shooter, all of it inside 1 m. The gap between passing and carrying went from 1.5 goals a game to 0.6. Nothing else moved. On Pro the passer's title rate over 40 seasons is 43% (it was 47% over 30): inside the noise, so the season is not yet shown to be harder for a passer, only the single game.
+
+### Rookie after the first region (the newcomer stand-in)
+
+| | Region 1 | Region 2 | Region 3 | Title | Seasons |
+| --- | --- | --- | --- | --- | --- |
+| Before | 97% | 60% | 17% | 10% | 30 |
+| A boss win wipes every strike | 87% | 50% | 23% | 7% | 30 |
+| And later opponents 3 and 5 points below their ratings (shipped) | 88% | 78% | 53% | 22% | 40 |
+
+Rookie's opponents already think at about 0.1 to 0.15 in every region, the floor, so there was nothing left to take from their thinking: what rises through a season is their ratings. Wiping strikes did almost nothing by itself. Rookie now breaks the rule that a difficulty changes thinking only, and its description says so.
+
+**Found on the way, not acted on:** on Semi-Pro the newcomer clears the first region 38% of the time and the second 10% (40 seasons). The step from Rookie (88%) to Semi-Pro is a cliff for that stand-in.
+
+### Pucks and the shops
+
+The season stand-in bought one powerup a shop and nothing else, so its "Pucks left" overstated the problem. A second shopper was added (`--shopper`): a strike back, then the artifact, then a report on the boss, then powerups while the Pucks last.
+
+| Pro, 30 to 40 seasons | Earned | Spent | Left | Shops reached | Could afford something at |
+| --- | --- | --- | --- | --- | --- |
+| Passer, one powerup a shop, before | 353 | 113 | 240 | 2.1 | 1.6 |
+| Passer, sensible shopper, before | 297 | 133 | 164 | 2.3 | 1.4 |
+| Script, sensible shopper, before | 192 | 96 | 96 | 2.0 | 1.2 |
+| Passer, sensible shopper, after | 302 | 169 | 173 | 2.4 | 1.9 |
+| Script, sensible shopper, after | 224 | 139 | 125 | 2.1 | 1.7 |
+| Rookie newcomer, sensible shopper, after | 251 | 136 | 155 | 2.3 | 1.5 |
+
+Even buying everything sensible, half the Pucks were left: they are won after the last shop (a boss pays 25, a playoff win 30), and the first shop is reached with one game's pay. Two changes:
+
+- **A season starts with 40 Pucks.** Shops where something can be afforded went from 1.2 to 1.4 of about 2.2 to 1.7 to 1.9.
+- **Pucks left over buy a pack** when the season closes: 100 a Bronze, 200 a Silver. With 125 to 175 left in an average season that is a Bronze most seasons and a Silver after a strong one. (First set at 60 and 140, which made a Silver the usual result; raised.)
+
+Not done: a shop before the playoffs, and re-pricing. Gear's worth was not measured again with the extra pack a season; `npm run measure -- gear` and `npm run seasons` should be run if gear starts to feel strong.
+

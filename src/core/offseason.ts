@@ -18,7 +18,8 @@ import { createNameMaker, type NameMaker } from './names';
 import { capHitOf, type PlayerRecord, type Position } from './player';
 import { createRng, type Rng } from './rng';
 import { payroll, type MoveResult } from './roster';
-import { endSeason, type ActionResult, type Franchise, type OffseasonReport, type RatingChange, canStartSeason, startSeason } from './season';
+import { endSeason, type ActionResult, type Franchise, type OffseasonReport, type RatingChange, canStartSeason, startSeason, leftoverPack } from './season';
+import { awardPack } from './packs';
 import { tickTenure } from './scouting';
 import { tickStaff } from './staff';
 import { addXp, withAgeBonus } from './xp';
@@ -126,6 +127,14 @@ export function finishSeason(f: Franchise): ActionResult {
   // 4. Contracts tick down for everyone on a team.
   for (const team of league.teams) for (const id of team.roster) playerOf(league, id).contractYears -= 1;
   const pending = mine.roster.filter((id) => playerOf(league, id).contractYears <= 0);
+
+  // Pucks left over become a pack: the last of them were won after the last shop.
+  const spare = leftoverPack(f);
+  if (spare) {
+    const left = f.season.currency;
+    awardPack(f, spare, 'Pucks left over');
+    report.news.push(`Your club: the ${left} Pucks left over bought a ${spare} pack. It is waiting in your collection.`);
+  }
 
   const ended = endSeason(f);
   if (!ended.ok) return ended;

@@ -13,7 +13,7 @@
   "seriesWins": 2,
   "defaultDifficulty": 0.75,
   "difficulties": [
-    { "id": "rookie", "name": "Rookie", "short": "Slower opponents, two more strikes", "levelShift": -0.35, "regionShift": [0, -0.2, -0.3], "playoffShift": -0.3, "extraStrikes": 2, "description": "Opponents think more slowly and make more mistakes, more so as the season goes on, and you have two more strikes. Only their thinking changes: their ratings, the physics and your own team are the same on every setting, and it never changes with the score." },
+    { "id": "rookie", "name": "Rookie", "short": "Slower opponents, two more strikes", "levelShift": -0.35, "regionShift": [0, -0.2, -0.3], "playoffShift": -0.3, "extraStrikes": 2, "bossHeals": 9, "regionRating": [0, -3, -5], "playoffRating": -5, "description": "Opponents think more slowly and make more mistakes, you have two more strikes, and beating a boss wipes every strike you have. From the second region on, opponents also play a little below their ratings: on every other setting only their thinking changes. The physics and your own team are the same on every setting, and it never changes with the score." },
     { "id": "semipro", "name": "Semi-Pro", "short": "A step up from Rookie", "levelShift": -0.15, "regionShift": [0, -0.2, -0.3], "playoffShift": -0.3, "extraStrikes": 1, "description": "Opponents think a little more slowly than on Pro, and you have one more strike. Later opponents are stronger teams, and think more slowly to make up for it. Difficulty only ever changes how well opponents think: never their ratings, the physics or your own team, and it never changes with the score." },
     { "id": "pro", "name": "Pro", "short": "The standard game", "levelShift": 0, "regionShift": [0, -0.1, -0.15], "playoffShift": -0.15, "description": "The standard game. Later opponents are stronger teams, and think a little more slowly to make up for it. Difficulty only ever changes how well opponents think: never their ratings, the physics or your own team, and it never changes with the score." },
     { "id": "allstar", "name": "All-Star", "short": "Faster opponents, fewer mistakes", "levelShift": 0.15, "description": "Opponents think faster and make fewer mistakes. Only their thinking changes: their ratings, the physics and your own team are the same on every setting, and it never changes with the score." }
@@ -43,7 +43,7 @@
   "bossCurrency": 25,
   "playoffWinCurrency": 30,
   "powerupDropChance": 0.35,
-  "startingPowerups": 1,
+  "startingPowerups": 1, "startingCurrency": 40, "leftoverPacks": [{"from": 200, "pack": "silver"}, {"from": 100, "pack": "bronze"}],
   "shopItems": 3,
   "healStrikePrice": 105,
   "shopArtifactPrice": 150,

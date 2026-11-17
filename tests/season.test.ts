@@ -371,8 +371,8 @@ describe('moving on the map', () => {
     const wide = started();
     goTo(wide, 'game');
     recordGame(wide, result(true, 5));
-    expect(narrow.season.currency).toBe(rules.winCurrency + rules.marginCurrency);
-    expect(wide.season.currency).toBe(rules.winCurrency + rules.maxMarginCurrency);
+    expect(narrow.season.currency).toBe(rules.startingCurrency + rules.winCurrency + rules.marginCurrency);
+    expect(wide.season.currency).toBe(rules.startingCurrency + rules.winCurrency + rules.maxMarginCurrency);
     expect(narrow.season.strikes).toBe(0);
     expect(narrow.season.current).toBe(null);
     expect(narrow.record.wins).toBe(1);
@@ -385,7 +385,7 @@ describe('moving on the map', () => {
     const outcome = recordGame(f, result(false));
     expect(outcome.ok && outcome.message).toMatch(/Strike 1/);
     expect(f.season.strikes).toBe(1);
-    expect(f.season.currency).toBe(0);
+    expect(f.season.currency).toBe(rules.startingCurrency);
     expect(f.record.losses).toBe(1);
     expect(availableStops(f).length).toBeGreaterThan(0);
   });
@@ -675,7 +675,7 @@ describe('bosses and artifacts', () => {
     f.artifacts = ['season-tickets'];
     goTo(f, 'game');
     recordGame(f, result(true, 1));
-    expect(f.season.currency).toBe(Math.round((rules.winCurrency + rules.marginCurrency) * 1.25));
+    expect(f.season.currency).toBe(rules.startingCurrency + Math.round((rules.winCurrency + rules.marginCurrency) * 1.25));
   });
 });
 

@@ -146,7 +146,7 @@ describe('handicaps', () => {
     const hard = started({ vows: { tougher: 2, thinIce: 1 } });
     toGame(hard);
     recordGame(hard, result(true));
-    expect(hard.season.currency).toBe(Math.round(plain.season.currency * (1 + 3 * data.reward.currencyPerPoint)));
+    expect(hard.season.currency - rules.startingCurrency).toBe(Math.round((plain.season.currency - rules.startingCurrency) * (1 + 3 * data.reward.currencyPerPoint)));
   });
 });
 

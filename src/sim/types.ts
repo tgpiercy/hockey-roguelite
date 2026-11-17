@@ -55,6 +55,8 @@ export interface SkaterParams {
   oneTimer?: number;
   /** Scales how far the shot can stray from its aim: under 1 for the human's assisted shots. Left out means 1. */
   spreadScale?: number;
+  /** Extra scatter, in radians, on a first-touch shot taken with a defender on him. */
+  crowdSpread?: number;
 }
 
 /** The moving body of a player. */

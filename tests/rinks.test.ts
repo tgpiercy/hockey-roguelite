@@ -238,7 +238,7 @@ describe('rinks in a season', () => {
     expect(matchup(plain)!.rink).toBeUndefined();
     recordGame(plain, won);
     expect(marked.season.currency - plain.season.currency).toBe(RINK_BONUS);
-    expect(plain.season.currency).toBe(rules.winCurrency + rules.marginCurrency);
+    expect(plain.season.currency).toBe(rules.startingCurrency + rules.winCurrency + rules.marginCurrency);
     expect(currentStop(plain)).toBeNull();
   });
 });

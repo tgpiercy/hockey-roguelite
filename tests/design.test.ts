@@ -208,7 +208,7 @@ describe('what a game earned', () => {
     expect(r.won).toBe(true);
     expect(r.score).toEqual([5, 0]);
     expect(r.cash).toBe(f.cash - cash);
-    expect(r.pucks).toBe(f.season.currency);
+    expect(r.pucks).toBe(f.season.currency - rules.startingCurrency);
     expect(r.pucks).toBe(rules.winCurrency + rules.maxMarginCurrency);
     const roster = userTeam(f.league).roster;
     expect(r.xp.map((x) => x.id)).toEqual(roster);

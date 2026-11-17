@@ -4,6 +4,9 @@ import { createRng } from '../../src/core/rng';
 import {
   availableStops,
   buy,
+  buyScouting,
+  buyShopArtifact,
+  healStrike,
   chooseEvent,
   currentStop,
   eventInfo,
@@ -150,7 +153,7 @@ export interface SeasonReport {
  * Plays whole seasons with the scripted player in every game, on one difficulty, making plain choices
  * between games (random stops, first artifact, no ringer fee, buys what it can afford).
  */
-export function measureSeasons(n: number, difficulty: string, seed: string, who: Stand = 'script'): SeasonReport {
+export function measureSeasons(n: number, difficulty: string, seed: string, who: Stand = 'script', shopper = false): SeasonReport {
   let t = cloneTuning();
   const report: SeasonReport = { seasons: n, clearedFirstRegion: 0, champions: 0, clearedRegions: [], playoffs: 0, wins: 0, played: 0, pucksEarned: 0, pucksSpent: 0, pucksLeft: 0, shops: 0, shopsBoughtAt: 0 };
   for (let i = 0; i < n; i++) {
@@ -193,7 +196,18 @@ export function measureSeasons(n: number, difficulty: string, seed: string, who:
           const affordable = (stop.stock ?? []).filter((id) => shopPrice(f, id) <= f.season.currency);
           report.shops += 1 / n;
           if (affordable.length > 0) report.shopsBoughtAt += 1 / n;
-          if (affordable.length > 0) buy(f, choose.pick(affordable));
+          if (!shopper) {
+            if (affordable.length > 0) buy(f, choose.pick(affordable));
+          } else {
+            // A sensible shopper: a strike back first, then the artifact on the top shelf, then a report on the
+            // boss, then powerups for as long as the Pucks last.
+            let bought = affordable.length > 0;
+            if (f.season.strikes > 0 && healStrike(f).ok) bought = true;
+            if (buyShopArtifact(f).ok) bought = true;
+            if (buyScouting(f).ok) bought = true;
+            for (const id of [...(stop.stock ?? [])].sort((a, b) => shopPrice(f, a) - shopPrice(f, b))) if (buy(f, id).ok) bought = true;
+            if (bought && affordable.length === 0) report.shopsBoughtAt += 1 / n;
+          }
           leaveShop(f);
         }
       }

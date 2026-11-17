@@ -53,7 +53,10 @@
     "maxSpreadDegrees": 14,
     "minSpreadDegrees": 1.5,
     "skaterSpeedShare": 0.3,
-    "oneTimerPower": 1.25
+    "oneTimerPower": 1.25,
+    "oneTimerCrowdRange": 2.2,
+    "oneTimerCrowdFull": 1.0,
+    "oneTimerCrowdDegrees": 16
   },
   "game": {
     "goalPauseSeconds": 1.5,

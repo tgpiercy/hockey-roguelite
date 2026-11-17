@@ -274,6 +274,18 @@ export function createGame(t: Tuning, seed: number | string, options: WorldOptio
   return world;
 }
 
+/**
+ * How much a one-timer strays for being marked, in radians: nothing with nobody near, the most with an
+ * opposing skater right on the shooter. It is what makes the open man the one to pass to.
+ */
+export function oneTimerCrowd(world: World, p: Player, t: Tuning): number {
+  const s = t.shot;
+  let nearest = Infinity;
+  for (const o of skatersOf(world, otherTeam(p.team))) nearest = Math.min(nearest, Math.hypot(o.pos.x - p.pos.x, o.pos.y - p.pos.y));
+  const close = Math.max(0, Math.min(1, (s.oneTimerCrowdRange - nearest) / Math.max(0.01, s.oneTimerCrowdRange - s.oneTimerCrowdFull)));
+  return (close * s.oneTimerCrowdDegrees * Math.PI) / 180;
+}
+
 /** If the beaten goalie has an automatic save left, this period or this game, he makes it: the shot is frozen, not a goal. */
 function autoSave(world: World, beaten: Player | null, t: Tuning, events: SimEvent[]): boolean {
   if (!beaten || !beaten.goalie || world.puck.shotBy === null || world.puck.unstoppable) return false;
@@ -490,7 +502,7 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
     const woundUp = chargeFraction(p.charge, t) >= 1;
     // The human's shots also stray less: part of the aim assist.
     const steady = assist && t.aimAssist.strength > 0 ? { spreadScale: 1 - Math.min(1, t.aimAssist.strength) * (1 - t.aimAssist.spreadScale) } : {};
-    const params = oneTimer ? { ...fx, ...steady, oneTimer: fx.oneTimerScale * t.shot.oneTimerPower } : { ...fx, ...steady };
+    const params = oneTimer ? { ...fx, ...steady, oneTimer: fx.oneTimerScale * t.shot.oneTimerPower, crowdSpread: oneTimerCrowd(world, p, t) } : { ...fx, ...steady };
     const speed = stepShooting(p, hadPuck, puck, input, params, t, world.rng, dt, assist);
     if (speed !== null) {
       loosePuck(world);

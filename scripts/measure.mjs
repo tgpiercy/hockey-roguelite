@@ -51,9 +51,9 @@ try {
     carry: () => measures.measureCarry(games, level, who === 'idle' ? 'script' : who),
     shape: () => measures.measureShape(games, level, who),
     seasons: () => {
-      const r = checks.measureSeasons(games, difficulty, 'bench', who);
+      const r = checks.measureSeasons(games, difficulty, 'bench', who, args.includes('--shopper'));
       return [
-        `Seasons: ${games} on ${difficulty}, the ${who} player, a new franchise, plain choices`,
+        `Seasons: ${games} on ${difficulty}, the ${who} player, a new franchise, ${args.includes('--shopper') ? 'buying all it sensibly can at each shop' : 'plain choices'}`,
         `  first region cleared ${Math.round(r.clearedFirstRegion * 100)}%   title ${Math.round(r.champions * 100)}%   wins ${r.wins.toFixed(1)} of ${r.played.toFixed(1)} games`,
         `  how far: ${r.clearedRegions.map((share, i) => `region ${i + 1} ${Math.round((share ?? 0) * 100)}%`).join(', ')}, playoffs ${Math.round(r.playoffs * 100)}%, title ${Math.round(r.champions * 100)}%`,
         `  Pucks earned ${Math.round(r.pucksEarned)}, spent ${Math.round(r.pucksSpent)}, left ${Math.round(r.pucksLeft)}; shops reached ${r.shops.toFixed(1)}, could afford something at ${r.shopsBoughtAt.toFixed(1)}`,

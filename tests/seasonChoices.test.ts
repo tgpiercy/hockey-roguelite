@@ -118,7 +118,7 @@ describe('elite games', () => {
     const f = started();
     travel(f, availableStops(f).find((s) => s.elite)!.id);
     recordGame(f, result(true, 1));
-    expect(f.season.currency).toBe(rules.winCurrency + rules.eliteCurrency + rules.marginCurrency);
+    expect(f.season.currency).toBe(rules.startingCurrency + rules.winCurrency + rules.eliteCurrency + rules.marginCurrency);
     expect(f.season.stage).toBe('reward');
     expect(f.season.offer).toHaveLength(rules.eliteArtifactChoices);
     expect(pickArtifact(f, f.season.offer[0]!).ok).toBe(true);

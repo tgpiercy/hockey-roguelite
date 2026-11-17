@@ -346,6 +346,11 @@ export interface DifficultyInfo {
   playoffShift?: number;
   /** Strikes added to the season's limit. Left out, none. */
   extraStrikes?: number;
+  /** Added to every opponent's ratings in each region, and in the playoffs. Left out, nothing: only Rookie has it. */
+  regionRating?: number[];
+  playoffRating?: number;
+  /** Strikes a win over a boss wipes on this difficulty. Left out, the season's usual number. */
+  bossHeals?: number;
 }
 
 export const DIFFICULTIES = rules.difficulties as DifficultyInfo[];
@@ -614,6 +619,8 @@ export function startSeason(f: Franchise, setup: SeasonSetup & { regions?: numbe
   // Each season is its own build: last season's artifacts are gone.
   f.artifacts = [];
   const gift = roll(season, 'start');
+  // A few Pucks in hand, so that the first shop reached has something in it you can afford.
+  season.currency = rules.startingCurrency;
   const starting = Math.max(0, Math.round(stat(f, 'startingPowerups', rules.startingPowerups)));
   for (let i = 0; i < starting; i++) season.powerups.push(gift.pick(powerups).id);
   return done('The season begins.');
@@ -631,6 +638,16 @@ export function abandonSeason(f: Franchise): ActionResult {
   f.season.current = null;
   f.season.stage = 'none';
   return { ok: true, message: 'You abandon the season.' };
+}
+
+/**
+ * The pack the Pucks left over at the end of a season are worth, or null: the season's last Pucks are won
+ * after its last shop, and this is what they are for. A weekly run has none.
+ */
+export function leftoverPack(f: Franchise): 'bronze' | 'silver' | 'gold' | null {
+  if (f.season.weekly) return null;
+  const tier = (rules.leftoverPacks as { from: number; pack: 'bronze' | 'silver' | 'gold' }[]).find((x) => f.season.currency >= x.from);
+  return tier ? tier.pack : null;
 }
 
 export function endSeason(f: Franchise): ActionResult {
@@ -844,7 +861,7 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
   const sharper = f.prestige.level * prestigeRules.opponentLevelPerLevel + difficultyInfo(f.difficulty).levelShift + stat(f, 'opponentLevel', 0);
 
   if (season.phase === 'playoffs' && season.playoffs) {
-    const away = dress(league, teamOf(league, season.playoffs.opponentId), { bumpAll: tougher });
+    const away = dress(league, teamOf(league, season.playoffs.opponentId), { bumpAll: tougher + (difficultyInfo(f.difficulty).playoffRating ?? 0) });
     if (!away) return null;
     const round = season.playoffs.round === rules.playoffRounds - 1 ? 'Final' : 'Semi-final';
     return {
@@ -860,13 +877,16 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
   const stop = currentStop(f);
   if (season.phase !== 'map' || !stop || season.stage !== 'arrived') return null;
   const eased = difficultyInfo(f.difficulty).regionShift ?? [];
+  // The easiest setting also has later opponents play a little below their ratings.
+  const weaker = difficultyInfo(f.difficulty).regionRating ?? [];
+  const rated = tougher + (weaker[stop.region] ?? weaker[weaker.length - 1] ?? 0);
   const level = clampLevel((rules.regionLevels[stop.region] ?? rules.regionLevels[rules.regionLevels.length - 1]!) + sharper + (eased[stop.region] ?? eased[eased.length - 1] ?? 0));
   if (stop.kind === 'boss' && stop.bossId) {
     const boss = bossInfo(stop.bossId);
     return {
       home,
       // A scouted boss plays below himself.
-      away: buildBoss(league, stop.bossId, stop.region, season.seed, tougher - (season.scouted ? rules.scoutRatingCut : 0)),
+      away: buildBoss(league, stop.bossId, stop.region, season.seed, rated - (season.scouted ? rules.scoutRatingCut : 0)),
       level: clampLevel(level + rules.bossLevelBonus - (season.scouted ? rules.scoutLevelCut : 0)),
       kind: 'boss',
       title: `Boss: ${boss.name}`,
@@ -877,7 +897,7 @@ function plainMatchup(f: Franchise): Omit<Matchup, 'mascots'> | null {
   }
   if (stop.kind === 'game' && stop.opponentId) {
     const elite = stop.elite === true;
-    const away = dress(league, teamOf(league, stop.opponentId), { bumpAll: tougher + (elite ? stat(f, 'eliteBump', rules.eliteRatingBump) : 0) });
+    const away = dress(league, teamOf(league, stop.opponentId), { bumpAll: rated + (elite ? stat(f, 'eliteBump', rules.eliteRatingBump) : 0) });
     if (!away) return null;
     if (elite) return { home, away, level: clampLevel(level + rules.eliteLevelBonus), kind: 'game', title: `Elite: ${away.name}`, powerups: loaded, elite: true };
     return { home, away, level, kind: 'game', title: `vs ${away.name}`, powerups: loaded, ...(stop.rink ? { rink: stop.rink } : {}) };
@@ -1124,9 +1144,9 @@ function settleGame(f: Franchise, result: GameResult): ActionResult {
     if (beatenId && !(f.bossesBeaten ?? []).includes(beatenId)) f.bossesBeaten = [...(f.bossesBeaten ?? []), beatenId];
     delete season.scouted;
     // Beating a boss wipes a strike.
-    const healed = Math.min(season.strikes, rules.bossHealsStrikes);
+    const healed = Math.min(season.strikes, difficultyInfo(f.difficulty).bossHeals ?? rules.bossHealsStrikes);
     season.strikes -= healed;
-    const relief = healed > 0 ? ' The win wipes a strike.' : '';
+    const relief = healed > 1 ? ` The win wipes ${healed} strikes.` : healed > 0 ? ' The win wipes a strike.' : '';
     season.offer = artifactOffer(f, Math.max(1, Math.round(stat(f, 'artifactChoices', rules.artifactChoices))));
     if (season.offer.length === 0) {
       finishStop(f);
