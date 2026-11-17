@@ -3,6 +3,7 @@ import { deadlineOffers } from '../../core/deadline';
 import { backupDue, lastExport } from '../safety';
 import { EXPECTATION_RULES, expectationLine, expectationShort, nextExpectation } from '../../core/expectation';
 import { announcerName, pregameLine } from '../../core/voice';
+import mapLook from '../../data/mapLook.json';
 import { ArtifactCard, type ArtChip } from '../screens/season';
 import { isVariant, RINK_BONUS, rinkInfo } from '../../core/rinks';
 import { readTactics, tacticsLine } from '../../sim/tactics';
@@ -665,33 +666,29 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
   if (screen.name === 'rewards') {
     const r = rewards;
     if (!r) return <Menu key={screenKey} title="Game over" items={[{ key: 'ok', label: 'Continue', onSelect: top }]} />;
-    // What is shown builds up one press at a time: result, money, XP, then packs and milestones.
-    const extras = r.pack !== null || r.milestones.length > 0;
-    const steps = extras ? 4 : 3;
-    const shown = Math.min(screen.shown, steps);
-    const last = shown >= steps;
+    // One screen: the result, then the money, the XP and any pack arrive in turn, and the numbers and bars grow as they do.
+    const at = mapLook.rewards.arriveMs;
     return (
       <Menu
-        key={`rewards-${shown}`}
+        key="rewards"
         stack
         title={r.won ? 'Victory' : 'Defeat'}
         header={
           <div class="rewards">
             <div>
-            <div class={`result-banner ${r.won ? 'won' : 'lost'}`}>
-              {r.won ? 'You win' : r.forfeit ? 'Forfeit' : 'You lose'} {r.score[0]} – {r.score[1]}
-            </div>
-            {shown >= 2 && (
-              <div>
+              <div class={`result-banner ${r.won ? 'won' : 'lost'}`}>
+                {r.won ? 'You win' : r.forfeit ? 'Forfeit' : 'You lose'} {r.score[0]} – {r.score[1]}
+              </div>
+              <div class="arrive" style={{ '--at': at.money }}>
                 <div class="reward">
                   <i>Cash</i>
                   <b class={r.cash < 0 ? 'down' : 'up'}>
-                    <CountUp value={r.cash} format={(v) => `${r.cash >= 0 ? '+' : ''}${money(v)}`} />
+                    <CountUp value={r.cash} delay={at.money} format={(v) => `${r.cash >= 0 ? '+' : ''}${money(v)}`} />
                   </b>
                 </div>
                 <div class="reward">
                   <i>Pucks</i>
-                  <b>{r.pucks > 0 ? <CountUp value={r.pucks} format={(v) => `+${Math.round(v)}`} /> : '0'}</b>
+                  <b>{r.pucks > 0 ? <CountUp value={r.pucks} delay={at.money} format={(v) => `+${Math.round(v)}`} /> : '0'}</b>
                 </div>
                 {!r.won && season.phase !== 'ended' && (
                   <div class="reward">
@@ -700,56 +697,52 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
                   </div>
                 )}
               </div>
-            )}
-            {shown >= 4 && (
-              <div>
-                {r.pack && (
-                  <div class="reward">
-                    <i>Pack</i>
-                    <b>{r.pack}</b>
-                  </div>
-                )}
-                {r.milestones.map((name) => (
-                  <div class="reward" key={name}>
-                    <i>Milestone</i>
-                    <b>{name}</b>
-                  </div>
-                ))}
-              </div>
-            )}
+              {(r.pack !== null || r.milestones.length > 0) && (
+                <div class="arrive" style={{ '--at': at.pack }}>
+                  {r.pack && (
+                    <div class="reward">
+                      <i>Pack</i>
+                      <b>{r.pack}</b>
+                    </div>
+                  )}
+                  {r.milestones.map((name) => (
+                    <div class="reward" key={name}>
+                      <i>Milestone</i>
+                      <b>{name}</b>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            {shown >= 3 && (
-              <div class="reward-xp">
-                {r.xp.map((x) => {
-                  const p = league.players[x.id];
-                  if (!p) return null;
-                  const banked = p.xp + (season.xp[x.id] ?? 0);
-                  const need = xpForLevel(p.level);
-                  return (
-                    <>
-                      <span class="reward-who">
-                        <Face player={p} size={22} /> {x.name}
-                      </span>
-                      <span class="meter-bar">
-                        <span class={`meter-fill${banked >= need ? '' : ' cool'}`} style={{ width: `${Math.min(1, banked / need) * 100}%`, display: 'block' }} />
-                      </span>
-                      <span>
-                        <CountUp value={x.earned} format={(v) => `+${Math.round(v)} XP`} />
-                        {banked >= need ? ' · level up' : ''}
-                      </span>
-                    </>
-                  );
-                })}
-              </div>
-            )}
+            <div class="reward-xp arrive" style={{ '--at': at.xp }}>
+              {r.xp.map((x) => {
+                const p = league.players[x.id];
+                if (!p) return null;
+                const banked = p.xp + (season.xp[x.id] ?? 0);
+                const need = xpForLevel(p.level);
+                const share = (xp: number): string => `${Math.max(0, Math.min(1, xp / need)) * 100}%`;
+                return (
+                  <>
+                    <span class="reward-who">
+                      <Face player={p} size={22} /> {x.name}
+                    </span>
+                    <span class="meter-bar">
+                      {/* The bar grows from where he stood before the game to where he stands now. */}
+                      <span class={`xp-fill${banked >= need ? ' full' : ''}`} style={{ '--from': share(banked - x.earned), '--to': share(banked), '--at': at.xp + at.bar }} />
+                    </span>
+                    <span>
+                      <CountUp value={x.earned} delay={at.xp + at.bar} format={(v) => `+${Math.round(v)} XP`} />
+                      {banked >= need ? ' · level up' : ''}
+                    </span>
+                  </>
+                );
+              })}
+              <span class="reward-note">XP is banked, and levels are gained, when the season ends.</span>
+            </div>
           </div>
         }
-        help="A next"
-        items={[
-          last
-            ? { key: 'done', label: <b>Continue</b>, detail: shown >= 3 ? 'XP is banked, and levels are gained, when the season ends.' : undefined, onSelect: top }
-            : { key: 'next', label: <b>Next</b>, onSelect: () => setScreen({ name: 'rewards', shown: shown + 1 }) },
-        ]}
+        help="A continue"
+        items={[{ key: 'done', label: <b>Continue</b>, onSelect: top }]}
       />
     );
   }

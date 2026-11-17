@@ -50,21 +50,28 @@ export function Face({ player, size = 26 }: { player: PlayerRecord; size?: numbe
  * A number that counts up to its value when it first appears. It jumps straight there if the device asks
  * for reduced motion.
  */
-export function CountUp({ value, format }: { value: number; format: (value: number) => string }) {
+export function CountUp({ value, format, delay = 0 }: { value: number; format: (value: number) => string; delay?: number }) {
   const still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const [shown, setShown] = useState(still ? value : 0);
   useEffect(() => {
     if (still) return setShown(value);
     const steps = 18;
     let step = 0;
-    const timer = setInterval(() => {
-      step += 1;
-      // Ease out: fast at first, settling on the exact value.
-      setShown(step >= steps ? value : value * (1 - (1 - step / steps) ** 3));
-      if (step >= steps) clearInterval(timer);
-    }, 28);
-    return () => clearInterval(timer);
-  }, [value, still]);
+    let timer: ReturnType<typeof setInterval> | undefined;
+    // It waits its turn (`delay` milliseconds), then counts.
+    const wait = setTimeout(() => {
+      timer = setInterval(() => {
+        step += 1;
+        // Ease out: fast at first, settling on the exact value.
+        setShown(step >= steps ? value : value * (1 - (1 - step / steps) ** 3));
+        if (step >= steps) clearInterval(timer);
+      }, 28);
+    }, delay);
+    return () => {
+      clearTimeout(wait);
+      if (timer) clearInterval(timer);
+    };
+  }, [value, still, delay]);
   return <>{format(shown)}</>;
 }
 

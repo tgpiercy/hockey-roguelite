@@ -1,6 +1,7 @@
 import controls from '../data/controls.json';
 import { readGamepad } from '../game/gamepad';
 import { bindingDown, padMap, type PadAction } from '../game/padMap';
+import { scrollPixels } from './menuScroll';
 
 export type MenuAction = 'up' | 'down' | 'left' | 'right' | 'confirm' | 'back';
 
@@ -23,6 +24,17 @@ for (const [action, codes] of Object.entries(controls.menuKeys)) {
 
 const STICK_THRESHOLD = 0.6;
 
+/** Whichever part of the menu on screen has more to show than fits: the facts beside the list first, else the list. */
+function scrollable(): HTMLElement | null {
+  const pause = document.getElementById('pause');
+  const root = pause && pause.childElementCount > 0 ? pause : document.getElementById('menu');
+  for (const selector of ['.menu-side', '.menu-list']) {
+    const el = root?.querySelector<HTMLElement>(selector);
+    if (el && el.scrollHeight > el.clientHeight + 1) return el;
+  }
+  return null;
+}
+
 /**
  * Turns the controller and keyboard into menu moves: d-pad or left stick to move (repeating while held),
  * A to select, B to go back. Runs only while a menu is on screen.
@@ -34,6 +46,7 @@ class MenuInput {
   private nextRepeatAt = 0;
   private confirmWasDown = true;
   private backWasDown = true;
+  private lastPoll = 0;
 
   constructor() {
     window.addEventListener('keydown', (e) => {
@@ -78,6 +91,9 @@ class MenuInput {
       const down = (action: PadAction): boolean => bindingDown(pad, map[action]);
       const x = pad.axes[controls.axes.moveX] ?? 0;
       const y = pad.axes[controls.axes.moveY] ?? 0;
+      // The right stick scrolls whatever on the screen has more to read than fits.
+      const scroll = scrollPixels(pad.axes[controls.axes.lookY] ?? 0, Math.min(0.1, (now - this.lastPoll) / 1000));
+      if (scroll !== 0) scrollable()?.scrollBy(0, scroll);
 
       const direction: MenuAction | null =
         down('dpadUp') || y < -STICK_THRESHOLD
@@ -110,6 +126,7 @@ class MenuInput {
       this.confirmWasDown = false;
       this.backWasDown = false;
     }
+    this.lastPoll = now;
     requestAnimationFrame(this.poll);
   };
 }

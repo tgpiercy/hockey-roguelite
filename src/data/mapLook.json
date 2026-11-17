@@ -17,5 +17,6 @@
   "recap": {
     "width": 800, "height": 450, "band": 250, "lineChars": 52, "roadDot": 5, "saveScale": 2,
     "roadColours": { "game": "#cfe8f7", "training": "#5ee08a", "event": "#c79bff", "shop": "#ffb703", "boss": "#ff7b8a" }
-  }
+  },
+  "rewards": { "arriveMs": { "money": 350, "xp": 800, "bar": 250, "pack": 1700 } }
 }

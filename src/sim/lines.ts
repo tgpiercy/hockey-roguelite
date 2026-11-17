@@ -85,6 +85,8 @@ export function putOnIce(p: Player, x: number, y: number, facing: number): void 
   p.onIce = true;
   p.leaving = false;
   p.stagger = 0;
+  // On his feet: a man knocked down just before the whistle is not left lying for the rest of his shift.
+  p.knockedDown = false;
   p.pickupLock = 0;
   p.checkCooldown = 0;
   p.passCharge = 0;
