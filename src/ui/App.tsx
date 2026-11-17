@@ -4,6 +4,7 @@ import { assistStrengths } from '../core/assists';
 import { seasonRegions } from '../core/season';
 import { progress } from '../core/achievements';
 import { storageProtected } from './safety';
+import { mascotKind } from '../core/mascotKind';
 import { pregameLine } from '../core/voice';
 import { type Tournament } from '../core/tournament';
 import { setupLine, type SeasonSetup } from '../core/charter';
@@ -36,7 +37,7 @@ import { loadPrefs, savePrefs, type Prefs } from './prefs';
 import { menuInput } from './menuInput';
 import { playMatch } from './playMatch';
 import type { PlayerRecord } from '../core/player';
-import { Dots, money, NO_TEAM, Ratings, Wallet, WearingContext, type Wearing } from './parts';
+import { Dots, MascotContext, money, NO_TEAM, Ratings, Wallet, WearingContext, type Wearing } from './parts';
 import { loadStored, store, WEEKLY_KEY } from './storage';
 import { type Screen, type Sort, type Group, TILE_ICONS, BUTTONS, count, menuTint } from './pages/shared';
 import { startPages } from './pages/start';
@@ -439,9 +440,11 @@ export function App() {
     settingsPages(app);
   return (
     <WearingContext.Provider value={wearing}>
+      <MascotContext.Provider value={{ kind: mascotKind(app.team.name), primary: app.myCrest.primary, secondary: app.myCrest.secondary }}>
       <MenuCrest.Provider value={<CrestBadge crest={barCrest} size={26} />}>
         <MenuChrome.Provider value={<Wallet f={f} />}>{view}</MenuChrome.Provider>
       </MenuCrest.Provider>
+      </MascotContext.Provider>
     </WearingContext.Provider>
   );
 }

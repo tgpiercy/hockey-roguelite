@@ -7,6 +7,8 @@ import { threeStars } from '../core/stars';
 import type { GameResult, PlayerLine, MascotLine } from '../sim/match';
 import { CrestBadge } from './Crest';
 import { Icon } from './Icon';
+import { mascotKind } from '../core/mascotKind';
+import { MascotFace } from './MascotFace';
 import { PortraitFace } from './Portrait';
 
 interface Props {
@@ -128,9 +130,7 @@ export function GameSummary({ result, teams, crests, best }: Props) {
                 {player && player.id !== MASCOT_ID ? (
                   <PortraitFace portrait={portraitOf(player.id, player.age)} primary={crest.primary} secondary={crest.secondary} size={34} />
                 ) : (
-                  <span class="mascot-face" style={{ width: '34px', height: '34px' }}>
-                    <Icon name="mascot" size={24} />
-                  </span>
+                  <MascotFace kind={mascotKind(teams[star.team].name)} primary={crest.primary} secondary={crest.secondary} size={34} />
                 )}
                 <span class="star-who">
                   <b>{player?.name ?? 'Player'}</b>

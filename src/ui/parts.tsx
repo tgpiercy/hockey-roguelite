@@ -3,6 +3,7 @@ import { createContext, type ComponentChildren } from 'preact';
 import { useContext, useEffect, useState } from 'preact/hooks';
 import { goaliesOn, skatersOn, userTeam, type League, type Team } from '../core/league';
 import { MASCOT_ID } from '../core/mascot';
+import type { MascotKind } from '../core/mascotKind';
 import type { PlayerRecord } from '../core/player';
 import { portraitOf } from '../core/portrait';
 import { capSpace, payroll } from '../core/roster';
@@ -10,6 +11,7 @@ import type { Franchise } from '../core/season';
 import gearData from '../data/gear.json';
 import rules from '../data/league.json';
 import { Icon, type IconName } from './Icon';
+import { MascotFace } from './MascotFace';
 import { PortraitFace } from './Portrait';
 
 const ratingNames = gearData.ratingNames as Record<string, string>;
@@ -28,16 +30,19 @@ export const NO_TEAM: Wearing = { primary: '#3a4a63', secondary: '#9fb6cc' };
 /** Says what any player is wearing, by his id. The app provides it; without one everybody is in neutral colours. */
 export const WearingContext = createContext<(playerId: string) => Wearing>(() => NO_TEAM);
 
+/** Your club's mascot: which costume he wears and the colours of his jersey. The app provides it. */
+export const MascotContext = createContext<{ kind: MascotKind } & Wearing>({ kind: 'bear', ...NO_TEAM });
+
+/** Your mascot's face. */
+export function MascotBadge({ size = 26 }: { size?: number }) {
+  const mine = useContext(MascotContext);
+  return <MascotFace kind={mine.kind} primary={mine.primary} secondary={mine.secondary} size={size} />;
+}
+
 /** A player's face, in the colours of the team he plays for. The mascot gets his own head. */
 export function Face({ player, size = 26 }: { player: PlayerRecord; size?: number }) {
   const wearing = useContext(WearingContext)(player.id);
-  if (player.id === MASCOT_ID) {
-    return (
-      <span class="mascot-face" style={{ width: `${size}px`, height: `${size}px` }}>
-        <Icon name="mascot" size={size * 0.72} />
-      </span>
-    );
-  }
+  if (player.id === MASCOT_ID) return <MascotBadge size={size} />;
   return <PortraitFace portrait={portraitOf(player.id, player.age)} primary={wearing.primary} secondary={wearing.secondary} size={size} />;
 }
 

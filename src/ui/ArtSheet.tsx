@@ -15,6 +15,8 @@ import { CrestBadge } from './Crest';
 import { FigureArt } from './FigureArt';
 import { GEAR_ART_SLOTS, GearArt } from './GearArt';
 import { Icon, ICON_NAMES } from './Icon';
+import { MASCOT_KINDS, mascotLook } from '../core/mascotKind';
+import { MascotFace } from './MascotFace';
 import { PortraitFace } from './Portrait';
 
 /**
@@ -142,10 +144,27 @@ export function ArtSheet() {
           <FigureArt pose={STANDING} who={{ hair: 'short', beard: 'none', build: 'regular', mark: 'captain' }} crest={teamCrest(league.teams[6]?.name ?? 'sheet')} skin={skinTone(2)} size={110} />
           <small>captain</small>
         </span>
-        <span class="figure-cell">
-          <FigureArt pose={{ ...STANDING, stride: 1, speed: 0.6 }} who={{ hair: 'short', beard: 'none', build: 'heavy', mark: 'mascot' }} crest={teamCrest(league.teams[7]?.name ?? 'sheet')} skin={skinTone(3)} size={110} />
-          <small>mascot</small>
-        </span>
+      </div>
+      <h2>Mascots: each costume on the ice, and as a face at 72, 34 and 26 pixels</h2>
+      <div class="art-row figure-row">
+        {MASCOT_KINDS.map((kind, i) => (
+          <span key={kind} class="figure-cell">
+            <FigureArt pose={{ ...STANDING, stride: i, speed: i % 2 === 0 ? 0.6 : 0, cheer: i === 3 }} who={{ hair: 'bald', beard: 'none', build: 'heavy', mark: 'mascot', costume: kind }} crest={teamCrest(league.teams[i]?.name ?? 'sheet')} skin={skinTone(3)} size={110} kit={i % 3 === 2 ? 'away' : 'home'} />
+            <small>{mascotLook(kind).name}</small>
+          </span>
+        ))}
+      </div>
+      <div class="art-row">
+        {MASCOT_KINDS.map((kind, i) => {
+          const crest = teamCrest(league.teams[i]?.name ?? 'sheet');
+          return <MascotFace key={kind} kind={kind} primary={crest.primary} secondary={crest.secondary} size={72} />;
+        })}
+      </div>
+      <div class="art-row">
+        {MASCOT_KINDS.flatMap((kind, i) => {
+          const crest = teamCrest(league.teams[i]?.name ?? 'sheet');
+          return [<MascotFace key={`${kind}a`} kind={kind} primary={crest.primary} secondary={crest.secondary} size={34} />, <MascotFace key={`${kind}b`} kind={kind} primary={crest.primary} secondary={crest.secondary} size={26} />];
+        })}
       </div>
       <h2>A league's players as they look on the ice (and at phone size)</h2>
       <div class="art-row figure-row">

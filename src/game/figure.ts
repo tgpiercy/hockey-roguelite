@@ -1,5 +1,7 @@
 import type { Crest, JerseyPattern } from '../core/crest';
+import { mascotLook, type MascotKind } from '../core/mascotKind';
 import type { PlayerLook } from '../core/playerLook';
+import mascotData from '../data/mascotLook.json';
 import { lighten } from '../core/teamColours';
 import look from '../data/rinkLook.json';
 
@@ -8,9 +10,9 @@ const B = F.body;
 const G = F.goalie;
 
 /** What a shape of the figure is, which decides its colour. */
-export type Tag = 'skin' | 'hair' | 'eye' | 'helmet' | 'visor' | 'cage' | 'jersey' | 'accent' | 'glove' | 'pants' | 'sock' | 'skate' | 'blade' | 'pad' | 'stick' | 'mark';
+export type Tag = 'skin' | 'hair' | 'eye' | 'helmet' | 'visor' | 'cage' | 'jersey' | 'accent' | 'glove' | 'pants' | 'sock' | 'skate' | 'blade' | 'pad' | 'stick' | 'mark' | 'fur' | 'muzzle';
 
-export const TAGS: readonly Tag[] = ['skin', 'hair', 'eye', 'helmet', 'visor', 'cage', 'jersey', 'accent', 'glove', 'pants', 'sock', 'skate', 'blade', 'pad', 'stick', 'mark'];
+export const TAGS: readonly Tag[] = ['skin', 'hair', 'eye', 'helmet', 'visor', 'cage', 'jersey', 'accent', 'glove', 'pants', 'sock', 'skate', 'blade', 'pad', 'stick', 'mark', 'fur', 'muzzle'];
 
 /**
  * One piece of the figure. A limb is a thick line with round ends. `bare` pieces get no outline round them;
@@ -53,7 +55,7 @@ export interface PoseInput {
 }
 
 /** The parts of a player's look that change the shapes drawn. (His colours are in `figureColours`.) */
-export type FigureLook = Pick<PlayerLook, 'hair' | 'beard' | 'build' | 'mark'>;
+export type FigureLook = Pick<PlayerLook, 'hair' | 'beard' | 'build' | 'mark' | 'costume'>;
 
 /** A player with nothing particular about him: short hair, no beard, an ordinary build. */
 export const PLAIN_LOOK: FigureLook = { hair: 'short', beard: 'none', build: 'regular' };
@@ -197,27 +199,55 @@ function hairBehind(style: FigureLook['hair'], at: (x: number, y: number) => P, 
 }
 
 /**
+ * A mascot's costume head, seen from the side: a big round head of fur with the ears, snout and markings
+ * of the animal he is, one large eye with a brow, and a grin. No helmet.
+ */
+function mascotHead(centre: P, tilt: number, costume: MascotKind): Shape[] {
+  const K = mascotLook(costume);
+  const r = B.headRadius * mascotData.headScale;
+  const cos = Math.cos(tilt);
+  const sin = Math.sin(tilt);
+  const lift = -0.35;
+  const at = (x: number, y: number): P => [centre[0] + (x * cos - (y + lift) * sin) * r, centre[1] + (x * sin + (y + lift) * cos) * r];
+  const bare = (s: Shape): Shape => ({ ...s, bare: true });
+  const out: Shape[] = [];
+  if (K.ears === 'round') out.push(circle('fur', at(-0.5, -1.0), 0.42 * r), circle('muzzle', at(-0.5, -1.0), 0.22 * r, true));
+  else if (K.ears === 'small') out.push(circle('fur', at(-0.6, -0.95), 0.27 * r));
+  else if (K.ears === 'pointed') out.push(poly('fur', [at(-0.98, -0.55), at(-0.78, -1.8), at(-0.08, -1.0)]), poly('muzzle', [at(-0.8, -0.85), at(-0.72, -1.45), at(-0.36, -1.0)], true));
+  else if (K.ears === 'tufts') out.push(poly('fur', [at(-0.75, -0.8), at(-0.9, -1.65), at(-0.25, -1.05)]), poly('fur', [at(0.1, -1.05), at(0.38, -1.7), at(0.62, -0.9)]));
+  else if (K.ears === 'crest') out.push(limb('fur', at(-0.3, -1.0), at(-0.95, -1.6), 0.24 * r), limb('fur', at(-0.1, -1.05), at(-0.5, -1.85), 0.24 * r), limb('fur', at(0.1, -1.05), at(0.05, -1.8), 0.24 * r));
+  else out.push(circle('fur', at(-0.78, -0.75), 0.26 * r), limb('muzzle', at(-0.2, -1.0), at(-0.5, -1.95), 0.17 * r), limb('muzzle', at(-0.42, -1.62), at(-1.0, -1.85), 0.15 * r), limb('muzzle', at(-0.35, -1.4), at(0.2, -1.9), 0.15 * r));
+  out.push(circle('fur', at(0, -0.1), 1.15 * r));
+  if (K.snout === 'long') out.push(circle('muzzle', at(0.2, 0.45), 0.58 * r, true));
+  if (K.snout === 'beak' && K.ears === 'tufts') out.push(circle('muzzle', at(0.4, -0.2), 0.62 * r, true));
+  if (K.stripe) out.push(limb('eye', at(1.15, 0.05), at(-0.3, -0.95), 0.36 * r, true));
+  if (K.snout === 'short') out.push(circle('muzzle', at(0.72, 0.3), 0.56 * r), circle('eye', at(1.2, 0.12), 0.16 * r, true));
+  else if (K.snout === 'long') out.push(poly('muzzle', smooth([at(0.2, -0.05), at(1.0, -0.02), at(1.62, 0.2), at(1.64, 0.5), at(1.0, 0.76), at(0.2, 0.8)], 3)), circle('eye', at(1.62, 0.24), 0.17 * r, true));
+  else out.push(poly('mark', [at(0.72, -0.06), at(K.ears === 'tufts' ? 1.4 : 1.85, 0.34), at(0.72, 0.64)]));
+  out.push(bare(circle('pad', at(0.42, -0.32), 0.28 * r)), bare(circle('eye', at(0.5, -0.3), 0.14 * r)), limb('eye', at(0.14, -0.74), at(0.76, -0.54), 0.1 * r, true));
+  if (K.snout !== 'beak') out.push(limb('eye', at(0.58, 0.64), at(K.snout === 'long' ? 1.3 : 1.02, 0.56), 0.07 * r, true));
+  return out;
+}
+
+/** A mascot's tail, behind his hips: a bushy one with a pale tip, or a thick one that tapers. */
+function tail(hip: P, costume: MascotKind): Shape[] {
+  const K = mascotLook(costume);
+  if (K.tail === 'bushy') return [taper('fur', [hip[0] - 0.3, hip[1] - 0.1], 0.2, [hip[0] - 1.05, hip[1] - 0.5], 0.36), circle('muzzle', [hip[0] - 1.2, hip[1] - 0.6], 0.22, true)];
+  if (K.tail === 'thick') return [taper('fur', [hip[0] - 0.25, hip[1]], 0.3, [hip[0] - 1.0, hip[1] + 0.45], 0.14)];
+  return [];
+}
+
+/**
  * The head, seen from the side: a face in profile with a brow, a nose and a jaw, his beard and the hair at
  * his nape, and over it the helmet, with a visor for a skater and a cage and chin guard for a goalie.
- * A mascot has a round head with ears and a snout, and no helmet.
+ * A mascot wears a costume head instead (`mascotHead`).
  */
 function head(centre: P, tilt: number, caged: boolean, who: FigureLook): Shape[] {
   const r = B.headRadius;
   const cos = Math.cos(tilt);
   const sin = Math.sin(tilt);
   const at = (x: number, y: number): P => [centre[0] + (x * cos - y * sin) * r, centre[1] + (x * sin + y * cos) * r];
-  if (who.mark === 'mascot') {
-    return [
-      circle('mark', at(-0.6, -1.05), 0.42 * r),
-      circle('mark', at(0.5, -1.15), 0.42 * r),
-      circle('mark', at(0, -0.1), 1.2 * r),
-      circle('skin', at(0.62, 0.3), 0.56 * r, true),
-      circle('eye', at(0.5, -0.3), 0.17 * r, true),
-      circle('visor', at(0.56, -0.36), 0.06 * r, true),
-      circle('eye', at(1.08, 0.16), 0.14 * r, true),
-      limb('eye', at(0.6, 0.56), at(0.98, 0.5), 0.07 * r, true),
-    ];
-  }
+  if (who.mark === 'mascot') return mascotHead(centre, tilt, who.costume ?? 'bear');
   const out: Shape[] = [...hairBehind(who.hair, at, r)];
   out.push(
     poly('skin', [at(-0.3, 0.3), at(-0.2, 0.78), at(0.4, 1.02), at(0.68, 0.94), at(0.76, 0.7), at(0.72, 0.5), at(0.98, 0.42), at(0.82, 0.1), at(0.84, -0.14), at(0.6, -0.5), at(-0.3, -0.5)]),
@@ -285,6 +315,7 @@ function skater(p: PoseInput, who: FigureLook): Built {
     return { foot: [x, -B.footLift * lifted * going], pitch: B.toeDown * lifted * (0.5 - 0.5 * Math.cos(at)) * going };
   };
   const [farStep, nearStep] = [step(-1), step(1)];
+  if (who.mark === 'mascot') shapes.push(...tail(hip, who.costume ?? 'bear'));
   const sway = Math.cos(p.stride) * B.armSwing * going;
   shapes.push(...far(leg([hip[0] - 0.06, hip[1]], farStep.foot, B.thigh * build.legs, B.shin * build.legs, build.width, farStep.pitch)));
 
@@ -319,7 +350,7 @@ function skater(p: PoseInput, who: FigureLook): Built {
   shapes.push(...leg([hip[0] + 0.06, hip[1]], nearStep.foot, B.thigh * build.legs, B.shin * build.legs, build.width, nearStep.pitch));
   shapes.push(circle('pants', hip, B.hipRadius * build.width));
   const headAt = body(0.9 + (B.neck + B.headRadius * 0.92) / B.spine, 0.1);
-  shapes.push(limb('skin', body(0.92, 0.04), between(body(0.92, 0.04), headAt, 0.7), 0.4));
+  shapes.push(limb(who.mark === 'mascot' ? 'fur' : 'skin', body(0.92, 0.04), between(body(0.92, 0.04), headAt, 0.7), 0.4));
   shapes.push(...jersey(p.pattern, body));
   shapes.push(...head(headAt, (lean - B.lean) * B.headTilt, false, who));
 
@@ -439,7 +470,7 @@ export function figure(pose: PoseInput, who: FigureLook = PLAIN_LOOK): Figure {
 
 /** A few letters that name a look, for telling one player's pictures from another's. */
 export function lookKey(who: FigureLook): string {
-  return `${who.build}.${who.hair}.${who.beard}.${who.mark ?? ''}`;
+  return `${who.build}.${who.hair}.${who.beard}.${who.mark ?? ''}.${who.costume ?? ''}`;
 }
 
 /**
@@ -461,8 +492,11 @@ export type Kit = 'home' | 'away';
  * pattern, the gloves, pants and socks, so the two sides are one dark and one white. Skin and hair are the
  * player's own.
  */
-export function figureColours(crest: Crest, goalie: boolean, skin: string, kit: Kit = 'home', hair: string = F.colours.hair): Record<Tag, string> {
-  const own = { skin, hair, eye: F.colours.eye, visor: F.colours.visor, cage: F.colours.cage, skate: look.colours.skate, blade: F.colours.blade, pad: F.colours.pad, stick: look.colours.stick, mark: F.colours.mark };
+export function figureColours(crest: Crest, goalie: boolean, skin: string, kit: Kit = 'home', hair: string = F.colours.hair, costume?: MascotKind): Record<Tag, string> {
+  const fur = mascotLook(costume ?? 'bear');
+  // A mascot's paws and legs are fur, whatever kit his club wears.
+  const paws = costume ? { glove: fur.fur, sock: fur.fur } : {};
+  const own = { fur: fur.fur, muzzle: fur.muzzle, skin, hair, eye: F.colours.eye, visor: F.colours.visor, cage: F.colours.cage, skate: look.colours.skate, blade: F.colours.blade, pad: F.colours.pad, stick: look.colours.stick, mark: F.colours.mark };
   if (kit === 'away') {
     const K = F.awayKit;
     return {
@@ -473,6 +507,7 @@ export function figureColours(crest: Crest, goalie: boolean, skin: string, kit: 
       glove: crest.primary,
       pants: crest.primary,
       sock: crest.primary,
+      ...paws,
     };
   }
   return {
@@ -483,6 +518,7 @@ export function figureColours(crest: Crest, goalie: boolean, skin: string, kit: 
     glove: F.colours.glove,
     pants: F.colours.pants,
     sock: crest.secondary,
+    ...paws,
   };
 }
 

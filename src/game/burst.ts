@@ -36,3 +36,25 @@ export function placed(points: readonly [number, number][], cx: number, cy: numb
   const sin = Math.sin(a);
   return points.map(([x, y]) => ({ x: cx + x * rx * cos - y * ry * sin, y: cy + x * rx * sin + y * ry * cos }));
 }
+
+/**
+ * Which way a shouted word is put from the player it is about, so that it does not sit on the play: away
+ * from the puck, and leaning up the screen by `upBias` so it tends to stand over heads. A direction of
+ * length 1; straight up when the puck is where he is.
+ */
+export function awayFrom(from: { x: number; y: number }, puck: { x: number; y: number }, upBias: number): { x: number; y: number } {
+  const dx = from.x - puck.x;
+  const dy = from.y - puck.y;
+  const d = Math.hypot(dx, dy);
+  const x = d < 1e-6 ? 0 : dx / d;
+  const y = (d < 1e-6 ? 0 : dy / d) - upBias;
+  const length = Math.hypot(x, y);
+  return length < 1e-6 ? { x: 0, y: -1 } : { x: x / length, y: y / length };
+}
+
+/** True if a point is under a burst of half-widths `rx` and `ry` at (cx, cy), made `margin` times as big. */
+export function covers(cx: number, cy: number, rx: number, ry: number, margin: number, point: { x: number; y: number }): boolean {
+  const u = (point.x - cx) / (rx * margin);
+  const v = (point.y - cy) / (ry * margin);
+  return u * u + v * v < 1;
+}

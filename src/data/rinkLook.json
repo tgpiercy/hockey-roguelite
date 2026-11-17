@@ -354,9 +354,9 @@
     "keepSeconds": 7
   },
   "floatWords": {
-    "seconds": 1.0,
-    "rise": 2.2,
-    "size": 0.055,
+    "seconds": 0.85,
+    "rise": 1.2,
+    "size": 0.045,
     "most": 6,
     "colour": "#ffffff",
     "itemColour": "#ffd24a",
@@ -388,7 +388,12 @@
       "oneTimer": "#ff9f43",
       "deked": "#9be37a",
       "denied": "#ff8fa3"
-    }
+    },
+    "away": 4.6,
+    "upBias": 0.7,
+    "clearOf": 1.5,
+    "overPlay": 0.35,
+    "topShare": 0.1
   },
   "passMark": {
     "size": 0.9,

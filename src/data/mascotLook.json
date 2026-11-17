@@ -1,0 +1,25 @@
+{
+  "byNoun": {
+    "Owls": "owl",
+    "Foxes": "fox",
+    "Otters": "otter",
+    "Stoats": "otter",
+    "Badgers": "badger",
+    "Harriers": "bird",
+    "Gulls": "bird",
+    "Larks": "bird",
+    "Herons": "bird"
+  },
+  "others": ["bear", "moose", "wolf"],
+  "headScale": 1.32,
+  "kinds": {
+    "bear": { "name": "a bear", "fur": "#8a5a34", "muzzle": "#e6c79c", "ears": "round", "snout": "short", "tail": "none", "stripe": false },
+    "moose": { "name": "a moose", "fur": "#6b4a30", "muzzle": "#c9a071", "ears": "antlers", "snout": "long", "tail": "none", "stripe": false },
+    "wolf": { "name": "a wolf", "fur": "#7d8794", "muzzle": "#eef2f5", "ears": "pointed", "snout": "long", "tail": "bushy", "stripe": false },
+    "fox": { "name": "a fox", "fur": "#e2762b", "muzzle": "#fff4e4", "ears": "pointed", "snout": "long", "tail": "bushy", "stripe": false },
+    "owl": { "name": "an owl", "fur": "#8b6f4e", "muzzle": "#f1e2c4", "ears": "tufts", "snout": "beak", "tail": "none", "stripe": false },
+    "bird": { "name": "a bird", "fur": "#dfe8ef", "muzzle": "#ffffff", "ears": "crest", "snout": "beak", "tail": "none", "stripe": false },
+    "badger": { "name": "a badger", "fur": "#4a4f57", "muzzle": "#f4f4f0", "ears": "round", "snout": "long", "tail": "thick", "stripe": true },
+    "otter": { "name": "an otter", "fur": "#7a5236", "muzzle": "#e8cfa8", "ears": "small", "snout": "short", "tail": "thick", "stripe": false }
+  }
+}

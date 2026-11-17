@@ -5,7 +5,7 @@ import { roleOf, type StaffMember } from '../../core/staff';
 import mascotRules from '../../data/mascot.json';
 import prestigeRules from '../../data/prestige.json';
 import { Icon, type IconName } from '../Icon';
-import { Dots, Face, Grade, money, RatingBar } from '../parts';
+import { Dots, Face, Grade, MascotBadge, money, RatingBar } from '../parts';
 import { PortraitFace } from '../Portrait';
 
 const RATING_NAMES: Record<string, string> = {
@@ -147,17 +147,21 @@ export function TradeOffer({ give, get, verdict, accepted }: { give: PlayerRecor
 }
 
 /** The mascot: his figure, a power meter marked where each talent unlocks, and the numbers power gives him. */
-export function MascotPanel({ name, power, chance, rating, children }: { name: string; power: number; chance: number; rating: number; children?: ComponentChildren }) {
+export function MascotPanel({ name, power, chance, rating, what, art, children }: { name: string; power: number; chance: number; rating: number; what?: string; art?: ComponentChildren; children?: ComponentChildren }) {
   const marks = mascotRules.talentUnlockPower;
   const top = marks[marks.length - 1] as number;
   return (
     <div class="mascot-panel">
       <div class="mascot-top">
         <span class="mascot-figure">
-          <Icon name="mascot" size={46} />
+          <MascotBadge size={76} />
         </span>
+        {art}
         <div class="mascot-facts">
-          <b>{name}</b>
+          <b>
+            {name}
+            {what ? <small> · {what}</small> : null}
+          </b>
           <span>
             <strong>{Math.round(chance * 100)}%</strong> to turn up on his next roll · plays at <strong>{rating}</strong> overall
           </span>

@@ -2,6 +2,9 @@ import type { ComponentChildren } from 'preact';
 import { seasonEndBills, starCount } from '../../core/economy';
 import { build, buildCost, FACILITIES, facilityLevel, facilityUpkeep, MAX_FACILITY_LEVEL, freeBuilds } from '../../core/facilities';
 import { EXPENSE_LINES, INCOME_LINES, LINE_NAMES, totals, type Ledger } from '../../core/ledger';
+import { mascotKind, mascotLook } from '../../core/mascotKind';
+import { STANDING } from '../../game/figure';
+import { FigureArt } from '../FigureArt';
 import { costumeCost, dropInChance, mascotPower, mascotRating, talentInfo, upgradeCostume, userMascot } from '../../core/mascot';
 import { prestige } from '../../core/prestige';
 import { gradePower, hire, kindName, letGo, roleOf, slotsFor, STAFF_KINDS, staffOfKind, staffSalePrice } from '../../core/staff';
@@ -243,7 +246,14 @@ export function clubPages(app: AppCtx): ComponentChildren | undefined {
         title="Mascot"
         message={message}
         header={
-          <MascotPanel name={f.mascot.name} power={mascotPower(f)} chance={dropInChance(f.mascot.misses ?? 0)} rating={mascotRating(mine.power)}>
+          <MascotPanel
+            name={f.mascot.name}
+            power={mascotPower(f)}
+            chance={dropInChance(f.mascot.misses ?? 0)}
+            rating={mascotRating(mine.power)}
+            what={mascotLook(mascotKind(app.team.name)).name}
+            art={<FigureArt pose={{ ...STANDING, cheer: true, pattern: app.myCrest.pattern }} who={{ hair: 'bald', beard: 'none', build: 'heavy', mark: 'mascot', costume: mascotKind(app.team.name) }} crest={app.myCrest} skin="#000000" size={84} />}
+          >
             <div class="talents">
               {f.mascot.talents.slice(0, mascotRules.talentUnlockPower.length).map((id, i) => (
                 <TalentBadge key={id} name={talentInfo(id).name} known={i < mine.talents.length} needs={mascotRules.talentUnlockPower[i] ?? 0} />

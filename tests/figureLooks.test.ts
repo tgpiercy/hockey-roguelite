@@ -3,7 +3,11 @@ import { generateLeague } from '../src/core/generate';
 import { BUILDS, buildOf, lookOf, teamLooks } from '../src/core/playerLook';
 import { portraitOf } from '../src/core/portrait';
 import look from '../src/data/rinkLook.json';
-import { ACTIONS, figure, lookKey, PLAIN_LOOK, STANDING, withStick, type Figure, type FigureLook, type Shape } from '../src/game/figure';
+import { teamCrest } from '../src/core/crest';
+import { MASCOT_KINDS, mascotKind, mascotLook } from '../src/core/mascotKind';
+import mascotData from '../src/data/mascotLook.json';
+import names from '../src/data/names.json';
+import { ACTIONS, figure, figureColours, lookKey, PLAIN_LOOK, STANDING, withStick, type Figure, type FigureLook, type Shape } from '../src/game/figure';
 
 const F = look.figure;
 type Limb = Extract<Shape, { kind: 'limb' }>;
@@ -96,8 +100,10 @@ describe('what is particular to a player', () => {
     expect(tags({})).not.toContain('mark');
     expect(tags({ mark: 'captain' }).filter((x) => x === 'mark')).toHaveLength(1);
     const mascot = tags({ mark: 'mascot' });
-    expect(mascot.filter((x) => x === 'mark').length).toBeGreaterThanOrEqual(3);
+    expect(mascot.filter((x) => x === 'fur').length).toBeGreaterThanOrEqual(2);
+    expect(mascot).toContain('muzzle');
     expect(mascot).not.toContain('helmet');
+    expect(mascot).not.toContain('skin');
   });
 
   it('the stick goes in behind the whole near arm, band and all', () => {
@@ -196,5 +202,53 @@ describe('poses for what he is doing', () => {
     expect(raised(figure({ ...STANDING, cheer: true }))).toBe(2);
     expect(raised(figure({ ...STANDING, mateCheer: true }))).toBe(1);
     expect(raised(still)).toBe(0);
+  });
+});
+
+
+describe('a mascot wears the costume of his club', () => {
+  it('a club named for an animal has that animal, and any other club the same one every time', () => {
+    expect(mascotKind('Highmoor Owls')).toBe('owl');
+    expect(mascotKind('Foxcombe Foxes')).toBe('fox');
+    expect(mascotKind('Northgate Otters')).toBe('otter');
+    expect(mascotKind('Highmoor Badgers')).toBe('badger');
+    expect(mascotKind('Eastmere Herons')).toBe('bird');
+    expect(mascotKind('Highmoor Comets')).toBe(mascotKind('Highmoor Comets'));
+    expect(mascotData.others).toContain(mascotKind('Highmoor Comets'));
+    expect(mascotData.others).toContain(mascotKind('The Night Shift'));
+    for (const kind of [...Object.values(mascotData.byNoun), ...mascotData.others]) expect(MASCOT_KINDS).toContain(kind);
+    // Every club a league can have gets a costume that exists.
+    for (const place of names.teamPlaces) for (const noun of names.teamNouns) expect(MASCOT_KINDS).toContain(mascotKind(`${place} ${noun}`));
+  });
+
+  it('every costume has its colours and is drawn differently on the ice, in every pose', () => {
+    const drawn = new Set<string>();
+    for (const kind of MASCOT_KINDS) {
+      const K = mascotLook(kind);
+      expect(K.fur).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(K.muzzle).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(K.name.length).toBeGreaterThan(3);
+      const who = { ...PLAIN_LOOK, build: 'heavy' as const, mark: 'mascot' as const, costume: kind };
+      const fig = figure(STANDING, who);
+      drawn.add(JSON.stringify(fig.shapes.map((s) => `${s.kind}:${s.tag}`)));
+      // A tail, where he has one, is behind him.
+      const tails = figure(STANDING, who).shapes.length - figure(STANDING, { ...who, costume: 'bear' }).shapes.length;
+      if (K.tail !== 'none' && K.ears === 'round' && K.snout === 'short') expect(tails).toBeGreaterThan(0);
+      for (const action of ACTIONS) expect(figure({ ...STANDING, action, goalie: action === 'glove' }, who).shapes.length).toBeGreaterThan(10);
+      expect(lookKey(who)).toContain(kind);
+    }
+    expect(drawn.size).toBeGreaterThanOrEqual(MASCOT_KINDS.length - 1);
+  });
+
+  it('his paws and legs are fur whichever kit his club wears, and a player keeps his gloves', () => {
+    const crest = teamCrest('Highmoor Owls');
+    const fur = mascotLook('owl').fur;
+    for (const kit of ['home', 'away'] as const) {
+      const colours = figureColours(crest, false, '#000000', kit, undefined, 'owl');
+      expect(colours.glove).toBe(fur);
+      expect(colours.sock).toBe(fur);
+      expect(colours.fur).toBe(fur);
+      expect(figureColours(crest, false, '#000000', kit).glove).not.toBe(fur);
+    }
   });
 });

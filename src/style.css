@@ -953,3 +953,9 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .cover .intro-team { padding: 5px 8px; gap: 4px; }
 .cover .intro-skip { align-self: center; }
 .ratings .pcard { grid-column: 1 / -1; }
+/* The mascot's own face and figure on his screen (screens/club.tsx MascotPanel). */
+.mascot-figure { width: auto; height: auto; background: none; box-shadow: none; filter: drop-shadow(3px 3px 0 var(--ink)); }
+.mascot-top .figure-art { flex: none; border: 2px solid var(--ink); border-radius: 4px; box-shadow: var(--hard); }
+.mascot-facts b small { font-weight: 400; color: var(--ice); }
+.mascot-top { flex-wrap: wrap; }
+.mascot-facts { flex: 1 1 100%; }

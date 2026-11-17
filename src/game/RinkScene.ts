@@ -1,6 +1,7 @@
 import type { Tactics } from '../sim/tactics';
 import { Commentator, COMMENTARY_SHOW_SECONDS } from './commentary';
 import * as Phaser from 'phaser';
+import { mascotKind } from '../core/mascotKind';
 import { teamCrest, type Crest } from '../core/crest';
 import { lighten } from '../core/teamColours';
 import look from '../data/rinkLook.json';
@@ -19,7 +20,7 @@ import { activeLabels } from '../sim/conditions';
 import { passPreview } from '../sim/pass';
 import { inkOn } from '../core/teamColours';
 import { STEPS_PER_SECOND } from '../sim/clock';
-import { burstPoints, placed, popScale } from './burst';
+import { awayFrom, burstPoints, covers, placed, popScale } from './burst';
 import { newlyInForce, wordsFor, type FloatKind } from './floatWords';
 import { copyWorld, goalOfTheGame, Recorder, type Clip, type GoalNote } from './replay';
 import { isMascot, mascotPlayer } from '../sim/mascot';
@@ -193,7 +194,7 @@ export class RinkScene extends Phaser.Scene {
   /** Things that happened before the first frame (a mascot there from the opening faceoff), to be told with it. */
   private pending: SimEvent[] = [];
   /** Words rising from the play, and the text objects that show them. */
-  private floats: { text: string; x: number; y: number; age: number; kind: FloatKind | null }[] = [];
+  private floats: { text: string; x: number; y: number; age: number; kind: FloatKind | null; way: { x: number; y: number } }[] = [];
   /** The jagged shapes behind shouted words, kept by their words. */
   private readonly burstShapes = new Map<string, [number, number][]>();
   /** Where the shapes behind the rising words are drawn: under the words, over everything else. */
@@ -671,7 +672,9 @@ export class RinkScene extends Phaser.Scene {
    */
   private floatWord(text: string, x: number, y: number, kind: FloatKind | null): void {
     if (this.floats.length >= look.floatWords.most) this.floats.shift();
-    this.floats.push({ text, x, y, age: 0, kind });
+    // A shouted word is put on the side of the player away from the puck, so the play is not hidden.
+    const way = kind ? awayFrom({ x, y }, this.world.puck.pos, look.floatWords.upBias) : { x: 0, y: -1 };
+    this.floats.push({ text, x, y, age: 0, kind, way });
   }
 
   /** The jagged shape for these words: worked out once and kept. */
@@ -709,24 +712,30 @@ export class RinkScene extends Phaser.Scene {
         return;
       }
       const k = w.age / fw.seconds;
-      const alpha = k < 0.7 ? 1 : (1 - k) / 0.3;
       const pop = this.options.calm ? 1 : popScale(w.age, B.popSeconds, B.pop);
-      const x = this.sx(w.x);
-      const y = this.sy(w.y) - this.zoom * (2.4 + fw.rise * k);
       label.setText(w.text);
       label.setFontSize(size * pop);
+      label.setAngle(w.kind ? B.tilt : 0);
+      const rx = label.width * B.wide;
+      const ry = size * pop * B.tall;
+      // Off to the side away from the puck (an item's name: straight above), kept inside the picture.
+      const out = this.zoom * ((w.kind ? fw.away : 2.4) + fw.rise * k);
+      const x = Math.max(rx, Math.min(this.scale.width - rx, this.sx(w.x) + w.way.x * out));
+      const y = Math.max(this.scale.height * fw.topShare + ry, Math.min(this.scale.height - ry, this.sy(w.y) + w.way.y * out));
+      // If the puck comes under it all the same, it goes faint so the play shows through.
+      const puck = { x: this.sx(this.world.puck.pos.x), y: this.sy(this.world.puck.pos.y) };
+      const over = w.kind !== null && covers(x, y, rx, ry, fw.clearOf, puck);
+      const alpha = (k < 0.7 ? 1 : (1 - k) / 0.3) * (over ? fw.overPlay : 1);
       label.setPosition(x, y);
       label.setAlpha(alpha);
       label.setVisible(true);
       if (w.kind) {
         label.setColor(B.ink);
         label.setStroke(B.ink, 0);
-        label.setAngle(B.tilt);
-        this.drawBurst(this.wordArt, this.burstFor(w.text, B), x, y, label.width * B.wide, size * pop * B.tall, size, fw.fills[w.kind], B, alpha);
+        this.drawBurst(this.wordArt, this.burstFor(w.text, B), x, y, rx, ry, size, fw.fills[w.kind], B, alpha);
       } else {
         label.setColor(fw.itemColour);
         label.setStroke(B.ink, Math.max(3, size * 0.3));
-        label.setAngle(0);
       }
     });
   }
@@ -1080,7 +1089,8 @@ export class RinkScene extends Phaser.Scene {
                 : undefined;
       // Who he is: his own look, or the mascot's while the mascot has his place.
       const own = this.options.looks?.[p.team]?.[p.id - p.team * 7];
-      const who: FigureLook = !goalie && isMascot(world, p) ? { hair: 'bald', beard: 'none', build: 'heavy', mark: 'mascot' } : (own ?? PLAIN_LOOK);
+      const costumed = !goalie && isMascot(world, p);
+      const who: FigureLook = costumed ? { hair: 'bald', beard: 'none', build: 'heavy', mark: 'mascot', costume: mascotKind(this.options.names[p.team]) } : (own ?? PLAIN_LOOK);
       const pose: PoseInput = {
         side: 1,
         stride: (strideStep / FIG.poseSteps) * TAU,
@@ -1100,7 +1110,7 @@ export class RinkScene extends Phaser.Scene {
       const key = `figure-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${own?.hairColour ?? ''}-${lookKey(who)}-${strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}${mateCheer ? '-mate' : ''}${kneel ? '-kneel' : ''}${glide ? '-glide' : ''}${action ? `-${action}` : ''}`;
       if (!this.textures.exists(key)) {
         const canvas = document.createElement('canvas');
-        paintFigure(canvas, figure(pose, who).shapes, figureColours(crest, goalie, skin, this.options.whiteTeam === p.team ? 'away' : 'home', own?.hairColour), pixels);
+        paintFigure(canvas, figure(pose, who).shapes, figureColours(crest, goalie, skin, this.options.whiteTeam === p.team ? 'away' : 'home', own?.hairColour, who.costume), pixels);
         this.textures.addCanvas(key, canvas);
       }
       this.figureKeys.set(key, this.figureFrame);

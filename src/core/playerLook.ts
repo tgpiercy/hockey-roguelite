@@ -1,4 +1,5 @@
 import data from '../data/playerLook.json';
+import type { MascotKind } from './mascotKind';
 import { kindOf } from './playerKind';
 import type { PlayerRecord } from './player';
 import { portraitOf, type Beard, type HairStyle } from './portrait';
@@ -18,8 +19,10 @@ export interface PlayerLook {
   hair: HairStyle;
   beard: Beard;
   build: Build;
-  /** A captain's band, or a mascot's ears. */
+  /** A captain's band, or a mascot's costume head. */
   mark?: 'captain' | 'mascot';
+  /** Which costume a mascot wears. */
+  costume?: MascotKind;
 }
 
 /** The build a player of this position and these ratings has. */

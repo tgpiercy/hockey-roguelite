@@ -18,7 +18,7 @@ export function FigureArt({ pose, crest, skin, size = 96, kit = 'home', who = PL
     if (!canvas) return;
     const fig = figure(pose, who);
     const end = fig.stickEnd ?? { x: pose.side * F.restStickX, y: -F.bladeWidth };
-    paintFigure(canvas, withStick(fig, end, pose.side), figureColours(crest, pose.goalie, skin, kit, hair), unit * Math.max(2, window.devicePixelRatio || 1));
+    paintFigure(canvas, withStick(fig, end, pose.side), figureColours(crest, pose.goalie, skin, kit, hair, who.costume), unit * Math.max(2, window.devicePixelRatio || 1));
   });
   return <canvas ref={ref} class="figure-art" style={{ width: `${FIGURE_BOX.width * unit}px`, height: `${size}px` }} />;
 }

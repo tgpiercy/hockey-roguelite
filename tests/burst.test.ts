@@ -98,3 +98,27 @@ describe('a skater who is slowing down glides', () => {
     expect(fx.stride.get(me.id)!).toBeGreaterThan(held);
   });
 });
+
+describe('where a shouted word is put', () => {
+  it('on the side of the player away from the puck, leaning up the screen', async () => {
+    const { awayFrom } = await import('../src/game/burst');
+    // The puck to his right: the word goes left, and upward.
+    const left = awayFrom({ x: 10, y: 10 }, { x: 14, y: 10 }, 0.7);
+    expect(left.x).toBeLessThan(0);
+    expect(left.y).toBeLessThan(0);
+    expect(Math.hypot(left.x, left.y)).toBeCloseTo(1);
+    // The puck below him: straight up. The puck above him: down, but less than straight down would be.
+    expect(awayFrom({ x: 10, y: 10 }, { x: 10, y: 14 }, 0.7)).toEqual({ x: 0, y: -1 });
+    expect(awayFrom({ x: 10, y: 10 }, { x: 10, y: 6 }, 0.7).y).toBeGreaterThan(0);
+    // The puck on his stick: straight up.
+    expect(awayFrom({ x: 3, y: 3 }, { x: 3, y: 3 }, 0.7)).toEqual({ x: 0, y: -1 });
+  });
+
+  it('a burst covers a point under it, with room to spare, and not one clear of it', async () => {
+    const { covers } = await import('../src/game/burst');
+    expect(covers(100, 100, 40, 20, 1, { x: 120, y: 105 })).toBe(true);
+    expect(covers(100, 100, 40, 20, 1, { x: 145, y: 100 })).toBe(false);
+    expect(covers(100, 100, 40, 20, 1.5, { x: 145, y: 100 })).toBe(true);
+    expect(covers(100, 100, 40, 20, 1.5, { x: 100, y: 135 })).toBe(false);
+  });
+});
