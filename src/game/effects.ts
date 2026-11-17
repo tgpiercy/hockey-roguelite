@@ -79,7 +79,7 @@ export class Effects {
   /** Seconds each player has been losing speed: past a moment of it he is gliding, and takes no strides. */
   readonly slowing = new Map<number, number>();
   /** What each player has just done (a pass, a poke, a hit; a goalie's glove save), and the seconds it is still shown for. */
-  readonly action = new Map<number, { kind: 'pass' | 'poke' | 'hit' | 'glove' | 'kick'; left: number }>();
+  readonly action = new Map<number, { kind: 'pass' | 'poke' | 'hit' | 'glove' | 'kick' | 'shot' | 'stop' | 'rise'; left: number }>();
   /** Seconds left of each goalie's pads being down after a save, by player id. */
   readonly padsDown = new Map<number, number>();
   /** Seconds left of the red light behind each net: index 0 is the left net. */
@@ -122,6 +122,9 @@ export class Effects {
         }
       } else if (e.type === 'pass') {
         this.action.set(e.player, { kind: 'pass', left: look.figure.actionSeconds.pass });
+      } else if (e.type === 'shot' && players[e.player]?.role === 'skater') {
+        // The follow-through of a shot. (The streak and the crowd are dealt with below.)
+        this.action.set(e.player, { kind: 'shot', left: look.figure.actionSeconds.shot });
       } else if (e.type === 'check' && !e.success) {
         this.action.set(e.player, { kind: e.kind === 'body' ? 'hit' : 'poke', left: e.kind === 'body' ? look.figure.actionSeconds.hit : look.figure.actionSeconds.poke });
       } else if (e.type === 'check' && e.success) {
@@ -165,8 +168,11 @@ export class Effects {
       else act.left -= dt;
     }
     for (const [id, left] of this.padsDown) {
-      if (left - dt <= 0) this.padsDown.delete(id);
-      else this.padsDown.set(id, left - dt);
+      if (left - dt <= 0) {
+        this.padsDown.delete(id);
+        // He does not spring from the ice to his feet in one picture: a moment on one knee first.
+        if (!this.action.has(id)) this.action.set(id, { kind: 'rise', left: look.figure.actionSeconds.rise });
+      } else this.padsDown.set(id, left - dt);
     }
 
     if (world.phase === 'play') this.sheet += dt;
@@ -184,6 +190,8 @@ export class Effects {
       // A man who is losing speed has stopped pushing: he glides, and his stride waits where it was.
       const losing = last !== undefined && dt > 0 && (last.speed - speed) / dt > fx.glideDrop;
       this.slowing.set(p.id, losing ? (this.slowing.get(p.id) ?? 0) + dt : 0);
+      // Braking hard from speed is a stop: skates thrown out ahead, leaning back.
+      if (p.role === 'skater' && last !== undefined && dt > 0 && last.speed >= fx.stopFromSpeed && (last.speed - speed) / dt > fx.stopDrop && !this.action.has(p.id)) this.action.set(p.id, { kind: 'stop', left: look.figure.actionSeconds.stop });
       if (!this.gliding(p.id)) this.stride.set(p.id, (this.stride.get(p.id) ?? this.rng.range(0, 6)) + speed * dt * fx.stridePerMetre);
       else if (!this.stride.has(p.id)) this.stride.set(p.id, this.rng.range(0, 6));
       if (this.full && last) {

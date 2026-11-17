@@ -7,7 +7,7 @@ import { teamCrest } from '../src/core/crest';
 import { MASCOT_KINDS, mascotKind, mascotLook } from '../src/core/mascotKind';
 import mascotData from '../src/data/mascotLook.json';
 import names from '../src/data/names.json';
-import { ACTIONS, figure, figureColours, lookKey, PLAIN_LOOK, STANDING, viewOf, withStick, type Figure, type FigureLook, type Shape } from '../src/game/figure';
+import { ACTIONS, GOALIE_ACTIONS, figure, figureColours, lookKey, PLAIN_LOOK, STANDING, viewOf, withStick, type Figure, type FigureLook, type Shape } from '../src/game/figure';
 
 const F = look.figure;
 type Limb = Extract<Shape, { kind: 'limb' }>;
@@ -167,7 +167,7 @@ describe('poses for what he is doing', () => {
 
   it('every action changes the picture, and each is mirror-exact left and right', () => {
     for (const action of ACTIONS) {
-      const pose = { ...STANDING, action, goalie: action === 'glove' || action === 'kick' };
+      const pose = { ...STANDING, action, goalie: GOALIE_ACTIONS.includes(action) };
       const right = figure(pose);
       const { action: _none, ...plain } = pose;
       expect(JSON.stringify(right.shapes), action).not.toBe(JSON.stringify(figure(plain).shapes));
@@ -188,6 +188,37 @@ describe('poses for what he is doing', () => {
     expect(helmetOf(doing('deke')).x).toBeLessThan(helmetOf(still).x);
     expect(helmetOf(doing('tired')).y).toBeGreaterThan(helmetOf(still).y);
     expect(doing('tired').hand.y).toBeGreaterThan(still.hand.y);
+  });
+
+  it("both of a goalie's hands are in front of him, whatever he is doing: the glove is never behind his back", () => {
+    for (const pose of [{}, { down: true }, { alert: 0 }, { action: 'slide' as const }, { action: 'post' as const }, { action: 'rise' as const }, { action: 'glove' as const }, { action: 'kick' as const }]) {
+      const fig = figure({ ...STANDING, goalie: true, ...pose });
+      const body = fig.shapes.find((s): s is Circle => s.tag === 'pants' && s.kind === 'circle')!;
+      const gloves = fig.shapes.filter((s): s is Circle => s.tag === 'glove' && s.kind === 'circle');
+      // The catching glove, and the hand under the blocker that holds the stick.
+      expect(gloves.length, JSON.stringify(pose)).toBeGreaterThanOrEqual(1);
+      for (const g of gloves) expect(g.x, JSON.stringify(pose)).toBeGreaterThan(body.x);
+      expect(fig.hand.x, JSON.stringify(pose)).toBeGreaterThan(body.x);
+    }
+  });
+
+  it('with the play far away a goalie stands taller than when he is set, and lower again sliding across', () => {
+    const top = (pose: object): number => figure({ ...STANDING, goalie: true, ...pose }).top;
+    expect(top({ alert: 0 })).toBeLessThan(top({ alert: 0.5 }));
+    expect(top({ alert: 0.5 })).toBeLessThan(top({}));
+    expect(top({ action: 'slide' })).toBeGreaterThan(top({}));
+  });
+
+  it('a shot is followed through with the stick hand ahead and up; a hard stop throws the skates out ahead and leans him back', () => {
+    expect(doing('shot').hand.x).toBeGreaterThan(still.hand.x);
+    expect(doing('shot').hand.y).toBeLessThan(still.hand.y);
+    expect(helmetOf(doing('stop')).x).toBeLessThan(helmetOf(still).x);
+  });
+
+  it("a candidate body is drawn only when asked for: the game's own figure is unchanged after one", () => {
+    const before = JSON.stringify(figure(STANDING).shapes);
+    expect(JSON.stringify(figure({ ...STANDING, variant: 2 }).shapes)).not.toBe(before);
+    expect(JSON.stringify(figure(STANDING).shapes)).toBe(before);
   });
 
   it('a glove save throws the catching glove up', () => {
@@ -234,7 +265,7 @@ describe('a mascot wears the costume of his club', () => {
       // A tail, where he has one, is behind him.
       const tails = figure(STANDING, who).shapes.length - figure(STANDING, { ...who, costume: 'bear' }).shapes.length;
       if (K.tail !== 'none' && K.ears === 'round' && K.snout === 'short') expect(tails).toBeGreaterThan(0);
-      for (const action of ACTIONS) expect(figure({ ...STANDING, action, goalie: action === 'glove' || action === 'kick' }, who).shapes.length).toBeGreaterThan(10);
+      for (const action of ACTIONS) expect(figure({ ...STANDING, action, goalie: GOALIE_ACTIONS.includes(action) }, who).shapes.length).toBeGreaterThan(10);
       expect(lookKey(who)).toContain(kind);
     }
     expect(drawn.size).toBeGreaterThanOrEqual(MASCOT_KINDS.length - 1);

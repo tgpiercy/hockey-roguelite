@@ -6,7 +6,8 @@ import { darken, lighten } from '../core/teamColours';
 import look from '../data/rinkLook.json';
 
 const F = look.figure;
-const B = F.body;
+/** The body's numbers: the game's own, or a candidate's laid over them while one is being drawn for the art sheet. */
+let B: typeof F.body = F.body;
 const G = F.goalie;
 
 /** What a shape of the figure is, which decides its colour. */
@@ -27,8 +28,10 @@ export type Shape =
 /** How a skater is seen: side-on, coming toward us, or going away. */
 export type View = 'side' | 'front' | 'back';
 
-export type Action = 'pass' | 'poke' | 'hit' | 'deke' | 'tired' | 'glove' | 'kick';
-export const ACTIONS: readonly Action[] = ['pass', 'poke', 'hit', 'deke', 'tired', 'glove', 'kick'];
+export type Action = 'pass' | 'poke' | 'hit' | 'deke' | 'tired' | 'shot' | 'stop' | 'glove' | 'kick' | 'slide' | 'rise' | 'post';
+export const ACTIONS: readonly Action[] = ['pass', 'poke', 'hit', 'deke', 'tired', 'shot', 'stop', 'glove', 'kick', 'slide', 'rise', 'post'];
+/** The ones that are a goalie's. */
+export const GOALIE_ACTIONS: readonly Action[] = ['glove', 'kick', 'slide', 'rise', 'post'];
 
 export interface PoseInput {
   /** Which way he faces on screen: 1 is right, -1 is left. */
@@ -54,8 +57,10 @@ export interface PoseInput {
   glide?: boolean;
   /** Knocked flat on the ice by a big hit. */
   fallen?: boolean;
-  /** Which goalie stance to draw, for the art sheet's candidates: left out, the one in use. */
+  /** Which candidate to draw, for the art sheet: left out, the one in use. */
   variant?: number;
+  /** A goalie: how near the play is, from 0 (at the other end: he stands easy) to 1 (in his end: set). Left out, set. */
+  alert?: number;
   /** Which way he is seen: from the side (the usual), or from the front or behind when he skates down or up the rink. */
   view?: View;
   /** A pass just made, a poke or a hit being thrown, a deke, a tired glide; for a goalie, the glove thrown up. */
@@ -307,8 +312,8 @@ function skater(p: PoseInput, who: FigureLook): Built {
   const going = speed <= 0 || p.glide ? 0 : B.slowStride + (1 - B.slowStride) * speed;
   // He sinks a little twice a stride, as each leg takes his weight.
   const bob = B.bob * going * Math.cos(2 * p.stride);
-  const drop = B.crouch * speed + bob + (p.kneel ? B.kneelDrop : 0) + (act === 'hit' ? B.hitDrop : act === 'tired' ? B.tiredDrop : 0);
-  const lean = p.cheer ? 0 : B.lean + speed * B.speedLean + (act === 'poke' ? B.pokeLean : act === 'hit' ? B.hitLean : act === 'deke' ? B.dekeLean : act === 'tired' ? B.tiredLean : 0);
+  const drop = B.crouch * speed + bob + (p.kneel ? B.kneelDrop : 0) + (act === 'hit' ? B.hitDrop : act === 'tired' ? B.tiredDrop : act === 'stop' ? B.stopDrop : 0);
+  const lean = p.cheer ? 0 : B.lean + speed * B.speedLean + (act === 'poke' ? B.pokeLean : act === 'hit' ? B.hitLean : act === 'deke' ? B.dekeLean : act === 'tired' ? B.tiredLean : act === 'shot' ? B.shotLean : 0) + (act === 'stop' ? B.stopLean - B.lean - speed * B.speedLean : 0);
   const hip: P = [-Math.sin(lean) * 0.4, B.hipY * build.legs + drop];
   const up: P = [Math.sin(lean), -Math.cos(lean)];
   const out: P = [Math.cos(lean), Math.sin(lean)];
@@ -320,6 +325,8 @@ function skater(p: PoseInput, who: FigureLook): Built {
   // A stride, for each leg half a turn apart: the skate pushes back along the ice from in front of him to
   // behind, then lifts, toe down, and is carried forward again. Standing, his feet are simply apart.
   const step = (side: 1 | -1): { foot: P; pitch: number } => {
+    // A hard stop: both skates thrown out ahead of him, side on to the way he was going.
+    if (act === 'stop') return { foot: [B.stopFeet[side === 1 ? 1 : 0]!, 0], pitch: 0 };
     const at = p.stride + (side === 1 ? 0 : Math.PI);
     const lifted = Math.max(0, -Math.sin(at));
     const x = side * B.stance * (1 - going) + going * (B.strideReach * Math.cos(at) - B.strideBack);
@@ -352,6 +359,10 @@ function skater(p: PoseInput, who: FigureLook): Built {
   } else if (act === 'deke') {
     low = [low[0] + 0.12, low[1] - 0.3];
     top = [top[0], top[1] - 0.18];
+  } else if (act === 'shot') {
+    // The follow-through: the stick carried on up and ahead, pointing where the puck went.
+    low = [low[0] + B.shotReach, low[1] - B.shotLift];
+    top = [top[0] + B.shotReach * 0.9, top[1] - B.shotLift * 0.5];
   } else if (act === 'tired') {
     low = [hip[0] + 0.7, hip[1] + 0.62];
     top = [hip[0] + 0.5, hip[1] + 0.5];
@@ -571,8 +582,14 @@ function padLeg(hip: P, footX: number, lift: number, S: (typeof F.goalieStyles)[
 function goalie(p: PoseInput, who: FigureLook): Built {
   const S = F.goalieStyles[p.variant ?? F.goalieStyle] ?? F.goalieStyles[0]!;
   const build = F.builds[who.build];
-  const hip: P = p.down ? [0, G.downHipY] : [S.hipX, S.hipY * build.legs];
-  const lean = p.down ? S.lean * 0.5 : S.lean;
+  const act = p.action;
+  // With the play at the other end he stands easy: taller, less bent, the glove down by his side.
+  const easy = p.down || act ? 0 : 1 - clamp01(p.alert ?? 1);
+  // Sliding across he is half-way down; getting up, the same; at his post he stands tall and tight.
+  const low = act === 'slide' || act === 'rise';
+  const standY = S.hipY * build.legs * (1 + G.relaxRise * (easy + (act === 'post' ? 0.6 : 0)));
+  const hip: P = p.down ? [0, G.downHipY] : low ? [S.hipX * 0.5, (standY + G.downHipY) / 2] : [S.hipX * (act === 'post' ? 0.3 : 1), standY];
+  const lean = p.down ? S.lean * 0.5 : act === 'post' ? S.lean * 0.25 : S.lean * (1 - easy * (1 - G.relaxLean));
   const up: P = [Math.sin(lean), -Math.cos(lean)];
   const out: P = [Math.cos(lean), Math.sin(lean)];
   const wide = S.width * build.width;
@@ -587,13 +604,21 @@ function goalie(p: PoseInput, who: FigureLook): Built {
   if (p.down) {
     // Down in the butterfly: knees on the ice in front of him, the pads lying along it behind.
     shapes.push(...far([taper('pants', hip, 0.44 * build.width, [G.downKnee + 0.12, -half], 0.3), limb('pad', [G.downKnee + 0.22, -half], [G.downFoot + 0.3, -half + 0.02], S.padWidth)]));
+  } else if (act === 'slide') {
+    // Pushing across: the far leg stretched out behind him, its skate dug in.
+    shapes.push(...far(padLeg(hip, S.feet[0]! - G.slideBack, 0, S, build.width)));
+  } else if (act === 'rise') {
+    // Getting up: the far knee still on the ice.
+    shapes.push(...far([taper('pants', hip, 0.44 * build.width, [G.downKnee + 0.12, -half], 0.3), limb('pad', [G.downKnee + 0.22, -half], [G.downFoot + 0.3, -half + 0.02], S.padWidth)]));
   } else {
-    shapes.push(...far(padLeg(hip, S.feet[0]! - shuffle * G.shuffle, Math.max(0, -shuffle) * G.shuffleLift, S, build.width)));
+    shapes.push(...far(padLeg(hip, (act === 'post' ? 0.1 : S.feet[0]!) - shuffle * G.shuffle, Math.max(0, -shuffle) * G.shuffleLift, S, build.width)));
   }
 
   // The catching glove, on the far hand: out in front, open to the shooter; thrown up and out for a glove save.
   const lift = p.action === 'glove' ? 1 : 0;
-  const catcher = arm(body(0.88, -0.04), [shoulder[0] + S.catcher[0]! + lift * G.gloveOut, shoulder[1] + S.catcher[1]! - lift * G.gloveUp], 1, false);
+  // At his post the glove is tucked in against his chest; standing easy it hangs lower.
+  const tuck = act === 'post' ? 1 : easy;
+  const catcher = arm(body(0.88, -0.04), [shoulder[0] + S.catcher[0]! + lift * G.gloveOut + tuck * G.relaxGlove[0]!, shoulder[1] + S.catcher[1]! - lift * G.gloveUp + tuck * G.relaxGlove[1]!], 1, false);
   const [cx, cy] = catcher.hand;
   const r = S.catchRadius;
   shapes.push(
@@ -617,11 +642,17 @@ function goalie(p: PoseInput, who: FigureLook): Built {
       shapes.push(limb('accent', [x, -S.padWidth * 0.84], [x, -S.padWidth * 0.18], 0.1, true));
     }
     shapes.push(...boot(G.downFoot - 0.1, 0).slice(0, 1));
+  } else if (act === 'slide') {
+    // The leading knee is down and the pad lies along the ice, sealing it as he goes.
+    shapes.push(taper('pants', hip, 0.46 * build.width, [G.downKnee, -half], 0.32), limb('pad', [G.downKnee + 0.1, -half], [G.downFoot + 0.4, -half + 0.02], S.padWidth), limb('accent', [G.downKnee - 0.3, -S.padWidth * 0.84], [G.downKnee - 0.3, -S.padWidth * 0.18], 0.1, true));
+  } else if (act === 'rise') {
+    // The near skate planted in front of him, pushing him up.
+    shapes.push(...padLeg(hip, G.riseFoot, 0, S, build.width));
   } else if (p.action === 'kick') {
     // A kick save: the near pad thrust out along the ice to meet the puck.
     shapes.push(limb('pad', [hip[0] + 0.2, hip[1] + 0.3], [G.kickReach, -half], S.padWidth), limb('accent', [G.kickReach * 0.55, -half - 0.32], [G.kickReach * 0.7, -half + 0.2], 0.1, true), ...boot(G.kickReach + 0.2, 0).slice(0, 1));
   } else {
-    shapes.push(...padLeg(hip, S.feet[1]! + shuffle * G.shuffle, Math.max(0, shuffle) * G.shuffleLift, S, build.width));
+    shapes.push(...padLeg(hip, (act === 'post' ? 0.3 : S.feet[1]!) + shuffle * G.shuffle, Math.max(0, shuffle) * G.shuffleLift, S, build.width));
   }
 
   const headAt = body(0.9 + (B.neck + B.headRadius * 0.9) / S.spine, 0.08);
@@ -687,6 +718,7 @@ const SCALE = F.height / -topOf(skater(STANDING, PLAIN_LOOK).shapes);
  */
 export function figure(pose: PoseInput, who: FigureLook = PLAIN_LOOK): Figure {
   const view = pose.goalie ? 'side' : (pose.view ?? 'side');
+  B = !pose.goalie && pose.variant !== undefined ? { ...F.body, ...(F.skaterStyles[pose.variant] as Partial<typeof F.body>) } : F.body;
   const built = pose.goalie ? goalie(pose, who) : pose.fallen ? sprawled(pose, who) : view === 'side' ? skater(pose, who) : upright(pose, who, view === 'back');
   let raw: Raw = scaled(built, SCALE);
   if (pose.side === -1) raw = mapPoints(raw, (x, y) => [-x, y]);

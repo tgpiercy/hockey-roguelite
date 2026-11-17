@@ -1114,14 +1114,32 @@ export class RinkScene extends Phaser.Scene {
       const cheer = !goalie && world.phase === 'goal' && this.scorer === p.id;
       const scorer = this.scorer === null ? undefined : world.players[this.scorer];
       const mateCheer = !goalie && !cheer && world.phase === 'goal' && scorer !== undefined && scorer.team === p.team;
+      // A goalie reads the play: easy with the puck at the other end, set as it comes, tight to his post when it is
+      // behind the net or at a sharp angle close by, and sliding when he has to cross his crease in a hurry.
+      const KG = FIG.goalie;
+      const netX = (p.team === 0 ? -1 : 1) * goalLineX(t);
+      const fromNet = Math.hypot(world.puck.pos.x - netX, world.puck.pos.y);
+      const alertStep = !goalie ? 2 : fromNet <= KG.alertNear ? 2 : fromNet <= KG.alertFar ? 1 : 0;
+      const beside = (Math.atan2(Math.abs(world.puck.pos.y), Math.max(0.01, Math.abs(world.puck.pos.x - netX))) * 180) / Math.PI;
+      const keeperMove: Action | undefined = !goalie
+        ? undefined
+        : Math.hypot(p.vel.x, p.vel.y) >= KG.slideSpeed
+          ? 'slide'
+          : Math.abs(world.puck.pos.x) > Math.abs(netX) - KG.postX || (fromNet < KG.postRange && beside > KG.postAngle)
+            ? 'post'
+            : undefined;
       // What he is doing this moment, most telling first: a hit or a poke thrown, a pass made, a deke, a tired glide.
       const action: Action | undefined = goalie
         ? acting === 'glove' || acting === 'kick'
           ? acting
-          : undefined
+          : down
+            ? undefined
+            : acting === 'rise'
+              ? 'rise'
+              : keeperMove
         : cheer || mateCheer || kneel || wound
           ? undefined
-          : acting === 'hit' || acting === 'poke' || acting === 'pass'
+          : acting === 'hit' || acting === 'poke' || acting === 'pass' || acting === 'shot' || acting === 'stop'
             ? acting
             : p.deke > 0
               ? 'deke'
@@ -1150,9 +1168,10 @@ export class RinkScene extends Phaser.Scene {
         kneel,
         ...(glide ? { glide } : {}),
         ...(action ? { action } : {}),
+        ...(goalie && alertStep < 2 ? { alert: alertStep / 2 } : {}),
       };
       const skin = own?.skin ?? skinTone(p.id);
-      const key = `figure-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${own?.hairColour ?? ''}-${lookKey(who)}-${view}-${strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}${mateCheer ? '-mate' : ''}${kneel ? '-kneel' : ''}${glide ? '-glide' : ''}${fallen ? '-fallen' : ''}${action ? `-${action}` : ''}`;
+      const key = `figure-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${own?.hairColour ?? ''}-${lookKey(who)}-${view}-${strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}${mateCheer ? '-mate' : ''}${kneel ? '-kneel' : ''}${glide ? '-glide' : ''}${fallen ? '-fallen' : ''}${action ? `-${action}` : ''}${goalie ? `-a${alertStep}` : ''}`;
       if (!this.textures.exists(key)) {
         const canvas = document.createElement('canvas');
         paintFigure(canvas, figure(pose, who).shapes, figureColours(crest, goalie, skin, this.options.whiteTeam === p.team ? 'away' : 'home', own?.hairColour, who.costume), pixels);

@@ -154,7 +154,9 @@
       "widthScale": 2.4,
       "alpha": 0.85,
       "side": 0.28
-    }
+    },
+    "stopDrop": 16,
+    "stopFromSpeed": 3
   },
   "arena": {
     "maxRows": 14,
@@ -318,7 +320,16 @@
       "strideBack": 0.3,
       "slowStride": 0.6,
       "toeDown": 0.7,
-      "bob": 0.06
+      "bob": 0.06,
+      "shotReach": 0.55,
+      "shotLift": 0.5,
+      "shotLean": 0.16,
+      "stopLean": -0.2,
+      "stopDrop": 0.26,
+      "stopFeet": [
+        0.3,
+        0.62
+      ]
     },
     "goalie": {
       "hipY": -1.3,
@@ -350,7 +361,21 @@
       "shuffleSteps": 4,
       "shuffleSpeed": 1.2,
       "downKnee": 0.6,
-      "downFoot": -0.95
+      "downFoot": -0.95,
+      "relaxRise": 0.16,
+      "relaxLean": 0.4,
+      "relaxGlove": [
+        -0.35,
+        0.55
+      ],
+      "alertNear": 16,
+      "alertFar": 30,
+      "slideSpeed": 2.6,
+      "slideBack": 0.75,
+      "postX": 1.2,
+      "postAngle": 62,
+      "postRange": 7,
+      "riseFoot": 0.7
     },
     "builds": {
       "slight": {
@@ -375,7 +400,10 @@
       "poke": 0.28,
       "hit": 0.32,
       "glove": 0.45,
-      "kick": 0.4
+      "kick": 0.4,
+      "rise": 0.3,
+      "shot": 0.26,
+      "stop": 0.2
     },
     "tiredBelow": 0.3,
     "tiredSpeed": 0.35,
@@ -464,140 +492,55 @@
         ],
         "catchRadius": 0.44,
         "blockerScale": 0.8,
-        "name": "A ready"
-      },
-      {
-        "hipY": -1.3,
-        "hipX": -0.32,
-        "lean": 0.55,
-        "spine": 1.0,
-        "width": 1.3,
-        "thigh": 0.82,
-        "shin": 0.9,
-        "padWidth": 0.62,
-        "padTop": 0.42,
-        "feet": [
-          -0.05,
-          0.55
-        ],
-        "catcher": [
-          1.15,
-          0.45
-        ],
-        "blocker": [
-          0.4,
-          0.9
-        ],
-        "catchRadius": 0.44,
-        "blockerScale": 0.8,
-        "name": "B deep crouch"
-      },
-      {
-        "hipY": -1.6,
-        "hipX": -0.15,
-        "lean": 0.3,
-        "spine": 1.0,
-        "width": 1.55,
-        "thigh": 0.82,
-        "shin": 0.9,
-        "padWidth": 0.78,
-        "padTop": 0.5,
-        "feet": [
-          0.0,
-          0.5
-        ],
-        "catcher": [
-          1.1,
-          0.3
-        ],
-        "blocker": [
-          0.45,
-          1.0
-        ],
-        "catchRadius": 0.56,
-        "blockerScale": 1.0,
-        "name": "C big gear"
-      },
-      {
-        "hipY": -1.6,
-        "hipX": -0.15,
-        "lean": 0.24,
-        "spine": 1.0,
-        "width": 1.3,
-        "thigh": 0.82,
-        "shin": 0.9,
-        "padWidth": 0.62,
-        "padTop": 0.42,
-        "feet": [
-          0.0,
-          0.5
-        ],
-        "catcher": [
-          0.9,
-          -0.55
-        ],
-        "blocker": [
-          0.45,
-          1.0
-        ],
-        "catchRadius": 0.44,
-        "blockerScale": 0.8,
-        "name": "D glove high"
-      },
-      {
-        "hipY": -1.4,
-        "hipX": -0.1,
-        "lean": 0.36,
-        "spine": 1.0,
-        "width": 1.3,
-        "thigh": 0.82,
-        "shin": 0.9,
-        "padWidth": 0.62,
-        "padTop": 0.42,
-        "feet": [
-          -0.5,
-          0.8
-        ],
-        "catcher": [
-          1.1,
-          0.3
-        ],
-        "blocker": [
-          0.45,
-          0.95
-        ],
-        "catchRadius": 0.44,
-        "blockerScale": 0.8,
-        "name": "E wide stance"
-      },
-      {
-        "hipY": -1.9,
-        "hipX": 0.0,
-        "lean": 0.12,
-        "spine": 1.0,
-        "width": 1.3,
-        "thigh": 0.82,
-        "shin": 0.9,
-        "padWidth": 0.5,
-        "padTop": 0.32,
-        "feet": [
-          0.02,
-          0.34
-        ],
-        "catcher": [
-          1.0,
-          0.55
-        ],
-        "blocker": [
-          0.4,
-          1.1
-        ],
-        "catchRadius": 0.44,
-        "blockerScale": 0.75,
-        "name": "F stand-up"
+        "name": "ready"
       }
     ],
-    "goalieStyle": 0
+    "goalieStyle": 0,
+    "skaterStyles": [
+      {
+        "name": "A as now"
+      },
+      {
+        "name": "B big head",
+        "headRadius": 0.62,
+        "neck": 0.12,
+        "spine": 0.96
+      },
+      {
+        "name": "C long legs",
+        "thigh": 0.98,
+        "shin": 0.96,
+        "hipY": -2.14,
+        "spine": 0.94,
+        "headRadius": 0.48
+      },
+      {
+        "name": "D broad",
+        "shoulderRadius": 0.46,
+        "thighRadius": 0.48,
+        "hipRadius": 0.52,
+        "fist": 0.32,
+        "elbowRadius": 0.3,
+        "kneeRadius": 0.34
+      },
+      {
+        "name": "E low and fast",
+        "lean": 0.36,
+        "crouch": 0.2,
+        "hipY": -1.86,
+        "stance": 0.32,
+        "strideReach": 0.86,
+        "speedLean": 0.3
+      },
+      {
+        "name": "F upright",
+        "lean": 0.1,
+        "crouch": 0.02,
+        "speedLean": 0.16,
+        "hipY": -2.04,
+        "stance": 0.16
+      }
+    ]
   },
   "bigPuckScale": 1.6,
   "practiceWord": "PRACTICE",

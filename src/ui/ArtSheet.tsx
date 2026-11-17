@@ -25,12 +25,28 @@ import { PortraitFace } from './Portrait';
  */
 /** The goalie's candidate stances, each in the poses a game shows. */
 const KEEPER_POSES: [string, Partial<PoseInput>][] = [
+  ['play far away', { alert: 0 }],
+  ['play coming', { alert: 0.5 }],
   ['ready', {}],
-  ['glove save', { action: 'glove' }],
-  ['down', { down: true }],
-  ['kick save', { action: 'kick' }],
   ['shuffle', { speed: 1, stride: Math.PI / 2 }],
+  ['slide', { action: 'slide' }],
+  ['at his post', { action: 'post' }],
+  ['glove save', { action: 'glove' }],
+  ['kick save', { action: 'kick' }],
+  ['down', { down: true }],
+  ['getting up', { action: 'rise' }],
   ['facing left', { side: -1 }],
+];
+
+/** The poses each skater candidate is shown in. */
+const SKATER_POSES: [string, Partial<PoseInput>][] = [
+  ['standing', {}],
+  ['stride', { stride: Math.PI / 2, speed: 1 }],
+  ['mid stride', { stride: Math.PI, speed: 1 }],
+  ['wind-up', { windUp: 1 }],
+  ['follow-through', { action: 'shot' }],
+  ['stop', { action: 'stop', speed: 0.5 }],
+  ['from the front', { view: 'front', speed: 0.6, stride: 1 }],
 ];
 
 /** The on-ice figure in each pose worth checking. */
@@ -141,16 +157,24 @@ export function ArtSheet() {
           <FigureArt pose={{ ...STANDING, view, speed: 0.5, stride: 1 }} crest={teamCrest(league.teams[1]?.name ?? 'sheet')} skin={skinTone(1)} size={96} who={{ hair: 'bald', beard: 'none', build: 'heavy', mark: 'mascot', costume: 'fox' }} />
         </div>
       ))}
-      <h2>Goalie stances</h2>
-      {look.figure.goalieStyles.map((style, v) => (
+      <h2>The goalie</h2>
+      <div class="art-row figure-row">
+        {KEEPER_POSES.map(([name, pose], i) => (
+          <span key={name} class="figure-cell">
+            <FigureArt pose={{ ...STANDING, goalie: true, ...pose }} who={{ hair: 'short', beard: 'none', build: 'tall' }} crest={teamCrest(league.teams[i % 4]?.name ?? 'sheet')} skin={skinTone(i)} size={130} kit={name === 'facing left' ? 'away' : 'home'} />
+            <small>{name}</small>
+          </span>
+        ))}
+      </div>
+      <h2>Skater candidates</h2>
+      {look.figure.skaterStyles.map((style, v) => (
         <div key={style.name} class="art-row figure-row">
           <span class="figure-cell" style="min-width:110px">
             <strong>{style.name}</strong>
-            <small>{v === look.figure.goalieStyle ? 'in the game now' : 'candidate'}</small>
           </span>
-          {KEEPER_POSES.map(([name, pose], i) => (
+          {SKATER_POSES.map(([name, pose]) => (
             <span key={name} class="figure-cell">
-              <FigureArt pose={{ ...STANDING, goalie: true, variant: v, ...pose }} who={{ hair: 'short', beard: 'none', build: 'tall' }} crest={teamCrest(league.teams[v]?.name ?? 'sheet')} skin={skinTone(v)} size={150} kit={i === 5 ? 'away' : 'home'} />
+              <FigureArt pose={{ ...STANDING, variant: v, ...pose }} crest={teamCrest(league.teams[v]?.name ?? 'sheet')} skin={skinTone(v)} size={120} />
               <small>{name}</small>
             </span>
           ))}
