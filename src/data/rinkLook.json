@@ -687,5 +687,86 @@
     "sheenWidth": 2.2,
     "hazeFrom": 0.35,
     "hazeAlpha": 0.07
+  },
+  "comicArena": {
+    "inkColour": "#0b1220",
+    "hardAlpha": 0.55,
+    "headGap": 9.5,
+    "headRow": 9.5,
+    "headSize": 6.4,
+    "headSkins": [
+      "#f1d3b8",
+      "#e0b48c",
+      "#c68e5e",
+      "#8d5a3b",
+      "#f6e0cc"
+    ],
+    "dotSize": 2.2,
+    "dotAlpha": 0.4,
+    "iceDotRows": 4,
+    "iceDotAlpha": 0.3,
+    "ink": 2.5,
+    "hard": 5,
+    "heads": true,
+    "dots": 9,
+    "iceDots": 7
+  },
+  "titleCard": {
+    "openingSeconds": 2.4,
+    "width": 0.5,
+    "height": 0.36,
+    "tilt": -3,
+    "fill": "#fff1b8",
+    "band": "#ffd23f",
+    "ink": "#0b1220",
+    "shadow": 6,
+    "titleSize": 0.11,
+    "subSize": 0.052,
+    "popSeconds": 0.25,
+    "pop": 0.2,
+    "titles": [
+      "FIRST PERIOD",
+      "SECOND PERIOD",
+      "THIRD PERIOD"
+    ],
+    "overtime": "OVERTIME"
+  },
+  "goalPanel": {
+    "width": 0.2,
+    "height": 0.6,
+    "margin": 12,
+    "slideSeconds": 0.22,
+    "ink": "#0b1220",
+    "shadow": 6,
+    "figure": 0.7,
+    "nameSize": 0.075,
+    "lineSize": 0.048,
+    "rays": 9,
+    "rayAlpha": 0.28,
+    "caption": "#fff1b8",
+    "words": [
+      "HIS FIRST OF THE GAME",
+      "HIS SECOND OF THE GAME",
+      "A HAT-TRICK!",
+      "HIS FOURTH!"
+    ],
+    "more": "ANOTHER ONE!",
+    "mascot": "THE MASCOT SCORES!"
+  },
+  "signs": {
+    "count": 8,
+    "size": 8,
+    "padX": 3,
+    "padY": 1.5,
+    "lift": 11,
+    "jump": 4,
+    "fill": "#fffdf2",
+    "ink": "#0b1220",
+    "words": [
+      "GO {club}!",
+      "{club}!",
+      "LET'S GO!",
+      "#1 FANS"
+    ]
   }
 }

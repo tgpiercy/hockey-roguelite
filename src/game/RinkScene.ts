@@ -35,7 +35,7 @@ import { drawCrest } from './drawCrest';
 import { FIGURE_BOX, paintFigure } from './drawFigure';
 import { Effects, type View } from './effects';
 import type { PlayerLook } from '../core/playerLook';
-import { facingSide, figure, figureColours, lookKey, PLAIN_LOOK, skinTone, viewOf, withStick, type Action, type FigureLook, type PoseInput, type View as Seen } from './figure';
+import { facingSide, figure, figureColours, lookKey, PLAIN_LOOK, skinTone, viewOf, withStick, type Action, type FigureLook, type PoseInput, type View as Seen, STANDING } from './figure';
 import { InputReader, type Controls } from './input';
 
 const colour = (hex: string): number => Number.parseInt(hex.slice(1), 16);
@@ -149,6 +149,15 @@ export class RinkScene extends Phaser.Scene {
   private frameTimes: number[] = [];
   private frameSum = 0;
   private crowd = new Crowd();
+  /** How the arena is inked: a heavy line, a hard shadow, people in the stands and printed dots. */
+  private comic = look.comicArena;
+  /** The words on the signs in the crowd, the comic card's second line, and the scorer's panel. */
+  private signTexts: Phaser.GameObjects.Text[] = [];
+  private cardSub!: Phaser.GameObjects.Text;
+  private panelName!: Phaser.GameObjects.Text;
+  private panelLine!: Phaser.GameObjects.Text;
+  private panelSprite!: Phaser.GameObjects.Image;
+  private panelKey = '';
   private crests!: [Crest, Crest];
   private showDebug = false;
   private leftover = 0;
@@ -250,7 +259,7 @@ export class RinkScene extends Phaser.Scene {
     const heading = { fontFamily: look.font, fontStyle: 'bold' };
 
     this.venue = venueLook(this.options.venue);
-    this.crowd = new Crowd(this.venue);
+    this.crowd = new Crowd(this.venue, this.comic.heads);
     this.ice = this.add.graphics();
     this.adverts = this.venue.iceAdverts.map((text) =>
       this.add
@@ -258,6 +267,13 @@ export class RinkScene extends Phaser.Scene {
         .setOrigin(0.5, 0.5)
         .setAlpha(arena.iceAdvertAlpha),
     );
+    // Signs held up in the crowd: lettered here, placed each frame where the crowd says they are.
+    this.signTexts = Array.from({ length: look.signs.count }, (_, k) => {
+      const team = k % 2 === 0 ? 0 : 1;
+      const club = this.shortNames()[team] as string;
+      const words = look.signs.words[(k >> 1) % look.signs.words.length] as string;
+      return this.add.text(0, 0, words.replace('{club}', club), { ...heading, fontStyle: 'bold', color: look.signs.ink, fontSize: `${look.signs.size}px` }).setOrigin(0.5, 0.5).setVisible(false);
+    });
     this.g = this.add.graphics();
     this.world = this.options.resume ?? createGame(this.options.tuning(), this.options.seed, {
       teams: this.options.teams,
@@ -290,6 +306,10 @@ export class RinkScene extends Phaser.Scene {
       .setOrigin(0.5, 0.5)
       .setVisible(false);
     this.powerText = this.add.text(0, 0, '', { ...heading, color: c.text }).setOrigin(1, 0.5);
+    this.cardSub = this.add.text(0, 0, '', { ...heading, color: look.titleCard.ink }).setOrigin(0.5, 0.5).setDepth(DEPTH.hud).setVisible(false);
+    this.panelName = this.add.text(0, 0, '', { ...heading, fontStyle: 'bold italic', color: look.goalPanel.ink }).setOrigin(0.5, 0.5).setDepth(DEPTH.hud).setVisible(false);
+    this.panelLine = this.add.text(0, 0, '', { ...heading, color: look.goalPanel.ink }).setOrigin(0.5, 0.5).setDepth(DEPTH.hud).setVisible(false);
+    this.panelSprite = this.add.image(0, 0, '__DEFAULT').setOrigin(0.5, 1).setDepth(DEPTH.hud).setVisible(false);
     this.replayText = this.add.text(0, 0, 'REPLAY', { ...heading, color: c.accent }).setOrigin(0, 0).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
     this.floatTexts = Array.from({ length: look.floatWords.most }, () => this.add.text(0, 0, '', { ...heading, fontStyle: 'bold italic', color: look.floatWords.colour }).setOrigin(0.5, 0.5).setDepth(DEPTH.hud).setVisible(false));
     this.pullText = this.add.text(0, 0, '', { ...heading, color: c.accent }).setOrigin(0.5, 1).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
@@ -749,6 +769,107 @@ export class RinkScene extends Phaser.Scene {
     });
   }
 
+  /** Each club in a word: what it is called (the Comets), or where it is from when both are called the same. */
+  private shortNames(): [string, string] {
+    const last = this.options.names.map((name) => (name.split(' ').pop() ?? name).toUpperCase());
+    if (last[0] !== last[1]) return [last[0] as string, last[1] as string];
+    const first = this.options.names.map((name) => (name.split(' ')[0] ?? name).toUpperCase());
+    return [first[0] as string, first[1] as string];
+  }
+
+  /**
+   * The comic title card, when one is up: at the opening faceoff and in the break between periods.
+   * Its second line is the score, or at the start the two clubs.
+   */
+  private titleCard(): { title: string; sub: string } | null {
+    const world = this.world;
+    const TC = look.titleCard;
+    if (world.rules !== 'game' || this.options.lesson) return null;
+    const clubs = this.shortNames();
+    if (world.phase === 'break') {
+      const title = world.overtime || world.period >= TC.titles.length ? TC.overtime : (TC.titles[world.period] as string);
+      return { title, sub: `${clubs[0]} ${world.score[0]}  ·  ${world.score[1]} ${clubs[1]}` };
+    }
+    if (world.period === 1 && world.phase === 'faceoff' && !world.faceoff?.dropped && this.clock < TC.openingSeconds && world.score[0] + world.score[1] === 0) {
+      return { title: TC.titles[0] as string, sub: `${clubs[0]}  v  ${clubs[1]}` };
+    }
+    return null;
+  }
+
+  /**
+   * While a goal is celebrated, a comic panel at the side of the screen away from the scorer: the man himself
+   * drawn large with his arms up, his name, and which goal of his it is.
+   */
+  private drawGoalPanel(g: Phaser.GameObjects.Graphics, width: number, height: number): void {
+    const world = this.world;
+    const GP = look.goalPanel;
+    const p = world.phase === 'goal' && this.scorer !== null && !world.shootout ? world.players[this.scorer] : undefined;
+    const on = p !== undefined && this.full;
+    for (const item of [this.panelName, this.panelLine, this.panelSprite]) item.setVisible(on);
+    if (!p || !on) return;
+    const crest = this.crests[p.team];
+    const pw = width * GP.width;
+    const ph = height * GP.height;
+    // On the side of the screen he is not on, sliding in from off it.
+    const right = this.sx(p.pos.x) < width / 2;
+    const slide = this.options.calm ? 1 : Math.min(1, this.bannerAge / GP.slideSeconds);
+    const rest = right ? width - GP.margin - pw : GP.margin;
+    const x = rest + (1 - slide) * (right ? pw + GP.margin * 2 : -(pw + GP.margin * 2));
+    const y = (height - ph) / 2 + look.topBarPixels * 0.3;
+    g.fillStyle(colour(GP.ink), 0.6);
+    g.fillRect(x + GP.shadow, y + GP.shadow, pw, ph);
+    g.fillStyle(colour(GP.ink));
+    g.fillRect(x - 3, y - 3, pw + 6, ph + 6);
+    g.fillStyle(colour(crest.primary));
+    g.fillRect(x, y, pw, ph);
+    // Rays behind him, from where his feet are.
+    g.fillStyle(colour(crest.secondary), GP.rayAlpha);
+    const fx = x + pw / 2;
+    const fy = y + ph * 0.72;
+    for (let i = 0; i < GP.rays; i++) {
+      const a = Math.PI + (i + 0.25) * (Math.PI / GP.rays);
+      const b = a + Math.PI / GP.rays / 2;
+      const reach = ph;
+      const clip = (px: number, py: number): [number, number] => [Math.max(x, Math.min(x + pw, px)), Math.max(y, Math.min(y + ph, py))];
+      const [ax, ay] = clip(fx + Math.cos(a) * reach, fy + Math.sin(a) * reach);
+      const [bx, by] = clip(fx + Math.cos(b) * reach, fy + Math.sin(b) * reach);
+      g.fillTriangle(fx, fy, ax, ay, bx, by);
+    }
+    // The caption box across the foot of the panel.
+    const capH = ph * 0.26;
+    g.fillStyle(colour(GP.ink));
+    g.fillRect(x, y + ph - capH - 2, pw, 2);
+    g.fillStyle(colour(GP.caption));
+    g.fillRect(x, y + ph - capH, pw, capH);
+
+    // The man himself, painted once at this size.
+    const mascot = isMascot(world, p);
+    const own = this.options.looks?.[p.team]?.[p.id - p.team * 7];
+    const who: FigureLook = mascot ? { hair: 'bald', beard: 'none', build: 'heavy', mark: 'mascot', costume: mascotKind(this.options.names[p.team]) } : (own ?? PLAIN_LOOK);
+    const tall = ph * GP.figure;
+    const pixels = Math.max(8, Math.round((tall / FIGURE_BOX.height) * 2));
+    const key = `goal-panel-${p.id}-${mascot ? 'm' : 's'}-${pixels}`;
+    if (key !== this.panelKey) {
+      if (this.panelKey && this.textures.exists(this.panelKey)) this.textures.remove(this.panelKey);
+      const canvas = document.createElement('canvas');
+      const skin = own?.skin ?? skinTone(p.id);
+      paintFigure(canvas, figure({ ...STANDING, cheer: true, pattern: crest.pattern }, who).shapes, figureColours(crest, false, skin, this.options.whiteTeam === p.team ? 'away' : 'home', own?.hairColour, who.costume), pixels);
+      if (this.textures.exists(key)) this.textures.remove(key);
+      this.textures.addCanvas(key, canvas);
+      this.panelKey = key;
+    }
+    this.panelSprite.setTexture(key).setDisplaySize((tall * FIGURE_BOX.width) / FIGURE_BOX.height, tall).setPosition(fx, y + ph - capH + tall * (1 - FIGURE_BOX.feetY / FIGURE_BOX.height));
+    const names = this.options.playerNames;
+    const name = mascot ? (this.mascotName(p.team) ?? 'The mascot') : (names?.[p.team]?.[p.id % 7] ?? this.options.names[p.team]);
+    this.panelName.setText(name.toUpperCase()).setFontSize(Math.max(11, height * GP.nameSize));
+    if (this.panelName.width > pw - 8) this.panelName.setFontSize((Math.max(11, height * GP.nameSize) * (pw - 8)) / this.panelName.width);
+    this.panelName.setPosition(fx, y + ph - capH * 0.64);
+    const count = p.stats.goals;
+    this.panelLine.setText(mascot ? GP.mascot : (GP.words[count - 1] ?? GP.more)).setFontSize(Math.max(8, height * GP.lineSize));
+    if (this.panelLine.width > pw - 8) this.panelLine.setFontSize((Math.max(8, height * GP.lineSize) * (pw - 8)) / this.panelLine.width);
+    this.panelLine.setPosition(fx, y + ph - capH * 0.26);
+  }
+
   private mascotName(team: 0 | 1): string | null {
     return this.options.teams[team].mascot?.name ?? null;
   }
@@ -824,8 +945,41 @@ export class RinkScene extends Phaser.Scene {
       const d = tier * i - tier / 2 + arena.firstRowOffset * 0.5;
       g.strokeRoundedRect(left - d, topEdge - d, w + d * 2, h + d * 2, corner + d);
     }
+    const CA = this.comic;
+    // A comic's printed dots across the stands, outside the boards.
+    if (CA.dots > 0 && this.full) {
+      const pad = Math.max(4, look.boardWidth * z * 1.2) * 2;
+      g.fillStyle(colour(v.standsEdge), look.comicArena.dotAlpha);
+      const size = look.comicArena.dotSize;
+      for (let y = look.topBarPixels + CA.dots / 2, row = 0; y < height; y += CA.dots * 0.87, row++) {
+        const inY = y > topEdge - pad && y < topEdge + h + pad;
+        for (let x = (row % 2) * CA.dots * 0.5; x < width; x += CA.dots) {
+          if (inY && x > left - pad && x < left + w + pad) continue;
+          g.fillRect(x - size / 2, y - size / 2, size, size);
+        }
+      }
+    }
     this.crowd.layout(left, topEdge, w, h, corner, width, height, look.topBarPixels);
     this.crowd.draw(g, this.clock, this.effects.excitement, this.effects.cheering, [this.teamColour(0), this.teamColour(1)], !this.full, this.options.calm === true, crowdMoods(this.world.score));
+    // The signs: a board on a stick over the holder's head, lettered by a text of its own. Their side's are up
+    // and bouncing when it scores; the rest are held a little lower.
+    const SG = look.signs;
+    for (const [k, text] of this.signTexts.entries()) {
+      // Each text belongs to a side; it takes the next sign that side's fans are holding.
+      const post = this.crowd.signs.filter((sign) => sign.team === k % 2)[k >> 1];
+      text.setVisible(post !== undefined && this.full);
+      if (!post || !this.full) continue;
+      const cy = post.y - SG.lift - (post.up ? SG.jump : 0);
+      const bw = text.width + SG.padX * 2;
+      const bh = text.height + SG.padY * 2;
+      g.lineStyle(1.5, colour(SG.ink));
+      g.lineBetween(post.x, post.y, post.x, cy);
+      g.fillStyle(colour(SG.ink));
+      g.fillRect(post.x - bw / 2 - 1.5, cy - bh / 2 - 1.5, bw + 3, bh + 3);
+      g.fillStyle(colour(SG.fill));
+      g.fillRect(post.x - bw / 2, cy - bh / 2, bw, bh);
+      text.setPosition(post.x, cy);
+    }
   }
 
   /** The ice, its markings, the boards, the bench doors and the nets. */
@@ -841,6 +995,13 @@ export class RinkScene extends Phaser.Scene {
     const ring = look.circleRadius * z;
     const dot = Math.max(2, look.dotRadius * z);
 
+    // A hard shadow under the whole rink, as a comic panel has.
+    const CA = this.comic;
+    const outer = Math.max(4, look.boardWidth * z * 1.2) * 1.9;
+    if (CA.hard > 0) {
+      g.fillStyle(colour(look.comicArena.inkColour), look.comicArena.hardAlpha);
+      g.fillRoundedRect(this.sx(-hx) - outer + CA.hard, this.sy(-hy) - outer + CA.hard, t.rink.length * z + outer * 2, t.rink.width * z + outer * 2, corner + outer);
+    }
     // Ice, with the neutral zone a shade darker so the zones read at a glance.
     g.fillStyle(colour(this.venue.ice));
     g.fillRoundedRect(this.sx(-hx), this.sy(-hy), t.rink.length * z, t.rink.width * z, corner);
@@ -957,6 +1118,24 @@ export class RinkScene extends Phaser.Scene {
     for (let k = 0; k < look.glassGlints; k++) {
       const gx0 = this.sx(-hx + corner / z + ((k + 0.5) / look.glassGlints) * (t.rink.length - (2 * corner) / z));
       for (const edge of [this.sy(-hy) - wall * 0.5 - pane * 0.5, this.sy(hy) + wall * 0.5 + pane * 0.5]) g.lineBetween(gx0 - pane * 1.6, edge, gx0 + pane * 0.4, edge);
+    }
+
+    // Ink: a heavy line round the outside of the glass and a finer one where the boards meet the ice.
+    if (CA.ink > 0) {
+      g.lineStyle(CA.ink, colour(look.comicArena.inkColour));
+      g.strokeRoundedRect(this.sx(-hx) - outer, this.sy(-hy) - outer, t.rink.length * z + outer * 2, t.rink.width * z + outer * 2, corner + outer);
+      g.lineStyle(Math.max(1, CA.ink * 0.5), colour(look.comicArena.inkColour), 0.85);
+      g.strokeRoundedRect(this.sx(-hx) - 0.5, this.sy(-hy) - 0.5, t.rink.length * z + 1, t.rink.width * z + 1, corner);
+    }
+    // Printed dots shading the ice along the near boards, smaller the further out they are.
+    if (CA.iceDots > 0 && this.full) {
+      const rowsOf = look.comicArena.iceDotRows;
+      g.fillStyle(colour(c.iceShade), look.comicArena.iceDotAlpha);
+      for (let k = 0; k < rowsOf; k++) {
+        const y = this.sy(hy) - plate * 2 - (k + 0.5) * CA.iceDots * 0.87;
+        const r = (CA.iceDots * 0.34 * (rowsOf - k)) / rowsOf;
+        for (let x = this.sx(-hx) + corner * 0.6 + (k % 2) * CA.iceDots * 0.5; x < this.sx(hx) - corner * 0.6; x += CA.iceDots) g.fillRect(x - r, y - r, r * 2, r * 2);
+      }
     }
 
     // The posts that hold the glass, along the straights.
@@ -1744,7 +1923,44 @@ export class RinkScene extends Phaser.Scene {
       this.bannerAge += real;
     }
     this.bigText.setVisible(message !== '');
-    if (message !== '') {
+    const card = this.titleCard();
+    this.cardSub.setVisible(card !== null);
+    this.drawGoalPanel(g, width, height);
+    if (card) {
+      // A comic's title card: the period in big letters on a slanted band, and the score under it.
+      const TC = look.titleCard;
+      const pop = this.full && !this.options.calm ? popScale(this.bannerAge, TC.popSeconds, TC.pop) : 1;
+      const cw = width * TC.width * pop;
+      const ch = height * TC.height * pop;
+      const cx = width / 2;
+      const cy = this.originY;
+      const tilt = (TC.tilt * Math.PI) / 180;
+      const corner = (dx: number, dy: number, grow = 0, ox = 0, oy = 0): Phaser.Math.Vector2 => {
+        const px = dx * (cw / 2 + grow);
+        const py = dy * (ch / 2 + grow);
+        return { x: cx + ox + px * Math.cos(tilt) - py * Math.sin(tilt), y: cy + oy + px * Math.sin(tilt) + py * Math.cos(tilt) } as Phaser.Math.Vector2;
+      };
+      const box = (grow: number, ox = 0, oy = 0, top = -1, bottom = 1): Phaser.Math.Vector2[] => [corner(-1, top, grow, ox, oy), corner(1, top, grow, ox, oy), corner(1, bottom, grow, ox, oy), corner(-1, bottom, grow, ox, oy)];
+      g.fillStyle(colour(TC.ink), 0.6);
+      g.fillPoints(box(3, TC.shadow, TC.shadow), true);
+      g.fillStyle(colour(TC.ink));
+      g.fillPoints(box(3), true);
+      g.fillStyle(colour(TC.fill));
+      g.fillPoints(box(0), true);
+      g.fillStyle(colour(TC.band));
+      g.fillPoints(box(0, 0, 0, -1, 0.22), true);
+      this.bigText.setText(card.title);
+      this.bigText.setFontSize(Math.max(18, height * TC.titleSize * pop));
+      this.bigText.setAngle(TC.tilt);
+      this.bigText.setColor(TC.ink);
+      this.bigText.setStroke(TC.ink, 0);
+      this.bigText.setPosition(cx + Math.sin(tilt) * ch * 0.2, cy - Math.cos(tilt) * ch * 0.2);
+      this.bigText.setVisible(true);
+      this.cardSub.setText(card.sub);
+      this.cardSub.setFontSize(Math.max(11, height * TC.subSize * pop));
+      this.cardSub.setAngle(TC.tilt);
+      this.cardSub.setPosition(cx - Math.sin(tilt) * ch * 0.3, cy + Math.cos(tilt) * ch * 0.3);
+    } else if (message !== '') {
       const goal = world.phase === 'goal';
       const size = Math.max(18, height * (goal ? look.goalBannerSize : 0.07));
       this.bigText.setFontSize(size);
