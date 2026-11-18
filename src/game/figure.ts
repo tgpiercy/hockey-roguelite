@@ -716,15 +716,16 @@ const SCALE = F.height / -topOf(skater(STANDING, PLAIN_LOOK).shapes);
 export function figure(pose: PoseInput, who: FigureLook = PLAIN_LOOK): Figure {
   const view = pose.goalie ? 'side' : (pose.view ?? 'side');
   const turned = view === 'quarter' || view === 'quarterBack';
-  let built = pose.goalie ? goalie(pose, who) : pose.fallen ? sprawled(pose, who) : view === 'side' || turned ? skater(pose, who) : upright(pose, who, view === 'back');
-  // Part-way between side-on and facing us (or away): the side view drawn narrower, with his far arm and leg
-  // brought out from behind him, toward us when he is coming down the screen and away when he is going up it.
+  let built = pose.goalie ? goalie(pose, who) : pose.fallen ? sprawled(pose, who) : view === 'side' ? skater(pose, who) : upright(pose, who, view === 'back' || view === 'quarterBack');
+  // Part-way between side-on and square on: the man seen from the front (or from behind) and turned toward
+  // the way he is going. Everything is drawn narrower, and what stands out from him (his face, his gloves and
+  // stick hand, the toes of his skates) is carried across toward that side, as it would be if he had turned.
   if (turned && !pose.goalie && !pose.fallen) {
     const Q = F.quarter;
-    const dx = (view === 'quarter' ? 1 : -1) * Q.farShift;
-    const moved = built.shapes.map((s) => (s.far ? mapPoints({ shapes: [s], hand: { x: 0, y: 0 }, stickEnd: null }, (x, y) => [x + dx, y + (view === 'quarter' ? Q.farDrop : -Q.farDrop)]).shapes[0]! : s));
-    const narrow = mapPoints({ shapes: moved, hand: built.hand, stickEnd: built.stickEnd }, (x, y) => [x * Q.squeeze, y]);
-    built = { ...narrow, nearArm: built.nearArm };
+    const [cos, sin] = [Math.cos(Q.yaw), Math.sin(Q.yaw) * (view === 'quarter' ? 1 : -1)];
+    const depths = Q.depth as Partial<Record<Tag, number>>;
+    const shapes = built.shapes.map((s) => mapPoints({ shapes: [s], hand: { x: 0, y: 0 }, stickEnd: null }, (x, y) => [x * cos + (depths[s.tag] ?? 0) * sin, y]).shapes[0]!);
+    built = { ...built, shapes, hand: { x: built.hand.x * cos + (depths.glove ?? 0) * sin, y: built.hand.y } };
   }
   let raw: Raw = scaled(built, SCALE);
   if (pose.side === -1) raw = mapPoints(raw, (x, y) => [-x, y]);

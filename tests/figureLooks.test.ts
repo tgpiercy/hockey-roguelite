@@ -310,14 +310,22 @@ describe('seen from the front, from behind, and flat on the ice', () => {
     expect(V.quarterEnter).toBeGreaterThan(V.leave);
   });
 
-  it('the part-turned picture is the side view drawn narrower, with the far arm and leg brought out from behind him', () => {
-    const wide = (fig: Figure): number => Math.max(...fig.shapes.flatMap((s) => (s.kind === 'poly' ? s.points.map(([x]) => x) : s.kind === 'circle' ? [s.x + s.r] : [s.x1, s.x2]))) - Math.min(...fig.shapes.flatMap((s) => (s.kind === 'poly' ? s.points.map(([x]) => x) : s.kind === 'circle' ? [s.x - s.r] : [s.x1, s.x2])));
-    const side = figure(STANDING);
+  it('the part-turned picture is the square-on view turned toward his heading: narrower, with his face and gloves carried across', () => {
+    const xs = (fig: Figure, tag: string): number[] => fig.shapes.filter((s) => s.tag === tag).flatMap((s) => (s.kind === 'poly' ? s.points.map(([x]) => x) : s.kind === 'circle' ? [s.x] : [s.x1, s.x2]));
+    const mean = (v: number[]): number => v.reduce((a, b) => a + b, 0) / Math.max(1, v.length);
+    const front = figure({ ...STANDING, view: 'front' });
     const turned = figure({ ...STANDING, view: 'quarter' });
-    expect(JSON.stringify(turned.shapes)).not.toBe(JSON.stringify(side.shapes));
-    expect(JSON.stringify(figure({ ...STANDING, view: 'quarterBack' }).shapes)).not.toBe(JSON.stringify(turned.shapes));
-    expect(wide(turned)).toBeLessThan(wide(side) * 1.02);
-    expect(turned.hand.x).toBeCloseTo(side.hand.x * F.quarter.squeeze);
+    const away = figure({ ...STANDING, view: 'quarterBack' });
+    // Two eyes still, both moved toward the side he faces; from behind, none.
+    expect(turned.shapes.filter((s) => s.tag === 'eye' && s.kind === 'circle')).toHaveLength(2);
+    expect(mean(xs(turned, 'eye'))).toBeGreaterThan(mean(xs(front, 'eye')) + 0.1);
+    expect(away.shapes.filter((s) => s.tag === 'eye')).toHaveLength(0);
+    // His jersey is narrower than square on.
+    const width = (fig: Figure): number => Math.max(...xs(fig, 'jersey')) - Math.min(...xs(fig, 'jersey'));
+    expect(width(turned)).toBeLessThan(width(front));
+    // Mirrored exactly when he heads the other way.
+    const left = figure({ ...STANDING, view: 'quarter', side: -1 });
+    expect(left.hand.x).toBeCloseTo(-turned.hand.x);
   });
 
   it('from the front he shows a face with two eyes; from behind none, and his arms are beyond his body', () => {

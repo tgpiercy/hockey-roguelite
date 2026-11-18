@@ -501,12 +501,31 @@
     ],
     "goalieStyle": 0,
     "quarter": {
-      "squeeze": 0.8,
-      "farShift": 0.26,
-      "farDrop": 0.05
+      "yaw": 0.62,
+      "depth": {
+        "eye": 0.24,
+        "skin": 0.16,
+        "visor": 0.2,
+        "cage": 0.18,
+        "glove": 0.5,
+        "skate": 0.3,
+        "blade": 0.3,
+        "mark": 0.2,
+        "accent": 0.08,
+        "sock": 0.1,
+        "hair": -0.16,
+        "helmet": 0.03,
+        "muzzle": 0.3,
+        "fur": 0.04,
+        "pad": 0.2
+      }
     },
     "leanDegrees": 12,
-    "leanFromSpeed": 0.25
+    "leanFromSpeed": 0.25,
+    "shotStick": [
+      1.5,
+      -0.55
+    ]
   },
   "bigPuckScale": 1.6,
   "practiceWord": "PRACTICE",
@@ -529,7 +548,8 @@
       "blocked": "BLOCKED!",
       "oneTimer": "ONE-TIMER!",
       "deked": "DEKED!",
-      "denied": "DENIED!"
+      "denied": "DENIED!",
+      "hurried": "HURRIED!"
     },
     "burst": {
       "spikes": 11,
@@ -550,7 +570,8 @@
       "blocked": "#ffffff",
       "oneTimer": "#ff9f43",
       "deked": "#9be37a",
-      "denied": "#ff8fa3"
+      "denied": "#ff8fa3",
+      "hurried": "#c9d3df"
     },
     "away": 4.6,
     "upBias": 0.7,
@@ -768,5 +789,20 @@
       "LET'S GO!",
       "#1 FANS"
     ]
+  },
+  "hud": {
+    "round": 0,
+    "ink": 2.5,
+    "shadow": 3,
+    "slant": 0.45,
+    "mid": "#fff1b8",
+    "score": "#0b1220",
+    "clock": "#b3261e",
+    "bar": "#fff1b8",
+    "barAlpha": 1,
+    "barText": "#3a3320",
+    "barOn": "#0b1220",
+    "barBack": "#0b1220",
+    "inkColour": "#0b1220"
   }
 }

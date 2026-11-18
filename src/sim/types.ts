@@ -248,7 +248,7 @@ export type SimEvent =
   | { type: 'change'; team: 0 | 1; off: number; on: number }
   | { type: 'powerup'; team: 0 | 1; slot: number; id: string }
   | { type: 'talent'; player: number; id: string }
-  | { type: 'shot'; speed: number; player: number; oneTimer?: boolean }
+  | { type: 'shot'; speed: number; player: number; oneTimer?: boolean; /** A one-timer taken with a defender on the shooter: it strayed for it. */ hurried?: boolean }
   | { type: 'deke'; player: number }
   /** A person threw a check with the carrier out of reach altogether: nothing happened. */
   | { type: 'whiff'; player: number; /** From his stick hand to the puck. */ metres: number; /** The puck was near enough: he was facing the wrong way. */ turned?: boolean }

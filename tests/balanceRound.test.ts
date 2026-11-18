@@ -3,6 +3,7 @@ import { generateLeague } from '../src/core/generate';
 import { finishSeason } from '../src/core/offseason';
 import { difficultyInfo, leftoverPack, newFranchise, setDifficulty, startSeason, type Franchise } from '../src/core/season';
 import { newWeekly, weekKey } from '../src/core/weekly';
+import { wordsFor } from '../src/game/floatWords';
 import rules from '../src/data/season.json';
 import { cloneTuning } from '../src/sim/tuning';
 import { createWorld, oneTimerCrowd } from '../src/sim/world';
@@ -102,3 +103,12 @@ describe('Pucks at the start and at the end of a season', () => {
     expect(leftoverPack(f)).toBeNull();
   });
 });
+
+describe('a hurried one-timer says so', () => {
+  it('the word over the shooter is HURRIED, not ONE-TIMER, when the shot was marked', () => {
+    expect(wordsFor([{ type: 'shot', speed: 30, player: 2, oneTimer: true }])[0]).toMatchObject({ kind: 'oneTimer', player: 2 });
+    expect(wordsFor([{ type: 'shot', speed: 30, player: 2, oneTimer: true, hurried: true }])[0]).toMatchObject({ kind: 'hurried', player: 2 });
+    expect(wordsFor([{ type: 'shot', speed: 30, player: 2 }])).toHaveLength(0);
+  });
+});
+

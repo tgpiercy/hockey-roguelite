@@ -30,7 +30,8 @@ export function wordsFor(events: readonly SimEvent[]): FloatWord[] {
     } else if (e.type === 'block') {
       out.push({ text: TEXTS.blocked, kind: 'blocked', player: e.player });
     } else if (e.type === 'shot' && e.oneTimer) {
-      out.push({ text: TEXTS.oneTimer, kind: 'oneTimer', player: e.player });
+      // A one-timer with a defender on him says so: that is why it strayed.
+      out.push(e.hurried ? { text: TEXTS.hurried, kind: 'hurried', player: e.player } : { text: TEXTS.oneTimer, kind: 'oneTimer', player: e.player });
     }
   }
   return out;

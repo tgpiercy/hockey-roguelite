@@ -1492,6 +1492,8 @@ export class RinkScene extends Phaser.Scene {
       let end = fig.stickEnd;
       // Celebrating, he holds the stick aloft.
       if (cheer) end = { x: fig.hand.x + side * 0.4, y: fig.hand.y - 1.3 };
+      // Following a shot through, the blade comes up off the ice and points after the puck.
+      else if (action === 'shot') end = { x: fig.hand.x + side * FIG.shotStick[0]!, y: fig.hand.y + FIG.shotStick[1]! };
       if (!end) {
         const blade = carrySpot(p, t);
         // Without the puck his stick sweeps a little with his stride.
@@ -1691,6 +1693,22 @@ export class RinkScene extends Phaser.Scene {
     }
   }
 
+  /** A panel of the heads-up display: a dark pill, or a comic's caption box with a line of ink and a hard shadow. */
+  private hudBox(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, style: typeof look.hud): void {
+    if (style.ink > 0) {
+      const ink = colour(look.hud.inkColour);
+      g.fillStyle(ink, 0.6);
+      g.fillRect(x + style.shadow, y + style.shadow, w, h);
+      g.fillStyle(ink);
+      g.fillRect(x - style.ink * 0.7, y - style.ink * 0.7, w + style.ink * 1.4, h + style.ink * 1.4);
+      g.fillStyle(colour(style.bar), style.barAlpha);
+      g.fillRect(x, y, w, h);
+      return;
+    }
+    g.fillStyle(colour(style.bar), style.barAlpha);
+    g.fillRoundedRect(x, y, w, h, h / 2);
+  }
+
   private drawHud(t: Tuning, width: number, height: number, real: number): void {
     const g = this.hud;
     const world = this.world;
@@ -1706,14 +1724,34 @@ export class RinkScene extends Phaser.Scene {
     const nameW = boardW * 0.31;
     const scoreW = boardW * 0.095;
     const midW = boardW - nameW * 2 - scoreW * 2;
-    g.fillStyle(colour(c.panel));
-    g.fillRoundedRect(left, y0, boardW, boardH, 6);
+    // How the scoreboard and the bars are inked: as plain panels, or as a comic's caption boxes.
+    const HS = look.hud;
+    const inkHex = colour(look.hud.inkColour);
+    if (HS.ink > 0) {
+      g.fillStyle(inkHex, 0.6);
+      g.fillRect(left + HS.shadow, y0 + HS.shadow, boardW, boardH);
+      g.fillStyle(inkHex);
+      g.fillRect(left - HS.ink, y0 - HS.ink + 1, boardW + HS.ink * 2, boardH + HS.ink * 2 - 2);
+    }
+    g.fillStyle(colour(HS.mid));
+    g.fillRoundedRect(left, y0, boardW, boardH, HS.round);
+    // The name blocks: square-ended, or cut on the slant toward the middle.
+    const cut = boardH * HS.slant;
     g.fillStyle(colour(this.teamColour(0)));
-    g.fillRoundedRect(left, y0, nameW, boardH, { tl: 6, bl: 6, tr: 0, br: 0 });
+    if (cut > 0) g.fillPoints([{ x: left, y: y0 }, { x: left + nameW + cut / 2, y: y0 }, { x: left + nameW - cut / 2, y: y0 + boardH }, { x: left, y: y0 + boardH }] as Phaser.Math.Vector2[], true);
+    else g.fillRoundedRect(left, y0, nameW, boardH, { tl: HS.round, bl: HS.round, tr: 0, br: 0 });
     g.fillStyle(colour(this.teamColour(1)));
-    g.fillRoundedRect(left + boardW - nameW, y0, nameW, boardH, { tl: 0, bl: 0, tr: 6, br: 6 });
-    g.lineStyle(1, colour(c.panelLine));
-    g.strokeRoundedRect(left, y0, boardW, boardH, 6);
+    if (cut > 0) g.fillPoints([{ x: left + boardW - nameW + cut / 2, y: y0 }, { x: left + boardW, y: y0 }, { x: left + boardW, y: y0 + boardH }, { x: left + boardW - nameW - cut / 2, y: y0 + boardH }] as Phaser.Math.Vector2[], true);
+    else g.fillRoundedRect(left + boardW - nameW, y0, nameW, boardH, { tl: 0, bl: 0, tr: HS.round, br: HS.round });
+    if (HS.ink > 0) {
+      // A line of ink where each name block meets the middle.
+      g.lineStyle(Math.max(1, HS.ink * 0.7), inkHex);
+      g.lineBetween(left + nameW + cut / 2, y0, left + nameW - cut / 2, y0 + boardH);
+      g.lineBetween(left + boardW - nameW + cut / 2, y0, left + boardW - nameW - cut / 2, y0 + boardH);
+    } else {
+      g.lineStyle(1, colour(c.panelLine));
+      g.strokeRoundedRect(left, y0, boardW, boardH, HS.round);
+    }
 
     const midY = y0 + boardH / 2;
     const crestSize = boardH - 4;
@@ -1739,6 +1777,7 @@ export class RinkScene extends Phaser.Scene {
         name.setPosition(xs[team] as number, midY);
       }
       if (score) {
+        score.setColor(HS.score);
         score.setFontSize(Math.max(12, boardH * 0.72));
         score.setText(String(world.score[team]));
         score.setPosition(scoreXs[team] as number, midY);
@@ -1753,7 +1792,7 @@ export class RinkScene extends Phaser.Scene {
           : `P${Math.min(world.period, t.period.count)}`;
     // The last seconds of regulation: the clock turns red and pulses.
     const lastSeconds = !world.overtime && world.period >= t.period.count && world.clock <= fx.lastSecondsPulse && world.phase !== 'final';
-    this.clockTextObject.setColor(lastSeconds ? c.danger : c.accent);
+    this.clockTextObject.setColor(lastSeconds ? c.danger : HS.clock);
     this.clockTextObject.setFontSize(Math.max(11, boardH * 0.5) * (lastSeconds ? 1 + 0.12 * Math.sin(this.clock * 10) : 1));
     // The periods as pips under the clock: filled for the ones played and the one being played.
     if (!world.shootout && !world.match.firstTo) {
@@ -1762,7 +1801,7 @@ export class RinkScene extends Phaser.Scene {
       const cx = left + nameW + scoreW + midW / 2;
       for (let k = 0; k < t.period.count; k++) {
         const on = k < world.period;
-        g.fillStyle(colour(on ? c.accent : c.panelLine), on ? 1 : 0.9);
+        g.fillStyle(colour(on ? HS.clock : c.panelLine), on ? 1 : 0.9);
         g.fillCircle(cx + (k - (t.period.count - 1) / 2) * gap, y0 + boardH - pipR - 2.5, pipR);
       }
     }
@@ -1871,22 +1910,22 @@ export class RinkScene extends Phaser.Scene {
         return (label?.width ?? 0) + barH * 0.6 + bar.width + barH * 1.6;
       });
       const total = measured.reduce((sum, w) => sum + w, 0);
-      g.fillStyle(colour(c.panel), 0.82);
-      g.fillRoundedRect(startX, barY - 6, total + 4, barH + 12, (barH + 12) / 2);
+      this.hudBox(g, startX, barY - 6, total + 4, barH + 12, HS);
       bars.forEach((bar, i) => {
         const label = this.barLabels[i];
         if (label) {
-          label.setColor(bar.ringed ? c.text : c.dim);
+          label.setColor(bar.ringed ? HS.barOn : HS.barText);
           label.setPosition(x, barY + barH / 2);
           x += label.width + barH * 0.6;
         }
-        g.fillStyle(colour(c.barBack));
-        g.fillRoundedRect(x, barY, bar.width, barH, barH / 2);
+        const r = HS.ink > 0 ? 0 : barH / 2;
+        g.fillStyle(colour(HS.barBack));
+        g.fillRoundedRect(x, barY, bar.width, barH, r);
         g.fillStyle(colour(bar.colour));
-        g.fillRoundedRect(x, barY, Math.max(barH, bar.width * bar.fill), barH, barH / 2);
+        g.fillRoundedRect(x + (HS.ink > 0 ? 1 : 0), barY + (HS.ink > 0 ? 1 : 0), Math.max(barH, bar.width * bar.fill) - (HS.ink > 0 ? 2 : 0), barH - (HS.ink > 0 ? 2 : 0), r);
         if (bar.ringed) {
-          g.lineStyle(1.5, colour(c.controlRing));
-          g.strokeRoundedRect(x - 2, barY - 2, bar.width + 4, barH + 4, (barH + 4) / 2);
+          g.lineStyle(HS.ink > 0 ? 2 : 1.5, colour(HS.ink > 0 ? c.danger : c.controlRing));
+          g.strokeRoundedRect(x - 2, barY - 2, bar.width + 4, barH + 4, HS.ink > 0 ? 0 : (barH + 4) / 2);
         }
         x += bar.width + barH * 1.6;
       });
@@ -1907,11 +1946,10 @@ export class RinkScene extends Phaser.Scene {
       const running = [...mine.boosts.map((b) => `${b.name} ${Math.ceil(b.secondsLeft)}s`), ...activeLabels(world, world.human!.team)];
       this.powerText.setFontSize(fontSize);
       this.powerText.setText([...running, ...buttons].join('    ').toUpperCase());
-      this.powerText.setColor(running.length > 0 ? c.charge : c.dim);
+      this.powerText.setColor(running.length > 0 ? (HS.ink > 0 ? HS.barOn : c.charge) : HS.barText);
       const px = width - look.marginPixels - 12;
       this.powerText.setPosition(px, barY + barH / 2);
-      g.fillStyle(colour(c.panel), 0.82);
-      g.fillRoundedRect(px - this.powerText.width - 10, barY - 6, this.powerText.width + 20, barH + 12, (barH + 12) / 2);
+      this.hudBox(g, px - this.powerText.width - 10, barY - 6, this.powerText.width + 20, barH + 12, HS);
     }
 
     // A banner across the ice: a full-width band that slides in for a goal, a dark pill for anything else.

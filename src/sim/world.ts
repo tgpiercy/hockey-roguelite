@@ -502,7 +502,9 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
     const woundUp = chargeFraction(p.charge, t) >= 1;
     // The human's shots also stray less: part of the aim assist.
     const steady = assist && t.aimAssist.strength > 0 ? { spreadScale: 1 - Math.min(1, t.aimAssist.strength) * (1 - t.aimAssist.spreadScale) } : {};
-    const params = oneTimer ? { ...fx, ...steady, oneTimer: fx.oneTimerScale * t.shot.oneTimerPower, crowdSpread: oneTimerCrowd(world, p, t) } : { ...fx, ...steady };
+    const crowd = oneTimer ? oneTimerCrowd(world, p, t) : 0;
+    const hurried = crowd >= ((t.shot.oneTimerCrowdDegrees * Math.PI) / 180) * t.shot.oneTimerHurriedShare && crowd > 0;
+    const params = oneTimer ? { ...fx, ...steady, oneTimer: fx.oneTimerScale * t.shot.oneTimerPower, crowdSpread: crowd } : { ...fx, ...steady };
     const speed = stepShooting(p, hadPuck, puck, input, params, t, world.rng, dt, assist);
     if (speed !== null) {
       loosePuck(world);
@@ -514,7 +516,7 @@ export function step(world: World, humanInput: InputFrame, t: Tuning, input2: In
       p.oneTimer = 0;
       const net = ownNet(otherTeam(p.team), t);
       world.lastShot = { team: p.team, clear: clearAhead(world, p), oneTimer: Boolean(oneTimer), metres: Math.hypot(net.x - p.pos.x, net.y - p.pos.y) };
-      events.push({ type: 'shot', speed, player: p.id, ...(oneTimer ? { oneTimer } : {}) });
+      events.push({ type: 'shot', speed, player: p.id, ...(oneTimer ? { oneTimer } : {}), ...(hurried ? { hurried } : {}) });
     }
     stepPassing(world, p, input, t, dt, events);
     stepChecking(world, p, input, t, events);
