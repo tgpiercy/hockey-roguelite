@@ -1172,11 +1172,34 @@ export class RinkScene extends Phaser.Scene {
       // The mesh: a lattice of cord across the top of the net, seen from above.
       const mouth = t.net.mouthWidth / 2;
       const back = out * (gx + t.net.depth);
+      const RD = look.rinkDetail;
+      if (this.comic.ink > 0) {
+        // A comic's net: a hard shadow thrown on the ice, pale cloth over the top, and a line of ink round the frame.
+        const x0 = Math.min(this.sx(out * gx), this.sx(bx(back)));
+        const wide = Math.abs(this.sx(bx(back)) - this.sx(out * gx));
+        const y0 = this.sy(-mouth);
+        const tall = t.net.mouthWidth * z;
+        g.fillStyle(colour(look.comicArena.inkColour), RD.netShadowAlpha);
+        g.fillRect(x0 + RD.netShadow * z, y0 + RD.netShadow * z, wide, tall);
+        g.fillStyle(colour(RD.netCloth), RD.netClothAlpha);
+        g.fillRect(x0, y0, wide, tall);
+        g.lineStyle(Math.max(2, RD.netFrame * z) + 2, colour(look.comicArena.inkColour));
+        for (const [a, b] of net.netting) g.lineBetween(this.sx(bx(a.x)), this.sy(a.y), this.sx(bx(b.x)), this.sy(b.y));
+      }
       g.lineStyle(Math.max(1, line * 0.5), colour(c.net), look.rinkDetail.meshAlpha);
       for (let y = -mouth + look.rinkDetail.meshGap; y < mouth - 0.01; y += look.rinkDetail.meshGap) g.lineBetween(this.sx(out * gx), this.sy(y), this.sx(bx(back)), this.sy(y));
       for (let k = look.rinkDetail.meshGap; k < t.net.depth - 0.01; k += look.rinkDetail.meshGap) g.lineBetween(this.sx(out * (gx + k)), this.sy(-mouth), this.sx(out * (gx + k)), this.sy(mouth));
       g.lineStyle(Math.max(1.5, line), colour(c.net));
       for (const [a, b] of net.netting) g.lineBetween(this.sx(bx(a.x)), this.sy(a.y), this.sx(bx(b.x)), this.sy(b.y));
+      if (this.comic.ink > 0) {
+        // The crossbar, seen from above, joins the posts; each post has its ring of ink.
+        g.lineStyle(Math.max(2, look.rinkDetail.netFrame * z) + 2, colour(look.comicArena.inkColour));
+        g.lineBetween(this.sx(out * gx), this.sy(-mouth), this.sx(out * gx), this.sy(mouth));
+        g.lineStyle(Math.max(2, look.rinkDetail.netFrame * z), colour(c.post));
+        g.lineBetween(this.sx(out * gx), this.sy(-mouth), this.sx(out * gx), this.sy(mouth));
+        g.fillStyle(colour(look.comicArena.inkColour));
+        for (const post of net.posts) g.fillCircle(this.sx(post.x), this.sy(post.y), Math.max(2, t.net.postRadius * z) + Math.max(1, look.rinkDetail.postInk * z));
+      }
       g.fillStyle(colour(c.post));
       for (const post of net.posts) g.fillCircle(this.sx(post.x), this.sy(post.y), Math.max(2, t.net.postRadius * z));
     });
@@ -1227,6 +1250,40 @@ export class RinkScene extends Phaser.Scene {
       const spare = world.players.filter((p) => p.team === team && p.role === 'skater' && !p.onIce);
       const door = benchDoor(team, t);
       const white = this.options.whiteTeam === team;
+      if (this.comic.ink > 0 && spare.length > 0) {
+        // The bench itself: a box let into the stand behind the boards, with a coach standing at the end of it nearer centre.
+        const B = look.bench;
+        const half = ((spare.length - 1) / 2) * look.benchGap + B.pad;
+        const toCentre = door.x < 0 ? 1 : -1;
+        const coachX = door.x + toCentre * (half + B.coachGap * 0.5);
+        const x0 = this.sx(Math.min(door.x - half, coachX - B.coachGap * 0.6));
+        const x1 = this.sx(Math.max(door.x + half, coachX + B.coachGap * 0.6));
+        const foot = this.sy(-t.rink.width / 2) - Math.max(4, look.boardWidth * z * 1.2) * 1.9;
+        const top = Math.max(look.topBarPixels + 1, foot - B.depth * z);
+        const inkW = Math.max(1.5, this.comic.ink * 0.7);
+        g.fillStyle(colour(look.comicArena.inkColour));
+        g.fillRect(x0 - inkW, top - inkW, x1 - x0 + inkW * 2, foot - top + inkW);
+        g.fillStyle(colour(B.board));
+        g.fillRect(x0, top, x1 - x0, foot - top);
+        g.fillStyle(colour(B.boardLight));
+        g.fillRect(x0, foot - Math.max(2, (foot - top) * 0.22), x1 - x0, Math.max(2, (foot - top) * 0.22));
+        // The coach: a dark coat with a tie in the club's colour, and a bare head.
+        const cr = look.benchHead * z;
+        const cx = this.sx(coachX);
+        // He stands a head above his players where there is room under the scoreboard for it.
+        const cy = Math.max(top + cr * 1.15, foot - cr * 1.5);
+        g.fillStyle(colour(look.comicArena.inkColour));
+        g.fillRect(cx - cr * B.shoulder - 1, cy + cr * 0.35 - 1, cr * B.shoulder * 2 + 2, foot - cy - cr * 0.35 + 1);
+        g.fillCircle(cx, cy - cr * 0.2, cr * 0.8 + 1);
+        g.fillStyle(colour(B.coach));
+        g.fillRect(cx - cr * B.shoulder, cy + cr * 0.35, cr * B.shoulder * 2, foot - cy - cr * 0.35);
+        g.fillStyle(colour(this.crests[team].primary));
+        g.fillRect(cx - cr * 0.16, cy + cr * 0.35, cr * 0.32, foot - cy - cr * 0.35);
+        g.fillStyle(colour(B.coachSkin));
+        g.fillCircle(cx, cy - cr * 0.2, cr * 0.8);
+        g.fillStyle(colour(B.coachHair));
+        g.fillRect(cx - cr * 0.8, cy - cr * 1.0, cr * 1.6, cr * 0.5);
+      }
       spare.forEach((p, k) => {
         const bx = this.sx(door.x + (k - (spare.length - 1) / 2) * look.benchGap);
         const r = look.benchHead * z;
@@ -1234,6 +1291,16 @@ export class RinkScene extends Phaser.Scene {
         const scoredBy = world.phase === 'goal' && this.scorer !== null ? world.players[this.scorer]?.team : undefined;
         const up = scoredBy === team ? Math.abs(Math.sin(this.clock * 11 + k * 1.7)) * r * fx.benchJump : 0;
         const by = this.sy(-t.rink.width / 2) - look.benchBehind * z - up;
+        if (this.comic.ink > 0) {
+          // His shoulders, in the sweater he is wearing tonight.
+          const sh = r * look.bench.shoulder;
+          g.fillStyle(colour(FIG.colours.outline));
+          g.fillRect(bx - sh - 1, by + r * 0.5 - 1, sh * 2 + 2, r * 1.1 + 2);
+          g.fillStyle(colour(white ? look.bench.whiteKit : this.crests[team].primary));
+          g.fillRect(bx - sh, by + r * 0.5, sh * 2, r * 1.1);
+          g.fillStyle(colour(white ? this.crests[team].primary : this.crests[team].secondary));
+          g.fillRect(bx - sh, by + r * 1.15, sh * 2, Math.max(1, r * 0.25));
+        }
         g.fillStyle(colour(FIG.colours.outline));
         g.fillCircle(bx, by, r + Math.max(1, r * 0.18));
         g.fillStyle(colour(this.options.looks?.[team]?.[p.id - team * 7]?.skin ?? skinTone(p.id)));

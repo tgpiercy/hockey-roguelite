@@ -1073,3 +1073,26 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .pack-card.rarity-epic { box-shadow: 3px 3px 0 var(--ink), 0 0 12px rgba(199, 155, 255, 0.55); }
 .pack-card.rarity-legendary { background: #ffe9a3; box-shadow: 3px 3px 0 var(--ink), 0 0 20px rgba(255, 183, 3, 0.85); }
 .pack-card.rarity-legendary .pack-card-rarity { background: #ffd23f; }
+
+/* A table screen (the standings): the column heads stay small above, and the rows get the room. */
+.menu-body.stack:has(.table-head) .menu-side { flex: 0 0 auto; min-height: 0; padding-block: 6px; }
+.menu-body.stack:has(.table-head) .menu-list { flex: 1 1 0; }
+.menu-body.stack:has(.table-head) .menu-item { padding-block: 5px; min-height: 0; }
+.menu-body.stack:has(.table-head) .note { margin: 4px 0 0; font-size: 12px; }
+.menu-body.stack:has(.table-head) .menu-detail { font-size: 12px; margin-top: 2px; padding-top: 2px; }
+
+/* What a row is, said in full: a long line runs to a second line and is not cut short. */
+.tile-what, .stop-title { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; line-height: 1.15; }
+.stop-title { font-size: 0.92em; }
+
+/* Before a boss: what his club does and what beats it come straight after the two teams, ahead of everything else to read. */
+.poster-teams, .poster-strength { order: -2; }
+.poster > .banner.bad { order: -1; }
+
+/* A club to play against: its name on one line, its strength, and its best player. */
+.team-row .tname { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.team-row .team-avg { flex: none; font: 800 18px/1 var(--heading); font-variant-numeric: tabular-nums; }
+.team-row .team-best { flex: 0 0 10em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--dim); font-size: 13px; }
+
+/* A long name on a pack card: a little smaller, tighter, and never past two lines. */
+.pack-card-name { font-size: 11px; line-height: 1.1; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }

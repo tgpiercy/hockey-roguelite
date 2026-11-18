@@ -13,7 +13,7 @@ import { periodSecondsOf, setPeriodSeconds, DIFFICULTIES, difficultyInfo, setDif
 import rules from '../../data/season.json';
 import { gameAudio } from '../../game/audio';
 import { canSpeak, sayVoiceSample, voiceChoices } from '../../game/voice';
-import { Menu } from '../Menu';
+import { Menu, type MenuItem } from '../Menu';
 import { hasCustomPadMap } from '../../game/padMap';
 import { PadReadout } from '../PadReadout';
 import { PadSetup } from '../PadSetup';
@@ -24,6 +24,17 @@ import { downloadText, loadStored, pickTextFile } from '../storage';
 import type { AppCtx } from '../App';
 import { type Screen, count } from './shared';
 
+/** The groups the settings are shown in, and the rows (by key) each holds. Save and load stands beside them. */
+const SETTING_GROUPS: { id: string; name: string; icon: 'detail' | 'sound' | 'settings' | 'report'; what: string; keys: string[] }[] = [
+  { id: 'game', name: 'The game', icon: 'settings', what: 'Difficulty, game length, switching, replays', keys: ['difficulty', 'length', 'switching', 'replays'] },
+  { id: 'sound', name: 'Sound', icon: 'sound', what: 'Volume, music, commentary', keys: ['sound', 'volume', 'music', 'commentary', 'voice'] },
+  { id: 'screen', name: 'Screen', icon: 'detail', what: 'Rink detail, puck, full screen, shake', keys: ['detail', 'puck', 'fullscreen', 'calm'] },
+  { id: 'pad', name: 'Controller', icon: 'settings', what: 'Rumble, set up, test', keys: ['rumble', 'padSetup', 'padSetup2', 'padTest'] },
+  { id: 'help', name: 'Help', icon: 'report', what: 'How you are helped, hints, signs, ratings', keys: ['assists', 'hints', 'hintsAgain', 'signs', 'ratingWorth'] },
+];
+/** Which group of settings is open: kept here so that coming back from one of its screens returns to it. */
+let settingsGroup: string | null = null;
+
 /** Settings, difficulty, the save, the controller, and the two "are you sure" screens. The last one is what shows when nothing else does. */
 export function settingsPages(app: AppCtx): ComponentChildren {
   const {
@@ -33,14 +44,42 @@ export function settingsPages(app: AppCtx): ComponentChildren {
   } = app;
 
   if (screen.name === 'settings') {
+    const open = SETTING_GROUPS.find((g) => g.id === settingsGroup);
+    // Every row is made, then either one group's are shown or a tile for each group.
+    const grouped = (all: MenuItem[]): MenuItem[] => {
+      if (open) return all.filter((item) => open.keys.includes(item.key));
+      return [
+        ...SETTING_GROUPS.map((g) =>
+          tile(
+            `group-${g.id}`,
+            g.name,
+            g.what,
+            () => {
+              settingsGroup = g.id;
+              go({ name: 'settings' });
+            },
+            { icon: g.icon },
+          ),
+        ),
+        // Save and load, and any row no group has claimed, so that a new setting can never go missing.
+        ...all.filter((item) => !SETTING_GROUPS.some((g) => g.keys.includes(item.key))),
+      ];
+    };
     return (
       <Menu
-        key={screenKey}
-        remember="group-settings"
-        title="Settings"
+        key={`${screenKey}-${settingsGroup ?? 'all'}`}
+        remember={open ? `settings-${open.id}` : 'group-settings'}
+        title={open ? `Settings · ${open.name}` : 'Settings'}
         message={message}
-        onBack={top}
-        items={[
+        onBack={
+          open
+            ? () => {
+                settingsGroup = null;
+                go({ name: 'settings' });
+              }
+            : top
+        }
+        items={grouped([
           tile('difficulty', 'Difficulty', difficultyInfo(f.difficulty).name, () => go({ name: 'difficulty', fresh: false }), {
             lock: locked ? 'The difficulty can only be changed between seasons.' : undefined,
             detail: difficultyInfo(f.difficulty).description,
@@ -55,7 +94,7 @@ export function settingsPages(app: AppCtx): ComponentChildren {
             },
             {
               icon: 'detail',
-              detail: `How long each of a game's three periods lasts: ${rules.periodLengths.map((x) => `${Math.floor(x / 60)}:00`).join(', ')}. Shorter games make a season quicker to play. Bounties that count things (shots, checks, the winning margin) ask for fewer in a shorter game. Everything else about the season is the same.`,
+              detail: `How long each of a game's three periods lasts: ${rules.periodLengths.map((x) => `${Math.floor(x / 60)}:00`).join(', ')}. Shorter games make a season quicker to play. Everything else about the season is the same.`,
             },
           ),
           tile('sound', 'Sound', prefs.sound ? 'On' : 'Off', () => changePrefs({ ...prefs, sound: !prefs.sound }), {
@@ -188,7 +227,7 @@ export function settingsPages(app: AppCtx): ComponentChildren {
             disabled: weeklyOn,
             detail: weeklyOn ? 'Saving, loading and starting again are for your own franchise: leave the weekly run first.' : 'The game saves by itself after every move, every stop and every game.',
           }),
-        ]}
+        ])}
       />
     );
   }

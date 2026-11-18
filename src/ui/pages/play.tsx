@@ -265,10 +265,10 @@ export function playPages(app: AppCtx): ComponentChildren | undefined {
               <span class="team-row">
                 <CrestBadge crest={teamCrest(opponent.name)} size={24} />
                 <span class="tname">{opponent.name}</span>
-                <span>average {Math.round(teamStrength(league, opponent.id))}</span>
+                <span class="team-avg">{Math.round(teamStrength(league, opponent.id))}</span>
                 {best && (
-                  <span>
-                    best: <Grade player={best} /> {best.name}
+                  <span class="team-best">
+                    <Grade player={best} /> {best.name}
                   </span>
                 )}
               </span>

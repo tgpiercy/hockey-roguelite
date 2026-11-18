@@ -54,6 +54,9 @@ interface Ring {
 export class Effects {
   private readonly rng = createRng('effects');
   private marks: Mark[] = [];
+  /** Cuts that stay in the sheet until the period ends: one in every few marks, so the ice wears where the play has been. */
+  private scars: Mark[] = [];
+  private scarCount = 0;
   /** Seconds of play on this sheet of ice since it was last made. */
   private sheet = 0;
   private particles: Particle[] = [];
@@ -102,6 +105,7 @@ export class Effects {
       // A fresh sheet for each period.
       if (e.type === 'period') {
         this.marks = [];
+        this.scars = [];
         this.sheet = 0;
       }
       if (e.type === 'goal') {
@@ -197,6 +201,7 @@ export class Effects {
       if (this.full && last) {
         if (dropMark && speed > fx.markMinSpeed && p.role === 'skater') {
           this.marks.push({ x1: last.x, y1: last.y, x2: p.pos.x, y2: p.pos.y, age: 0 });
+          if (++this.scarCount % fx.scarEvery === 0) this.scars.push({ x1: last.x, y1: last.y, x2: p.pos.x, y2: p.pos.y, age: 0 });
         }
         if (last.speed - speed > fx.stopSprayDrop * dt * 60 && last.speed > fx.stopSprayMinSpeed) this.spray(p.pos.x, p.pos.y, fx.stopSpray);
       }
@@ -204,6 +209,7 @@ export class Effects {
       else last.speed = speed;
     }
     if (this.marks.length > fx.maxMarks) this.marks.splice(0, this.marks.length - fx.maxMarks);
+    if (this.scars.length > fx.maxScars) this.scars.splice(0, this.scars.length - fx.maxScars);
     // A cut in the ice is bright when it is made and fades to a faint scar that stays until the period ends.
     for (const mark of this.marks) mark.age += dt;
 
@@ -283,6 +289,9 @@ export class Effects {
       }
     }
     const width = Math.max(1, fx.markWidth * view.zoom);
+    // The scars of the period so far, all one faint grey.
+    g.lineStyle(width, colour(look.colours.mark), fx.scarAlpha);
+    for (const scar of this.scars) g.lineBetween(view.sx(scar.x1), view.sy(scar.y1), view.sx(scar.x2), view.sy(scar.y2));
     for (const mark of this.marks) {
       g.lineStyle(width, colour(look.colours.mark), Math.max(fx.wearAlpha, fx.markAlpha * (1 - mark.age / fx.markSeconds)));
       g.lineBetween(view.sx(mark.x1), view.sy(mark.y1), view.sx(mark.x2), view.sy(mark.y2));

@@ -156,7 +156,10 @@
       "side": 0.28
     },
     "stopDrop": 16,
-    "stopFromSpeed": 3
+    "stopFromSpeed": 3,
+    "scarEvery": 5,
+    "maxScars": 420,
+    "scarAlpha": 0.13
   },
   "arena": {
     "maxRows": 14,
@@ -707,7 +710,13 @@
     "sheenBands": 3,
     "sheenWidth": 2.2,
     "hazeFrom": 0.35,
-    "hazeAlpha": 0.07
+    "hazeAlpha": 0.07,
+    "netCloth": "#eef4fa",
+    "netClothAlpha": 0.55,
+    "netShadow": 0.22,
+    "netShadowAlpha": 0.3,
+    "netFrame": 0.11,
+    "postInk": 0.05
   },
   "comicArena": {
     "inkColour": "#0b1220",
@@ -804,5 +813,17 @@
     "barOn": "#0b1220",
     "barBack": "#0b1220",
     "inkColour": "#0b1220"
+  },
+  "bench": {
+    "board": "#3a2a1c",
+    "boardLight": "#6b4a2c",
+    "depth": 1.5,
+    "pad": 0.55,
+    "shoulder": 0.82,
+    "whiteKit": "#f4f7fb",
+    "coach": "#1c2331",
+    "coachSkin": "#e0b48c",
+    "coachHair": "#3b2a1e",
+    "coachGap": 0.95
   }
 }

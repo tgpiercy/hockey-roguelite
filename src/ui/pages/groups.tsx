@@ -190,6 +190,7 @@ export function groupPages(app: AppCtx): ComponentChildren | undefined {
       <Menu
         key={screenKey}
         title="Found so far"
+        columns={2}
         header={
           <div class="note">
             {seen.size} of {everyArtifact.length} artifacts held at least once, and {events} of {allEvents.length} events met. Ones you have not had come up three times as often. A mark shows the most handicap points you have won a title with

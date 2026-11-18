@@ -419,6 +419,9 @@ function useApp() {
 export type AppCtx = NonNullable<ReturnType<typeof useApp>>;
 
 /** The whole menu side of the game: the off-season hub, the season map and its stops, and the team screens. */
+/** Screens that are not the career: the strip of cap room, cash and Pucks is left off them. */
+const OUTSIDE_CAREER = new Set<string>(['title', 'exhibition', 'practice']);
+
 export function App() {
   const app = useApp();
   if (!app) return null;
@@ -442,7 +445,7 @@ export function App() {
     <WearingContext.Provider value={wearing}>
       <MascotContext.Provider value={{ kind: mascotKind(app.team.name), primary: app.myCrest.primary, secondary: app.myCrest.secondary }}>
       <MenuCrest.Provider value={<CrestBadge crest={barCrest} size={26} />}>
-        <MenuChrome.Provider value={<Wallet f={f} />}>{view}</MenuChrome.Provider>
+        <MenuChrome.Provider value={OUTSIDE_CAREER.has(app.screen.name) ? null : <Wallet f={f} />}>{view}</MenuChrome.Provider>
       </MenuCrest.Provider>
       </MascotContext.Provider>
     </WearingContext.Provider>

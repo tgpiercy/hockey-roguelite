@@ -370,9 +370,6 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
             message={message}
             header={
               <>
-                <div>
-                  <PlayerRow player={p} bump={bump(trainee)} />
-                </div>
                 <div>Choose what he works on. It lasts for the rest of this season.</div>
                 <Ratings player={p} />
               </>
