@@ -98,12 +98,12 @@
     "minRegion": 1,
     "name": "Highmoor Marathon",
     "trait": "Iron lungs",
-    "description": "They barely tire.",
+    "description": "They tire a little less than you do.",
     "modifiers": [
       {
         "stat": "drainScale",
         "op": "mul",
-        "value": 0.4
+        "value": 0.85
       },
       {
         "stat": "fullPress",
@@ -111,7 +111,7 @@
         "value": 1
       }
     ],
-    "trick": "Full press: all three come after you in your own end. Pass through them.",
+    "trick": "Full press: all three come after you in your own end, and the chasing wears them down. Get the puck out of your end, by the pass or on your stick, and make them skate for it all night.",
     "star": [],
     "rink": "pond",
     "club": "Old-timers who will not retire. They have been skating the same shifts for twenty years and never seem to tire.",

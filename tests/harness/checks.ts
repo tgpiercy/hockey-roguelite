@@ -147,6 +147,8 @@ export interface SeasonReport {
   pucksLeft: number;
   shops: number;
   shopsBoughtAt: number;
+  /** Every boss game played, by boss and region: how many, and how many won. */
+  bossGames: Record<string, { played: number; won: number }>;
 }
 
 /**
@@ -155,7 +157,7 @@ export interface SeasonReport {
  */
 export function measureSeasons(n: number, difficulty: string, seed: string, who: Stand = 'script', shopper = false): SeasonReport {
   let t = cloneTuning();
-  const report: SeasonReport = { seasons: n, clearedFirstRegion: 0, champions: 0, clearedRegions: [], playoffs: 0, wins: 0, played: 0, pucksEarned: 0, pucksSpent: 0, pucksLeft: 0, shops: 0, shopsBoughtAt: 0 };
+  const report: SeasonReport = { seasons: n, clearedFirstRegion: 0, champions: 0, clearedRegions: [], playoffs: 0, wins: 0, played: 0, pucksEarned: 0, pucksSpent: 0, pucksLeft: 0, shops: 0, shopsBoughtAt: 0, bossGames: {} };
   for (let i = 0; i < n; i++) {
     const f = newFranchise(generateLeague(`${seed}-${i}`), difficulty);
     setDifficulty(f, difficulty);
@@ -173,6 +175,7 @@ export function measureSeasons(n: number, difficulty: string, seed: string, who:
         if (f.season.powerups[0]) setLoadout(f, 0, f.season.powerups[0]);
         const boss = game.kind === 'boss' && currentStop(f)?.region === 0;
         const bossRegion = game.kind === 'boss' ? (currentStop(f)?.region ?? null) : null;
+        const bossKey = currentStop(f)?.bossId ?? '';
         const world = createGame(t, `${seed}-${i}/g${guard}`, { teams: [game.home.setup, game.away.setup], levels: [null, game.level], overtimeLimit: 300 });
         const bot = standIn(who, t, `${seed}-${i}/g${guard}`);
         for (let s = 0; s < 30 * 60 * STEPS_PER_SECOND && world.phase !== 'final'; s++) step(world, bot(world), t);
@@ -180,6 +183,11 @@ export function measureSeasons(n: number, difficulty: string, seed: string, who:
         // A game still level after the overtime limit goes to the other side, so the season always moves on.
         const settled = result.winner === null ? { ...result, winner: 1 as const, score: [result.score[0], result.score[1] + 1] as [number, number] } : result;
         recordGame(f, settled);
+        if (bossRegion !== null) {
+          const line = (report.bossGames[`region ${bossRegion + 1} ${bossKey}`] ??= { played: 0, won: 0 });
+          line.played += 1;
+          if (settled.winner === 0) line.won += 1;
+        }
         if (boss && settled.winner === 0) cleared = true;
         if (bossRegion !== null && settled.winner === 0) report.clearedRegions[bossRegion] = (report.clearedRegions[bossRegion] ?? 0) + 1 / n;
       } else if (f.season.current === null) {

@@ -227,7 +227,7 @@
     "shadowHeight": 0.5,
     "bladeWidth": 0.08,
     "stickWidth": 0.14,
-    "bladeLength": 0.45,
+    "bladeLength": 0.62,
     "colours": {
       "hair": "#5a3d2b",
       "eye": "#1a1a22",
@@ -246,7 +246,9 @@
       "outline": "#10203a",
       "mark": "#f6c945"
     },
-    "stickGrip": 0.7,
+    "stickGrip": 1.15,
+    "stickReach": 1.4,
+    "reachEase": 16,
     "restStickX": 1.75,
     "fullSpeed": 9,
     "staggerTilt": 0.5,

@@ -234,6 +234,8 @@ export class RinkScene extends Phaser.Scene {
   private holdLeft = 0;
   /** Seconds of real time since the game started, for anything that only animates. */
   private clock = 0;
+  /** How far beyond where it really is a carried puck is drawn, in metres: the figures are drawn larger than life, and a stick that ended at the real spot stopped at the skater's own feet. Drawing only. */
+  private reach = { x: 0, y: 0 };
   /** Seconds the current banner has been showing, so it can slide in. */
   private bannerAge = 0;
   private bannerText = '';
@@ -417,7 +419,7 @@ export class RinkScene extends Phaser.Scene {
         // In a lesson, on a step that is learned slowed down: time runs slow while the person's own pass is on its way.
         const passTo = this.world.puck.carrier === null && this.world.puck.passTarget !== null ? this.world.players[this.world.puck.passTarget] : undefined;
         const learning = this.lesson && slowStep(this.lesson) && passTo !== undefined && this.world.human !== null && passTo.team === this.world.human.team ? LESSON_TIMING.slowScale : 1;
-        this.leftover += this.lessonHold ? 0 : real * (this.slow > 0 ? fx.goalSlowScale : 1) * learning;
+        this.leftover += this.lessonHold ? 0 : real * (this.slow > 0 ? fx.goalSlowScale : 1) * learning * (this.practiceSlow ? LESSON_TIMING.slowScale : 1);
         this.slow = Math.max(0, this.slow - real);
         while (this.leftover >= STEP_SECONDS) {
           const controlled = this.world.human ? this.world.human.controlled : -1;
@@ -623,6 +625,7 @@ export class RinkScene extends Phaser.Scene {
     this.lessonWrong = 0;
   }
 
+  private practiceSlow = false;
   private lessonHold = false;
 
   /** The lesson's sentence of why, where the commentary goes. */
@@ -904,6 +907,7 @@ export class RinkScene extends Phaser.Scene {
     this.drawArena(t, width, height);
     this.drawRink(t);
     this.effects.drawUnder(this.ice, this.view, { length: t.rink.length, width: t.rink.width, periodSeconds: t.period.seconds });
+    this.easeReach(t, real);
     this.drawPlayers(t);
     this.drawPuck(t);
     this.effects.drawOver(this.top, this.view);
@@ -1209,6 +1213,17 @@ export class RinkScene extends Phaser.Scene {
    * Every player on the ice as an upright cartoon figure standing on the top-down rink: his feet and shadow
    * are where the simulation has him, and the body rises above that spot. The shapes come from figure.ts.
    */
+  /** Moves the drawn puck out to the end of the longer drawn stick while a skater carries it, and back when he lets go, a little at a time so it never jumps. */
+  private easeReach(t: Tuning, real: number): void {
+    const world = this.world;
+    const carrier = world.puck.carrier === null ? undefined : world.players[world.puck.carrier];
+    const more = FIG.stickReach - 1;
+    const want = carrier && carrier.role !== 'goalie' ? { x: (world.puck.pos.x - carrier.pos.x) * more, y: (world.puck.pos.y - carrier.pos.y) * more } : { x: 0, y: 0 };
+    const pull = Math.min(1, FIG.reachEase * real);
+    this.reach.x += (want.x - this.reach.x) * pull;
+    this.reach.y += (want.y - this.reach.y) * pull;
+  }
+
   private drawPlayers(t: Tuning): void {
     const g = this.g;
     const z = this.zoom;
@@ -1562,7 +1577,9 @@ export class RinkScene extends Phaser.Scene {
       // Following a shot through, the blade comes up off the ice and points after the puck.
       else if (action === 'shot') end = { x: fig.hand.x + side * FIG.shotStick[0]!, y: fig.hand.y + FIG.shotStick[1]! };
       if (!end) {
-        const blade = carrySpot(p, t);
+        // The blade is where the puck is drawn for the man carrying it; anyone else holds his stick out the same distance.
+        const spot = carrySpot(p, t);
+        const blade = world.puck.carrier === p.id ? { x: world.puck.pos.x + this.reach.x, y: world.puck.pos.y + this.reach.y } : { x: p.pos.x + (spot.x - p.pos.x) * FIG.stickReach, y: p.pos.y + (spot.y - p.pos.y) * FIG.stickReach };
         // Without the puck his stick sweeps a little with his stride.
         const sweep = this.full && world.puck.carrier !== p.id ? Math.sin(stride * 0.5) * fx.stickSweep : 0;
         end = { x: (this.sx(blade.x) - x) / unit + sweep * side, y: (this.sy(blade.y) - y) / unit };
@@ -1650,8 +1667,8 @@ export class RinkScene extends Phaser.Scene {
     const z = this.zoom;
     const world = this.world;
     const puck = world.puck;
-    const x = this.sx(puck.pos.x);
-    const y = this.sy(puck.pos.y);
+    const x = this.sx(puck.pos.x + this.reach.x);
+    const y = this.sy(puck.pos.y + this.reach.y);
     const radius = Math.max(2.5, t.puck.radius * z * 1.25) * (this.options.bigPuck ? look.bigPuckScale : 1);
     // The easier-to-see puck: a bright edge round it, always.
     if (this.options.bigPuck && !(world.phase === 'faceoff' && !world.faceoff?.dropped)) {
@@ -1693,6 +1710,11 @@ export class RinkScene extends Phaser.Scene {
   }
 
   /** Changes how the first team's AI skaters are told to play, from now on (the pause menu does this). */
+  /** The practice rink at half speed, to try a move slowly. Asked for from its pause menu. */
+  setSlow(on: boolean): void {
+    this.practiceSlow = on;
+  }
+
   setTactics(tactics: Tactics): void {
     this.world.teams[0].tactics = tactics;
   }

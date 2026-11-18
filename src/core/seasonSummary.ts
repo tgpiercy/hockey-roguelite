@@ -35,8 +35,11 @@ function finishOf(f: Franchise): string {
   return `Out in region ${region}`;
 }
 
-/** Sums up the season in the franchise's season state. Call it before the season is wrapped up. */
-export function seasonSummary(f: Franchise): SeasonSummary {
+/**
+ * Your top scorer over every game the season had, playoffs included, or null if nobody scored.
+ * The season-over screen and the club's history both read it, so they always agree.
+ */
+export function topScorerOf(f: Franchise): { player: PlayerRecord; goals: number } | null {
   const { season, league } = f;
   let top: { player: PlayerRecord; goals: number } | null = null;
   // Ties go to the player whose id sorts first, so the answer never changes between looks.
@@ -45,6 +48,13 @@ export function seasonSummary(f: Franchise): SeasonSummary {
     const player = league.players[id];
     if (player && goals > 0 && (!top || goals > top.goals)) top = { player, goals };
   }
+  return top;
+}
+
+/** Sums up the season in the franchise's season state. Call it before the season is wrapped up. */
+export function seasonSummary(f: Franchise): SeasonSummary {
+  const { season } = f;
+  const top = topScorerOf(f);
   return {
     finish: finishOf(f),
     champion: season.outcome === 'champion',

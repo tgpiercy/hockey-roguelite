@@ -8,6 +8,7 @@ import { newStandings, type Scoring } from '../src/core/standings';
 import rules from '../src/data/standings.json';
 import seasonRules from '../src/data/season.json';
 import type { GameResult } from '../src/sim/match';
+import { seasonSummary } from '../src/core/seasonSummary';
 
 const game = (won: boolean, margin = 1): GameResult => ({ score: won ? [margin + 1, 1] : [1, margin + 1], winner: won ? 0 : 1, finished: true, overtime: false, periods: 3, players: [], powerupsUsed: [] }) as unknown as GameResult;
 const started = (seed = 'chronicle'): Franchise => {
@@ -76,6 +77,17 @@ describe('the end of a season in the club\'s book', () => {
     expect(f.history).toHaveLength(1);
     expect(f.history![0]).toMatchObject({ season: 1, outcome: 'struckOut', topScorer: { goals: 30 }, awards: ['Top scorer'] });
     expect(f.career![id]).toMatchObject({ goals: 30, assists: 20, seasons: 1 });
+  });
+
+  it('the history names the same top scorer as the season-over screen, playoff goals and all', () => {
+    const f = ended(started(), 'eliminated');
+    const [a, b] = userTeam(f.league).roster.filter((x) => playerOf(f.league, x).position !== 'G');
+    // The league's table (no playoff games) has one man ahead; with his playoff goals the other is.
+    f.season.scoring = { [a!]: { goals: 6, assists: 0 }, [b!]: { goals: 5, assists: 0 } };
+    f.season.playerGoals = { [a!]: 6, [b!]: 8 };
+    const shown = seasonSummary(f).topScorer!;
+    closeChronicle(f, new Map(Object.values(f.league.players).map((p) => [p.id, p.overall])));
+    expect(f.history![0]!.topScorer).toEqual({ name: shown.player.name, goals: 8 });
   });
 
   it('finishing a season writes it into the history and the report', () => {

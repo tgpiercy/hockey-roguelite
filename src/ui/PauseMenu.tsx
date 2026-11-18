@@ -87,6 +87,9 @@ interface Props {
   /** How your linemates are told to play, and what to call when a setting is changed. */
   tactics?: Tactics;
   onTactics?: (tactics: Tactics) => void;
+  /** On the practice rink: whether time runs at half speed, and how to change it. */
+  slow?: boolean;
+  onSlow?: (on: boolean) => void;
   /** Shown when asking whether to end the game, such as what a forfeit costs. Left out for a game that does not count. */
   endNote?: string;
   onResume: () => void;
@@ -101,7 +104,8 @@ interface Props {
 }
 
 /** The pause menu over the rink: resume, sound, the controls, the tuning panel and ending the game. */
-export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs, tactics, onTactics, frames }: Props) {
+export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs, tactics, onTactics, frames, slow, onSlow }: Props) {
+  const [half, setHalf] = useState(slow === true);
   const [page, setPage] = useState<'main' | 'controls' | 'end' | 'tactics'>('main');
   const [plan, setPlan] = useState<Tactics>(tactics ?? BALANCED);
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
@@ -208,6 +212,19 @@ export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs, tactics
         },
         { key: 'switching', label: `Player switching: ${prefs.holdSwitch ? 'Hold' : 'Automatic'}`, detail: 'Automatic: you always control whoever of yours has the puck. Hold: you keep your skater until you press switch.', onSelect: () => change({ ...prefs, holdSwitch: !prefs.holdSwitch }) },
         { key: 'hints', label: `Hints: ${prefs.hints ? 'On' : 'Off'}`, detail: 'Reminders of the moves, shown when one is on. Each stops once you have done it a few times.', onSelect: () => change({ ...prefs, hints: !prefs.hints }) },
+        ...(onSlow
+          ? [
+              {
+                key: 'slow',
+                label: `Speed: ${half ? 'Half' : 'Full'}`,
+                detail: 'The practice rink at half speed, to try a move slowly. Full speed is the game as it is played.',
+                onSelect: () => {
+                  setHalf(!half);
+                  onSlow(!half);
+                },
+              },
+            ]
+          : []),
         ...(onTactics ? [{ key: 'tactics', label: `Tactics: ${tacticsLine(plan)}`, detail: 'Change how your linemates forecheck, attack and defend for the rest of this game.', onSelect: () => setPage('tactics') }] : []),
         { key: 'controls', label: 'Controls', detail: 'What every button does, and the on-screen controls.', onSelect: () => setPage('controls') },
         { key: 'tuning', label: 'Tuning', detail: 'Open the tuning panel to change the physics numbers. The game runs on while it is open.', onSelect: onTuning },

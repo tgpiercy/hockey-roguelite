@@ -83,6 +83,7 @@ function doneNow(lesson: Lesson, id: string, events: readonly SimEvent[], contro
   let n = 0;
   for (const e of events) {
     if (id === 'shoot' && e.type === 'shot' && e.player === controlled) n += 1;
+    else if (id === 'saucer' && e.type === 'pass' && e.player === controlled && e.saucer && e.target !== null) n += 1;
     else if (id === 'pass' && e.type === 'pass' && e.player === controlled && e.target !== null) n += 1;
     // A one-timer counts for whichever of his skaters lets it go: with hold switching the person may be the passer.
     else if (id === 'oneTimer' && e.type === 'shot' && e.oneTimer && world.players[e.player]?.team === human.team) n += 1;

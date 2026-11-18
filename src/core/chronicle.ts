@@ -6,6 +6,7 @@ import { book } from './ledger';
 import { playerOf, teamOf, userTeam, type League } from './league';
 import type { PlayerRecord } from './player';
 import type { Franchise } from './season';
+import { topScorerOf } from './seasonSummary';
 import { gamesPlayed, placeOf, points, ranked, type Row, type Scoring, type Standings } from './standings';
 
 /** An end-of-season award and who won it. */
@@ -187,7 +188,8 @@ export function closeChronicle(f: Franchise, before: Map<string, number>): strin
       losses: season.gamesPlayed - season.gamesWon,
       place: table ? placeOf(table, league.userTeamId) : null,
       points: table ? points(table[league.userTeamId] as Row) : null,
-      topScorer: best,
+      // The same man the season-over screen names (every game, playoffs included); the league's table only where there is no such tally.
+      topScorer: ((top) => (top ? { name: top.player.name, goals: top.goals } : best))(topScorerOf(f)),
       awards: awards.filter((a) => a.mine).map((a) => a.title),
       ...(vowPoints(season.vows) > 0 ? { handicap: vowPoints(season.vows) } : {}),
       ...(season.charter ? { charter: season.charter } : {}),

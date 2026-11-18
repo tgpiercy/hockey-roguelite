@@ -106,6 +106,13 @@
         "why": "A give and go: you keep your man, skate for the net, and the puck comes back to you."
       },
       {
+        "id": "saucer",
+        "drill": "attack",
+        "need": 1,
+        "say": "HOLD {pass} UNTIL THE BAR IS FULL, THEN LET GO",
+        "why": "A saucer pass: it flies over the sticks in its way, so a covered lane is open to it. It is slower, and nobody can touch it until it lands."
+      },
+      {
         "id": "block",
         "drill": "defend",
         "need": 1,

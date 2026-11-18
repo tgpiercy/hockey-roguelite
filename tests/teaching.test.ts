@@ -232,6 +232,12 @@ describe('the second skate, and the controls by name', () => {
     expect(lessonAdvance(lesson, [], me, world)).toBe('none');
     world.human!.giveGo = { passer: me, receiver: me + 1, left: 1 };
     expect(lessonAdvance(lesson, [], me, world)).toBe('step');
+    // A saucer pass counts only held long enough to be one, and only with somebody to take it.
+    expect(lessonStep(lesson)!.id).toBe('saucer');
+    world.human!.giveGo = null;
+    expect(lessonAdvance(lesson, [{ type: 'pass', player: me, target: me + 1, saucer: false }], me, world)).toBe('none');
+    expect(lessonAdvance(lesson, [{ type: 'pass', player: me, target: null, saucer: true }], me, world)).toBe('none');
+    expect(lessonAdvance(lesson, [{ type: 'pass', player: me, target: me + 1, saucer: true }], me, world)).toBe('step');
     expect(lessonStep(lesson)!.id).toBe('block');
     // Still on from the step before: it does not count as a block.
     expect(lessonAdvance(lesson, [], me, world, false)).toBe('none');

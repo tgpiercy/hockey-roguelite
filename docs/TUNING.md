@@ -1486,3 +1486,56 @@ Even buying everything sensible, half the Pucks were left: they are won after th
 
 Not done: a shop before the playoffs, and re-pricing. Gear's worth was not measured again with the extra pack a season; `npm run measure -- gear` and `npm run seasons` should be run if gear starts to feel strong.
 
+## The difficulty and boss round (2026-11-18)
+
+Nothing in the difficulty table was changed in this round: the numbers below were brought to the owner first.
+
+### The four difficulties, as found (40 seasons each; a new franchise; 40 seasons swing 8 to 10 points)
+
+How far each stand-in got: first region / second / third / title.
+
+| Difficulty | Newcomer | Script | Passer |
+| --- | --- | --- | --- |
+| Rookie | 88 / 78 / 53 / 22% | 100 / 100 / 100 / 100% | 100 / 100 / 100 / 100% |
+| Semi-Pro | 27 / 3 / 0 / 0% | 100 / 93 / 75 / 50% | 100 / 93 / 85 / 60% |
+| Pro | 8 / 0 / 0 / 0% | 85 / 40 / 13 / 5% | 95 / 65 / 50 / 43% |
+| All-Star | 8 / 0 / 0 / 0% | 65 / 25 / 3 / 3% | 93 / 45 / 18 / 8% |
+
+Two cliffs: the newcomer from Rookie to Semi-Pro (88% to 27% of first regions), and the script from Semi-Pro to Pro (a title 50% to 5%). Passing is worth far more on Pro (43% against 5%) than anywhere else.
+
+### Two Semi-Pro candidates (40 seasons each), not applied
+
+| | Opponent levels (regions, playoffs) | Newcomer | Script | Passer |
+| --- | --- | --- | --- | --- |
+| As shipped | 0.35, 0.30, 0.35, 0.45 | 27 / 3 / 0 / 0% | 100 / 93 / 75 / 50% | 100 / 93 / 85 / 60% |
+| A | 0.25, 0.30, 0.35, 0.45 | 50 / 8 / 3 / 0% | 95 / 80 / 63 / 43% | 100 / 93 / 88 / 68% |
+| B | 0.25, 0.35, 0.45, 0.55 | 50 / 5 / 0 / 0% | 95 / 85 / 63 / 38% | 100 / 88 / 85 / 65% |
+
+An easier first region doubles the newcomer's chance of clearing it and moves nothing else beyond the noise. B climbs toward Pro's levels (0.5, 0.55, 0.65, 0.75) where A stays flat.
+
+### Every boss against two stand-ins (120 stand-in games each, its 67 team against a 73 team with the trick; 300 all-AI games)
+
+| Boss | Trick wins (AI v AI) | Script beats it | Passer beats it |
+| --- | --- | --- | --- |
+| Wall | 86% | 20% | 32% |
+| Gale | 79% | 41% | 52% |
+| Hammers | 58% | 63% | 69% |
+| Marathon (drain 0.85) | 51% | 64% | 65% |
+| Marksmen | 58% | 63% | 68% |
+| Trappers | 67% | 58% | 63% |
+| Shadows | 53% | 67% | 82% |
+| Furnace | 49% | 69% | 69% |
+| Granite | 62% | 69% | 70% |
+| Night Shift | 66% | 48% | 66% |
+| Carnival | 53% | 57% | 83% |
+| Pickets | 58% | 53% | 68% |
+
+Leaving the Wall aside (kept out of the first region), the script's range is 41 to 69% and the passer's 52 to 83%. The Gale is the hardest that can be drawn first.
+
+### The Marathon
+
+Before: the script beat it 29%, the passer 17%, the outlet stand-in (passes up the ice when pressed in its own half) 13%, over 24 games each. Passing out halved the strips in its own half (41 to 22 a game) and the goals after one (2.0 to 0.8) and still lost: the lever was that skaters draining at 0.4 never tired. Drain 0.7: 45 / 55 / 23% (40 games). Drain 1.0: 70 / 80 / 50%. **Drain 0.85, shipped: 55 / 65 / 30% over 60 games, 64 / 65% over 120.** Passing out of the press is still not shown to beat carrying out; the card now says either.
+
+### Tried and put back
+
+The Gale at 5% faster in place of 8%: the script 48 to 38%, the passer 53 to 42% over 60 games, all inside the noise, so 8% stays.

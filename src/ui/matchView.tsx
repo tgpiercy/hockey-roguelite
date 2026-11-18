@@ -195,6 +195,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
   // Pausing: the game freezes and the pause menu, an ordinary menu screen, opens over the rink.
   let paused = false;
   let toggledAt = 0;
+  let slow = false;
   const setPaused = (on: boolean): void => {
     if (on === paused || (on && scene.over)) return;
     paused = on;
@@ -218,6 +219,15 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
             if (!tuningStore.open) tuningStore.toggle();
           }}
           onEnd={() => scene.forfeit()}
+          {...(practice && !lesson
+            ? {
+                slow,
+                onSlow: (on: boolean) => {
+                  slow = on;
+                  scene.setSlow(on);
+                },
+              }
+            : {})}
           {...(noTactics
             ? {}
             : {
