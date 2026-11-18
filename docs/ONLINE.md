@@ -39,7 +39,7 @@ B is A plus one layer, so A is not wasted work, and C can follow B if B's correc
 
 | Step | What | Needs from the owner | Done when |
 | --- | --- | --- | --- |
-| **0. Prove it on a wire that is not there** | Two worlds in a test, joined by a made-up connection with lag and loss dialled in. Way A, then B. Counts: bytes a second, how far the guest's picture is from the truth, how often it is corrected. | Nothing | Numbers in `docs/TUNING.md` for 50, 100 and 200 ms; a yes or no on going on. |
+| **0. Prove it on a wire that is not there** (done 2026-11-18, see the end) | Two worlds in a test, joined by a made-up connection with lag and loss dialled in. Way A, then B. Counts: bytes a second, how far the guest's picture is from the truth, how often it is corrected. | Nothing | Numbers in `docs/TUNING.md` for 50, 100 and 200 ms; a yes or no on going on. |
 | **1. Two real devices, codes passed by hand** | Exhibition only. Host shows a code, guest pastes it and shows one back. No server. Same Wi-Fi first, then two homes. | Two devices and a second person for an evening | A whole exhibition game played, and the owner's word on how it felt. **The cheap place to stop.** |
 | **2. Room codes** | A four-letter code in place of the pasted ones. | Yes to a small free-tier service to hold the codes, and to a relay if step 1 showed pairs failing | Joining takes under ten seconds. |
 | **3. Losing the line** | The game pauses when the other side drops, picks up again from a full snapshot, and is forfeited after a while. | Nothing | Pulling the plug mid-game and plugging back in carries on. |
@@ -57,3 +57,20 @@ B is A plus one layer, so A is not wasted work, and C can follow B if B's correc
 - Steps 0 and 1: no hosting, no dependency, nothing to pay.
 - Step 2 on: one small service to run and keep running; a relay may cost a few dollars a month if mobile-data play matters.
 - Anything added to the world must stay plain data, as it must already for kept games and replays.
+
+## Step 0, done (2026-11-18)
+
+Built: `src/sim/online.ts` (the host, the guest, the messages), `tests/harness/online.ts` (the made-up wire), `tests/online.test.ts`, and `npm run measure -- online`. The numbers are in `docs/TUNING.md`, "Two devices on a made-up wire". Nothing in the game uses it yet.
+
+How it works, as built (way B):
+
+- The host runs the game. Twenty times a second it sends a short word: the controls it used for the last twelve steps (its own and the guest's), where every player and the puck are, and a few facts that cannot be a little wrong (the random generator, the score, the stage of the game, who has the puck).
+- The guest keeps two games. One follows the host's exactly, by running the same steps with the controls the host says it used; the host's figures are then written over its own, which is what copes with phones that disagree in the last digit. The other is that game run on ahead with the guest's own controls and the host's last known ones: that is the picture.
+- The guest sends its controls every frame, the last ten each time, so a lost message costs nothing. It keeps itself just far enough ahead that each input reaches the host a little before its step.
+- If words are lost for longer than twelve steps, or the facts differ, the guest asks for the whole game. The host also sends it at every faceoff.
+
+The answer: **go on to step 1.** The two stayed together at every lag and loss tried; the guest's own skater is right; 16 KB a second is little. What step 1 must add before it is fair to judge the feel:
+
+1. The drawing eases a correction in over a few frames; it must not snap.
+2. Goals, whistles and the horn are shown and sounded on the host's word, not on the guest's guess.
+3. The host sees everything with no delay and the guest's opponent is guessed: versus is a little unfair to the guest. Co-op is not.

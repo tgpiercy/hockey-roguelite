@@ -1,0 +1,9 @@
+{
+  "sendEverySteps": 3,
+  "guestInputsSent": 10,
+  "hostInputsSent": 12,
+  "targetMargin": 2,
+  "marginSlack": 3,
+  "maxCatchUp": 30,
+  "askAgainSteps": 30
+}

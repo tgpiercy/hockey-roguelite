@@ -1539,3 +1539,26 @@ Before: the script beat it 29%, the passer 17%, the outlet stand-in (passes up t
 ### Tried and put back
 
 The Gale at 5% faster in place of 8%: the script 48 to 38%, the passer 53 to 42% over 60 games, all inside the noise, so 8% stays.
+
+## Two devices on a made-up wire (2026-11-18)
+
+Step 0 of `docs/ONLINE.md`. `npm run measure -- online [--seconds N]`: a host and a guest in one process (`src/sim/online.ts`), joined by a wire that holds each message for the lag and loses some. Versus, the script in both seats, 180 seconds each, numbers in `src/data/online.json` (the host's word 20 times a second). Distances are metres between the guest's picture and what the host's game turned out to be at the same tick: the usual, and (the 95th in a hundred).
+
+| Wire (round trip, lost) | Own skater | Their skater | Everyone else | Puck | Their skater jumps over 0.3 m, a minute | Biggest jump per word | Without running ahead, every move late by |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| None | 0.00 (0.00) | 0.01 (0.04) | 0.00 (0.00) | 0.02 (0.01) | 0.7 | 0.01 (0.06) | 67 ms |
+| 50 ms, 1% | 0.00 (0.01) | 0.03 (0.19) | 0.00 (0.00) | 0.03 (0.03) | 20 | 0.03 (0.15) | 133 ms |
+| 100 ms, 2% | 0.00 (0.02) | 0.09 (0.45) | 0.00 (0.00) | 0.09 (0.54) | 52 | 0.06 (0.29) | 210 ms |
+| 200 ms, 3% | 0.02 (0.09) | 0.23 (1.05) | 0.02 (0.03) | 0.16 (1.28) | 81 | 0.11 (0.46) | 337 ms |
+| 200 ms, 10% | 0.02 (0.11) | 0.19 (1.01) | 0.02 (0.03) | 0.19 (1.72) | 80 | 0.11 (0.59) | 340 ms |
+
+- **Sent:** 16 KB a second down, 2.8 up, at every lag. The whole game (35 KB) went 3 to 6 times in three minutes, at faceoffs; the guest never had to ask for it, even with one message in ten lost.
+- **Cost on this PC:** 5 to 12 ms a second for the guest's corrections (40 to 350 steps run again a second). A phone is several times slower; not measured on one.
+- **Ended agreed** (same tick, score and clock) in every row.
+- **Phones that disagree:** with a random 0.000000001 m, and then 0.0001 m, added to every position on the guest's copy at every step, the two stayed together and no whole game was asked for. Only positions were disturbed; a real phone may also differ in figures the host's word does not carry.
+- **The line dropping for two seconds:** the guest asked for the whole game once and carried on agreed.
+- **The score or the stage of the game wrong on the guest's picture:** none of the frames up to 100 ms, 0.1 to 0.2% of them at 200 ms (a goal seen a moment before the host said no, or after it said yes).
+
+What it says: the guest's own skater is drawn where it really is, and the AI skaters almost exactly. The error is the other person's skater, and the puck when he shoots or passes, because his controls can only be guessed until they arrive. At 100 ms he is usually 9 cm off and one time in twenty half a metre; at 200 ms a metre. The corrections are small and frequent (about one a second over 0.3 m at 100 ms), so the drawing will have to ease them in, not snap. Without running ahead (way A) every move of the guest's would be 0.2 seconds late at 100 ms.
+
+Not measured: a real connection, a real phone's speed, a person in either seat (the script steers smoothly; a person's stick moves more suddenly, which makes the guess worse), and how any of it feels.

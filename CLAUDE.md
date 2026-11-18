@@ -6,7 +6,7 @@ The game is called **Third Line** (`src/data/game.json`, `index.html`, the manif
 - Decisions the design doc does not cover: `docs/DECISIONS.md`.
 - Phases, prompts and exit tests: `docs/IMPLEMENTATION_PLAN.md`.
 - What comes next, in the owner's order: `docs/ROADMAP.md`.
-- Live games across devices, a feasibility plan only (nothing built): `docs/ONLINE.md`.
+- Live games across devices: `docs/ONLINE.md`. Step 0 (the logic, on a made-up wire) is built; nothing in the game uses it.
 
 ## Stack
 
@@ -311,6 +311,12 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - **The five-complaints checks**: `tests/harness/checks.ts` (`measurePlay`, `checkRate`, `measureSeasons`) measures switching, team-mates, goalie fairness, check odds and whole-season win rates with the scripted player. The numbers and what they mean are in `docs/TUNING.md`; re-run after changing AI, checking, goalies or the season's difficulty. `WorldOptions.holdSwitch` (`Human.hold`, `Prefs.holdSwitch`) keeps control on your skater until you press switch.
 - Balance harness: `tests/harness/harness.ts` (`runGame`, `runSeries`) and `tests/harness/bot.ts` (a scripted stand-in for a simple human). `scripts/balance.mjs` runs them from the command line through Vite. The targets and the latest numbers are in `docs/TUNING.md`; re-run the series after any change to ratings, AI or goalie values.
 - Tests read the shipped tuning and assert relative to it. `tests/helpers.ts` has helpers to place players and hand out the puck.
+
+## How two devices would fit together (step 0 only)
+
+- `src/sim/online.ts` (pure, numbers in `src/data/online.json`): `OnlineHost` runs the game and sends a short word every few steps (the inputs it used, where everyone is, a few exact facts) or the whole game (`HostMessage`); `OnlineGuest` keeps `confirmed` (the host's game, followed step for step and patched with the host's figures) and `predicted` (that run ahead on his own controls: the picture). Both step only with `wireInput(...)`, the input as the wire carries it. Nothing here knows what carries the messages, and nothing in `src/game` or `src/ui` uses it yet.
+- `tests/harness/online.ts` joins the two with a wire that delays and loses messages (`measureOnline`); `npm run measure -- online` prints the figures in `docs/TUNING.md`. Re-run it after changing `online.json` or the messages.
+- A world must survive being sent as text (`throughText`; a test steps a copy beside the original): nothing that matters in a world may be `NaN`, `Infinity` or `undefined`.
 
 ## Notes for future sessions
 

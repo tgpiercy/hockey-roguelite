@@ -9,6 +9,7 @@
 //   npm run measure -- gear                 what a full set of gear of each rarity is worth, all-AI
 //   npm run measure -- carry                where a stand-in's shots and goals come from, and how he is defended
 //   npm run measure -- shape                team-mates open at the net, and what becomes of rebounds (--player idle: two AI teams)
+//   npm run measure -- online               two devices on a made-up wire: lag, loss, corrections (--seconds N; not part of all)
 //   npm run measure -- all                  everything above (slow)
 //
 // Options: --games N (default 40; seasons: number of seasons), --level L (default 0.5),
@@ -26,7 +27,7 @@ const level = Number(option('level', 0.5));
 const difficulty = String(option('difficulty', 'pro'));
 const who = String(option('player', 'script'));
 
-const NAMES = ['defence', 'breakaways', 'styles', 'bosses', 'rinks', 'seasons', 'carry', 'gear', 'shape'];
+const NAMES = ['defence', 'breakaways', 'styles', 'bosses', 'rinks', 'seasons', 'carry', 'gear', 'shape', 'online'];
 if (what !== 'all' && !NAMES.includes(what)) {
   console.log(`Usage: npm run measure -- <${NAMES.join('|')}|all> [--games N] [--level L] [--difficulty D] [--player script|novice|passer|idle]`);
   process.exit(what === 'help' ? 0 : 1);
@@ -38,6 +39,7 @@ try {
   const measures = await server.ssrLoadModule('/tests/harness/measures.ts');
   const defence = await server.ssrLoadModule('/tests/harness/defence.ts');
   const checks = await server.ssrLoadModule('/tests/harness/checks.ts');
+  const onlineHarness = await server.ssrLoadModule('/tests/harness/online.ts');
   const run = {
     defence: () => [
       `What a person's team gives up: ${games} games, a 67 team against a 70 team at level ${level}`,
@@ -50,6 +52,7 @@ try {
     gear: () => measures.measureGear(Math.max(40, games), String(option('part', 'all'))),
     carry: () => measures.measureCarry(games, level, who === 'idle' ? 'script' : who),
     shape: () => measures.measureShape(games, level, who),
+    online: () => onlineHarness.onlineLines(Number(option('seconds', 180))),
     seasons: () => {
       const r = checks.measureSeasons(games, difficulty, 'bench', who, args.includes('--shopper'));
       return [
