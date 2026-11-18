@@ -1011,3 +1011,65 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 .way-text b { font: 800 italic 22px/1.05 var(--heading); letter-spacing: 0.06em; text-transform: uppercase; }
 .way-text span { font-size: 12px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* The end of a game, as a comic poster: the two clubs' colours cut on the slant, a stamp, caption boxes. */
+.summary.look-b .summary-score {
+  position: relative; margin: 2px auto 12px; padding: 10px 18px; max-width: 640px; color: #fff;
+  background: linear-gradient(112deg, var(--home) 0 47%, var(--ink) 47% 53%, var(--away) 53% 100%);
+  border: 3px solid var(--ink); border-radius: 4px; box-shadow: var(--hard);
+}
+.summary.look-b .summary-side span { text-shadow: 1px 1px 0 var(--ink), -1px -1px 0 var(--ink), 1px -1px 0 var(--ink), -1px 1px 0 var(--ink); }
+.summary.look-b .summary-verdict {
+  display: inline-block; padding: 4px 14px; font-size: 20px; font-style: italic; transform: rotate(-5deg); color: var(--ink);
+  background: var(--paper, #fff1b8); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+}
+.summary.look-b .summary-verdict.won { background: #ffd23f; }
+.summary.look-b .summary-verdict.lost { background: #c9d3df; }
+.summary.look-b .summary-numbers { font-size: 58px; font-style: italic; color: #fff; text-shadow: 3px 3px 0 var(--ink), -1px -1px 0 var(--ink), 1px -1px 0 var(--ink), -1px 1px 0 var(--ink); }
+.summary.look-b .summary-numbers i { color: #fff; }
+.summary.look-b .summary-star { background: var(--paper, #fff1b8); color: var(--ink); border: 2px solid var(--ink); border-radius: 4px; box-shadow: var(--hard); }
+.summary.look-b .summary-star small { color: #4a4330; }
+.summary.look-b .star-rank { color: #b3261e; }
+.summary.look-b .summary-team { background: var(--paper, #fff1b8); }
+.summary.look-b .summary-team h2, .summary.look-b td, .summary.look-b tr.scored td { color: var(--ink); }
+.summary.look-b th, .summary.look-b .summary-goalie { color: #5a5238; }
+.summary.look-b tr.scored td { background: rgba(255, 210, 63, 0.55); }
+
+/* The season map as a page of a comic: paper, ink, hard shadows. */
+.season-map .band { fill: var(--paper, #fff1b8); stroke: var(--ink); stroke-width: 2.5; }
+.season-map .skyline { fill: rgba(11, 18, 32, 0.14); }
+.season-map .edge { stroke: rgba(11, 18, 32, 0.45); stroke-width: 2.2; stroke-dasharray: 2 6; }
+.season-map .edge.walked { stroke: #b3261e; stroke-width: 4.5; stroke-dasharray: none; }
+.season-map .edge.open { stroke: var(--ink); stroke-width: 2.6; stroke-dasharray: 5 4; }
+.season-map .stop { fill: #ffffff; stroke: var(--ink); stroke-width: 2.5; filter: drop-shadow(2.5px 2.5px 0 rgba(11, 18, 32, 0.85)); }
+.season-map .stop.done { fill: #ffd23f; stroke: var(--ink); }
+.season-map .stop.open { fill: #ffffff; stroke: var(--ink); stroke-width: 3.2; }
+.season-map .stop.here { fill: #7fe08a; stroke: var(--ink); }
+.season-map .stop.focus { fill: #ffffff; stroke: #b3261e; stroke-width: 4.5; }
+.season-map .mark, .season-map .stop.done + .mark, .season-map .stop.here + .mark { stroke: var(--ink); }
+.season-map .badge circle, .season-map .badge rect { stroke: var(--ink); stroke-width: 1.6; }
+.season-map .badge.elite circle { fill: #ff9f43; }
+.season-map .badge.elite path { fill: var(--ink); }
+.season-map .badge.rink rect { fill: #7fe3ff; }
+.season-map .badge.rink path { stroke: var(--ink); }
+.season-map .badge.cup circle { fill: #7fe08a; }
+.season-map .badge.cup path { stroke: var(--ink); }
+.map-region { border-radius: 3px; border: 2px solid var(--ink); background: var(--panel); box-shadow: 2px 2px 0 var(--ink); font-style: italic; }
+.map-region.done { background: #c9a43a; color: var(--ink); border-color: var(--ink); }
+.map-region.now { background: #ffd23f; color: var(--ink); border-color: var(--ink); }
+.key-badge { box-shadow: 0 0 0 1.5px var(--ink); }
+
+/* Opening a pack, as a comic would draw it: a sealed packet with a band across it, and cards with ink round them. */
+.pack { border: 3px solid var(--ink); border-radius: 6px; box-shadow: var(--hard); background: var(--dots) 0 0 / 8px 8px, linear-gradient(160deg, var(--team, var(--panel-hi)) 0%, var(--team-deep, var(--panel)) 60%, var(--bg-deep) 100%); }
+.pack-band { background: #ffd23f; border-top: 3px solid var(--ink); border-bottom: 3px solid var(--ink); opacity: 1; }
+.pack-name { font-style: italic; text-shadow: 2px 2px 0 var(--ink); }
+.pack-card { border: 2.5px solid var(--ink); border-radius: 5px; box-shadow: 3px 3px 0 var(--ink); background: var(--dots) 0 0 / 8px 8px, var(--panel); }
+.pack-card-back { color: var(--ice); font-style: italic; text-shadow: 2px 2px 0 var(--ink); }
+.pack-card.turned { background: var(--paper, #fff1b8); color: var(--ink); }
+.pack-card.turned .pack-card-name { color: var(--ink); font-weight: 600; }
+.pack-card-rarity { padding: 2px 6px; border: 1.5px solid var(--ink); border-radius: 2px; background: #c9d6df; color: var(--ink) !important; font-style: italic; }
+.pack-card.rarity-common, .pack-card.rarity-rare, .pack-card.rarity-epic, .pack-card.rarity-legendary { border-color: var(--ink); }
+.pack-card.rarity-rare .pack-card-rarity { background: var(--rare); }
+.pack-card.rarity-epic .pack-card-rarity { background: var(--epic); }
+.pack-card.rarity-epic { box-shadow: 3px 3px 0 var(--ink), 0 0 12px rgba(199, 155, 255, 0.55); }
+.pack-card.rarity-legendary { background: #ffe9a3; box-shadow: 3px 3px 0 var(--ink), 0 0 20px rgba(255, 183, 3, 0.85); }
+.pack-card.rarity-legendary .pack-card-rarity { background: #ffd23f; }

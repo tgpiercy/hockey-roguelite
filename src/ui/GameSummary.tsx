@@ -96,7 +96,7 @@ export function GameSummary({ result, teams, crests, best }: Props) {
   const stars = threeStars(result);
   const howScored = goalLines(result);
   return (
-    <div class="summary">
+    <div class="summary look-b" style={{ '--home': crests[0].primary, '--away': crests[1].primary }}>
       <div class="summary-score">
         <div class="summary-side">
           <CrestBadge crest={crests[0]} size={54} />

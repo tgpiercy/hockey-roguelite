@@ -5,6 +5,9 @@ import type { Modifier } from '../sim/modifiers';
 import { OptionCard, RinkOutline } from './parts';
 import { ArtifactCard } from './screens/season';
 import { generateLeague } from '../core/generate';
+import { generateItem, type RarityId } from '../core/gear';
+import { createRng } from '../core/rng';
+import { PackOpening } from './PackOpening';
 import { portraitOf } from '../core/portrait';
 import crestRules from '../data/crests.json';
 import gearData from '../data/gear.json';
@@ -37,6 +40,9 @@ const KEEPER_POSES: [string, Partial<PoseInput>][] = [
   ['getting up', { action: 'rise' }],
   ['facing left', { side: -1 }],
 ];
+
+/** A pack for the sheet: one piece of each rarity, and a fifth still face down. */
+const PACK = (['common', 'rare', 'legendary', 'epic', 'common'] as RarityId[]).map((rarity, i) => generateItem(createRng(`sheet-pack-${i}`), `sheet-pack-${i}`, rarity));
 
 /** The headings a turning skater is shown at, in degrees: 0 is to the right, 90 down the screen. */
 const HEADINGS = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
@@ -119,6 +125,11 @@ export function ArtSheet() {
         <span class="art-card-cell"><OptionCard icon="handicap" name="Stronger opponents" value="2 points" pips={{ filled: 2, total: 2 }} /></span>
         <span class="art-card-cell"><OptionCard icon="handicap" name="Dear shops" value="Off" pips={{ filled: 0, total: 2 }} off /></span>
         <span class="art-card-cell"><OptionCard icon="rink" name="Rink" value="The pond"><RinkOutline length={44} width={22} corner={6} nets={2.6} /></OptionCard></span>
+      </div>
+      <h2>Opening a pack</h2>
+      <div class="art-row" style="align-items:flex-start;gap:24px">
+        <div style="width:170px"><PackOpening title="Gold pack" items={PACK} shown={0} /></div>
+        <div style="width:520px"><PackOpening title="Gold pack" items={PACK} shown={3} /></div>
       </div>
       <h2>Gear, by rarity</h2>
       {gearData.rarities.map((rarity) => (
