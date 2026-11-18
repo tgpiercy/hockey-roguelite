@@ -1488,7 +1488,7 @@ Not done: a shop before the playoffs, and re-pricing. Gear's worth was not measu
 
 ## The difficulty and boss round (2026-11-18)
 
-Nothing in the difficulty table was changed in this round: the numbers below were brought to the owner first.
+The numbers below were brought to the owner before anything in the difficulty table was changed. The owner then chose candidate B for Semi-Pro and left Rookie, Pro and All-Star as they are.
 
 ### The four difficulties, as found (40 seasons each; a new franchise; 40 seasons swing 8 to 10 points)
 
@@ -1503,7 +1503,7 @@ How far each stand-in got: first region / second / third / title.
 
 Two cliffs: the newcomer from Rookie to Semi-Pro (88% to 27% of first regions), and the script from Semi-Pro to Pro (a title 50% to 5%). Passing is worth far more on Pro (43% against 5%) than anywhere else.
 
-### Two Semi-Pro candidates (40 seasons each), not applied
+### Two Semi-Pro candidates (40 seasons each); B is now Semi-Pro
 
 | | Opponent levels (regions, playoffs) | Newcomer | Script | Passer |
 | --- | --- | --- | --- | --- |
