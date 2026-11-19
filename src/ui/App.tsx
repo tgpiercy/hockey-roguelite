@@ -50,6 +50,7 @@ import { groupPages } from './pages/groups';
 import { rosterPages } from './pages/roster';
 import { playPages } from './pages/play';
 import { deadlinePages } from './pages/deadline';
+import { onlinePages } from './pages/online';
 import { welcomePages } from './pages/welcome';
 import { teachPages } from './pages/teach';
 import { settingsPages } from './pages/settings';
@@ -62,7 +63,10 @@ import { settingsPages } from './pages/settings';
 function useApp() {
   const [, redraw] = useReducer((n: number) => n + 1, 0);
   const ref = useRef<Franchise | null>(null);
-  const [screen, setScreen] = useState<Screen>({ name: 'title' });
+  const [screen, setScreen] = useState<Screen>(() => {
+    const invitation = invitedBy();
+    return invitation ? { name: 'onlineJoin', invitation } : { name: 'title' };
+  });
   const [message, setMessage] = useState('');
   const [sort, setSort] = useState<Sort>('overall');
   const [faPosition, setFaPosition] = useState<PositionFilter>('all');
@@ -420,7 +424,14 @@ export type AppCtx = NonNullable<ReturnType<typeof useApp>>;
 
 /** The whole menu side of the game: the off-season hub, the season map and its stops, and the team screens. */
 /** Screens that are not the career: the strip of cap room, cash and Pucks is left off them. */
-const OUTSIDE_CAREER = new Set<string>(['title', 'exhibition', 'practice']);
+const OUTSIDE_CAREER = new Set<string>(['title', 'exhibition', 'practice', 'online', 'onlineHost', 'onlineJoin']);
+
+/** An invitation to a game on another device, if the page was opened from one. It is taken off the address, so a reload does not answer it twice. */
+function invitedBy(): string | null {
+  const code = new URLSearchParams(location.search).get('join');
+  if (code) history.replaceState(null, '', location.pathname);
+  return code;
+}
 
 export function App() {
   const app = useApp();
@@ -438,6 +449,7 @@ export function App() {
     rosterPages(app) ??
     playPages(app) ??
     deadlinePages(app) ??
+    onlinePages(app) ??
     welcomePages(app) ??
     teachPages(app) ??
     settingsPages(app);

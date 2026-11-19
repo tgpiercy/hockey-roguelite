@@ -33,6 +33,9 @@ export type Screen =
   | { name: 'pick'; line: 0 | 1; slot: number }
   | { name: 'exhibition' }
   | { name: 'practice' }
+  | { name: 'online' }
+  | { name: 'onlineHost' }
+  | { name: 'onlineJoin'; invitation?: string }
   | { name: 'powerups' }
   | { name: 'load'; slot: number }
   | { name: 'artifacts' }

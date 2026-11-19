@@ -94,7 +94,7 @@ interface Props {
   endNote?: string;
   onResume: () => void;
   /** Close the pause menu and open the tuning panel. */
-  onTuning: () => void;
+  onTuning?: () => void;
   /** End the game now. */
   onEnd: () => void;
   /** Told whenever a preference changes, so the game can follow it at once. */
@@ -227,7 +227,7 @@ export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs, tactics
           : []),
         ...(onTactics ? [{ key: 'tactics', label: `Tactics: ${tacticsLine(plan)}`, detail: 'Change how your linemates forecheck, attack and defend for the rest of this game.', onSelect: () => setPage('tactics') }] : []),
         { key: 'controls', label: 'Controls', detail: 'What every button does, and the on-screen controls.', onSelect: () => setPage('controls') },
-        { key: 'tuning', label: 'Tuning', detail: 'Open the tuning panel to change the physics numbers. The game runs on while it is open.', onSelect: onTuning },
+        ...(onTuning ? [{ key: 'tuning', label: 'Tuning', detail: 'Open the tuning panel to change the physics numbers. The game runs on while it is open.', onSelect: onTuning }] : []),
         {
           key: 'end',
           label: endNote ? 'Forfeit the game' : 'End the game',

@@ -1096,3 +1096,8 @@ h2 { font: 800 var(--size-small)/1.2 var(--heading); text-transform: uppercase; 
 
 /* A long name on a pack card: a little smaller, tighter, and never past two lines. */
 .pack-card-name { font-size: 11px; line-height: 1.1; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+
+/* A game across two devices: the boxes the codes are shown and pasted in, and the line over the rink while the game waits for the other device. */
+.code-box { display: grid; gap: 4px; margin-top: 8px; font-size: 0.8rem; color: var(--dim); }
+.code-box textarea { width: 100%; box-sizing: border-box; resize: none; font: inherit; font-family: ui-monospace, monospace; font-size: 0.72rem; line-height: 1.25; padding: 6px 8px; color: var(--text); background: var(--panel); border: 2px solid var(--ink); border-radius: 6px; word-break: break-all; }
+.net-note { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); z-index: 150; max-width: 80vw; padding: 8px 16px; font-weight: 700; text-align: center; color: var(--text); background: var(--panel); border: 2px solid var(--ink); border-radius: 8px; box-shadow: var(--hard); pointer-events: none; }

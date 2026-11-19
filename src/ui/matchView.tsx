@@ -1,4 +1,7 @@
-import { dropGame, keepGame } from './keptGame';
+import { buildId, dropGame, keepGame } from './keptGame';
+import { GuestSeat, HostSeat, readSure, type SureMessage, type Wire } from '../game/netplay';
+import { packWorld } from '../sim/snapshot';
+import netWords from '../data/onlineWords.json';
 import type { World } from '../sim/types';
 import { assistTuning, type AssistKind } from '../core/assists';
 import { venueFor } from '../game/venue';
@@ -105,13 +108,25 @@ export interface MatchOptions {
   assists?: Record<AssistKind, number>;
   /** Shown over the rink before the puck drops: the two teams' starters and these words. Left out, the game starts at once. */
   intro?: IntroWords;
+  /** A game across two devices: which of the two this is, and the line between them. The guest is given what the host sent to start. */
+  online?: { role: 'host'; wire: Wire } | { role: 'guest'; wire: Wire; start: Extract<SureMessage, { k: 'start' }> };
+}
+
+/** What the host sends for the guest's device to show the same game: the teams, their colours and who is where. */
+export interface OnlineShow {
+  home: DressedTeam;
+  away: DressedTeam;
+  homeColour?: string;
+  awayColour?: string;
+  userAtHome: boolean;
+  second: 0 | 1;
 }
 
 /**
  * Plays one game on the ice between two dressed teams.
  * Calls `onDone` with the result once the player leaves the summary screen.
  */
-export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening, practice, periodSeconds, intro, stage, assists, noTactics, lesson, keep, resume }: MatchOptions, onDone: (result: GameResult) => void): void {
+export function playMatch({ home, away, level, powerups, homeColour, awayColour, forfeitNote, userAtHome = true, second, rink, shootout, rules, opening, practice, periodSeconds, intro, stage, assists, noTactics, lesson, keep, resume, online }: MatchOptions, onDone: (result: GameResult) => void): void {
   wireTuningPanel();
   // The rink's own numbers sit on top of whatever the tuning panel holds; worked out again only when that changes.
   const where = rinkInfo(shootout ? null : rink);
@@ -128,6 +143,27 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
     }
     return tuned;
   };
+  // Across two devices the numbers are fixed when the game starts and are the host's on both.
+  const net = online ?? null;
+  const netTuning: Tuning | null = net ? (net.role === 'guest' ? net.start.tuning : rinkTuned()) : null;
+  const guestSeat = net?.role === 'guest' ? new GuestSeat(net.start.world, net.start.tuning, net.wire) : null;
+  const myTeam: 0 | 1 = net?.role === 'guest' ? (second ?? 1) : 0;
+  // While this says something the game waits and the words are shown: the other device is not ready, or has paused.
+  let netHold: string | null = net?.role === 'host' ? netWords.waiting : null;
+  const netNote = document.createElement('div');
+  netNote.className = 'net-note';
+  let netNoteTimer = 0;
+  let netQuiet = false;
+  const showNet = (flash?: string, stay = false): void => {
+    window.clearTimeout(netNoteTimer);
+    const text = flash ?? netHold;
+    if (text) {
+      netNote.textContent = text;
+      if (!netNote.isConnected) document.body.append(netNote);
+      if (flash && !stay) netNoteTimer = window.setTimeout(() => showNet(), netWords.flashSeconds * 1000);
+    } else netNote.remove();
+  };
+  if (net) showNet();
   const shift = tuningStore.tuning.game.opponentDifficulty - seasonRules.defaultDifficulty;
   const opponentLevel = level === undefined ? null : Math.max(0, Math.min(1, level + shift));
   document.body.className = 'mode-rink';
@@ -189,6 +225,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
     if (keep && !left) keepGame(keep, scene.snapshot());
   };
   let left = false;
+  let netGone = false;
   const keepTimer = keep ? window.setInterval(() => { if (!paused) keepNow(); }, look.keepGameSeconds * 1000) : 0;
   if (keep) window.addEventListener('pagehide', keepNow);
 
@@ -201,6 +238,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
     paused = on;
     toggledAt = performance.now();
     gameAudio.hush(on);
+    if (net) net.wire.sendSure(JSON.stringify({ k: 'pause', on } satisfies SureMessage));
     if (on) hush();
     if (on) keepNow();
     document.body.classList.toggle('paused', on);
@@ -214,10 +252,14 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
             menuInput.setPlayer(0);
             setPaused(false);
           }}
-          onTuning={() => {
-            setPaused(false);
-            if (!tuningStore.open) tuningStore.toggle();
-          }}
+          {...(net
+            ? {}
+            : {
+                onTuning: () => {
+                  setPaused(false);
+                  if (!tuningStore.open) tuningStore.toggle();
+                },
+              })}
           onEnd={() => scene.forfeit()}
           {...(practice && !lesson
             ? {
@@ -228,7 +270,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
                 },
               }
             : {})}
-          {...(noTactics
+          {...(noTactics || net?.role === 'guest'
             ? {}
             : {
                 tactics,
@@ -258,6 +300,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
   const pausePressed = (by: 0 | 1 = 0): void => {
     if (performance.now() - toggledAt < PAUSE_DEBOUNCE_MS) return;
     if (tuningStore.open) tuningStore.toggle();
+    else if (netHold !== null && !paused) return;
     else {
       // Whoever pauses works the pause menu with his own controller.
       menuInput.setPlayer(paused ? 0 : by);
@@ -296,6 +339,25 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       teams: [home.setup, away.setup],
       names: [home.name, away.name],
       ...(second !== undefined ? { second } : {}),
+      ...(net?.role === 'host'
+        ? {
+            seat: (world: World) => {
+              const seat = new HostSeat(world, netTuning as Tuning, net.wire);
+              const show: OnlineShow = { home, away, ...(homeColour ? { homeColour } : {}), ...(awayColour ? { awayColour } : {}), userAtHome, second: second ?? 1 };
+              net.wire.sendSure(JSON.stringify({ k: 'start', build: buildId(), world: packWorld(world), tuning: netTuning as Tuning, show } satisfies SureMessage));
+              return seat;
+            },
+          }
+        : {}),
+      ...(guestSeat
+        ? {
+            resume: guestSeat.world,
+            seat: () => {
+              net?.wire.sendSure(JSON.stringify({ k: 'ready' } satisfies SureMessage));
+              return guestSeat;
+            },
+          }
+        : {}),
       levels: [null, opponentLevel],
       powerups: powerups ?? [],
       ...(homeColour ? { homeColour } : {}),
@@ -310,7 +372,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
         if (commentary === 'voice' && voiceVolume > 0) speak(text, priority, voiceVolume, kind, tense, loadPrefs().voice);
       },
       hints: () => (lesson ? null : hintsOn || practice ? hintCounts : null),
-      replays: () => loadPrefs().replays,
+      replays: () => !net && loadPrefs().replays,
       holdSwitch: loadPrefs().holdSwitch,
       ...(opening && !resume ? { opening } : {}),
       ...(resume ? { resume } : {}),
@@ -322,27 +384,37 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
         hintCounts[id] = (hintCounts[id] ?? 0) + 1;
         saveHintCounts(hintCounts);
       },
-      tuning: rinkTuned,
+      tuning: netTuning ? () => netTuning : rinkTuned,
       rules: practice || lesson ? { practice: true } : shootout ? { shootout: SHOOTOUT } : { ...where.rules, ...(rules ?? {}) },
       bigPuck: loadPrefs().bigPuck,
       calm: loadPrefs().calm,
       ...(stage !== undefined ? { venue: venueFor(stage) } : {}),
       onControls,
-      paused: () => paused || introOn,
+      paused: () => paused || introOn || netHold !== null,
       onEvents: (events, world, t) => {
         gameAudio.onEvents(events, world, t);
-        rumble.onEvents(events, world);
-        const piece = stingFor(events, world.human?.team ?? 0);
+        // The guest's controller is the first on his own device and the second in the game: no buzz for him yet.
+        if (net?.role !== 'guest') rumble.onEvents(events, world);
+        const piece = stingFor(events, net ? myTeam : (world.human?.team ?? 0));
         if (piece) music.sting(piece);
       },
       onFrame: (world, t, seconds) => {
+        // The host has gone quiet: the guest's picture has stopped, and he is told why.
+        if (guestSeat && netHold === null && !left) {
+          const quiet = guestSeat.stalled && guestSeat.sure.phase !== 'final';
+          if (quiet !== netQuiet) {
+            netQuiet = quiet;
+            if (quiet) showNet(netWords.waiting, true);
+            else showNet();
+          }
+        }
         // A one-goal game in the last period: the crowd is on its feet.
         gameAudio.tension(world.phase !== 'final' && world.period >= t.period.count && Math.abs(world.score[0] - world.score[1]) <= 1);
         gameAudio.onFrame(seconds);
       },
       onResult: (result) => {
         keepNow();
-        music.sting(resultPiece(result.winner === 0));
+        music.sting(resultPiece(result.winner === myTeam));
         render(
           <GameSummary
             result={result}
@@ -361,6 +433,15 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
       },
       onDone: (result) => {
         left = true;
+        if (net) {
+          net.wire.onSure = null;
+          net.wire.onClosed = null;
+          net.wire.sendSure(JSON.stringify({ k: 'bye' } satisfies SureMessage));
+          // A moment for the goodbye to go before the line is cut.
+          window.setTimeout(() => net.wire.close(), netWords.closeMs);
+          window.clearTimeout(netNoteTimer);
+          netNote.remove();
+        }
         window.clearInterval(keepTimer);
         window.removeEventListener('pagehide', keepNow);
         if (keep) dropGame();
@@ -380,7 +461,7 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
         music.loop('theme');
         if (tuningStore.open) tuningStore.toggle();
         game.destroy(true);
-        onDone(result);
+        onDone(netGone ? { ...result, forfeit: true } : result);
       },
   });
   const game = new Phaser.Game({
@@ -390,8 +471,35 @@ export function playMatch({ home, away, level, powerups, homeColour, awayColour,
     scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
     scene,
   });
+  if (net) {
+    // The other device has gone. The host plays on with the AI in his place; the guest has no game without the host.
+    const gone = (): void => {
+      if (left || scene.over) return;
+      netHold = null;
+      if (net.role === 'host') {
+        scene.dropSecond();
+        showNet(netWords.guestGone);
+      } else {
+        netGone = true;
+        scene.forfeit();
+      }
+    };
+    net.wire.onClosed = gone;
+    net.wire.onSure = (text) => {
+      const m = readSure(text);
+      if (!m || left) return;
+      if (m.k === 'ready') {
+        netHold = null;
+        showNet();
+      } else if (m.k === 'full') guestSeat?.full(m);
+      else if (m.k === 'pause') {
+        netHold = m.on ? netWords.paused : null;
+        showNet();
+      } else if (m.k === 'bye') gone();
+    };
+  }
   // A game picked up again starts paused, so nobody is dropped into the middle of a rush.
-  if (resume) window.setTimeout(() => setPaused(true), 0);
+  if (resume && !net) window.setTimeout(() => setPaused(true), 0);
   // Local development only: lets a debugging session drive frames by hand.
   if (import.meta.env.DEV) (window as unknown as { __game: Phaser.Game }).__game = game;
 }

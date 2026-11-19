@@ -17,7 +17,7 @@ interface Kept {
 }
 
 /** The files this build is made of: on the built game their names change with every release. */
-function buildId(): string {
+export function buildId(): string {
   if (typeof document === 'undefined') return 'none';
   return [...document.querySelectorAll('script[src]')].map((s) => s.getAttribute('src') ?? '').join('|') || 'dev';
 }

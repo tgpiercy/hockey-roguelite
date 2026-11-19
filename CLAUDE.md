@@ -6,7 +6,7 @@ The game is called **Third Line** (`src/data/game.json`, `index.html`, the manif
 - Decisions the design doc does not cover: `docs/DECISIONS.md`.
 - Phases, prompts and exit tests: `docs/IMPLEMENTATION_PLAN.md`.
 - What comes next, in the owner's order: `docs/ROADMAP.md`.
-- Live games across devices: `docs/ONLINE.md`. Step 0 (the logic, on a made-up wire) is built; nothing in the game uses it.
+- Live games across devices: `docs/ONLINE.md`. Steps 0 and 1 are built: an exhibition game between two devices on the same Wi-Fi (Exhibition, "Two devices"), not yet played on two real devices.
 
 ## Stack
 
@@ -312,9 +312,14 @@ The site lives under `/hockey-roguelite/` (`base` in `vite.config.ts`). Controll
 - Balance harness: `tests/harness/harness.ts` (`runGame`, `runSeries`) and `tests/harness/bot.ts` (a scripted stand-in for a simple human). `scripts/balance.mjs` runs them from the command line through Vite. The targets and the latest numbers are in `docs/TUNING.md`; re-run the series after any change to ratings, AI or goalie values.
 - Tests read the shipped tuning and assert relative to it. `tests/helpers.ts` has helpers to place players and hand out the puck.
 
-## How two devices would fit together (step 0 only)
+## How two devices fit together (steps 0 and 1)
 
-- `src/sim/online.ts` (pure, numbers in `src/data/online.json`): `OnlineHost` runs the game and sends a short word every few steps (the inputs it used, where everyone is, a few exact facts) or the whole game (`HostMessage`); `OnlineGuest` keeps `confirmed` (the host's game, followed step for step and patched with the host's figures) and `predicted` (that run ahead on his own controls: the picture). Both step only with `wireInput(...)`, the input as the wire carries it. Nothing here knows what carries the messages, and nothing in `src/game` or `src/ui` uses it yet.
+- `src/sim/online.ts` (pure, numbers in `src/data/online.json`): `OnlineHost` runs the game and sends a short word every few steps (the inputs it used, where everyone is, a few exact facts) or the whole game (`HostMessage`); `OnlineGuest` keeps `confirmed` (the host's game, followed step for step and patched with the host's figures) and `predicted` (that run ahead on his own controls: the picture). Both step only with `wireInput(...)`, the input as the wire carries it. Nothing here knows what carries the messages. A guest whose host goes quiet stops `maxLeadSteps` ahead (`stalled`).
+- **In the game** (Exhibition, "Two devices"; `pages/online.tsx`, words in `src/data/onlineWords.json`): `src/game/peer.ts` is the line (WebRTC; `hostLink`, `guestLink`), with a fast channel that may lose messages and a sure one; the first handshake is two codes passed by hand (`joinCode.ts`; the host's is a link ending `?join=`, which `App.tsx` opens on the join screen). `src/game/wire.ts` is what the two say (`Wire`, `SureMessage`) and imports only types from the simulation, so the menus can use it. `src/game/netplay.ts` is a seat each (`HostSeat`, `GuestSeat`): `playMatch({ online })` makes one and gives it to `RinkScene` as `seat`, and the scene steps and draws through it (`seat.advance`, `seat.world`, `seat.sure`).
+- **What a seat changes in a game:** no replays, no freeze on a hit, no slow motion, no tuning panel (the numbers are the host's, fixed at the start and sent with it); the guest gets no tactics. The guest's seat shows `SURE` events (goal, period, final, mascot and the like) only when the host's own game has them and everything else from his picture at once; the scoreboard reads `seat.sure`; a correction is eased in (`ease`, `shift` around the draw; `easeHalfLifeMs`, `easeMaxMetres`). Anything that changes the host's world outside a step must call `seat.touched()` (tactics and hold-switch do), or the guest drifts until the next faceoff.
+- **Pause and leaving** (`matchView.tsx`): a pause is sent on the sure line and holds the other device with a note (`netHold`); 'bye' or a closed line makes the host play on alone (`scene.dropSecond()`) and ends the guest's game. Both devices must be the same build (`buildId`).
+- **Same Wi-Fi only** until the owner says yes to listing a public STUN address under `iceServers` in `online.json`.
+- **Checking it without two devices:** two tabs of the test browser, joined through the screens, with Phaser's own loop put to sleep (`__game.loop.sleep()`) and both driven from a worker's timer with `scene.update(now, now - last)`; the tabs can talk through a `BroadcastChannel`. Do not flood a tab with timer messages faster than it can step: it hangs the tab for good. The front tab and a back tab run at very different rates if left to themselves, which makes the guest look broken when it is not.
 - `tests/harness/online.ts` joins the two with a wire that delays and loses messages (`measureOnline`); `npm run measure -- online` prints the figures in `docs/TUNING.md`. Re-run it after changing `online.json` or the messages.
 - A world must survive being sent as text (`throughText`; a test steps a copy beside the original): nothing that matters in a world may be `NaN`, `Infinity` or `undefined`.
 

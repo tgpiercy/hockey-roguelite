@@ -128,6 +128,11 @@ export class OnlineHost {
     return events;
   }
 
+  /** Something outside a step changed the game (tactics, a setting): the whole game goes with the next word. */
+  resend(): void {
+    this.sendFull = true;
+  }
+
   /** The word to send now. */
   message(): HostMessage {
     const world = this.world;
@@ -178,6 +183,10 @@ export interface Correction {
   moved: number;
   /** The picture before, when it was for the same tick as the picture after: what the person sees jump. */
   before: World | null;
+  /** The picture as it was, whatever tick it was for. */
+  was: World;
+  /** What happened in the host's game over the steps this word brought: the things to show on the host's word. */
+  events: SimEvent[];
 }
 
 export class OnlineGuest {
@@ -210,6 +219,8 @@ export class OnlineGuest {
       this.wait -= 1;
       return [];
     }
+    // Nothing from the host for a while: the picture stops where it is and does not run on by itself.
+    if (this.stalled) return [];
     const tick = this.predicted.tick;
     const mine = wireInput(input);
     this.own.set(tick, mine);
@@ -241,6 +252,11 @@ export class OnlineGuest {
     this.askedAt = this.predicted.tick;
   }
 
+  /** True while the picture is as far ahead of the host's last word as it is allowed to go: the host has gone quiet. */
+  get stalled(): boolean {
+    return this.predicted.tick - this.confirmed.tick >= online.maxLeadSteps;
+  }
+
   /** True while the guest is waiting for the whole game to be sent again. */
   get wantsFull(): boolean {
     return this.asking;
@@ -250,6 +266,7 @@ export class OnlineGuest {
   receive(message: HostMessage): Correction | null {
     const was = this.predicted;
     let patched = 0;
+    const events: SimEvent[] = [];
     let guestLatest: number;
     let hostTick: number;
     if (message.kind === 'full') {
@@ -274,7 +291,7 @@ export class OnlineGuest {
       for (let tick = first; tick < hostTick; tick++, at += 2 * INPUT_BYTES) {
         if (tick < this.confirmed.tick) continue;
         const host = readInput(view, at);
-        step(this.confirmed, host, this.t, readInput(view, at + INPUT_BYTES));
+        events.push(...step(this.confirmed, host, this.t, readInput(view, at + INPUT_BYTES)));
         this.disturb?.(this.confirmed);
         this.hostGuess = host;
       }
@@ -331,6 +348,6 @@ export class OnlineGuest {
     }
     for (const tick of this.own.keys()) if (tick < this.confirmed.tick - online.guestInputsSent) this.own.delete(tick);
     this.predicted = next;
-    return { full: message.kind === 'full', rerun, patched, moved: next.tick - was.tick, before: next.tick === was.tick ? was : null };
+    return { full: message.kind === 'full', rerun, patched, moved: next.tick - was.tick, before: next.tick === was.tick ? was : null, was, events };
   }
 }

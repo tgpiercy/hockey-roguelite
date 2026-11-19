@@ -29,6 +29,7 @@ import type { Tuning } from '../sim/tuning';
 import type { SimEvent, World, MatchRules, InputFrame } from '../sim/types';
 import { NO_INPUT } from '../sim/types';
 import { createGame, step, STEP_SECONDS, type TeamSetup } from '../sim/world';
+import type { Seat } from './netplay';
 import { Crowd, crowdMoods } from './drawArena';
 import { venueLook, type Venue } from './venue';
 import { drawCrest } from './drawCrest';
@@ -111,6 +112,12 @@ export interface RinkSceneOptions {
   resume?: World;
   /** A skate (the first, or the second for the later moves): the practice rink with a lesson run on it, which ends the game when it is done. */
   lesson?: LessonId;
+  /**
+   * A game across two devices: given the world, returns this device's seat in it. The scene then steps and
+   * draws through the seat. The other person's controls come over the line, so no second controller is read;
+   * there are no replays, no freeze on a hit and no slow motion, because the two clocks must run together.
+   */
+  seat?: (world: World) => Seat;
   /** Called each time the player does a move a hint is about. */
   onHintDone?: (id: string) => void;
   /** Called with the result when the game ends, to show the summary. */
@@ -165,6 +172,7 @@ export class RinkScene extends Phaser.Scene {
   private done = false;
   private passWasDown = false;
   private reader2: InputReader | null = null;
+  private seat: Seat | null = null;
   /** The commentary: who makes the calls, the line on screen and when it comes down. */
   private commentator!: Commentator;
   private callText!: Phaser.GameObjects.Text;
@@ -285,7 +293,8 @@ export class RinkScene extends Phaser.Scene {
       ...(this.options.rules ? { rules: this.options.rules } : {}),
       ...(this.options.holdSwitch ? { holdSwitch: true } : {}),
     });
-    if (this.options.second !== undefined) this.reader2 = new InputReader(1);
+    this.seat = this.options.seat?.(this.world) ?? null;
+    if (this.options.second !== undefined && !this.seat) this.reader2 = new InputReader(1);
     for (const team of this.options.resume ? [] : ([0, 1] as const)) {
       const visitor = mascotPlayer(this.world, team);
       if (visitor && isMascot(this.world, visitor)) this.pending.push({ type: 'mascot', team, player: visitor.id, arrived: true });
@@ -337,6 +346,10 @@ export class RinkScene extends Phaser.Scene {
       while (this.frameSum > look.frameWindowMs && this.frameTimes.length > 1) this.frameSum -= this.frameTimes.shift() as number;
     }
     const controls = this.reader.read(time);
+    const seat = this.seat;
+    // Across two devices the game to draw is the seat's: the picture, or at the end the host's own game.
+    const ended = seat ? seat.sure.phase === 'final' : false;
+    if (seat) this.world = ended ? seat.sure : seat.world;
     // A second player: his controller's frame, and his pause button counts too. If his controller goes, the AI takes his skater.
     const controls2 = this.reader2 ? this.reader2.read(time) : null;
     if (controls2) {
@@ -395,7 +408,7 @@ export class RinkScene extends Phaser.Scene {
     this.replaySkipHeld = controls.frame.pass || controls.frame.shoot || controls.frame.check;
     const happened: SimEvent[] = this.pending.splice(0);
     let played = 0;
-    if (this.world.phase === 'final') {
+    if (seat ? ended : this.world.phase === 'final') {
       if (!this.reported) {
         this.reported = true;
         this.options.onResult(gameResult(this.world));
@@ -405,6 +418,25 @@ export class RinkScene extends Phaser.Scene {
         this.done = true;
         this.options.onDone(gameResult(this.world));
         return;
+      }
+    } else if (seat) {
+      this.leftover += real;
+      const steps = Math.floor(this.leftover / STEP_SECONDS);
+      this.leftover -= steps * STEP_SECONDS;
+      const me = seat.role === 'guest' ? this.world.human2 : this.world.human;
+      const mine = me ? me.controlled : -1;
+      const stepped = seat.advance(steps, controls.frame);
+      this.world = seat.world;
+      happened.push(...stepped);
+      played = steps * STEP_SECONDS;
+      for (const e of stepped) {
+        if (e.type === 'shot') this.lastOneTimer = e.oneTimer === true;
+        if (e.type === 'goal') {
+          this.goalNotes.push({ team: e.team, score: [seat.sure.score[0], seat.sure.score[1]], overtime: seat.sure.overtime, oneTimer: this.lastOneTimer, scorer: e.scorer });
+          this.goalClips.push(null);
+        }
+        const id = mine >= 0 ? hintDone(e, mine) : null;
+        if (id) this.countHint(id);
       }
     } else {
       if (this.freeze > 0) {
@@ -478,11 +510,11 @@ export class RinkScene extends Phaser.Scene {
     for (const e of happened) {
       if (e.type === 'goal') {
         this.scorer = e.scorer;
-        if (this.full) {
+        if (this.full && !seat) {
           this.freeze = fx.goalFreezeSeconds;
           this.slow = fx.goalSlowSeconds;
         }
-      } else if (e.type === 'check' && e.big && this.full) {
+      } else if (e.type === 'check' && e.big && this.full && !seat) {
         this.freeze = Math.max(this.freeze, fx.hitFreezeSeconds);
       } else if (e.type === 'fire') {
         this.fireBanner = { until: this.clock + fx.fireBannerSeconds, team: e.team };
@@ -538,8 +570,8 @@ export class RinkScene extends Phaser.Scene {
     const giveGo = Boolean(this.world.human?.giveGo);
     if (giveGo && !this.wasGiveGo) this.countHint('giveGo');
     this.wasGiveGo = giveGo;
-    this.updateHint(real, t);
-    this.updateHint2(real, t);
+    if (seat?.role !== 'guest') this.updateHint(real, t);
+    if (seat?.role !== 'host') this.updateHint2(real, t);
 
     // Effects and sound only watch: they are told what happened and never touch the simulation.
     this.effects.update(this.world, happened, t, played);
@@ -549,9 +581,13 @@ export class RinkScene extends Phaser.Scene {
     }
     if (happened.length > 0) this.options.onEvents?.(happened, this.world, t);
     this.options.onFrame?.(this.world, t, real);
-    this.lastFrames = [controls.frame, frame2];
+    this.lastFrames = seat?.role === 'guest' ? [NO_INPUT, controls.frame] : [controls.frame, frame2];
     this.shootWasDown = controls.frame.shoot;
+    // A correction from the other device is eased in: everyone is drawn a little off where he is, and slides there.
+    seat?.ease(real);
+    seat?.shift(1);
     this.draw(t, real);
+    seat?.shift(-1);
     this.drawFloats(real);
   }
 
@@ -666,6 +702,11 @@ export class RinkScene extends Phaser.Scene {
   /** The game as it stands, for keeping. (A replay only borrows `world` while it is being drawn.) */
   snapshot(): World {
     return this.world;
+  }
+
+  /** The person on the other device has gone: his skater is the AI's from here. */
+  dropSecond(): void {
+    if (this.seat?.role === 'host') this.world.human2 = null;
   }
 
   /** Gives the game up: it ends now as a loss for the human's team, without the summary screen. */
@@ -1706,7 +1747,9 @@ export class RinkScene extends Phaser.Scene {
 
   /** Changes, from now on, whether control stays on player one's skater until he presses switch (the pause menu does this). */
   setHoldSwitch(on: boolean): void {
+    if (this.seat?.role === 'guest') return;
     if (this.world.human) this.world.human.hold = on;
+    this.seat?.touched();
   }
 
   /** Changes how the first team's AI skaters are told to play, from now on (the pause menu does this). */
@@ -1716,7 +1759,9 @@ export class RinkScene extends Phaser.Scene {
   }
 
   setTactics(tactics: Tactics): void {
+    if (this.seat?.role === 'guest') return;
     this.world.teams[0].tactics = tactics;
+    this.seat?.touched();
   }
 
   /** The player has just done a move: count it, and take its hint down. */
@@ -1868,7 +1913,7 @@ export class RinkScene extends Phaser.Scene {
       if (score) {
         score.setColor(HS.score);
         score.setFontSize(Math.max(12, boardH * 0.72));
-        score.setText(String(world.score[team]));
+        score.setText(String((this.seat?.sure ?? world).score[team]));
         score.setPosition(scoreXs[team] as number, midY);
       }
     }

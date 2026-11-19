@@ -83,6 +83,7 @@ No change to how the game plays or looks; every step is proved by the tests pass
 - After round 1: listen to the sound page.
 - After round 2: read me the frame-time figures from the phone.
 - Still owed from earlier: two real controllers together.
+- Live play (`docs/ONLINE.md`), step 1: an exhibition game between two devices on the same Wi-Fi, with a second person. Say whether it connected and how it felt.
 
 ## How each round is verified
 

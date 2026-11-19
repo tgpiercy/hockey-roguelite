@@ -5,5 +5,11 @@
   "targetMargin": 2,
   "marginSlack": 3,
   "maxCatchUp": 30,
-  "askAgainSteps": 30
+  "askAgainSteps": 30,
+  "maxLeadSteps": 45,
+  "easeHalfLifeMs": 60,
+  "easeMaxMetres": 2,
+  "sureChunk": 8000,
+  "gatherSeconds": 3,
+  "iceServers": []
 }

@@ -1562,3 +1562,26 @@ Step 0 of `docs/ONLINE.md`. `npm run measure -- online [--seconds N]`: a host an
 What it says: the guest's own skater is drawn where it really is, and the AI skaters almost exactly. The error is the other person's skater, and the puck when he shoots or passes, because his controls can only be guessed until they arrive. At 100 ms he is usually 9 cm off and one time in twenty half a metre; at 200 ms a metre. The corrections are small and frequent (about one a second over 0.3 m at 100 ms), so the drawing will have to ease them in, not snap. Without running ahead (way A) every move of the guest's would be 0.2 seconds late at 100 ms.
 
 Not measured: a real connection, a real phone's speed, a person in either seat (the script steers smoothly; a person's stick moves more suddenly, which makes the guess worse), and how any of it feels.
+
+## Two tabs joined for real (2026-11-19)
+
+Step 1 of `docs/ONLINE.md`: the same host and guest, now inside the game, joined by a real browser-to-browser line (WebRTC) between two tabs on this PC. Both tabs were driven by hand from the same clock at about 30 frames a second (the test browser will not run two tabs at full speed), each with made-up key presses, for 1,500 frames. The line between two tabs on one machine has no lag to speak of, so this checks the wiring, not the feel.
+
+| What | Figure |
+| --- | --- |
+| Guest's own skater, drawn against the host's game at the same tick | 0.015 m on average, 0.17 m at worst |
+| The host's skater on the guest's screen (with the easing) | 0.075 m on average; over 0.3 m in 3% of frames |
+| Puck | 0.10 m on average |
+| Score at the end of the stretch | 1-2 on both |
+| Whole game asked for again | never |
+| Cost of the guest's net work | 0.5 ms a frame (a word from the host taken in: 0.4 ms, 7 to 9 steps run again) |
+| How far the guest's picture ran ahead of the host's last word | 8 steps (130 ms) at these frame rates |
+| The invitation link, the answer | about 680 and 630 letters |
+
+Also seen working between the two tabs: a tab that is hidden pauses the game for both, with "The other player has paused." on the other; resume clears it; the guest ending the game returns him to Exhibition and leaves the host playing on with the AI in his place.
+
+A first try gave the guest's own skater 0.6 m out. That was the test, not the game: the test browser ran the front tab at 36 frames a second and the back one at 1, so the guest could not keep up. It did show one real fault, now fixed: a guest whose host goes quiet ran its picture on alone without end. It now stops `maxLeadSteps` (45, three quarters of a second) ahead and says it is waiting.
+
+`npm run measure -- online` after that change, 60 seconds each: 100 ms and 2% lost gives own 0.01, their skater 0.07 (0.44), puck 0.08 (0.54), as before.
+
+Not measured: two separate devices, a phone, real lag, a person in either seat.

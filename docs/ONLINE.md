@@ -1,6 +1,6 @@
 # Live games across devices: can it be done, and how
 
-Asked for by the owner on 2026-11-18. Nothing here is built. This says what the game already has, what stands in the way, and the order to try it in, with a point early on where it can be dropped cheaply.
+Asked for by the owner on 2026-11-18. Steps 0 and 1 are built (see the end); the rest is not. This says what the game already has, what stands in the way, and the order to try it in, with a point early on where it can be dropped cheaply.
 
 ## The short answer
 
@@ -40,7 +40,7 @@ B is A plus one layer, so A is not wasted work, and C can follow B if B's correc
 | Step | What | Needs from the owner | Done when |
 | --- | --- | --- | --- |
 | **0. Prove it on a wire that is not there** (done 2026-11-18, see the end) | Two worlds in a test, joined by a made-up connection with lag and loss dialled in. Way A, then B. Counts: bytes a second, how far the guest's picture is from the truth, how often it is corrected. | Nothing | Numbers in `docs/TUNING.md` for 50, 100 and 200 ms; a yes or no on going on. |
-| **1. Two real devices, codes passed by hand** | Exhibition only. Host shows a code, guest pastes it and shows one back. No server. Same Wi-Fi first, then two homes. | Two devices and a second person for an evening | A whole exhibition game played, and the owner's word on how it felt. **The cheap place to stop.** |
+| **1. Two real devices, codes passed by hand** (built 2026-11-19, not yet played on two devices: see the end) | Exhibition only. Host shows a code, guest pastes it and shows one back. No server. Same Wi-Fi first, then two homes. | Two devices and a second person for an evening | A whole exhibition game played, and the owner's word on how it felt. **The cheap place to stop.** |
 | **2. Room codes** | A four-letter code in place of the pasted ones. | Yes to a small free-tier service to hold the codes, and to a relay if step 1 showed pairs failing | Joining takes under ten seconds. |
 | **3. Losing the line** | The game pauses when the other side drops, picks up again from a full snapshot, and is forfeited after a while. | Nothing | Pulling the plug mid-game and plugging back in carries on. |
 | **4. Co-op in a season** | A friend joins your season game as your line-mate. Your franchise, your save; his phone is a controller with a picture. | Nothing | A season game played together counts as any co-op game does. |
@@ -74,3 +74,34 @@ The answer: **go on to step 1.** The two stayed together at every lag and loss t
 1. The drawing eases a correction in over a few frames; it must not snap.
 2. Goals, whistles and the horn are shown and sounded on the host's word, not on the guest's guess.
 3. The host sees everything with no delay and the guest's opponent is guessed: versus is a little unfair to the guest. Co-op is not.
+
+## Step 1, built (2026-11-19): waiting for an evening with two devices
+
+Exhibition, "Two devices". One of you hosts, the other joins.
+
+How to try it:
+
+1. Both devices open the game from the deployed link and reload once, so both have the same copy. Both on the same Wi-Fi.
+2. Host: Exhibition, Two devices, Host a game. Choose Versus or Co-op and the other team, then "Make the invitation". Copy or share the link and send it to the other player (a message, mail, anything).
+3. Guest: open the link. The game opens on "Join a game" with an answer already made. Copy or share it back to the host. Stay on that screen.
+4. Host: "Paste their answer" (or paste it into the box and choose "Use the answer in the box"). The puck drops on both.
+
+What was built:
+
+- `src/game/peer.ts`: the line itself (WebRTC, built into the browser). Two channels: a fast one that may lose messages (the controls, the host's short word) and a sure one (the start, the whole game, pause, goodbye). `src/game/joinCode.ts` squeezes a connection's description into a code; the invitation is the game's address with the code after `?join=`.
+- `src/game/netplay.ts`: a seat each (`HostSeat`, `GuestSeat`) over `src/sim/online.ts`. The guest's seat does the three things step 0 asked for: a correction is eased in (everyone is drawn where he was and slides to where he is, half way every 60 ms); goals, the horn, mascots and the like are shown on the host's word while shots, passes and checks are shown from the guest's own picture at once; and the score on the board is the host's.
+- `RinkScene` takes a `seat` and steps and draws through it. Across two devices there are no replays, no freeze on a hit and no slow motion after a goal, because the two clocks must run together; the tuning panel is not offered, and the numbers are the host's, fixed at the start.
+- Either player pausing (or locking his phone) pauses both. If the guest leaves, the host plays on with the AI in his place; if the host leaves, the guest's game ends. If the host goes quiet the guest's picture stops and says it is waiting.
+- The two must have the same copy of the game; if not, the guest is told to reload both.
+
+Checked here: the tests (`tests/netplay.test.ts`), and a game between two tabs on this PC over a real line (figures in `docs/TUNING.md`, "Two tabs joined for real").
+
+Known limits, on purpose, for this step:
+
+- **Same Wi-Fi only.** `iceServers` in `online.json` is empty. Two homes need a public address-finding service (STUN) listed there: a third party that sees each device's address, nothing else. That is the owner's yes or no.
+- The guest is player two on his own screen: his ring is the second colour, his hints say "P2", and in versus he attacks to the left.
+- The guest's controller does not rumble.
+- Passing the codes takes two messages. Step 2 (room codes) is what removes that.
+- No picking up after the line drops (step 3).
+
+What only the owner can say: whether the other skater's small slides are noticeable, whether checks and one-timers feel fair to the guest in versus, and whether the two phones connect at all on his Wi-Fi.

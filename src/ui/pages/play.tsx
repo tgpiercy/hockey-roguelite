@@ -238,6 +238,16 @@ export function playPages(app: AppCtx): ComponentChildren | undefined {
                   onSelect: () => setExRink(nextRink(exRink).id),
                 },
               ]),
+          ...(exShootout
+            ? []
+            : [
+                {
+                  key: 'online',
+                  label: <OptionCard icon="team" name="Two devices" value="Host or join a game" chip="Open" />,
+                  detail: 'A game between two devices, each with its own screen and controls: one hosts, the other joins with an invitation. Both on the same Wi-Fi for now.',
+                  onSelect: () => go({ name: 'online' }),
+                },
+              ]),
           ...(joined
             ? [
                 {
