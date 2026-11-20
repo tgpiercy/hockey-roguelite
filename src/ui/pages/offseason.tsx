@@ -11,6 +11,7 @@ import prestigeRules from '../../data/prestige.json';
 import { CrestBadge } from '../Crest';
 import { PrestigeLadder, TradeOffer } from '../screens/club';
 import { ChangeRow } from '../screens/season';
+import { SeasonScene } from '../Scene';
 import { Menu, type MenuItem } from '../Menu';
 import { retired } from '../../game/hints';
 import { CapLine, Grade, money, PlayerRow, Ratings } from '../parts';
@@ -272,6 +273,7 @@ export function offseasonPages(app: AppCtx): ComponentChildren | undefined {
         message={message}
         header={
           <>
+            {allowed && <SeasonScene kind="up" crest={teamCrest(team.name)} words={`Up to ${leagueName(next)}`} />}
             <PrestigeLadder level={f.prestige.level} />
             <div class="note">Climbing a level keeps your roster, contracts, gear and every player's level. It costs you your {f.artifacts.length} artifact{f.artifacts.length === 1 ? '' : 's'}, and cannot be undone.</div>
           </>

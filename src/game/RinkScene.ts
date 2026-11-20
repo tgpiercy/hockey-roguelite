@@ -221,6 +221,8 @@ export class RinkScene extends Phaser.Scene {
   private slow = 0;
   /** Who scored last, while the goal is being celebrated. */
   private scorer: number | null = null;
+  /** When the goal being celebrated went in, by the scene's clock: his line-mates are drawn gliding in to him from then. */
+  private gatherFrom = 0;
   /** The real-time clock reading until which the on-fire banner shows, and for which team. */
   private fireBanner = { until: 0, team: 0 as 0 | 1 };
   /** The same for a mascot's arrival. */
@@ -530,6 +532,7 @@ export class RinkScene extends Phaser.Scene {
     for (const e of happened) {
       if (e.type === 'goal') {
         this.scorer = e.scorer;
+        this.gatherFrom = this.clock;
         if (this.full && !seat) {
           this.freeze = fx.goalFreezeSeconds;
           this.slow = fx.goalSlowSeconds;
@@ -876,7 +879,8 @@ export class RinkScene extends Phaser.Scene {
     const ph = height * GP.height;
     // On the side of the screen he is not on, sliding in from off it.
     const right = this.sx(p.pos.x) < width / 2;
-    const slide = this.options.calm ? 1 : Math.min(1, this.bannerAge / GP.slideSeconds);
+    // It slides in and lands with a small bounce.
+    const slide = this.options.calm ? 1 : popScale(this.bannerAge, GP.slideSeconds * 1.6, GP.bounce);
     const rest = right ? width - GP.margin - pw : GP.margin;
     const x = rest + (1 - slide) * (right ? pw + GP.margin * 2 : -(pw + GP.margin * 2));
     const y = (height - ph) / 2 + look.topBarPixels * 0.3;
@@ -1512,8 +1516,20 @@ export class RinkScene extends Phaser.Scene {
         this.views.delete(p.id);
         continue;
       }
-      const x = this.sx(p.pos.x);
-      const y = this.sy(p.pos.y);
+      // A goal: the scorer's line-mates are drawn gliding in to him. Only the picture moves; the game underneath has
+      // them coasting where they were, and the faceoff that follows puts everyone on his spot anyway.
+      let at = p.pos;
+      const hero = this.full && world.phase === 'goal' && this.scorer !== null ? world.players[this.scorer] : undefined;
+      if (hero && hero.id !== p.id && hero.team === p.team && p.role === 'skater') {
+        const k = Math.min(1, Math.max(0, (this.clock - this.gatherFrom) / fx.gatherSeconds));
+        const ease = k * k * (3 - 2 * k) * fx.gatherShare;
+        // Each takes his own place round the scorer, on the side he is coming from.
+        const from = Math.atan2(p.pos.y - hero.pos.y, p.pos.x - hero.pos.x) + (p.id % 3) * 0.35;
+        const spot = { x: hero.pos.x + Math.cos(from) * fx.gatherRing, y: hero.pos.y + Math.sin(from) * fx.gatherRing * 0.6 };
+        at = { x: p.pos.x + (spot.x - p.pos.x) * ease, y: p.pos.y + (spot.y - p.pos.y) * ease };
+      }
+      const x = this.sx(at.x);
+      const y = this.sy(at.y);
       const goalie = p.role === 'goalie';
       const base = (goalie ? Math.max(t.goalie.bodyRadius, p.goalie!.fx.coverRadius) : t.skater.radius) * z;
       // One footprint radius of the figure, in pixels.

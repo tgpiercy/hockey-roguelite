@@ -2,7 +2,9 @@ import { teamCrest } from '../core/crest';
 import type { DressedTeam } from '../core/matchup';
 import { portraitOf } from '../core/portrait';
 import { burstPoints } from '../game/burst';
+import { skinTone, STANDING } from '../game/figure';
 import { CrestBadge } from './Crest';
+import { FigureArt } from './FigureArt';
 import { PortraitFace } from './Portrait';
 
 /** What is said over the two teams before a big game: who it is, who leads them, and what to know. */
@@ -62,6 +64,9 @@ export function MatchIntro({ home, away, homeColour, awayColour, words }: { home
             <polygon class="cover-burst" points={BURST} />
           </svg>
           <PortraitFace portrait={portraitOf(`boss/${who}`, 38)} primary={awayColour} secondary={crest.secondary} size={112} />
+          <span class="cover-figure">
+            <FigureArt pose={{ ...STANDING, side: -1, pattern: crest.pattern }} crest={crest} skin={skinTone((who ?? '').length)} size={84} />
+          </span>
         </div>
         <div class="cover-words">
           <span class="cover-tag">Tonight!</span>

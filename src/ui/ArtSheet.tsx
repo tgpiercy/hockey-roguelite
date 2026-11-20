@@ -21,6 +21,7 @@ import { Icon, ICON_NAMES } from './Icon';
 import { MASCOT_KINDS, mascotLook } from '../core/mascotKind';
 import { MascotFace } from './MascotFace';
 import { PortraitFace } from './Portrait';
+import { ResultStrip, SeasonScene } from './Scene';
 
 /**
  * Every piece of drawn art on one page, opened with ?sheet. It exists so the art can be checked together:
@@ -196,6 +197,14 @@ export function ArtSheet() {
             </span>
           );
         })}
+      </div>
+      <h2>Big moments</h2>
+      <div class="sheet-scenes" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '10px' }}>
+        <SeasonScene kind="title" crest={teamCrest('Highmoor Gulls')} words="Champions!" />
+        <SeasonScene kind="cup" crest={teamCrest('Pinehollow Comets')} words="Cup winners" />
+        <SeasonScene kind="out" crest={teamCrest('Westhaven Stoats')} words="Struck out" />
+        <SeasonScene kind="up" crest={teamCrest('Pinehollow Comets')} words="Going up" />
+        <ResultStrip crests={[teamCrest('Highmoor Gulls'), teamCrest('Pinehollow Comets')]} winner={0} />
       </div>
       <h2>Players on the ice</h2>
       <div class="art-row figure-row">

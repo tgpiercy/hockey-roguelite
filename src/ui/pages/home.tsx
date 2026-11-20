@@ -34,6 +34,7 @@ import { EventHeader, MatchupPoster, SeasonSummaryCard, ShopCard, StopCard, Stri
 import { Menu, type MenuItem } from '../Menu';
 import type { PlayerRecord } from '../../core/player';
 import { CapLine, CountUp, Dots, Face, money, PlayerRow, Ratings } from '../parts';
+import { SeasonScene } from '../Scene';
 import { MapKey, SeasonMapView } from '../SeasonMap';
 import type { AppCtx } from '../App';
 import { count, ordinal } from './shared';
@@ -151,6 +152,13 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
           message={message}
           header={
             <>
+              {season.outcome === 'champion' ? (
+                <SeasonScene kind="title" crest={myCrest} words="Champions!" />
+              ) : season.outcome === 'struckOut' ? (
+                <SeasonScene kind="out" crest={myCrest} words="Struck out" />
+              ) : cupHeld(f) ? (
+                <SeasonScene kind="cup" crest={myCrest} words="Cup winners" />
+              ) : null}
               <SeasonSummaryCard summary={seasonSummary(f)} crest={myCrest} season={league.season} artifacts={f.artifacts.length} />
               {season.expectation && <div>{expectationLine(f)}</div>}
               {cupHeld(f) && <div class="good">You won the cup.</div>}

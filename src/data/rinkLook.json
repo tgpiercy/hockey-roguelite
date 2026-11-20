@@ -168,7 +168,10 @@
       "rayLength": 1.1
     },
     "carveRate": 2.6,
-    "carveSmooth": 8
+    "carveSmooth": 8,
+    "gatherSeconds": 1.1,
+    "gatherShare": 0.8,
+    "gatherRing": 1.7
   },
   "arena": {
     "maxRows": 14,
@@ -808,7 +811,8 @@
       "HIS FOURTH!"
     ],
     "more": "ANOTHER ONE!",
-    "mascot": "THE MASCOT SCORES!"
+    "mascot": "THE MASCOT SCORES!",
+    "bounce": 0.08
   },
   "signs": {
     "count": 8,

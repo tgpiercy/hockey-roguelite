@@ -702,7 +702,7 @@ Plan as approved: the rink in play, player movement, big moments, menus; one lon
 - [x] First: player numbers removed from the ice (the owner: they do not render well)
 - [x] 1. The rink: static rink painted once; boards and glass with depth; lamp light; reflections; a goal lamp; the puck
 - [x] 2. Movement: actions ease in and out; wind-up in steps and a downswing; a carve on a turn; the goalie down before the save; three cheers
-- [ ] 3. Big moments: line-mates gather on a goal; the boss cover moves; the end of a game; four season-end scenes
+- [x] 3. Big moments: line-mates gather on a goal; the boss cover moves; the end of a game; four season-end scenes
 - [ ] 4. Menus: motion with a direction; one way to show a cost; plain rows become cards; the phone-size audit
-- [ ] Taste, asked with pictures: the rink's depth and light; the title scene
+- [x] Taste, asked with pictures: the rink's depth and light; the title scene
 - [ ] Docs, report, what was not checked

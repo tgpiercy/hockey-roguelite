@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import look from '../src/data/rinkLook.json';
+import mapLook from '../src/data/mapLook.json';
 import { depthHeights, depthStyle } from '../src/game/rinkPaint';
 import { VENUE_IDS, venueLook } from '../src/game/venue';
 
@@ -55,5 +56,18 @@ describe('the rink drawn with depth', () => {
     expect(look.figure.reflection.alpha).toBeLessThan(0.3);
     expect(look.figure.reflection.squash).toBeGreaterThan(0);
     expect(look.figure.reflection.squash).toBeLessThan(1);
+  });
+});
+
+describe('the big moments', () => {
+  it('line-mates gather round the scorer, not on top of him, and within the celebration', () => {
+    expect(look.effects.gatherRing).toBeGreaterThan(1);
+    expect(look.effects.gatherShare).toBeGreaterThan(0);
+    expect(look.effects.gatherShare).toBeLessThanOrEqual(1);
+    expect(look.effects.gatherSeconds).toBeGreaterThan(0);
+  });
+
+  it('the drawn scenes have sizes', () => {
+    for (const size of Object.values(mapLook.scenes)) expect(size).toBeGreaterThan(0);
   });
 });

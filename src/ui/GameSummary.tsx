@@ -6,6 +6,7 @@ import { portraitOf } from '../core/portrait';
 import { threeStars } from '../core/stars';
 import type { GameResult, PlayerLine, MascotLine } from '../sim/match';
 import { CrestBadge } from './Crest';
+import { ResultStrip } from './Scene';
 import { Icon } from './Icon';
 import { mascotKind } from '../core/mascotKind';
 import { MascotFace } from './MascotFace';
@@ -114,6 +115,8 @@ export function GameSummary({ result, teams, crests, best }: Props) {
           <span>{teams[1].name}</span>
         </div>
       </div>
+
+      <ResultStrip crests={crests} winner={result.winner === 0 || result.winner === 1 ? result.winner : null} />
 
       {stars.length > 0 && (
         <div class="summary-stars">
