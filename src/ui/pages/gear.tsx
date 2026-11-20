@@ -13,7 +13,7 @@ import { gameAudio } from '../../game/audio';
 import { GearArt } from '../GearArt';
 import { Menu } from '../Menu';
 import { PackOpening } from '../PackOpening';
-import { Face, Grade, Meter, money, PlayerRow, OptionCard } from '../parts';
+import { Face, Grade, Meter, money, PlayerRow, OptionCard, Price } from '../parts';
 import type { AppCtx } from '../App';
 import { type Screen, count, GEAR_FILTERS, RARITY_ORDER } from './shared';
 
@@ -152,7 +152,15 @@ export function gearPages(app: AppCtx): ComponentChildren | undefined {
           ...(item.wornBy ? [{ key: 'off', label: 'Take it off', onSelect: () => after(unequip(f, item.id)) }] : []),
           {
             key: 'level',
-            label: cost === null ? 'Level up: already at the top level' : `Level up · ${money(cost)}`,
+            label:
+              cost === null ? (
+                'Level up: already at the top level'
+              ) : (
+                <span class="row-cost">
+                  <span>Level up</span>
+                  <Price cash={cost} affordable={f.cash >= cost} />
+                </span>
+              ),
             detail: 'Each level adds 1 point to every boost on the piece.',
             disabled: cost === null || f.cash < cost,
             onSelect: () => {
@@ -162,7 +170,12 @@ export function gearPages(app: AppCtx): ComponentChildren | undefined {
           },
           {
             key: 'scrap',
-            label: `Sell for scrap · ${money(value)}`,
+            label: (
+              <span class="row-cost">
+                <span>Sell for scrap</span>
+                <Price cash={value} gain />
+              </span>
+            ),
             detail: item.wornBy ? 'Take it off first.' : 'The piece is gone for good.',
             disabled: item.wornBy !== null,
             onSelect: () => {

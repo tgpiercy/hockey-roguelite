@@ -2,7 +2,7 @@ import { conditionWords, familyOf } from '../core/artifactFamily';
 import { teamCrest } from '../core/crest';
 import artifactData from '../data/artifacts.json';
 import type { Modifier } from '../sim/modifiers';
-import { OptionCard, RinkOutline } from './parts';
+import { OptionCard, Price, RinkOutline } from './parts';
 import { ArtifactCard } from './screens/season';
 import { generateLeague } from '../core/generate';
 import { generateItem, type RarityId } from '../core/gear';
@@ -197,6 +197,14 @@ export function ArtSheet() {
             </span>
           );
         })}
+      </div>
+      <h2>What a thing costs</h2>
+      <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <Price pucks={4} />
+        <Price pucks={12} affordable={false} />
+        <Price cash={1_200_000} />
+        <Price cash={850_000} affordable={false} />
+        <Price cash={100_000} gain />
       </div>
       <h2>Big moments</h2>
       <div class="sheet-scenes" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '10px' }}>

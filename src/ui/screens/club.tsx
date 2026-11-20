@@ -5,7 +5,7 @@ import { roleOf, type StaffMember } from '../../core/staff';
 import mascotRules from '../../data/mascot.json';
 import prestigeRules from '../../data/prestige.json';
 import { Icon, type IconName } from '../Icon';
-import { Dots, Face, Grade, MascotBadge, money, RatingBar } from '../parts';
+import { Dots, Face, Grade, MascotBadge, money, Price, RatingBar } from '../parts';
 import { PortraitFace } from '../Portrait';
 
 const RATING_NAMES: Record<string, string> = {
@@ -39,9 +39,10 @@ export function FacilityCard({ id, name, level, maxLevel, cost, affordable }: { 
         <span class="dash-name">{name}</span>
         <span class="facility-level">
           <Dots filled={level} total={maxLevel} />
-          <span class={cost === null ? 'note' : affordable ? '' : 'short'}>{cost === null ? 'Top level' : money(cost)}</span>
+          {cost === null && <span class="note">Top level</span>}
         </span>
       </span>
+      {cost !== null && <Price cash={cost} affordable={affordable} />}
     </span>
   );
 }
@@ -58,9 +59,10 @@ export function StaffCard({ member, note }: { member: StaffMember; note?: string
           <span class="dash-name">{roleOf(member).title}</span>
         </span>
         <span class="dash-status">
-          {member.name} · {money(member.salary)} · {member.contractYears}y{note ? ` · ${note}` : ''}
+          {member.name} · {member.contractYears}y{note ? ` · ${note}` : ''}
         </span>
       </span>
+      <Price cash={member.salary} />
     </span>
   );
 }

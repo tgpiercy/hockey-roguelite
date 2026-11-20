@@ -29,3 +29,7 @@ Rules written after a correction or a mistake on this project. Read at the start
 - **A denied command is not to be worked round.** The delete of `tmp_saves/` was declined: leave it, keep it out of commits, and tell the owner the command.
 - **Finish a half-built change before switching.** When the owner reported a problem mid-rewrite, the rewrite was brought to a committed, working state first, then the problem was fixed.
 - **Say what was not checked.** Every report lists what was seen on screen, what was only tested, and what was not measured.
+- **Time the parts before speeding one up.** The plan said the still rink was most of a frame; timing each part showed it was almost nothing, and that painting a new player picture cost 9.5 ms. Measure where the time goes first.
+- **Small pictures made of many strokes belong in ordinary memory.** A canvas asked for with `willReadFrequently` painted and handed over a player picture three times faster.
+- **In the test browser, step the game a few hundred frames at a time.** A single call that steps thousands times out; a screenshot shows the frame before the last one, so take two.
+- **Do not let Python rewrite a hand-laid JSON file.** `json.dumps` kept `rinkLook.json` as it was but spread `mapLook.json` over 350 lines; add a line as text there.

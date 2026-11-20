@@ -9,7 +9,7 @@ import type { SeasonSummary } from '../../core/seasonSummary';
 import rules from '../../data/season.json';
 import { CrestBadge } from '../Crest';
 import { Icon, type IconName } from '../Icon';
-import { Face, RatingBar } from '../parts';
+import { Face, Price, RatingBar } from '../parts';
 import { PortraitFace } from '../Portrait';
 
 /** The icon for each powerup, by its id. Anything new falls back to the bolt. */
@@ -129,7 +129,7 @@ export function ShopCard({ id, name, price, affordable }: { id: string; name: st
     <span class="shop-card">
       <Icon name={powerupIcon(id)} size={28} />
       <span class="shop-name">{name}</span>
-      <span class={`price-tag${affordable ? '' : ' short'}`}>{price}</span>
+      <Price pucks={price} affordable={affordable} />
     </span>
   );
 }

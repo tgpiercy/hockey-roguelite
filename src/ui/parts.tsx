@@ -18,6 +18,25 @@ const ratingNames = gearData.ratingNames as Record<string, string>;
 
 export const money = (dollars: number): string => `${dollars < 0 ? '−' : ''}$${(Math.abs(dollars) / 1_000_000).toFixed(2)}M`;
 
+/**
+ * A cost, shown the same way everywhere: a tag at the end of the row, in Pucks (with the puck mark, so the number
+ * is never bare) or in dollars, greyed when it cannot be afforded. `gain` is money coming in.
+ */
+export function Price({ pucks, cash, affordable = true, gain = false }: { pucks?: number | null; cash?: number; affordable?: boolean; gain?: boolean }) {
+  return (
+    <span class={`price-tag${cash !== undefined ? ' cash' : ''}${gain ? ' gain' : ''}${affordable ? '' : ' short'}`}>
+      {cash !== undefined ? (
+        `${gain ? '+' : ''}${money(cash)}`
+      ) : (
+        <>
+          {pucks}
+          <i class="puck-mark" title="Pucks" />
+        </>
+      )}
+    </span>
+  );
+}
+
 /** The colours a player is wearing: his team's main and second colour. */
 export interface Wearing {
   primary: string;

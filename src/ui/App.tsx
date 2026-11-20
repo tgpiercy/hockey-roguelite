@@ -34,6 +34,7 @@ import { CrestBadge } from './Crest';
 import { Icon, type IconName } from './Icon';
 import { MenuChrome, MenuCrest, type MenuItem } from './Menu';
 import { loadPrefs, savePrefs, type Prefs } from './prefs';
+import { navStep } from './navTrail';
 import { menuInput } from './menuInput';
 import { playMatch } from './playMatch';
 import type { PlayerRecord } from '../core/player';
@@ -113,6 +114,12 @@ function useApp() {
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
   // Sound follows the device's preferences from the first moment.
   useEffect(() => gameAudio.configure(prefs.sound, prefs.volume), [prefs]);
+  // The calm setting stills the menus as it stills the rink: the styles read it from the root element.
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-calm', prefs.calm);
+  }, [prefs.calm]);
+  /** The screens passed through on the way here, so a screen slides in from the side it came from. */
+  const trail = useRef<string[]>([]);
   // Music has its own switch and volume, and falls silent with the sound.
   useEffect(() => music.configure(prefs.sound && prefs.music, prefs.musicVolume), [prefs]);
   // The theme plays on the menus; a game stops it and starts it again when it ends.
@@ -168,6 +175,9 @@ function useApp() {
     root.setProperty('--team-deep', c.deep);
     root.setProperty('--team-ink', c.ink);
   }, [shownColour]);
+
+  const way = navStep(trail.current, JSON.stringify(screen));
+  if (way !== 'same') document.documentElement.dataset.nav = way;
 
   const f = ref.current;
   if (!f || playing) return null;

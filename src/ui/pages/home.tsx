@@ -33,7 +33,7 @@ import { Icon } from '../Icon';
 import { EventHeader, MatchupPoster, SeasonSummaryCard, ShopCard, StopCard, StrikeLights, TrainingGain } from '../screens/season';
 import { Menu, type MenuItem } from '../Menu';
 import type { PlayerRecord } from '../../core/player';
-import { CapLine, CountUp, Dots, Face, money, PlayerRow, Ratings } from '../parts';
+import { CapLine, CountUp, Dots, Face, money, PlayerRow, Price, Ratings } from '../parts';
 import { SeasonScene } from '../Scene';
 import { MapKey, SeasonMapView } from '../SeasonMap';
 import type { AppCtx } from '../App';
@@ -483,7 +483,7 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
                       label: (
                         <span class="shop-card">
                           <ArtifactCard name={a.name} description={a.description} modifiers={a.modifiers} chips={[{ text: 'Top shelf', tone: 'recipe' }]} />
-                          <span class={`price-tag${season.currency >= price ? '' : ' short'}`}>{price}</span>
+                          <Price pucks={price} affordable={season.currency >= price} />
                         </span>
                       ),
                       detail: `${a.description} An artifact, kept for the rest of the season.`,
@@ -503,7 +503,7 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
                       <span class="shop-card">
                         <Icon name="bailout" size={26} />
                         <span class="shop-name">Second chance</span>
-                        <span class={`price-tag${season.currency >= secondChancePrice(f) ? '' : ' short'}`}>{secondChancePrice(f)}</span>
+                        <Price pucks={secondChancePrice(f)} affordable={season.currency >= secondChancePrice(f)} />
                       </span>
                     ),
                     detail: season.secondChance ? 'You already hold one: your next loss to a boss is a strike and a rematch.' : 'Insurance: one loss to a boss is only a strike, and you play him again. You can hold one.',
@@ -519,7 +519,7 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
                 <span class="shop-card">
                   <Icon name="bailout" size={26} />
                   <span class="shop-name">Wipe one strike</span>
-                  <span class={`price-tag${season.currency >= healPrice(f) ? '' : ' short'}`}>{healPrice(f)}</span>
+                  <Price pucks={healPrice(f)} affordable={season.currency >= healPrice(f)} />
                 </span>
               ),
               detail: season.strikes === 0 ? 'You have no strikes to wipe.' : 'Removes one of your strikes.',
@@ -533,7 +533,7 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
                 <span class="shop-card">
                   <Icon name="detail" size={26} />
                   <span class="shop-name">Scouting report on the boss</span>
-                  <span class={`price-tag${season.currency >= scoutPrice(f) ? '' : ' short'}`}>{scoutPrice(f)}</span>
+                  <Price pucks={scoutPrice(f)} affordable={season.currency >= scoutPrice(f)} />
                 </span>
               ),
               detail: season.scouted ? 'You already have a report on the next boss.' : 'The next boss you meet has a weaker team that reacts slower.',
@@ -549,7 +549,7 @@ export function homePages(app: AppCtx): ComponentChildren | undefined {
                       <span class="shop-card">
                         <Icon name="shop" size={26} />
                         <span class="shop-name">See what is in the back</span>
-                        <span class={`price-tag${season.currency >= (rerollPrice(f) as number) ? '' : ' short'}`}>{rerollPrice(f)}</span>
+                        <Price pucks={rerollPrice(f)} affordable={season.currency >= (rerollPrice(f) as number)} />
                       </span>
                     ),
                     detail: 'Swaps the powerups and the top shelf for others. It costs more each time in the same shop.',

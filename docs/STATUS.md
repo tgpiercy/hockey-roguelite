@@ -2,7 +2,11 @@
 
 Written on 2026-11-19, when the owner paused this line of work to polish other things. Read this first when picking the work up again. The detail is in `docs/ROADMAP.md` (the rounds), `docs/ONLINE.md` (live play), `docs/TUNING.md` (every measurement) and `docs/DECISIONS.md` (what was decided and why).
 
-## The state of the code
+## The graphics round (2026-11-19, after the pause)
+
+The owner picked the work up again for one round on the picture: the rink drawn with depth and light, movement that flows, big moments, and menus that move. Five commits on `main`, **not pushed** (the push was declined in the session): push them to deploy. What was built, what was seen and what was only tested is under "Review (the graphics round)" in `tasks/todo.md`; what is left over is the unticked line above it. One question is waiting on the owner: whether to draw the rink at the phone's full sharpness (device pixels), which costs frame time.
+
+## The state of the code (as it was at the pause)
 
 - `main` is at `8686355` ("Live play, step 1"), pushed, and the deploy of it succeeded. The game at https://tgpiercy.github.io/hockey-roguelite/ is that commit.
 - At that commit: the type check passes, 1,651 tests in 95 files pass, the build passes.

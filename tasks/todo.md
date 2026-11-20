@@ -703,6 +703,17 @@ Plan as approved: the rink in play, player movement, big moments, menus; one lon
 - [x] 1. The rink: static rink painted once; boards and glass with depth; lamp light; reflections; a goal lamp; the puck
 - [x] 2. Movement: actions ease in and out; wind-up in steps and a downswing; a carve on a turn; the goalie down before the save; three cheers
 - [x] 3. Big moments: line-mates gather on a goal; the boss cover moves; the end of a game; four season-end scenes
-- [ ] 4. Menus: motion with a direction; one way to show a cost; plain rows become cards; the phone-size audit
+- [x] 4. Menus, in part: motion with a direction; one way to show a cost (shop, facilities, staff, gear)
+- [ ] 4, left over: the cost tag on the ringer, mascot, contracts and free agents; plain rows become cards; the phone-size audit of every screen
 - [x] Taste, asked with pictures: the rink's depth and light; the title scene
-- [ ] Docs, report, what was not checked
+- [x] Docs, report, what was not checked
+
+## Review (the graphics round)
+
+- Five commits, each with the type check, the tests and the build passing (1,676 tests at the end, 1,651 at the start). Not pushed: the push was declined in the session, so the deployed game is still the commit before the round.
+- Seen on screen at 844 x 390 in a real game: the rink with no numbers on the players; the far boards, glass and lamp light (three candidates, the owner chose A); reflections; the goal lamp lit; a goal with the line-mates gathered and the goal panel; every new pose and the three cheers on the art sheet; the season-end scenes, the end-of-game strip and the cost tags on the art sheet.
+- Tests only, not seen: the season-over screen with a scene in it, the prestige screen's scene, the end-of-game screen with its strip, the boss cover's motion and its full figure, facilities and staff with the cost tag (locked in a new franchise), the barn and the bowl with depth, low detail, the calm setting, a second player, two devices.
+- Measured on this PC at 844 x 390, frames stepped by hand: drawing a frame 8.8 ms before the round, about 3 ms after; painting one player picture 9.5 ms before, about 3 ms after (and smaller pictures since). Not measured: anything on the phone.
+- Changed from the plan: the boss cover keeps his face large and adds a full figure beside it; the downswing of a shot is the half-way picture of the follow-through, not a pose of its own; `textureScale` went from 3 to 2 and `maxTextures` from 480 to 900 after measuring; a goalie going down early reuses the half-way blend.
+- Found by measuring: the still rink was never the cost of a frame; painting player pictures was, and most of that was fetching each finished picture back from the graphics card.
+- Known and left: the commentary line can run under the goal panel's caption (it did before); the game's canvas is drawn at screen points, not device pixels, so everything on the ice is soft on a phone with a sharp screen: the biggest thing left for the picture, and a question for the owner because it costs frame time.
