@@ -33,6 +33,7 @@ import type { Seat } from './netplay';
 import { Crowd, crowdMoods } from './drawArena';
 import { venueLook, type Venue } from './venue';
 import { drawCrest } from './drawCrest';
+import { depthStyle, paintDepth, type DepthStyle, type Span } from './rinkPaint';
 import { FIGURE_BOX, paintFigure } from './drawFigure';
 import { Effects, type View } from './effects';
 import type { PlayerLook } from '../core/playerLook';
@@ -47,7 +48,7 @@ const FIG = look.figure;
 const RET = look.reticle;
 const TAU = Math.PI * 2;
 /** What is drawn over what. Players sit between two graphics layers and are sorted among themselves by how far down the screen they are. */
-const DEPTH = { ground: 1, players: 2, top: 3, labels: 4, hud: 5 };
+const DEPTH = { stands: -3, crowd: -2, sheet: -1, mirror: 0.5, ground: 1, players: 2, top: 3, labels: 4, hud: 5 };
 
 /** Longest stretch of real time caught up in one frame, so a stalled tab does not fast-forward. */
 const MAX_CATCH_UP_SECONDS = 0.25;
@@ -140,6 +141,16 @@ export class RinkScene extends Phaser.Scene {
   private reader!: InputReader;
   /** Drawn in this order: the arena and ice, the adverts painted on it, the players, the heads-up display. */
   private ice!: Phaser.GameObjects.Graphics;
+  /** The stands and the sheet, each painted once into a picture of its own and painted again only when the screen changes size. */
+  private standsImage!: Phaser.GameObjects.Image;
+  private sheetImage!: Phaser.GameObjects.Image;
+  /** The crowd and its signs, drawn every frame between those two pictures. */
+  private crowdG!: Phaser.GameObjects.Graphics;
+  private paintedFor = '';
+  /** The far boards, the glass and the lamps drawn with depth, or null for the flat rink (low detail). */
+  private depth: DepthStyle | null = null;
+  /** How long each of the last frames took to draw, in milliseconds, beside the frame times. */
+  private drawTimes: number[] = [];
   private g!: Phaser.GameObjects.Graphics;
   private hud!: Phaser.GameObjects.Graphics;
   private adverts: Phaser.GameObjects.Text[] = [];
@@ -195,6 +206,8 @@ export class RinkScene extends Phaser.Scene {
   private top!: Phaser.GameObjects.Graphics;
   /** One picture per player, showing the texture of the pose he is in. */
   private sprites: Phaser.GameObjects.Image[] = [];
+  /** Each player again, turned over and faint under his feet: the ice is polished. Full detail only. */
+  private mirrors: Phaser.GameObjects.Image[] = [];
   /** Every pose painted so far, and the size they were painted at; repainted when the rink is resized. */
   /** Each figure picture kept, with the frame it was last shown on: the ones longest unused go when there are too many. */
   private readonly figureKeys = new Map<string, number>();
@@ -269,6 +282,11 @@ export class RinkScene extends Phaser.Scene {
 
     this.venue = venueLook(this.options.venue);
     this.crowd = new Crowd(this.venue, this.comic.heads);
+    this.depth = this.full ? depthStyle() : null;
+    // Bottom to top under the players: the stands (a picture), the crowd, the sheet (a picture), then what changes on the ice.
+    this.standsImage = this.add.image(0, 0, '__DEFAULT').setOrigin(0, 0).setDepth(DEPTH.stands).setVisible(false);
+    this.crowdG = this.add.graphics().setDepth(DEPTH.crowd);
+    this.sheetImage = this.add.image(0, 0, '__DEFAULT').setOrigin(0, 0).setDepth(DEPTH.sheet).setVisible(false);
     this.ice = this.add.graphics();
     this.adverts = this.venue.iceAdverts.map((text) =>
       this.add
@@ -301,6 +319,7 @@ export class RinkScene extends Phaser.Scene {
     // Layers, bottom to top: the ice; shadows, rings and sticks; the players; the puck and sparks; labels; the scoreboard.
     this.g.setDepth(DEPTH.ground);
     this.sprites = this.world.players.map(() => this.add.image(0, 0, '__DEFAULT').setVisible(false).setDepth(DEPTH.players));
+    this.mirrors = this.full && FIG.reflection.alpha > 0 ? this.world.players.map(() => this.add.image(0, 0, '__DEFAULT').setVisible(false).setDepth(DEPTH.mirror)) : [];
     this.top = this.add.graphics().setDepth(DEPTH.top);
     this.labels = this.world.players.map(() => this.add.text(0, 0, '', { fontFamily: look.font, color: c.debugText }).setOrigin(0.5, 1).setVisible(false).setDepth(DEPTH.labels));
 
@@ -939,23 +958,107 @@ export class RinkScene extends Phaser.Scene {
     this.originX = width / 2;
     this.originY = top + (height - top) / 2;
 
+    const started = performance.now();
     this.ice.clear();
+    this.crowdG.clear();
     this.g.clear();
     this.top.clear();
     this.hud.clear();
-    this.drawArena(t, width, height);
-    this.drawRink(t);
+    this.paintStill(t, width, height);
+    this.drawCrowd(t, width, height);
+    this.drawNets(t);
     this.effects.drawUnder(this.ice, this.view, { length: t.rink.length, width: t.rink.width, periodSeconds: t.period.seconds });
     this.easeReach(t, real);
     this.drawPlayers(t);
     this.drawPuck(t);
     this.effects.drawOver(this.top, this.view);
     this.drawHud(t, width, height, real);
+    if (real > 0) {
+      this.drawTimes.push(performance.now() - started);
+      if (this.drawTimes.length > look.drawWindowFrames) this.drawTimes.shift();
+    }
   }
 
-  /** The stands and the crowd in them, around the outside of the boards. */
-  private drawArena(t: Tuning, width: number, height: number): void {
-    const g = this.ice;
+  /**
+   * Paints what never changes during a game (the stands, and the sheet with its lines, boards and glass) into two
+   * pictures, once, and again when the screen changes size. Drawing them afresh every frame was most of the work of a frame.
+   */
+  private paintStill(t: Tuning, width: number, height: number): void {
+    const key = `${Math.round(width)}x${Math.round(height)}`;
+    if (key !== this.paintedFor && width > 0 && height > 0) {
+      this.paintedFor = key;
+      const brush = this.make.graphics({}, false);
+      const paint = (name: string, image: Phaser.GameObjects.Image, draw: () => void): void => {
+        brush.clear();
+        draw();
+        image.setTexture('__DEFAULT');
+        if (this.textures.exists(name)) this.textures.remove(name);
+        brush.generateTexture(name, Math.ceil(width), Math.ceil(height));
+        image.setTexture(name).setVisible(true);
+      };
+      paint('rink-stands', this.standsImage, () => this.paintStands(brush, t, width, height));
+      paint('rink-sheet', this.sheetImage, () => this.paintSheet(brush, t));
+      this.paintDepthOn('rink-sheet', t);
+      brush.destroy();
+    }
+    // Adverts painted on the ice, two in the corners of the neutral zone at each end: texts of their own.
+    const blue = t.rink.length * look.blueLineFraction;
+    const advertX = blue * 0.55;
+    const advertY = (t.rink.width / 2) * 0.72;
+    const spots: [number, number][] = [
+      [-advertX, -advertY],
+      [advertX, -advertY],
+      [-advertX, advertY],
+      [advertX, advertY],
+    ];
+    this.adverts.forEach((text, i) => {
+      const spot = spots[i % spots.length] as [number, number];
+      text.setFontSize(Math.max(8, this.zoom * 0.95));
+      text.setPosition(this.sx(spot[0]), this.sy(spot[1]));
+    });
+  }
+
+  /** Depth and light, painted over the picture of the sheet with the canvas's own tools. */
+  private paintDepthOn(name: string, t: Tuning): void {
+    const style = this.depth;
+    const texture = this.textures.get(name);
+    const canvas = texture.getSourceImage();
+    if (!style || !(canvas instanceof HTMLCanvasElement)) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const z = this.zoom;
+    const hx = t.rink.length / 2;
+    const hy = t.rink.width / 2;
+    const wall = Math.max(4, look.boardWidth * z * 1.2);
+    // The coloured stretches of the far boards: the teams' panels along the straight, then the two bench doors.
+    const spans: Span[] = [];
+    const straight = hx - t.rink.cornerRadius;
+    if (this.venue.teamPanels) {
+      const panels = [null, this.teamColour(0), null, this.teamColour(0), null, this.teamColour(1)];
+      let n = 0;
+      for (let x = -straight; x < straight - 0.01; x += arena.boardPanel) {
+        const hex = panels[n++ % panels.length];
+        if (hex) spans.push({ x1: this.sx(x) + 1, x2: this.sx(Math.min(straight, x + arena.boardPanel)) - 1, colour: hex });
+      }
+    }
+    for (const team of [0, 1] as const) {
+      const door = benchDoor(team, t);
+      spans.push({ x1: this.sx(door.x - t.bench.doorRadius), x2: this.sx(door.x + t.bench.doorRadius), colour: this.teamColour(team) });
+    }
+    paintDepth(
+      ctx,
+      { x: this.sx(-hx), y: this.sy(-hy), w: t.rink.length * z, h: t.rink.width * z, corner: Math.min(t.rink.cornerRadius, hx, hy) * z, z },
+      style,
+      { boards: c.boards, rail: c.rail, glass: c.glass, light: c.light, lamp: this.venue.lampColour, shade: c.boardShade, ink: look.comicArena.inkColour },
+      this.venue.lamps > 0 ? this.venue.lamps : style.pools,
+      spans,
+      wall,
+    );
+    (texture as Phaser.Textures.CanvasTexture).refresh?.();
+  }
+
+  /** The stands around the outside of the boards: painted once. */
+  private paintStands(g: Phaser.GameObjects.Graphics, t: Tuning, width: number, height: number): void {
     const z = this.zoom;
     const hx = t.rink.length / 2;
     const hy = t.rink.width / 2;
@@ -1002,6 +1105,19 @@ export class RinkScene extends Phaser.Scene {
         }
       }
     }
+  }
+
+  /** The crowd in the stands and the signs it holds up: drawn every frame. */
+  private drawCrowd(t: Tuning, width: number, height: number): void {
+    const g = this.crowdG;
+    const z = this.zoom;
+    const hx = t.rink.length / 2;
+    const hy = t.rink.width / 2;
+    const corner = Math.min(t.rink.cornerRadius, hx, hy) * z;
+    const left = this.sx(-hx);
+    const topEdge = this.sy(-hy);
+    const w = t.rink.length * z;
+    const h = t.rink.width * z;
     this.crowd.layout(left, topEdge, w, h, corner, width, height, look.topBarPixels);
     this.crowd.draw(g, this.clock, this.effects.excitement, this.effects.cheering, [this.teamColour(0), this.teamColour(1)], !this.full, this.options.calm === true, crowdMoods(this.world.score));
     // The signs: a board on a stick over the holder's head, lettered by a text of its own. Their side's are up
@@ -1025,9 +1141,8 @@ export class RinkScene extends Phaser.Scene {
     }
   }
 
-  /** The ice, its markings, the boards, the bench doors and the nets. */
-  private drawRink(t: Tuning): void {
-    const g = this.ice;
+  /** The ice, its markings, the boards, the glass and the bench doors: painted once. */
+  private paintSheet(g: Phaser.GameObjects.Graphics, t: Tuning): void {
     const z = this.zoom;
     const hx = t.rink.length / 2;
     const hy = t.rink.width / 2;
@@ -1051,14 +1166,15 @@ export class RinkScene extends Phaser.Scene {
     g.fillStyle(colour(this.venue.iceZone));
     g.fillRect(this.sx(-blue), this.sy(-hy), blue * 2 * z, t.rink.width * z);
 
-    // Lighting: soft pools of light over the middle of the sheet.
+    // Lighting: soft pools of light over the middle of the sheet. (With depth on, the light is painted afterwards.)
+    const flat = this.depth === null;
     for (const [share, alpha] of this.venue.lightPools) {
-      if (alpha <= 0) continue;
+      if (alpha <= 0 || !flat) continue;
       g.fillStyle(colour(c.light), alpha);
       g.fillEllipse(this.sx(0), this.sy(0), t.rink.length * z * share, t.rink.width * z * share * 0.92);
     }
     // Hanging lamps down the middle of a small rink: a pool of light under each, the ice duller between them.
-    for (let k = 0; k < this.venue.lamps; k++) {
+    for (let k = 0; flat && k < this.venue.lamps; k++) {
       const x = -hx + ((k + 0.5) / this.venue.lamps) * t.rink.length;
       const size = t.rink.width * z * this.venue.lampSize;
       g.fillStyle(colour(c.light), this.venue.lampAlpha);
@@ -1068,21 +1184,6 @@ export class RinkScene extends Phaser.Scene {
 
     // The home team's crest at centre ice, under the lines.
     drawCrest(g, this.crests[0], this.sx(0), this.sy(0), look.centreCrestSize * z, look.centreCrestAlpha);
-
-    // Adverts painted on the ice, two in each end zone's corners of the neutral zone.
-    const advertX = blue * 0.55;
-    const advertY = hy * 0.72;
-    const spots: [number, number][] = [
-      [-advertX, -advertY],
-      [advertX, -advertY],
-      [-advertX, advertY],
-      [advertX, advertY],
-    ];
-    this.adverts.forEach((text, i) => {
-      const spot = spots[i % spots.length] as [number, number];
-      text.setFontSize(Math.max(8, z * 0.95));
-      text.setPosition(this.sx(spot[0]), this.sy(spot[1]));
-    });
 
     // Creases
     g.fillStyle(colour(c.crease));
@@ -1129,12 +1230,13 @@ export class RinkScene extends Phaser.Scene {
 
     // Boards: a dark wall with a pale rail along its inside edge, and advert panels along the straights.
     const wall = Math.max(4, look.boardWidth * z * 1.2);
-    g.lineStyle(wall, colour(c.boards));
+    const boardHex = this.depth?.boardFoot ?? c.boards;
+    g.lineStyle(wall, colour(boardHex));
     g.strokeRoundedRect(this.sx(-hx) - wall / 2, this.sy(-hy) - wall / 2, t.rink.length * z + wall, t.rink.width * z + wall, corner + wall / 2);
     const panel = arena.boardPanel;
     const straight = hx - t.rink.cornerRadius;
     // The boards carry the home team's colour between the white panels, and the visitors' here and there.
-    const panels = this.venue.teamPanels ? [look.colours.boards, this.teamColour(0), look.colours.boards, this.teamColour(0), look.colours.boards, this.teamColour(1)] : [look.colours.boards];
+    const panels = this.venue.teamPanels ? [boardHex, this.teamColour(0), boardHex, this.teamColour(0), boardHex, this.teamColour(1)] : [boardHex];
     let n = 0;
     for (let x = -straight; x < straight - 0.01; x += panel) {
       const hex = panels[n++ % panels.length] as string;
@@ -1147,7 +1249,7 @@ export class RinkScene extends Phaser.Scene {
     g.strokeRoundedRect(this.sx(-hx), this.sy(-hy), t.rink.length * z, t.rink.width * z, corner);
     // Depth: the far boards stand over the ice and shade a strip of it; a yellow kick plate runs round their foot.
     const RD = look.rinkDetail;
-    g.fillStyle(colour(c.boardShade), RD.boardShadeAlpha);
+    g.fillStyle(colour(c.boardShade), flat ? RD.boardShadeAlpha : 0);
     g.fillRect(this.sx(-hx) + corner, this.sy(-hy), t.rink.length * z - corner * 2, RD.boardShade * z);
     const plate = Math.max(1, RD.kickPlate * z);
     g.lineStyle(plate, colour(c.kickPlate), 0.9);
@@ -1158,13 +1260,13 @@ export class RinkScene extends Phaser.Scene {
     g.lineStyle(pane, colour(c.glass), look.glassAlpha);
     g.strokeRoundedRect(this.sx(-hx) - wall * 0.5 - pane * 0.5, this.sy(-hy) - wall * 0.5 - pane * 0.5, t.rink.length * z + wall + pane, t.rink.width * z + wall + pane, corner + wall);
     g.lineStyle(Math.max(1, pane * 0.3), colour(c.glass), look.glassAlpha * 2.6);
-    for (let k = 0; k < look.glassGlints; k++) {
+    for (let k = 0; flat && k < look.glassGlints; k++) {
       const gx0 = this.sx(-hx + corner / z + ((k + 0.5) / look.glassGlints) * (t.rink.length - (2 * corner) / z));
       for (const edge of [this.sy(-hy) - wall * 0.5 - pane * 0.5, this.sy(hy) + wall * 0.5 + pane * 0.5]) g.lineBetween(gx0 - pane * 1.6, edge, gx0 + pane * 0.4, edge);
     }
 
     // Ink: a heavy line round the outside of the glass and a finer one where the boards meet the ice.
-    if (CA.ink > 0) {
+    if (CA.ink > 0 && flat) {
       g.lineStyle(CA.ink, colour(look.comicArena.inkColour));
       g.strokeRoundedRect(this.sx(-hx) - outer, this.sy(-hy) - outer, t.rink.length * z + outer * 2, t.rink.width * z + outer * 2, corner + outer);
       g.lineStyle(Math.max(1, CA.ink * 0.5), colour(look.comicArena.inkColour), 0.85);
@@ -1182,7 +1284,7 @@ export class RinkScene extends Phaser.Scene {
     }
 
     // The posts that hold the glass, along the straights.
-    if (this.full) {
+    if (this.full && flat) {
       g.lineStyle(Math.max(1, wall * 0.16), colour(c.rail), RD.glassPostAlpha);
       for (let x = -straight; x <= straight + 0.01; x += RD.glassPosts) {
         for (const [edge, dir] of [[this.sy(-hy) - wall * 0.5, -1], [this.sy(hy) + wall * 0.5, 1]] as const) g.lineBetween(this.sx(x), edge, this.sx(x), edge + dir * pane);
@@ -1196,16 +1298,47 @@ export class RinkScene extends Phaser.Scene {
       g.lineBetween(this.sx(door.x - t.bench.doorRadius), this.sy(-hy) - wall / 2, this.sx(door.x + t.bench.doorRadius), this.sy(-hy) - wall / 2);
     }
 
-    // Nets, and the red light behind one that has just been scored on.
+  }
+
+  /** The nets, and the red light behind one that has just been scored on: drawn every frame, since a net bulges. */
+  private drawNets(t: Tuning): void {
+    const g = this.ice;
+    const z = this.zoom;
+    const line = Math.max(1, look.lineWidth * z);
+    const gx = goalLineX(t);
     nets(t).forEach((net, side) => {
       const lit = this.effects.goalLight[side as 0 | 1];
+      // The goal lamp: a red dome on the glass behind each net. Unlit it is a dull red; scored on, it flashes, throws rays
+      // and washes that end of the ice red. (The calm setting holds it steady.)
+      const GL = fx.goalLamp;
+      const end = side === 0 ? -1 : 1;
+      const lx = this.sx(end * (t.rink.length / 2)) + end * Math.max(4, look.boardWidth * z * 1.2);
+      const ly = this.sy(0);
+      const dome = Math.max(3, GL.dome * z);
+      const pulse = lit > 0 ? 0.55 + 0.45 * this.pulse(18) : 0;
       if (lit > 0) {
-        const pulse = 0.55 + 0.45 * Math.sin(this.clock * 18);
-        const lx = this.sx((side === 0 ? -1 : 1) * (gx + t.net.depth + 1.1));
-        g.fillStyle(colour(c.goalLight), 0.25 * pulse);
-        g.fillCircle(lx, this.sy(0), 2.4 * z);
+        g.fillStyle(colour(c.goalLight), GL.washAlpha * pulse);
+        g.fillEllipse(this.sx(end * gx), ly, GL.wash * z * 2, GL.wash * z * 2.4);
+        g.fillStyle(colour(c.goalLight), GL.washAlpha * 1.6 * pulse);
+        g.fillEllipse(this.sx(end * gx), ly, GL.wash * z, GL.wash * z * 1.2);
+        if (this.full) {
+          g.lineStyle(Math.max(1.5, dome * 0.3), colour(c.goalLight), 0.75 * pulse);
+          for (let k = 0; k < GL.rays; k++) {
+            const a = (k / GL.rays) * TAU + (this.options.calm ? 0 : this.clock * 2.4);
+            g.lineBetween(lx + Math.cos(a) * dome * 1.5, ly + Math.sin(a) * dome * 1.5, lx + Math.cos(a) * (dome * 1.5 + GL.rayLength * z), ly + Math.sin(a) * (dome * 1.5 + GL.rayLength * z));
+          }
+        }
+      }
+      if (this.depth) {
+        g.fillStyle(colour(look.comicArena.inkColour));
+        g.fillCircle(lx, ly, dome + 1.5);
+        g.fillStyle(colour(lit > 0 && pulse > 0.5 ? c.goalLight : GL.off));
+        g.fillCircle(lx, ly, dome);
+        g.fillStyle(colour(c.light), lit > 0 ? 0.8 : 0.35);
+        g.fillCircle(lx - dome * 0.3, ly - dome * 0.3, dome * 0.32);
+      } else if (lit > 0) {
         g.fillStyle(colour(c.goalLight), 0.9 * pulse);
-        g.fillCircle(lx, this.sy(0), 0.55 * z);
+        g.fillCircle(this.sx(end * (gx + t.net.depth + 1.1)), ly, 0.55 * z);
       }
       // The back of the net bulges outward for a moment as the puck hits it.
       const sinceGoal = lit > 0 ? fx.goalLightSeconds - lit : Number.POSITIVE_INFINITY;
@@ -1370,6 +1503,7 @@ export class RinkScene extends Phaser.Scene {
       if (!p.onIce) {
         label?.setVisible(false);
         this.sprites[i]?.setVisible(false);
+        this.mirrors[i]?.setVisible(false);
         this.sides.delete(p.id);
         this.views.delete(p.id);
         continue;
@@ -1648,6 +1782,15 @@ export class RinkScene extends Phaser.Scene {
         .setAlpha(alpha)
         .setDepth(DEPTH.players + (p.pos.y + t.rink.width) / (t.rink.width * 4))
         .setVisible(true);
+      // His reflection in the ice: the same picture turned over at his skates, squashed and faint.
+      this.mirrors[i]
+        ?.setTexture(key)
+        .setOrigin(0.5, FIGURE_BOX.feetY / FIGURE_BOX.height)
+        .setPosition(x, y)
+        .setScale((unit / pixels) * squeeze, -(unit / pixels) * FIG.reflection.squash)
+        .setFlipX(side === -1)
+        .setAlpha(alpha * FIG.reflection.alpha)
+        .setVisible(!fallen);
 
       if (label) {
         const isAi = !goalie && p !== controlled;
@@ -1707,6 +1850,11 @@ export class RinkScene extends Phaser.Scene {
     g.fillCircle(x + lift * 0.6, y + lift, radius * (puck.air > 0 ? 1.3 : 1));
     g.fillStyle(colour(c.puck));
     g.fillCircle(x, y, radius * (puck.air > 0 ? 1.5 : 1));
+    // A glint on its edge nearest the lamps, so it reads as a solid thing on bright ice.
+    if (this.full) {
+      g.fillStyle(colour(c.light), look.puckGlint);
+      g.fillCircle(x - radius * 0.3, y - radius * 0.35, radius * 0.3);
+    }
   }
 
   /** The scoreboard, the bars at the bottom, the powerups, and any banner across the ice. */
@@ -1721,9 +1869,10 @@ export class RinkScene extends Phaser.Scene {
   }
 
   /** Frames a second over the last ten seconds of play, and the slowest single frame among them in milliseconds; null before any play. */
-  frameStats(): { fps: number; worstMs: number } | null {
+  frameStats(): { fps: number; worstMs: number; drawMs: number } | null {
     if (this.frameTimes.length < 2 || this.frameSum <= 0) return null;
-    return { fps: Math.round((this.frameTimes.length * 1000) / this.frameSum), worstMs: Math.round(Math.max(...this.frameTimes)) };
+    const drawMs = this.drawTimes.length ? Math.round((this.drawTimes.reduce((a, b) => a + b, 0) / this.drawTimes.length) * 10) / 10 : 0;
+    return { fps: Math.round((this.frameTimes.length * 1000) / this.frameSum), worstMs: Math.round(Math.max(...this.frameTimes)), drawMs };
   }
 
   /** Changes, from now on, whether control stays on player one's skater until he presses switch (the pause menu does this). */

@@ -158,7 +158,15 @@
     "stopFromSpeed": 3,
     "scarEvery": 5,
     "maxScars": 420,
-    "scarAlpha": 0.13
+    "scarAlpha": 0.13,
+    "goalLamp": {
+      "dome": 0.42,
+      "off": "#7a1420",
+      "wash": 6.5,
+      "washAlpha": 0.16,
+      "rays": 8,
+      "rayLength": 1.1
+    }
   },
   "arena": {
     "maxRows": 14,
@@ -523,7 +531,11 @@
     "shotStick": [
       1.5,
       -0.55
-    ]
+    ],
+    "reflection": {
+      "alpha": 0.13,
+      "squash": 0.45
+    }
   },
   "bigPuckScale": 1.6,
   "practiceWord": "PRACTICE",
@@ -599,6 +611,7 @@
   "openingLightSeconds": 1.8,
   "openingDark": 0.6,
   "frameWindowMs": 10000,
+  "drawWindowFrames": 600,
   "keepGameSeconds": 10,
   "venueByStage": [
     "barn",
@@ -632,7 +645,8 @@
         "LEGION HALL",
         "THE BAKERY"
       ],
-      "teamPanels": false
+      "teamPanels": false,
+      "lampColour": "#ffe9bf"
     },
     "arena": {
       "name": "The city arena",
@@ -820,5 +834,41 @@
     "coachSkin": "#e0b48c",
     "coachHair": "#3b2a1e",
     "coachGap": 0.95
-  }
+  },
+  "rinkDepth": {
+    "style": 0,
+    "styles": [
+      {
+        "name": "painted boards",
+        "face": 0.55,
+        "glass": 0.85,
+        "boardTop": "#1b4a86",
+        "boardFoot": "#0e2a4f",
+        "panelAlpha": 0.9,
+        "seamAlpha": 0.25,
+        "cap": 0.1,
+        "capColour": "#cfe8f7",
+        "glassTop": 0.2,
+        "glassFoot": 0.08,
+        "streakEvery": 4.8,
+        "streakAlpha": 0.22,
+        "streakWidth": 0.14,
+        "postAlpha": 0.55,
+        "rail": 0.08,
+        "railAlpha": 0.8,
+        "shade": 1.4,
+        "shadeAlpha": 0.16,
+        "vignette": 0.1,
+        "vignetteFrom": 0.55,
+        "pools": 3,
+        "poolSize": 0.75,
+        "poolAlpha": 0.16,
+        "gloss": 0.05,
+        "glossBands": 3,
+        "glossWidth": 2.6,
+        "nearCap": 0.5
+      }
+    ]
+  },
+  "puckGlint": 0.45
 }

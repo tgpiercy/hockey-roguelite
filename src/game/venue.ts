@@ -25,6 +25,8 @@ export interface Venue {
   lamps: number;
   lampSize: number;
   lampAlpha: number;
+  /** The colour of the light the lamps throw on the ice. */
+  lampColour: string;
   /** The words painted on the ice. */
   iceAdverts: string[];
   /** Whether the boards carry the two teams' colours between the white panels. */
@@ -54,6 +56,7 @@ const BASE: Venue = {
   lamps: 0,
   lampSize: 0,
   lampAlpha: 0,
+  lampColour: look.colours.light,
   iceAdverts: look.arena.iceAdverts,
   teamPanels: true,
   flashShare: 0,

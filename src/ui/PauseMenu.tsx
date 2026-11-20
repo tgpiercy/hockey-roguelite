@@ -100,7 +100,7 @@ interface Props {
   /** Told whenever a preference changes, so the game can follow it at once. */
   onPrefs: (prefs: Prefs) => void;
   /** How smoothly the game was running when it was paused: frames a second and the slowest frame, over the last ten seconds of play. */
-  frames?: { fps: number; worstMs: number } | null;
+  frames?: { fps: number; worstMs: number; drawMs: number } | null;
 }
 
 /** The pause menu over the rink: resume, sound, the controls, the tuning panel and ending the game. */
@@ -186,7 +186,7 @@ export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs, tactics
     <Menu
       key="main"
       title="Paused"
-      {...(frames ? { header: `Running at ${frames.fps} frames a second; slowest frame ${frames.worstMs} ms (last ten seconds of play).` } : {})}
+      {...(frames ? { header: `Running at ${frames.fps} frames a second; slowest frame ${frames.worstMs} ms; drawing takes ${frames.drawMs} ms a frame (last ten seconds of play).` } : {})}
       onBack={onResume}
       help="A select · B resume"
       items={[

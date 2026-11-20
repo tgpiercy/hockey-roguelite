@@ -698,9 +698,9 @@ Built, deployed and checked with a simulated controller.
 
 Plan as approved: the rink in play, player movement, big moments, menus; one long round, stops only for taste. No file in `src/sim` or `src/core` changes.
 
-- [ ] 0. Baseline: checks green; draw cost measured inside `draw()`; before pictures at 844 x 390
-- [ ] First: player numbers removed from the ice (the owner: they do not render well)
-- [ ] 1. The rink: static rink painted once; boards and glass with depth; lamp light; reflections; a goal lamp; the puck
+- [x] 0. Baseline: checks green; draw cost measured inside `draw()`; before pictures at 844 x 390
+- [x] First: player numbers removed from the ice (the owner: they do not render well)
+- [x] 1. The rink: static rink painted once; boards and glass with depth; lamp light; reflections; a goal lamp; the puck
 - [ ] 2. Movement: actions ease in and out; wind-up in steps and a downswing; a carve on a turn; the goalie down before the save; three cheers
 - [ ] 3. Big moments: line-mates gather on a goal; the boss cover moves; the end of a game; four season-end scenes
 - [ ] 4. Menus: motion with a direction; one way to show a cost; plain rows become cards; the phone-size audit
