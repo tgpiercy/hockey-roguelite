@@ -62,6 +62,15 @@ export interface PoseInput {
   view?: View;
   /** A pass just made, a poke or a hit being thrown, a deke, a tired glide; for a goalie, the glove thrown up. */
   action?: Action;
+  /**
+   * How far into what he is doing he is drawn, 0 to 1 (left out: all the way): part-way between the same man without
+   * his action, his cheer or his pads down, and with them. It is what lets a move ease in and out instead of snapping.
+   */
+  amount?: number;
+  /** Carving a hard turn: he stops striding, crosses one skate over and leans in. 1 turns toward us, -1 away. */
+  carve?: 1 | -1;
+  /** Which cheer the scorer gives: left out, arms up; 1, up on his toes with his arms flung wide; 2, sliding on his knees with his fists up. */
+  cheerStyle?: 1 | 2;
   pattern: JerseyPattern;
 }
 
@@ -306,11 +315,11 @@ function skater(p: PoseInput, who: FigureLook): Built {
   const wind = clamp01(p.windUp);
   const act = p.action;
   // How much of a full stride he takes: none standing or gliding slowly, a shorter one at half speed.
-  const going = speed <= 0 || p.glide ? 0 : B.slowStride + (1 - B.slowStride) * speed;
+  const going = speed <= 0 || p.glide || p.carve ? 0 : B.slowStride + (1 - B.slowStride) * speed;
   // He sinks a little twice a stride, as each leg takes his weight.
   const bob = B.bob * going * Math.cos(2 * p.stride);
-  const drop = B.crouch * speed + bob + (p.kneel ? B.kneelDrop : 0) + (act === 'hit' ? B.hitDrop : act === 'tired' ? B.tiredDrop : act === 'stop' ? B.stopDrop : 0);
-  const lean = p.cheer ? 0 : B.lean + speed * B.speedLean + (act === 'poke' ? B.pokeLean : act === 'hit' ? B.hitLean : act === 'deke' ? B.dekeLean : act === 'tired' ? B.tiredLean : act === 'shot' ? B.shotLean : 0) + (act === 'stop' ? B.stopLean - B.lean - speed * B.speedLean : 0);
+  const drop = B.crouch * speed + bob + (p.kneel ? B.kneelDrop : 0) + (act === 'hit' ? B.hitDrop : act === 'tired' ? B.tiredDrop : act === 'stop' ? B.stopDrop : 0) + (p.carve ? B.carveDrop : 0) + (p.cheer && p.cheerStyle === 2 ? B.kneelDrop * 0.8 : p.cheer && p.cheerStyle === 1 ? -B.cheerLeap : 0);
+  const lean = p.cheer ? (p.cheerStyle === 2 ? -B.cheerBack : 0) : (p.carve ? B.carveLean : 0) + B.lean + speed * B.speedLean + (act === 'poke' ? B.pokeLean : act === 'hit' ? B.hitLean : act === 'deke' ? B.dekeLean : act === 'tired' ? B.tiredLean : act === 'shot' ? B.shotLean : 0) + (act === 'stop' ? B.stopLean - B.lean - speed * B.speedLean : 0);
   const hip: P = [-Math.sin(lean) * 0.4, B.hipY * build.legs + drop];
   const up: P = [Math.sin(lean), -Math.cos(lean)];
   const out: P = [Math.cos(lean), Math.sin(lean)];
@@ -324,6 +333,8 @@ function skater(p: PoseInput, who: FigureLook): Built {
   const step = (side: 1 | -1): { foot: P; pitch: number } => {
     // A hard stop: both skates thrown out ahead of him, side on to the way he was going.
     if (act === 'stop') return { foot: [B.stopFeet[side === 1 ? 1 : 0]!, 0], pitch: 0 };
+    // A carve: no stride; the skate on the outside of the turn is lifted and crossed over ahead of the other.
+    if (p.carve) return { foot: [side * p.carve * B.carveFeet, side === -p.carve ? -B.carveLift : 0], pitch: 0 };
     const at = p.stride + (side === 1 ? 0 : Math.PI);
     const lifted = Math.max(0, -Math.sin(at));
     const x = side * B.stance * (1 - going) + going * (B.strideReach * Math.cos(at) - B.strideBack);
@@ -340,8 +351,9 @@ function skater(p: PoseInput, who: FigureLook): Built {
   low = [low[0] - wind * B.windBack * 0.75, low[1] - wind * B.windUp];
   top = [top[0] - wind * B.windBack, top[1] - wind * B.windUp * 0.85];
   if (p.cheer) {
-    top = [shoulder[0] - B.cheerOut, shoulder[1] - B.cheerUp];
-    low = [shoulder[0] + B.cheerOut + 0.1, shoulder[1] - B.cheerUp - 0.06];
+    const wide = p.cheerStyle === 2 ? B.cheerFists : p.cheerStyle === 1 ? B.cheerWide : 1;
+    top = [shoulder[0] - B.cheerOut * wide, shoulder[1] - B.cheerUp];
+    low = [shoulder[0] + B.cheerOut * wide + 0.1, shoulder[1] - B.cheerUp - 0.06];
   } else if (p.mateCheer) {
     top = [shoulder[0] - B.cheerOut * 0.7, shoulder[1] - B.cheerUp];
   } else if (act === 'pass') {
@@ -454,15 +466,16 @@ function upright(p: PoseInput, who: FigureLook, back: boolean): Built {
   const speed = clamp01(p.speed);
   const wind = clamp01(p.windUp);
   const act = p.action;
-  const going = speed <= 0 || p.glide ? 0 : B.slowStride + (1 - B.slowStride) * speed;
+  const going = speed <= 0 || p.glide || p.carve ? 0 : B.slowStride + (1 - B.slowStride) * speed;
   const bob = B.bob * going * Math.cos(2 * p.stride);
-  const drop = B.crouch * speed + bob + (p.kneel ? B.kneelDrop : 0) + (act === 'hit' ? B.hitDrop : act === 'tired' ? B.tiredDrop : 0);
+  const drop = B.crouch * speed + bob + (p.kneel ? B.kneelDrop : 0) + (act === 'hit' ? B.hitDrop : act === 'tired' ? B.tiredDrop : 0) + (p.carve ? B.carveDrop : 0) + (p.cheer && p.cheerStyle === 2 ? B.kneelDrop * 0.8 : p.cheer && p.cheerStyle === 1 ? -B.cheerLeap : 0);
   // Leaning into his skating, he is seen from further over the top: his body looks shorter.
   const lean = p.cheer ? 0 : speed * B.speedLean + (act === 'hit' ? B.hitLean : act === 'tired' ? B.tiredLean : 0);
   const spine = B.spine * (1 - V.squash * Math.min(1, lean / (B.speedLean + B.hitLean)));
   const w = build.width;
   // He sways toward the leg that is pushing.
-  const hip: P = [V.sway * going * Math.sin(p.stride), B.hipY * build.legs + drop];
+  // Carving, his hips go over to the inside of the turn while his skates stay where they were.
+  const hip: P = [V.sway * going * Math.sin(p.stride) + (p.carve ?? 0) * V.carveSway, B.hipY * build.legs + drop];
   const shY = hip[1] - spine * 0.9;
   // His shoulders follow his hips part of the way.
   const sx = hip[0] * 0.6;
@@ -714,6 +727,15 @@ const SCALE = F.height / -topOf(skater(STANDING, PLAIN_LOOK).shapes);
  * particular to the player. (The owner chose it from three drawn candidates.)
  */
 export function figure(pose: PoseInput, who: FigureLook = PLAIN_LOOK): Figure {
+  if (pose.amount !== undefined && pose.amount < 1) {
+    // Part-way into a move: every piece is drawn between where it is without the move and where it is with it.
+    const full: PoseInput = { ...pose };
+    delete full.amount;
+    const plain: PoseInput = { ...full, down: false, cheer: false, mateCheer: false };
+    delete plain.action;
+    delete plain.cheerStyle;
+    return blended(figure(plain, who), figure(full, who), clamp01(pose.amount));
+  }
   const view = pose.goalie ? 'side' : (pose.view ?? 'side');
   const turned = view === 'quarter' || view === 'quarterBack';
   let built = pose.goalie ? goalie(pose, who) : pose.fallen ? sprawled(pose, who) : view === 'side' ? skater(pose, who) : upright(pose, who, view === 'back' || view === 'quarterBack');
@@ -735,6 +757,27 @@ export function figure(pose: PoseInput, who: FigureLook = PLAIN_LOOK): Figure {
     raw = mapPoints(raw, (x, y) => [x * cos - y * sin, x * sin + y * cos]);
   }
   return { ...raw, top: topOf(raw.shapes), nearArm: built.nearArm };
+}
+
+/**
+ * One figure part-way to another: each piece moved `w` of the way from where it is in `a` to where it is in `b`.
+ * If the two are not made of the same pieces in the same order there is nothing to move, and it is `b`.
+ */
+function blended(a: Figure, b: Figure, w: number): Figure {
+  if (a.shapes.length !== b.shapes.length) return b;
+  const mix = (x: number, y: number): number => x + (y - x) * w;
+  const shapes: Shape[] = [];
+  for (const [i, s] of b.shapes.entries()) {
+    const r = a.shapes[i] as Shape;
+    if (r.kind !== s.kind || r.tag !== s.tag) return b;
+    if (s.kind === 'circle' && r.kind === 'circle') shapes.push({ ...s, x: mix(r.x, s.x), y: mix(r.y, s.y), r: mix(r.r, s.r) });
+    else if (s.kind === 'limb' && r.kind === 'limb') shapes.push({ ...s, x1: mix(r.x1, s.x1), y1: mix(r.y1, s.y1), x2: mix(r.x2, s.x2), y2: mix(r.y2, s.y2), w: mix(r.w, s.w) });
+    else if (s.kind === 'poly' && r.kind === 'poly') {
+      if (r.points.length !== s.points.length) return b;
+      shapes.push({ ...s, points: s.points.map(([x, y], k) => [mix((r.points[k] as [number, number])[0], x), mix((r.points[k] as [number, number])[1], y)]) });
+    }
+  }
+  return { ...b, shapes, hand: { x: mix(a.hand.x, b.hand.x), y: mix(a.hand.y, b.hand.y) }, top: mix(a.top, b.top) };
 }
 
 /** A few letters that name a look, for telling one player's pictures from another's. */

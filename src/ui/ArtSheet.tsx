@@ -73,6 +73,17 @@ const POSES: [string, PoseInput][] = [
   ['hit', { ...STANDING, stride: 1, speed: 1, action: 'hit' }],
   ['deke', { ...STANDING, stride: 2, speed: 0.6, action: 'deke' }],
   ['tired', { ...STANDING, action: 'tired' }],
+  ['wind-up, half', { ...STANDING, windUp: 0.5 }],
+  ['shot, coming through', { ...STANDING, speed: 0.5, action: 'shot', amount: 0.5 }],
+  ['shot, followed through', { ...STANDING, speed: 0.5, action: 'shot' }],
+  ['hit, half-way', { ...STANDING, stride: 1, speed: 1, action: 'hit', amount: 0.5 }],
+  ['carve toward us', { ...STANDING, speed: 1, carve: 1 }],
+  ['carve away', { ...STANDING, speed: 1, carve: -1 }],
+  ['carve, from the front', { ...STANDING, speed: 1, carve: 1, view: 'front' }],
+  ['cheer: arms up', { ...STANDING, cheer: true }],
+  ['cheer: flung wide', { ...STANDING, cheer: true, cheerStyle: 1 }],
+  ['cheer: on his knees', { ...STANDING, cheer: true, cheerStyle: 2 }],
+  ['goalie going down', { ...STANDING, goalie: true, down: true, amount: 0.5 }],
 ];
 
 export function ArtSheet() {

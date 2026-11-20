@@ -66,6 +66,12 @@ function celPiece(ctx: CanvasRenderingContext2D, s: Shape, colour: string, ink: 
   ctx.restore();
 }
 
+/**
+ * Small pictures made of many small strokes are painted in ordinary memory, not on the graphics card: measured on
+ * 2026-11-19, a pose cost 9.5 ms the other way, most of it fetching the finished picture back.
+ */
+const SOFT: CanvasRenderingContext2DSettings = { willReadFrequently: true };
+
 /** A second canvas the size of the one being painted, for working a shadow out before it is laid on. */
 let scratch: HTMLCanvasElement | null = null;
 
@@ -83,7 +89,7 @@ function celGroup(ctx: CanvasRenderingContext2D, group: readonly Shape[], colour
     scratch.width = main.width;
     scratch.height = main.height;
   }
-  const sc = scratch.getContext('2d');
+  const sc = scratch.getContext('2d', SOFT);
   if (!sc) return;
   /** The part of the whole shape that the same shape, moved by (dx, dy), does not cover, in one colour. */
   const edge = (dx: number, dy: number, fill: string, dots: number): void => {
@@ -136,7 +142,7 @@ export function paintFigure(canvas: HTMLCanvasElement, shapes: readonly Shape[],
   const ink = { ...INK, ...inkOver };
   canvas.width = Math.ceil(FIGURE_BOX.width * pixelsPerUnit);
   canvas.height = Math.ceil(FIGURE_BOX.height * pixelsPerUnit);
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', SOFT);
   if (!ctx) return;
   ctx.setTransform(pixelsPerUnit, 0, 0, pixelsPerUnit, canvas.width / 2, FIGURE_BOX.feetY * pixelsPerUnit);
   ctx.lineCap = 'round';

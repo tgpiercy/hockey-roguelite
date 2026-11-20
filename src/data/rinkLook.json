@@ -166,7 +166,9 @@
       "washAlpha": 0.16,
       "rays": 8,
       "rayLength": 1.1
-    }
+    },
+    "carveRate": 2.6,
+    "carveSmooth": 8
   },
   "arena": {
     "maxRows": 14,
@@ -269,7 +271,7 @@
       "height": 5.8,
       "below": 0.6
     },
-    "textureScale": 3,
+    "textureScale": 2,
     "maxTexturePixels": 30,
     "poseSteps": 12,
     "speedSteps": 2,
@@ -340,7 +342,15 @@
       "stopFeet": [
         0.3,
         0.62
-      ]
+      ],
+      "cheerLeap": 0.2,
+      "cheerBack": 0.22,
+      "cheerWide": 1.3,
+      "cheerFists": 0.55,
+      "carveLean": 0.14,
+      "carveDrop": 0.12,
+      "carveFeet": 0.26,
+      "carveLift": 0.12
     },
     "goalie": {
       "hipY": -1.3,
@@ -386,7 +396,9 @@
       "postX": 1.2,
       "postAngle": 62,
       "postRange": 7,
-      "riseFoot": 0.7
+      "riseFoot": 0.7,
+      "dropSpeed": 12,
+      "dropRange": 14
     },
     "builds": {
       "slight": {
@@ -418,7 +430,7 @@
     },
     "tiredBelow": 0.3,
     "tiredSpeed": 0.35,
-    "maxTextures": 480,
+    "maxTextures": 900,
     "ink": {
       "outline": 0.15,
       "inner": 0.05,
@@ -455,7 +467,8 @@
       "turnSquash": 0.55,
       "sway": 0.1,
       "quarterEnter": 0.8,
-      "quarterLeave": 0.88
+      "quarterLeave": 0.88,
+      "carveSway": 0.16
     },
     "fallen": {
       "bodyY": -0.42,
@@ -535,7 +548,12 @@
     "reflection": {
       "alpha": 0.13,
       "squash": 0.45
-    }
+    },
+    "paintsPerFrame": 2,
+    "easeIn": 0.25,
+    "easeOut": 0.35,
+    "windUpHalf": 0.35,
+    "carveFromSpeed": 0.5
   },
   "bigPuckScale": 1.6,
   "practiceWord": "PRACTICE",

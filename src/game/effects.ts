@@ -83,8 +83,22 @@ export class Effects {
   readonly slowing = new Map<number, number>();
   /** What each player has just done (a pass, a poke, a hit; a goalie's glove save), and the seconds it is still shown for. */
   readonly action = new Map<number, { kind: 'pass' | 'poke' | 'hit' | 'glove' | 'kick' | 'shot' | 'stop' | 'rise'; left: number }>();
+  /** Which way each skater was facing a moment ago and how fast he is turning (radians a second, smoothed): for the carve. */
+  private readonly turning = new Map<number, { facing: number; rate: number }>();
   /** Seconds left of each goalie's pads being down after a save, by player id. */
   readonly padsDown = new Map<number, number>();
+  /** Which way a skater is carving a hard turn: 1 clockwise on the screen, -1 the other way, 0 when he is not turning hard. */
+  carving(id: number): 1 | -1 | 0 {
+    const rate = this.turning.get(id)?.rate ?? 0;
+    return Math.abs(rate) >= fx.carveRate ? (rate > 0 ? 1 : -1) : 0;
+  }
+
+  /** How much of a player's timed move is still to come, 1 (just begun) to 0 (over); 0 when he is doing none. */
+  actionLeft(id: number): number {
+    const act = this.action.get(id);
+    return act ? Math.max(0, Math.min(1, act.left / look.figure.actionSeconds[act.kind])) : 0;
+  }
+
   /** Seconds left of the red light behind each net: index 0 is the left net. */
   readonly goalLight: [number, number] = [0, 0];
   /** How worked up the crowd is, 0 to 1, and which team's fans are on their feet (or null). */
@@ -191,6 +205,9 @@ export class Effects {
       }
       const speed = Math.hypot(p.vel.x, p.vel.y);
       const last = this.lastPos.get(p.id);
+      const was = this.turning.get(p.id);
+      const swing = was ? Math.atan2(Math.sin(p.facing - was.facing), Math.cos(p.facing - was.facing)) : 0;
+      this.turning.set(p.id, { facing: p.facing, rate: was && dt > 0 ? was.rate + (swing / dt - was.rate) * Math.min(1, dt * fx.carveSmooth) : 0 });
       // A man who is losing speed has stopped pushing: he glides, and his stride waits where it was.
       const losing = last !== undefined && dt > 0 && (last.speed - speed) / dt > fx.glideDrop;
       this.slowing.set(p.id, losing ? (this.slowing.get(p.id) ?? 0) + dt : 0);

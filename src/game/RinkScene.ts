@@ -212,6 +212,9 @@ export class RinkScene extends Phaser.Scene {
   /** Each figure picture kept, with the frame it was last shown on: the ones longest unused go when there are too many. */
   private readonly figureKeys = new Map<string, number>();
   private figureFrame = 0;
+  /** How many more new pictures may be painted this frame, and the picture each player was last shown with (kept for a frame when the limit is reached). */
+  private paintsLeft = 0;
+  private readonly lastKey = new Map<number, string>();
   private figurePixels = 0;
   /** Seconds left with everything frozen (a big hit, a goal), and seconds left of slow motion after a goal. */
   private freeze = 0;
@@ -1418,6 +1421,7 @@ export class RinkScene extends Phaser.Scene {
     }
     // Every player has his own pictures now, so they add up: past the limit, the ones not shown for longest are let go.
     this.figureFrame += 1;
+    this.paintsLeft = FIG.paintsPerFrame;
     if (this.figureKeys.size > FIG.maxTextures) {
       const oldest = [...this.figureKeys.entries()].filter(([, used]) => used < this.figureFrame - 1).sort((a, b) => a[1] - b[1]);
       for (const [key] of oldest.slice(0, this.figureKeys.size - Math.round(FIG.maxTextures * 0.8))) {
@@ -1540,10 +1544,14 @@ export class RinkScene extends Phaser.Scene {
       const steps = goalie ? FIG.goalie.shuffleSteps : FIG.poseSteps;
       const strideStep = speedStep === 0 || glide ? 0 : Math.round((((stride % TAU) + TAU) % TAU) / TAU * steps) % steps;
       // The stick stays up for the moment of a fake.
-      const wound = !goalie && (p.fake > 0 || (p.charge > 0 && chargeFraction(p.charge, t) > FIG.windUpAt)) ? 1 : 0;
+      // The stick comes back in two steps as a shot is wound up, not all at once.
+      const charged = !goalie && p.charge > 0 ? chargeFraction(p.charge, t) : 0;
+      const wound = !goalie && (p.fake > 0 || charged > FIG.windUpAt) ? 1 : charged > FIG.windUpAt * FIG.windUpHalf ? 0.5 : 0;
       const kneel = !goalie && braced(world, p, t);
       // The scorer throws his arms up while the goal is celebrated.
       const cheer = !goalie && world.phase === 'goal' && this.scorer === p.id;
+      // One of three cheers, by who scored and which goal of the game it is, so a replay shows the same one.
+      const cheerStyle = cheer ? (p.id + world.score[0] + world.score[1]) % 3 : 0;
       const scorer = this.scorer === null ? undefined : world.players[this.scorer];
       const mateCheer = !goalie && !cheer && world.phase === 'goal' && scorer !== undefined && scorer.team === p.team;
       // A goalie reads the play: easy with the puck at the other end, set as it comes, tight to his post when it is
@@ -1578,6 +1586,16 @@ export class RinkScene extends Phaser.Scene {
               : p.energy < FIG.tiredBelow && speed < FIG.tiredSpeed
                 ? 'tired'
                 : undefined;
+      // A timed move eases in and out: drawn half-way as it begins and as it ends, fully in between.
+      const left = this.effects.actionLeft(p.id);
+      const timed = action !== undefined && action === acting;
+      const half = timed && (left > 1 - FIG.easeIn || left < FIG.easeOut);
+      // A goalie starts down as a shot comes at him: half-way into the butterfly before the save is made.
+      const shotAt = goalie && !down && world.puck.carrier === null && world.puck.vel.x * netX > 0 && Math.hypot(world.puck.vel.x, world.puck.vel.y) >= KG.dropSpeed && fromNet <= KG.dropRange;
+      const dropping = shotAt && action !== 'glove' && action !== 'kick';
+      // Turning hard at speed, a skater carves: no strides, one skate crossed over, leaning in.
+      const turn = !goalie && !(p.knockedDown && p.stagger > 0) && action === undefined && !wound && !cheer && !mateCheer && !kneel && speed >= FIG.carveFromSpeed ? this.effects.carving(p.id) : 0;
+      const carve = turn === 0 ? 0 : ((turn * side) as 1 | -1);
       // Who he is: his own look, or the mascot's while the mascot has his place.
       const own = this.options.looks?.[p.team]?.[p.id - p.team * 7];
       const costumed = !goalie && isMascot(world, p);
@@ -1586,11 +1604,14 @@ export class RinkScene extends Phaser.Scene {
       const fallen = !goalie && p.knockedDown && p.stagger > 0;
       const pose: PoseInput = {
         side: 1,
-        stride: (strideStep / steps) * TAU,
+        stride: carve !== 0 ? 0 : (strideStep / steps) * TAU,
         speed: speedStep / FIG.speedSteps,
         windUp: wound,
         goalie,
-        down,
+        down: down || dropping,
+        ...(half || dropping ? { amount: 0.5 } : {}),
+        ...(carve !== 0 ? { carve } : {}),
+        ...(cheerStyle === 1 || cheerStyle === 2 ? { cheerStyle } : {}),
         ...(view !== 'side' ? { view } : {}),
         ...(fallen ? { fallen } : {}),
         tilt: 0,
@@ -1603,12 +1624,20 @@ export class RinkScene extends Phaser.Scene {
         ...(goalie && alertStep < 2 ? { alert: alertStep / 2 } : {}),
       };
       const skin = own?.skin ?? skinTone(p.id);
-      const key = `figure-${p.team}-${goalie ? (down ? 'gd' : 'g') : 's'}-${skin}-${own?.hairColour ?? ''}-${lookKey(who)}-${view}-${strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}${mateCheer ? '-mate' : ''}${kneel ? '-kneel' : ''}${glide ? '-glide' : ''}${fallen ? '-fallen' : ''}${action ? `-${action}` : ''}${goalie ? `-a${alertStep}` : ''}`;
+      let key = `figure-${half || dropping ? 'h-' : ''}${carve !== 0 ? `c${carve}-` : ''}${cheerStyle ? `y${cheerStyle}-` : ''}${p.team}-${goalie ? (down || dropping ? 'gd' : 'g') : 's'}-${skin}-${own?.hairColour ?? ''}-${lookKey(who)}-${view}-${carve !== 0 ? 0 : strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}${mateCheer ? '-mate' : ''}${kneel ? '-kneel' : ''}${glide ? '-glide' : ''}${fallen ? '-fallen' : ''}${action ? `-${action}` : ''}${goalie ? `-a${alertStep}` : ''}`;
       if (!this.textures.exists(key)) {
-        const canvas = document.createElement('canvas');
-        paintFigure(canvas, figure(pose, who).shapes, figureColours(crest, goalie, skin, this.options.whiteTeam === p.team ? 'away' : 'home', own?.hairColour, who.costume), pixels);
-        this.textures.addCanvas(key, canvas);
+        // Painting a picture takes several milliseconds, so only a few are painted in one frame: past that he keeps
+        // the picture he had for one frame more, which nobody sees, where a pause in the game would be seen.
+        const before = this.lastKey.get(p.id);
+        if (this.paintsLeft <= 0 && before !== undefined && this.textures.exists(before)) key = before;
+        else {
+          this.paintsLeft -= 1;
+          const canvas = document.createElement('canvas');
+          paintFigure(canvas, figure(pose, who).shapes, figureColours(crest, goalie, skin, this.options.whiteTeam === p.team ? 'away' : 'home', own?.hairColour, who.costume), pixels);
+          this.textures.addCanvas(key, canvas);
+        }
       }
+      this.lastKey.set(p.id, key);
       this.figureKeys.set(key, this.figureFrame);
       const fig = figure({ ...pose, side }, who);
 
