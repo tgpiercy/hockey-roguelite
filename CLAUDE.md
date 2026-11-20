@@ -6,6 +6,7 @@ The game is called **Third Line** (`src/data/game.json`, `index.html`, the manif
 - Decisions the design doc does not cover: `docs/DECISIONS.md`.
 - Phases, prompts and exit tests: `docs/IMPLEMENTATION_PLAN.md`.
 - What comes next, in the owner's order: `docs/ROADMAP.md`.
+- Where the work stood when it was paused on 2026-11-19, and what is waiting on the owner: `docs/STATUS.md`. Read it first.
 - Live games across devices: `docs/ONLINE.md`. Steps 0 and 1 are built: an exhibition game between two devices on the same Wi-Fi (Exhibition, "Two devices"), not yet played on two real devices.
 
 ## Stack

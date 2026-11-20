@@ -2,6 +2,8 @@
 
 Approved by the owner on 2026-11-15. Rounds are ticked here as they finish.
 
+**Paused on 2026-11-19: `docs/STATUS.md` says where everything stands and what is waiting.**
+
 - [ ] Round 1: looks and sound. First part done 2026-11-15:
   - [x] The sound page (`?sound`) and every sound measured; five quiet tunes brought up to the others
   - [x] Players a step larger (the owner's choice from three sizes)
