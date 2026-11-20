@@ -62,7 +62,6 @@
   "scoreboardWidthShare": 0.56,
   "scoreboardMaxWidth": 460,
   "standsVerticalPixels": 13,
-  "numberMinRadius": 22,
   "centreCrestSize": 5.2,
   "centreCrestAlpha": 0.5,
   "bannerSlideSeconds": 0.35,
@@ -254,7 +253,6 @@
     "staggerTilt": 0.5,
     "ringSquash": 0.55,
     "ringTick": 0.45,
-    "numberHeight": 1.2,
     "chargeBarGap": 0.6,
     "helmetLighten": 0.3,
     "goalieHelmetLighten": 0.15,
@@ -455,11 +453,6 @@
       "bodyY": -0.42,
       "headX": 1.0,
       "tilt": 1.25
-    },
-    "backNumber": {
-      "minUnit": 8,
-      "height": 2.3,
-      "size": 0.8
     },
     "faces": {
       "round": {

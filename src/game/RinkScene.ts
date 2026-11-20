@@ -143,7 +143,6 @@ export class RinkScene extends Phaser.Scene {
   private g!: Phaser.GameObjects.Graphics;
   private hud!: Phaser.GameObjects.Graphics;
   private adverts: Phaser.GameObjects.Text[] = [];
-  private numbers: Phaser.GameObjects.Text[] = [];
   private nameTexts: Phaser.GameObjects.Text[] = [];
   private scoreTexts: Phaser.GameObjects.Text[] = [];
   private clockTextObject!: Phaser.GameObjects.Text;
@@ -303,7 +302,6 @@ export class RinkScene extends Phaser.Scene {
     this.g.setDepth(DEPTH.ground);
     this.sprites = this.world.players.map(() => this.add.image(0, 0, '__DEFAULT').setVisible(false).setDepth(DEPTH.players));
     this.top = this.add.graphics().setDepth(DEPTH.top);
-    this.numbers = this.world.players.map((p) => this.add.text(0, 0, p.role === 'goalie' ? '1' : String(p.line * 3 + p.slot + 2), { ...heading, color: c.text }).setOrigin(0.5, 0.5).setVisible(false).setDepth(DEPTH.labels));
     this.labels = this.world.players.map(() => this.add.text(0, 0, '', { fontFamily: look.font, color: c.debugText }).setOrigin(0.5, 1).setVisible(false).setDepth(DEPTH.labels));
 
     this.hud = this.add.graphics();
@@ -1369,10 +1367,8 @@ export class RinkScene extends Phaser.Scene {
     }
     for (const [i, p] of world.players.entries()) {
       const label = this.labels[i];
-      const number = this.numbers[i];
       if (!p.onIce) {
         label?.setVisible(false);
-        number?.setVisible(false);
         this.sprites[i]?.setVisible(false);
         this.sides.delete(p.id);
         this.views.delete(p.id);
@@ -1652,21 +1648,6 @@ export class RinkScene extends Phaser.Scene {
         .setAlpha(alpha)
         .setDepth(DEPTH.players + (p.pos.y + t.rink.width) / (t.rink.width * 4))
         .setVisible(true);
-
-      // A number on his chest, when he is drawn big enough to read one.
-      if (number) {
-        // Seen from behind, his number is on his back, and is shown at a smaller size than the chest's.
-        const onBack = view === 'back' && !fallen && unit >= FIG.backNumber.minUnit;
-        const show = (unit >= look.numberMinRadius && !down) || onBack;
-        number.setVisible(show);
-        if (show) {
-          number.setFontSize(unit * (onBack ? FIG.backNumber.size : 0.7));
-          number.setPosition(x, y - unit * (onBack ? FIG.backNumber.height : FIG.numberHeight));
-          number.setDepth(DEPTH.players + 0.9);
-          number.setAlpha(alpha);
-          number.setColor(crest.trim);
-        }
-      }
 
       if (label) {
         const isAi = !goalie && p !== controlled;
