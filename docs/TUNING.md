@@ -1585,3 +1585,46 @@ A first try gave the guest's own skater 0.6 m out. That was the test, not the ga
 `npm run measure -- online` after that change, 60 seconds each: 100 ms and 2% lost gives own 0.01, their skater 0.07 (0.44), puck 0.08 (0.54), as before.
 
 Not measured: two separate devices, a phone, real lag, a person in either seat.
+
+## Frame rate on the phone (2026-11-21)
+
+The owner's phone ran the game at about 22 frames a second. Measured on this PC in the test browser at 844 x 390, the game stepped by hand at 60 steps a second, a full-detail exhibition game on the standard rink from the opening faceoff. Read the ratios, not the figures: nothing here was measured on a phone.
+
+Where a frame went before, 300 frames at a time:
+
+| Part | Milliseconds a frame |
+| --- | --- |
+| Phaser putting the frame on the screen | 20 to 23 |
+| of which the crowd (about 777 people, some 3,100 shapes) | about 18 |
+| Our own drawing (`draw()`) | 4.5 to 5.5 |
+| of which new player pictures (one on 3 frames in 4, about 3 ms each) | about 3.5 |
+| Scars, marks, nets, texts together | under 1 |
+| The whole frame | 24 to 28 |
+
+The pause menu's "drawing takes" figure timed `draw()` alone, so it said about 5 ms while a frame took 25: the crowd's cost is paid inside Phaser, after `draw()` returns. Half of a new picture's 3 ms was Phaser's canvas texture reading every pixel back when it is made.
+
+What changed:
+
+- **The crowd** is small pictures moved each frame (`Crowd` in `drawArena.ts`: one sheet painted at the start, one Blitter, three pictures a person), not shapes rebuilt each frame.
+- **Player pictures** are painted on a thread of their own (`figurePainter.ts`, `figureWorker.ts`) and handed to Phaser as plain pictures (`addImage`), so nothing is read back. A player keeps the picture he had for the frame or two a new one takes. At most `figure.paintsWaiting` (24) are asked for at once.
+- **A figure's top, hand and stick** are kept with his picture, so the pose is worked out once and not every frame.
+- **Texts** are painted again only when their colour changes (Phaser's `setColor` did it every frame for about nine of them).
+- **The pause menu's figure** is now the whole of the game's work in a frame, Phaser's part included.
+
+After:
+
+| | Before | After |
+| --- | --- | --- |
+| Work per frame, average | 24 to 28 ms | 3.6 to 4.8 ms |
+| Phaser's part | 20 to 23 ms | 2.2 to 3.3 ms |
+| Our drawing | 4.5 to 5.5 ms | 0.9 to 1.2 ms |
+| The slowest frame in a hundred | not taken | 8 to 10 ms |
+| New pictures painted on the game's thread | about 1 a frame | none after the first frame (12 after a resize) |
+
+The production build, run live for 20 seconds in the same browser: 4.3 ms of work a frame, 1 frame in 1,277 over 16 ms, 1,200 pictures asked of the painter and 1,200 returned, never more than 5 waiting.
+
+Seen on screen: the crowd, players, a goal, a replay, and a resize down and back up. The painter's pictures are not the same pixel for pixel as the old ones: about 1.5% of a picture's pixels differ, on the edges of the dotted shadows; side by side at twice the size no difference can be seen.
+
+Left alone, because they measured as little: the scars and marks (up to 900 lines, about 0.9 ms of the 4 that are left, now the largest single part), the nets and the bench. A new picture is still wanted nearly every frame for the whole game, because 900 kept pictures are fewer than the poses a game uses; it no longer costs the game's thread anything but the hand-over.
+
+Not measured or seen: anything on a phone; a processor slowed down (this browser cannot); low detail, the barn and the bowl, the calm setting, two players; offline play. Single frames of 100 to 460 ms still turn up about once in 600 when stepping by hand, as they did before the change; they have been put down to the test browser (see above) and were not traced.

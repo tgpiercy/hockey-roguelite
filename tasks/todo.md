@@ -717,3 +717,27 @@ Plan as approved: the rink in play, player movement, big moments, menus; one lon
 - Changed from the plan: the boss cover keeps his face large and adds a full figure beside it; the downswing of a shot is the half-way picture of the follow-through, not a pose of its own; `textureScale` went from 3 to 2 and `maxTextures` from 480 to 900 after measuring; a goalie going down early reuses the half-way blend.
 - Found by measuring: the still rink was never the cost of a frame; painting player pictures was, and most of that was fetching each finished picture back from the graphics card.
 - Known and left: the commentary line can run under the goal panel's caption (it did before); the game's canvas is drawn at screen points, not device pixels, so everything on the ice is soft on a phone with a sharp screen: the biggest thing left for the picture, and a question for the owner because it costs frame time.
+
+# Frame rate on the phone (approved 2026-11-21)
+
+The phone ran at about 22 frames a second. A cloud session's fix could not be reached, so it was rebuilt here on `perf/frame-rate`.
+
+- [x] 0. Branch; checks green at the start (1,676 tests)
+- [x] 1. Time the parts of a frame, Phaser's own render included
+- [x] 2. The crowd as moved pictures
+- [x] 3. Player pictures painted on a thread of their own, handed over as plain pictures
+- [x] 4. A figure's top, hand and stick kept with his picture
+- [x] 5. Texts painted again only when their colour changes
+- [x] 6. The pause menu's figure counts the whole of the game's work
+- [ ] Scars and marks as a picture; nets and bench painted once: left, they measured as little (about 0.9 ms of the 4 left)
+- [x] Type check, tests, build; the built game run live; docs
+- [ ] Merged to `main` and pushed (waits for the owner's word)
+- [ ] The phone's own figure (waits for the owner)
+
+## Review (frame rate on the phone)
+
+- Work per frame on this PC at 844 x 390: 24 to 28 ms before, 3.6 to 4.8 ms after. The table is in `docs/TUNING.md`.
+- Found by measuring: three quarters of a frame was the crowd, and it was paid inside Phaser after `draw()` returned, so the pause menu's figure (about 5 ms) never showed it. The plan's order (crowd, scars, texts, geometry, nets, painter) changed to crowd, painter, geometry, texts once the parts were timed.
+- Changed from the plan: scars, nets and bench were left; the painter was built without waiting to see whether it was needed, because a new picture was wanted on 3 frames in 4.
+- Seen on screen: the crowd, players, a goal, a replay, a resize, the built game running live. Tests only: nothing new. Not seen or measured: a phone, a slowed processor, low detail, other rinks, the calm setting, two players, offline play.
+- Not the same pixel for pixel: the painter's pictures differ from the old ones in about 1.5% of pixels, on shadow edges; not visible side by side.

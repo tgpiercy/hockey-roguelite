@@ -553,6 +553,7 @@
       "squash": 0.45
     },
     "paintsPerFrame": 2,
+    "paintsWaiting": 24,
     "easeIn": 0.25,
     "easeOut": 0.35,
     "windUpHalf": 0.35,

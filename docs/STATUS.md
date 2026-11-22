@@ -4,7 +4,11 @@ Written on 2026-11-19, when the owner paused this line of work to polish other t
 
 ## The graphics round (2026-11-19, after the pause)
 
-The owner picked the work up again for one round on the picture: the rink drawn with depth and light, movement that flows, big moments, and menus that move. Five commits on `main`, **not pushed** (the push was declined in the session): push them to deploy. What was built, what was seen and what was only tested is under "Review (the graphics round)" in `tasks/todo.md`; what is left over is the unticked line above it. One question is waiting on the owner: whether to draw the rink at the phone's full sharpness (device pixels), which costs frame time.
+The owner picked the work up again for one round on the picture: the rink drawn with depth and light, movement that flows, big moments, and menus that move. Five commits on `main`, pushed on 2026-11-21. What was built, what was seen and what was only tested is under "Review (the graphics round)" in `tasks/todo.md`; what is left over is the unticked line above it. One question is waiting on the owner: whether to draw the rink at the phone's full sharpness (device pixels), which costs frame time.
+
+## Frame rate on the phone (2026-11-21)
+
+The phone ran at about 22 frames a second. The cause (the crowd rebuilt as shapes every frame, and player pictures painted on the game's thread) is fixed on the branch `perf/frame-rate`: work per frame on this PC went from about 25 ms to about 4. Not yet merged to `main`, so not on the phone; nothing has been measured on a phone. See "Frame rate on the phone" in `docs/TUNING.md`.
 
 ## The state of the code (as it was at the pause)
 

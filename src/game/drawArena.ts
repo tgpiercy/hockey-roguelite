@@ -16,6 +16,8 @@ interface Fan {
   phase: number;
   /** Which row of the stand he sits in, the front row 0. */
   row: number;
+  /** Whether he holds a sign. */
+  holder: boolean;
 }
 
 /** A sign held up in the crowd this frame: where its foot is, whose side, and whether that side is on its feet. */
@@ -30,6 +32,10 @@ export interface SignPost {
  * The stands around the rink: rows of fans following the boards, mostly in neutral colours with pockets
  * of each team's. They sway gently, and jump when the crowd is excited. Laid out once per screen size;
  * the same seed always seats the same crowd.
+ *
+ * Nobody is drawn afresh each frame: `attach` paints each kind of person once onto one small sheet, `layout`
+ * gives every fan his pictures, and `move` only lifts and fades them. Drawing some 800 people as shapes
+ * every frame was most of a frame's work.
  */
 /**
  * How each team's supporters feel, from the score: 1 when their side is ahead, -1 when it is behind by enough
@@ -44,13 +50,94 @@ export function crowdMoods(score: readonly [number, number]): [number, number] {
 export class Crowd {
   private fans: Fan[] = [];
   private key = '';
-  /** The fans holding signs, as places in `fans`. */
-  private holders: number[] = [];
-  /** Where each sign is this frame: filled by `draw`, read by the scene, which letters them. */
+  /** Where each sign is this frame: filled by `move`, read by the scene, which letters them. */
   readonly signs: SignPost[] = [];
+  /** The pictures, once a scene is attached: every fan's in turn (`perFan` each), then the camera flashes. */
+  private blitter: Phaser.GameObjects.Blitter | null = null;
+  private bobs: Phaser.GameObjects.Bob[] = [];
+  private flashBobs: Phaser.GameObjects.Bob[] = [];
+  /** From a picture's corner to the spot a fan is seated at. */
+  private half = 0;
 
   /** The building: how many rows there are, how full, and whether cameras flash. */
   constructor(private venue: Venue = venueLook(), private heads = false) {}
+
+  private get perFan(): number {
+    return this.heads ? 3 : 1;
+  }
+
+  /**
+   * Paints the sheet of pictures for this game's colours and puts the crowd in the scene at `depth`.
+   * Without it the crowd is still seated and still moves, but nothing is shown (the tests do that).
+   */
+  attach(scene: Phaser.Scene, depth: number, teamColours: readonly [string, string]): void {
+    const tints = [...arena.neutralColours, ...teamColours];
+    const skins = comic.headSkins;
+    const big = comic.headSize;
+    const size = arena.fanSize;
+    // Every picture is the same square, with the fan's seat at its middle and a clear edge so neighbours do not bleed.
+    const reach = Math.max(big * 0.64 + 1, big / 2 + 1, size * 0.9);
+    const half = Math.ceil(reach) + 1;
+    const cell = half * 2;
+    this.half = half;
+    const names = ['ink', 'flash', ...tints.map((_, i) => `t${i}`), ...skins.map((_, i) => `s${i}`)];
+    const name = 'crowd-sheet';
+    if (scene.textures.exists(name)) scene.textures.remove(name);
+    const sheet = scene.textures.createCanvas(name, cell * names.length, cell);
+    if (!sheet) return;
+    const pen = sheet.context;
+    const circle = (cx: number, cy: number, r: number): void => {
+      pen.beginPath();
+      pen.arc(cx, cy, r, 0, Math.PI * 2);
+      pen.fill();
+    };
+    for (const [n, frame] of names.entries()) {
+      const cx = n * cell + half;
+      const cy = half;
+      if (frame === 'ink') {
+        pen.fillStyle = comic.inkColour;
+        pen.fillRect(cx - big / 2 - 1, cy - big * 0.1 - 1, big + 2, big * 0.6 + 2);
+        circle(cx, cy - big * 0.28, big * 0.36 + 1);
+      } else if (frame === 'flash') {
+        pen.fillStyle = look.colours.light;
+        circle(cx, cy, size * 0.9);
+      } else if (frame.startsWith('t')) {
+        pen.fillStyle = tints[Number(frame.slice(1))] as string;
+        if (this.heads) pen.fillRect(cx - big / 2, cy - big * 0.1, big, big * 0.6);
+        else pen.fillRect(cx - size / 2, cy - size / 2, size, size);
+      } else {
+        pen.fillStyle = skins[Number(frame.slice(1))] as string;
+        circle(cx, cy - big * 0.28, big * 0.36);
+      }
+      sheet.add(frame, 0, n * cell, 0, cell, cell);
+    }
+    sheet.refresh();
+    this.blitter = scene.add.blitter(0, 0, name).setDepth(depth);
+    this.seatPictures();
+  }
+
+  /** Gives every fan his pictures, in the order they were drawn in: the ink round him, his shoulders, his head. */
+  private seatPictures(): void {
+    const blitter = this.blitter;
+    if (!blitter) return;
+    blitter.clear();
+    this.bobs = [];
+    this.flashBobs = [];
+    const neutral = arena.neutralColours.length;
+    for (const [index, fan] of this.fans.entries()) {
+      const x = fan.x - this.half;
+      const y = fan.y - this.half;
+      const tint = `t${fan.team === -1 ? fan.shade : neutral + fan.team}`;
+      if (this.heads) {
+        this.bobs.push(blitter.create(x, y, 'ink'), blitter.create(x, y, tint), blitter.create(x, y, `s${(index * 13 + fan.shade) % comic.headSkins.length}`));
+      } else {
+        this.bobs.push(blitter.create(x, y, tint));
+      }
+    }
+    // Cameras: as many as can ever flash at once, kept on top and out of sight until one goes off.
+    const most = Math.round(this.fans.length * this.venue.flashShare);
+    for (let k = 0; k < most; k++) this.flashBobs.push(blitter.create(0, 0, 'flash', false));
+  }
 
   /** Seats the crowd around a rink drawn at this place and size. Does nothing if nothing has changed. */
   layout(left: number, top: number, width: number, height: number, corner: number, screenW: number, screenH: number, topBar: number): void {
@@ -116,59 +203,67 @@ export class Crowd {
         // Most seats wear a team's colours: more of them the home side's (team 0), and each side's mostly at its own end.
         const lean = side === 0 ? arena.homeFanShare + (1 - arena.homeFanShare) * (arena.ownEndChance - 0.5) : arena.homeFanShare - arena.homeFanShare * (arena.ownEndChance - 0.5);
         const team = rng.chance(arena.teamFanChance) ? (rng.chance(lean) ? 0 : 1) : -1;
-        this.fans.push({ x, y, team: team as -1 | 0 | 1, shade: rng.int(0, arena.neutralColours.length - 1), phase: rng.range(0, Math.PI * 2), row });
+        this.fans.push({ x, y, team: team as -1 | 0 | 1, shade: rng.int(0, arena.neutralColours.length - 1), phase: rng.range(0, Math.PI * 2), row, holder: false });
       }
     }
     // A few of them hold signs: fans in a club's colours, a row or more back from the glass, wherever there is a stand.
-    this.holders = [];
     if (this.heads) {
-      const able = this.fans.map((fan, i) => ({ fan, i })).filter(({ fan }) => fan.team !== -1 && fan.row >= 2 && fan.row <= 4);
+      const able = this.fans.filter((fan) => fan.team !== -1 && fan.row >= 2 && fan.row <= 4);
       const step = Math.floor(able.length / look.signs.count);
-      if (step >= 1) for (let k = 0; k < look.signs.count; k++) this.holders.push(able[k * step + Math.floor(step / 2)]!.i);
+      if (step >= 1) for (let k = 0; k < look.signs.count; k++) able[k * step + Math.floor(step / 2)]!.holder = true;
     }
+    this.seatPictures();
   }
 
   /**
-   * Draws the crowd. `excitement` is 0 to 1; `cheering` is the team whose fans are on their feet, or null.
+   * Moves the crowd for this frame. `excitement` is 0 to 1; `cheering` is the team whose fans are on their feet, or null.
    * `still` skips the movement, for the low-detail setting.
    */
-  draw(g: Phaser.GameObjects.Graphics, timeSeconds: number, excitement: number, cheering: 0 | 1 | null, teamColours: [string, string], still: boolean, noFlashes = false, moods: readonly [number, number] = [0, 0]): void {
-    const size = arena.fanSize;
-    const neutrals = arena.neutralColours.map(colour);
-    const teams = [colour(teamColours[0]), colour(teamColours[1])];
+  move(timeSeconds: number, excitement: number, cheering: 0 | 1 | null, still: boolean, noFlashes = false, moods: readonly [number, number] = [0, 0]): void {
+    const big = comic.headSize;
+    const shown = this.bobs.length === this.fans.length * this.perFan;
     // Cameras: a different handful of fans each moment, more of them the louder it is. No dice: the moment picks them.
     const flashes = still || noFlashes ? 0 : Math.round(this.fans.length * this.venue.flashShare * excitement);
     const moment = Math.floor(timeSeconds * arena.flashesPerSecond);
+    let lit = 0;
     this.signs.length = 0;
-    for (const [index, fan] of this.fans.entries()) {
+    for (let index = 0; index < this.fans.length; index++) {
+      const fan = this.fans[index] as Fan;
       const mine = fan.team !== -1 && fan.team === cheering;
       // Everyone sways a little; a cheering team's fans jump, and the rest stir with the noise.
       // A side that is ahead is livelier; one well behind sits dim and still, until its own team scores.
       const mood = fan.team === -1 ? 0 : (moods[fan.team] ?? 0);
       const spirit = mine ? 1 : mood > 0 ? arena.mood.aheadSway : mood < 0 ? arena.mood.sagSway : 1;
       const lift = still ? 0 : Math.abs(Math.sin(timeSeconds * (mine ? arena.jumpSpeed : arena.swaySpeed) + fan.phase)) * (mine ? arena.jumpPixels : arena.swayPixels * (0.4 + excitement) * spirit);
-      const tint = fan.team === -1 ? (neutrals[fan.shade] as number) : (teams[fan.team] as number);
       const alpha = fan.team === -1 ? 0.55 + excitement * 0.3 : mood < 0 && !mine ? 0.95 * arena.mood.sagAlpha : 0.95;
-      if (this.heads) {
-        // A person: shoulders in his colours with a line of ink round them, and a head.
-        const big = comic.headSize;
-        const y = fan.y - lift;
-        g.fillStyle(colour(comic.inkColour), Math.min(1, alpha + 0.2));
-        g.fillRect(fan.x - big / 2 - 1, y - big * 0.1 - 1, big + 2, big * 0.6 + 2);
-        g.fillCircle(fan.x, y - big * 0.28, big * 0.36 + 1);
-        g.fillStyle(tint, Math.min(1, alpha + 0.2));
-        g.fillRect(fan.x - big / 2, y - big * 0.1, big, big * 0.6);
-        g.fillStyle(colour(comic.headSkins[(index * 13 + fan.shade) % comic.headSkins.length] as string), mood < 0 && !mine ? arena.mood.sagAlpha : 1);
-        g.fillCircle(fan.x, y - big * 0.28, big * 0.36);
-        if (fan.team !== -1 && this.holders.includes(index)) this.signs.push({ x: fan.x, y: y - big * 0.5, team: fan.team, up: mine });
-      } else {
-        g.fillStyle(tint, alpha);
-        g.fillRect(fan.x - size / 2, fan.y - size / 2 - lift, size, size);
+      const y = fan.y - lift;
+      if (fan.holder && fan.team !== -1) this.signs.push({ x: fan.x, y: y - big * 0.5, team: fan.team, up: mine });
+      if (shown) {
+        const top = y - this.half;
+        if (this.heads) {
+          // A person: shoulders in his colours with a line of ink round them, and a head.
+          const ink = this.bobs[index * 3] as Phaser.GameObjects.Bob;
+          const shoulders = this.bobs[index * 3 + 1] as Phaser.GameObjects.Bob;
+          const head = this.bobs[index * 3 + 2] as Phaser.GameObjects.Bob;
+          ink.y = shoulders.y = head.y = top;
+          ink.alpha = shoulders.alpha = Math.min(1, alpha + 0.2);
+          head.alpha = mood < 0 && !mine ? arena.mood.sagAlpha : 1;
+        } else {
+          const square = this.bobs[index] as Phaser.GameObjects.Bob;
+          square.y = top;
+          square.alpha = alpha;
+        }
       }
       if (flashes > 0 && (index * 7919 + moment * 104729) % this.fans.length < flashes) {
-        g.fillStyle(colour(look.colours.light), 0.95);
-        g.fillCircle(fan.x, fan.y - lift, size * 0.9);
+        const flash = this.flashBobs[lit++];
+        if (flash) {
+          flash.x = fan.x - this.half;
+          flash.y = y - this.half;
+          flash.alpha = 0.95;
+          flash.visible = true;
+        }
       }
     }
+    for (let k = lit; k < this.flashBobs.length; k++) (this.flashBobs[k] as Phaser.GameObjects.Bob).visible = false;
   }
 }

@@ -13,8 +13,12 @@ const INK = F.ink;
 /** Pieces too small or too flat to carry a shadow of their own. */
 const FLAT: ReadonlySet<Tag> = new Set<Tag>(['eye', 'visor', 'cage', 'blade', 'stick']);
 
+/** A canvas on the page, or one with no page: the second kind is all a background thread has. */
+export type AnyCanvas = HTMLCanvasElement | OffscreenCanvas;
+type Pen = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
+
 /** Adds a piece's outline to the path being made, grown by `grow` and moved by (dx, dy). */
-function add(ctx: CanvasRenderingContext2D, s: Shape, grow: number, dx = 0, dy = 0): void {
+function add(ctx: Pen, s: Shape, grow: number, dx = 0, dy = 0): void {
   if (s.kind === 'circle') {
     ctx.moveTo(s.x + dx + Math.max(0, s.r + grow), s.y + dy);
     ctx.arc(s.x + dx, s.y + dy, Math.max(0, s.r + grow), 0, Math.PI * 2);
@@ -33,7 +37,7 @@ function add(ctx: CanvasRenderingContext2D, s: Shape, grow: number, dx = 0, dy =
   ctx.closePath();
 }
 
-function piece(ctx: CanvasRenderingContext2D, s: Shape, colour: string, grow: number): void {
+function piece(ctx: Pen, s: Shape, colour: string, grow: number): void {
   ctx.beginPath();
   add(ctx, s, s.kind === 'poly' ? 0 : grow);
   ctx.fillStyle = colour;
@@ -46,7 +50,7 @@ function piece(ctx: CanvasRenderingContext2D, s: Shape, colour: string, grow: nu
 }
 
 /** Fills the part of the clipped piece that the same piece, moved by (dx, dy), does not cover. */
-function uncovered(ctx: CanvasRenderingContext2D, s: Shape, dx: number, dy: number, colour: string): void {
+function uncovered(ctx: Pen, s: Shape, dx: number, dy: number, colour: string): void {
   ctx.beginPath();
   ctx.rect(-FIGURE_BOX.width, -FIGURE_BOX.height, FIGURE_BOX.width * 2, FIGURE_BOX.height * 2);
   add(ctx, s, 0, dx, dy);
@@ -55,7 +59,7 @@ function uncovered(ctx: CanvasRenderingContext2D, s: Shape, dx: number, dy: numb
 }
 
 /** A piece in its colour, with a hard-edged shadow on the side away from the light and a lit rim toward it. */
-function celPiece(ctx: CanvasRenderingContext2D, s: Shape, colour: string, ink: typeof INK): void {
+function celPiece(ctx: Pen, s: Shape, colour: string, ink: typeof INK): void {
   piece(ctx, s, colour, 0);
   ctx.save();
   ctx.beginPath();
@@ -73,23 +77,25 @@ function celPiece(ctx: CanvasRenderingContext2D, s: Shape, colour: string, ink: 
 const SOFT: CanvasRenderingContext2DSettings = { willReadFrequently: true };
 
 /** A second canvas the size of the one being painted, for working a shadow out before it is laid on. */
-let scratch: HTMLCanvasElement | null = null;
+let scratch: AnyCanvas | null = null;
+
+const pen = (canvas: AnyCanvas): Pen | null => (canvas as HTMLCanvasElement).getContext('2d', SOFT) as Pen | null;
 
 /**
  * Several pieces of one colour as a single shape: one line round the lot, one colour, and one shadow and one
  * lit edge worked out for the whole of it. Nothing shows where an upper arm meets a forearm, or a hip a thigh,
  * so he reads as drawn in one go and not as beads on a string.
  */
-function celGroup(ctx: CanvasRenderingContext2D, group: readonly Shape[], colour: string, ink: typeof INK, pixelsPerUnit: number): void {
+function celGroup(ctx: Pen, group: readonly Shape[], colour: string, ink: typeof INK, pixelsPerUnit: number): void {
   for (const s of group) piece(ctx, s, F.colours.outline, ink.inner);
   for (const s of group) piece(ctx, s, colour, 0);
   const main = ctx.canvas;
-  scratch ??= document.createElement('canvas');
+  scratch ??= typeof document === 'undefined' ? new OffscreenCanvas(main.width, main.height) : document.createElement('canvas');
   if (scratch.width !== main.width || scratch.height !== main.height) {
     scratch.width = main.width;
     scratch.height = main.height;
   }
-  const sc = scratch.getContext('2d', SOFT);
+  const sc = pen(scratch);
   if (!sc) return;
   /** The part of the whole shape that the same shape, moved by (dx, dy), does not cover, in one colour. */
   const edge = (dx: number, dy: number, fill: string, dots: number): void => {
@@ -124,7 +130,7 @@ function celGroup(ctx: CanvasRenderingContext2D, group: readonly Shape[], colour
     }
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(scratch as HTMLCanvasElement, 0, 0);
+    ctx.drawImage(scratch as AnyCanvas, 0, 0);
     ctx.restore();
   };
   edge(-ink.shadeX, -ink.shadeY, darken(colour, ink.shadeDark), ink.dots);
@@ -138,11 +144,11 @@ function celGroup(ctx: CanvasRenderingContext2D, group: readonly Shape[], colour
  * textures, one per pose, so a player costs one picture to draw instead of dozens of shapes every frame.
  * With `merge`, neighbouring pieces of one colour are painted as a single shape.
  */
-export function paintFigure(canvas: HTMLCanvasElement, shapes: readonly Shape[], colours: Record<Tag, string>, pixelsPerUnit: number, inkOver: Partial<typeof INK> = {}): void {
+export function paintFigure(canvas: AnyCanvas, shapes: readonly Shape[], colours: Record<Tag, string>, pixelsPerUnit: number, inkOver: Partial<typeof INK> = {}): void {
   const ink = { ...INK, ...inkOver };
   canvas.width = Math.ceil(FIGURE_BOX.width * pixelsPerUnit);
   canvas.height = Math.ceil(FIGURE_BOX.height * pixelsPerUnit);
-  const ctx = canvas.getContext('2d', SOFT);
+  const ctx = pen(canvas);
   if (!ctx) return;
   ctx.setTransform(pixelsPerUnit, 0, 0, pixelsPerUnit, canvas.width / 2, FIGURE_BOX.feetY * pixelsPerUnit);
   ctx.lineCap = 'round';

@@ -33,3 +33,6 @@ Rules written after a correction or a mistake on this project. Read at the start
 - **Small pictures made of many strokes belong in ordinary memory.** A canvas asked for with `willReadFrequently` painted and handed over a player picture three times faster.
 - **In the test browser, step the game a few hundred frames at a time.** A single call that steps thousands times out; a screenshot shows the frame before the last one, so take two.
 - **Do not let Python rewrite a hand-laid JSON file.** `json.dumps` kept `rinkLook.json` as it was but spread `mapLook.json` over 350 lines; add a line as text there.
+- **Time what Phaser does after `draw()` too.** The read-out timed our drawing at 5 ms while a frame took 25: the crowd's 3,100 shapes were paid for inside Phaser's render. Wrap `game.renderer.render` when timing, and hide one layer at a time to see what each costs.
+- **Hand Phaser a finished picture with `addImage`, not `addCanvas`.** Its canvas texture reads every pixel back when it is made, which took as long as painting the picture.
+- **The test browser's pane can be hidden, and then frames and timers stop.** Drive frames from a worker's timer when running the game live there.

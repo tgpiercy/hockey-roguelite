@@ -856,20 +856,25 @@ export function skinTone(id: number): string {
   return tones[(id * 7 + 3) % tones.length] as string;
 }
 
+/** The stick alone, from the lower hand to `end`: the shaft and the blade. */
+export function stickOf(hand: { x: number; y: number }, end: { x: number; y: number }, side: 1 | -1): Shape[] {
+  const dx = end.x - hand.x;
+  const dy = end.y - hand.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const butt = { x: hand.x - (dx / length) * F.stickGrip, y: hand.y - (dy / length) * F.stickGrip };
+  return [
+    { kind: 'limb', tag: 'stick', x1: butt.x, y1: butt.y, x2: end.x, y2: end.y, w: F.stickWidth, bare: true },
+    { kind: 'limb', tag: 'stick', x1: end.x, y1: end.y, x2: end.x + side * F.bladeLength, y2: end.y, w: F.stickWidth * 1.4, bare: true },
+  ];
+}
+
 /**
  * The figure's shapes with his stick added: a shaft from above his lower hand down to `end` (where the blade
  * meets the ice, in the figure's units) and the blade lying along the ice. It is slipped in behind his near
  * arm, so the glove is seen gripping it.
  */
 export function withStick(fig: Figure, end: { x: number; y: number }, side: 1 | -1): Shape[] {
-  const dx = end.x - fig.hand.x;
-  const dy = end.y - fig.hand.y;
-  const length = Math.hypot(dx, dy) || 1;
-  const butt = { x: fig.hand.x - (dx / length) * F.stickGrip, y: fig.hand.y - (dy / length) * F.stickGrip };
-  const stick: Shape[] = [
-    { kind: 'limb', tag: 'stick', x1: butt.x, y1: butt.y, x2: end.x, y2: end.y, w: F.stickWidth, bare: true },
-    { kind: 'limb', tag: 'stick', x1: end.x, y1: end.y, x2: end.x + side * F.bladeLength, y2: end.y, w: F.stickWidth * 1.4, bare: true },
-  ];
+  const stick = stickOf(fig.hand, end, side);
   // Behind the near arm, which is the last pieces of the list.
   const at = Math.max(0, fig.shapes.length - fig.nearArm);
   return [...fig.shapes.slice(0, at), ...stick, ...fig.shapes.slice(at)];

@@ -35,9 +35,10 @@ import { venueLook, type Venue } from './venue';
 import { drawCrest } from './drawCrest';
 import { depthStyle, paintDepth, type DepthStyle, type Span } from './rinkPaint';
 import { FIGURE_BOX, paintFigure } from './drawFigure';
+import { FigurePainter } from './figurePainter';
 import { Effects, type View } from './effects';
 import type { PlayerLook } from '../core/playerLook';
-import { facingSide, figure, figureColours, lookKey, PLAIN_LOOK, skinTone, viewOf, withStick, type Action, type FigureLook, type PoseInput, type View as Seen, STANDING } from './figure';
+import { facingSide, figure, figureColours, lookKey, PLAIN_LOOK, skinTone, stickOf, viewOf, type Action, type FigureLook, type PoseInput, type View as Seen, STANDING } from './figure';
 import { InputReader, type Controls } from './input';
 
 const colour = (hex: string): number => Number.parseInt(hex.slice(1), 16);
@@ -149,8 +150,13 @@ export class RinkScene extends Phaser.Scene {
   private paintedFor = '';
   /** The far boards, the glass and the lamps drawn with depth, or null for the flat rink (low detail). */
   private depth: DepthStyle | null = null;
-  /** How long each of the last frames took to draw, in milliseconds, beside the frame times. */
+  /**
+   * How long each of the last frames of play took the game, in milliseconds, beside the frame times: stepping the
+   * game, drawing, and Phaser putting it on the screen. Timing `draw()` alone missed the last part, which was most of it.
+   */
   private drawTimes: number[] = [];
+  private workFrom = 0;
+  private workCounts = false;
   private g!: Phaser.GameObjects.Graphics;
   private hud!: Phaser.GameObjects.Graphics;
   private adverts: Phaser.GameObjects.Text[] = [];
@@ -215,6 +221,11 @@ export class RinkScene extends Phaser.Scene {
   /** How many more new pictures may be painted this frame, and the picture each player was last shown with (kept for a frame when the limit is reached). */
   private paintsLeft = 0;
   private readonly lastKey = new Map<number, string>();
+  /** New pictures are painted on a thread of their own, so the game never waits for one; and the frame each player last had the very picture his pose asked for. */
+  private painter: FigurePainter | null = null;
+  private readonly exactAt = new Map<number, number>();
+  /** What the rink needs to know of a figure besides his picture (his top, his hand, his stick), kept by picture and side so it is worked out once. */
+  private readonly figureFacts = new Map<string, { top: number; hand: { x: number; y: number }; stickEnd: { x: number; y: number } | null }>();
   private figurePixels = 0;
   /** Seconds left with everything frozen (a big hit, a goal), and seconds left of slow motion after a goal. */
   private freeze = 0;
@@ -287,6 +298,7 @@ export class RinkScene extends Phaser.Scene {
 
     this.venue = venueLook(this.options.venue);
     this.crowd = new Crowd(this.venue, this.comic.heads);
+    this.crowd.attach(this, DEPTH.crowd, [this.teamColour(0), this.teamColour(1)]);
     this.depth = this.full ? depthStyle() : null;
     // Bottom to top under the players: the stands (a picture), the crowd, the sheet (a picture), then what changes on the ice.
     this.standsImage = this.add.image(0, 0, '__DEFAULT').setOrigin(0, 0).setDepth(DEPTH.stands).setVisible(false);
@@ -354,7 +366,32 @@ export class RinkScene extends Phaser.Scene {
     }
     this.hintText2 = this.add.text(0, 0, '', { ...heading, color: RET.colour2 }).setOrigin(0.5, 1).setDepth(DEPTH.hud).setStroke(c.panel, 5).setVisible(false);
     for (const item of [this.hud, ...this.nameTexts, ...this.scoreTexts, this.clockTextObject, ...this.barLabels, this.bigText, this.powerText]) item.setDepth(DEPTH.hud);
+    // Phaser's `setColor` paints the text again and sends it to the graphics card even when the colour is the one
+    // it has, and the scoreboard sets its colours every frame: a text is only painted again when its colour changes.
+    for (const child of this.children.list) {
+      if (!(child instanceof Phaser.GameObjects.Text)) continue;
+      const paint = child.setColor.bind(child);
+      child.setColor = (value) => (child.style.color === value ? child : paint(value));
+    }
+    const stepBegins = (): void => {
+      this.workFrom = performance.now();
+      this.workCounts = false;
+    };
+    const frameShown = (): void => {
+      if (!this.workCounts) return;
+      this.drawTimes.push(performance.now() - this.workFrom);
+      if (this.drawTimes.length > look.drawWindowFrames) this.drawTimes.shift();
+    };
+    this.game.events.on(Phaser.Core.Events.PRE_STEP, stepBegins);
+    this.game.events.on(Phaser.Core.Events.POST_RENDER, frameShown);
     this.events.once('destroy', () => {
+      this.game.events.off(Phaser.Core.Events.PRE_STEP, stepBegins);
+      this.game.events.off(Phaser.Core.Events.POST_RENDER, frameShown);
+    });
+    this.painter = new FigurePainter((key, bitmap, pixels, player, asked) => this.pictureCame(key, bitmap, pixels, player, asked));
+    this.events.once('destroy', () => {
+      this.painter?.dispose();
+      this.painter = null;
       this.reader.dispose();
       this.reader2?.dispose();
     });
@@ -923,7 +960,7 @@ export class RinkScene extends Phaser.Scene {
       const skin = own?.skin ?? skinTone(p.id);
       paintFigure(canvas, figure({ ...STANDING, cheer: true, pattern: crest.pattern }, who).shapes, figureColours(crest, false, skin, this.options.whiteTeam === p.team ? 'away' : 'home', own?.hairColour, who.costume), pixels);
       if (this.textures.exists(key)) this.textures.remove(key);
-      this.textures.addCanvas(key, canvas);
+      this.textures.addImage(key, canvas as unknown as HTMLImageElement);
       this.panelKey = key;
     }
     this.panelSprite.setTexture(key).setDisplaySize((tall * FIGURE_BOX.width) / FIGURE_BOX.height, tall).setPosition(fx, y + ph - capH + tall * (1 - FIGURE_BOX.feetY / FIGURE_BOX.height));
@@ -965,7 +1002,7 @@ export class RinkScene extends Phaser.Scene {
     this.originX = width / 2;
     this.originY = top + (height - top) / 2;
 
-    const started = performance.now();
+    this.workCounts = real > 0;
     this.ice.clear();
     this.crowdG.clear();
     this.g.clear();
@@ -980,10 +1017,6 @@ export class RinkScene extends Phaser.Scene {
     this.drawPuck(t);
     this.effects.drawOver(this.top, this.view);
     this.drawHud(t, width, height, real);
-    if (real > 0) {
-      this.drawTimes.push(performance.now() - started);
-      if (this.drawTimes.length > look.drawWindowFrames) this.drawTimes.shift();
-    }
   }
 
   /**
@@ -1114,7 +1147,19 @@ export class RinkScene extends Phaser.Scene {
     }
   }
 
-  /** The crowd in the stands and the signs it holds up: drawn every frame. */
+  /** A picture painted on the other thread has come back: kept, unless the rink was resized meanwhile or it is here already. */
+  private pictureCame(key: string, bitmap: ImageBitmap, pixels: number, player: number, asked: number): void {
+    if (!this.painter || Math.abs(pixels - this.figurePixels) > 0.05 || this.textures.exists(key)) {
+      bitmap.close();
+      return;
+    }
+    this.textures.addImage(key, bitmap as unknown as HTMLImageElement);
+    this.figureKeys.set(key, this.figureFrame);
+    // It is the newest picture of him there is, unless he has since been in a pose whose picture was already kept.
+    if ((this.exactAt.get(player) ?? -1) < asked) this.lastKey.set(player, key);
+  }
+
+  /** The crowd in the stands and the signs it holds up: the people are pictures, moved each frame; only the signs are drawn. */
   private drawCrowd(t: Tuning, width: number, height: number): void {
     const g = this.crowdG;
     const z = this.zoom;
@@ -1126,7 +1171,7 @@ export class RinkScene extends Phaser.Scene {
     const w = t.rink.length * z;
     const h = t.rink.width * z;
     this.crowd.layout(left, topEdge, w, h, corner, width, height, look.topBarPixels);
-    this.crowd.draw(g, this.clock, this.effects.excitement, this.effects.cheering, [this.teamColour(0), this.teamColour(1)], !this.full, this.options.calm === true, crowdMoods(this.world.score));
+    this.crowd.move(this.clock, this.effects.excitement, this.effects.cheering, !this.full, this.options.calm === true, crowdMoods(this.world.score));
     // The signs: a board on a stick over the holder's head, lettered by a text of its own. Their side's are up
     // and bouncing when it scores; the rest are held a little lower.
     const SG = look.signs;
@@ -1415,6 +1460,7 @@ export class RinkScene extends Phaser.Scene {
     if (Math.abs(pixels - this.figurePixels) > 0.05) {
       for (const key of this.figureKeys.keys()) this.textures.remove(key);
       this.figureKeys.clear();
+      this.figureFacts.clear();
       this.figurePixels = pixels;
     }
     // The lights come up as the game begins: a dark veil over the building that lifts in the first moments.
@@ -1641,21 +1687,39 @@ export class RinkScene extends Phaser.Scene {
       };
       const skin = own?.skin ?? skinTone(p.id);
       let key = `figure-${half || dropping ? 'h-' : ''}${carve !== 0 ? `c${carve}-` : ''}${cheerStyle ? `y${cheerStyle}-` : ''}${p.team}-${goalie ? (down || dropping ? 'gd' : 'g') : 's'}-${skin}-${own?.hairColour ?? ''}-${lookKey(who)}-${view}-${carve !== 0 ? 0 : strideStep}-${speedStep}-${wound}${cheer ? '-cheer' : ''}${mateCheer ? '-mate' : ''}${kneel ? '-kneel' : ''}${glide ? '-glide' : ''}${fallen ? '-fallen' : ''}${action ? `-${action}` : ''}${goalie ? `-a${alertStep}` : ''}`;
-      if (!this.textures.exists(key)) {
-        // Painting a picture takes several milliseconds, so only a few are painted in one frame: past that he keeps
-        // the picture he had for one frame more, which nobody sees, where a pause in the game would be seen.
+      const poseKey = key;
+      if (this.textures.exists(key)) this.exactAt.set(p.id, this.figureFrame);
+      else {
+        // Painting a picture takes a millisecond or two here and several on a phone, so the game does not wait for
+        // one: it is painted on a thread of its own and he keeps the picture he had for the frame or two that takes,
+        // which nobody sees, where a pause in the game would be seen. Only a player with no picture at all (the
+        // first frame, a resized rink) is painted on the spot; so is everyone where there is no such thread, a few a frame.
         const before = this.lastKey.get(p.id);
-        if (this.paintsLeft <= 0 && before !== undefined && this.textures.exists(before)) key = before;
+        const has = before !== undefined && this.textures.exists(before);
+        const colours = (): ReturnType<typeof figureColours> => figureColours(crest, goalie, skin, this.options.whiteTeam === p.team ? 'away' : 'home', own?.hairColour, who.costume);
+        if (has && this.painter?.ready) {
+          if (!this.painter.waiting.has(key) && this.painter.waiting.size < FIG.paintsWaiting) this.painter.ask(key, figure(pose, who).shapes, colours(), pixels, p.id, this.figureFrame);
+          key = before;
+        } else if (has && this.paintsLeft <= 0) key = before;
         else {
           this.paintsLeft -= 1;
           const canvas = document.createElement('canvas');
-          paintFigure(canvas, figure(pose, who).shapes, figureColours(crest, goalie, skin, this.options.whiteTeam === p.team ? 'away' : 'home', own?.hairColour, who.costume), pixels);
-          this.textures.addCanvas(key, canvas);
+          paintFigure(canvas, figure(pose, who).shapes, colours(), pixels);
+          // As a plain picture: Phaser's own canvas texture reads every pixel back when it is made, which took as long as the painting.
+          this.textures.addImage(key, canvas as unknown as HTMLImageElement);
+          this.exactAt.set(p.id, this.figureFrame);
         }
       }
       this.lastKey.set(p.id, key);
       this.figureKeys.set(key, this.figureFrame);
-      const fig = figure({ ...pose, side }, who);
+      const factsKey = side === 1 ? poseKey : `${poseKey}|`;
+      let fig = this.figureFacts.get(factsKey);
+      if (!fig) {
+        const built = figure({ ...pose, side }, who);
+        fig = { top: built.top, hand: built.hand, stickEnd: built.stickEnd };
+        if (this.figureFacts.size >= FIG.maxTextures * 4) this.figureFacts.clear();
+        this.figureFacts.set(factsKey, fig);
+      }
 
       // His shadow on the ice marks where he really is, and how big.
       g.fillStyle(colour(c.shadow), 0.22 * alpha);
@@ -1807,8 +1871,8 @@ export class RinkScene extends Phaser.Scene {
       const leanSin = Math.sin(lean);
       // The blade stays where the puck is: the stick is laid out as if he stood straight, then turned with him.
       const upright = { x: end.x * leanCos + end.y * leanSin, y: -end.x * leanSin + end.y * leanCos };
-      for (const piece of withStick(fig, upright, side)) {
-        if (piece.tag !== 'stick' || piece.kind !== 'limb') continue;
+      for (const piece of stickOf(fig.hand, upright, side)) {
+        if (piece.kind !== 'limb') continue;
         g.lineStyle(Math.max(1.5, piece.w * unit), colour(c.stick), alpha);
         // The stick turns with him when he leans.
         g.lineBetween(x + (piece.x1 * leanCos - piece.y1 * leanSin) * unit, y + (piece.x1 * leanSin + piece.y1 * leanCos) * unit, x + (piece.x2 * leanCos - piece.y2 * leanSin) * unit, y + (piece.x2 * leanSin + piece.y2 * leanCos) * unit);

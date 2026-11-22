@@ -186,7 +186,7 @@ export function PauseMenu({ endNote, onResume, onTuning, onEnd, onPrefs, tactics
     <Menu
       key="main"
       title="Paused"
-      {...(frames ? { header: `Running at ${frames.fps} frames a second; slowest frame ${frames.worstMs} ms; drawing takes ${frames.drawMs} ms a frame (last ten seconds of play).` } : {})}
+      {...(frames ? { header: `Running at ${frames.fps} frames a second; slowest frame ${frames.worstMs} ms; the game's work takes ${frames.drawMs} ms a frame (last ten seconds of play).` } : {})}
       onBack={onResume}
       help="A select · B resume"
       items={[
