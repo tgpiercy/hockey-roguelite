@@ -741,3 +741,4 @@ The phone ran at about 22 frames a second. A cloud session's fix could not be re
 - Changed from the plan: scars, nets and bench were left; the painter was built without waiting to see whether it was needed, because a new picture was wanted on 3 frames in 4.
 - Seen on screen: the crowd, players, a goal, a replay, a resize, the built game running live. Tests only: nothing new. Not seen or measured: a phone, a slowed processor, low detail, other rinks, the calm setting, two players, offline play.
 - Not the same pixel for pixel: the painter's pictures differ from the old ones in about 1.5% of pixels, on shadow edges; not visible side by side.
+- Corrected by the owner after the deploy: every player was upside down on the phone. The painter's pictures were handed to Phaser in a form the phone's browser does not turn over; they now go onto a canvas of the page first. The check in the test browser could not have shown it.

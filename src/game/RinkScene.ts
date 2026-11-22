@@ -1153,7 +1153,20 @@ export class RinkScene extends Phaser.Scene {
       bitmap.close();
       return;
     }
-    this.textures.addImage(key, bitmap as unknown as HTMLImageElement);
+    // Onto a canvas of the page first, and that is what Phaser is given. Handed the picture as it came, Phaser asks the
+    // graphics card to turn it over as it does every picture, and browsers disagree on whether that applies to this
+    // kind: the PC's did it and the phone's did not, so every player stood on his head on the phone (2026-11-21).
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const pen = canvas.getContext('2d', { willReadFrequently: true });
+    if (!pen) {
+      bitmap.close();
+      return;
+    }
+    pen.drawImage(bitmap, 0, 0);
+    bitmap.close();
+    this.textures.addImage(key, canvas as unknown as HTMLImageElement);
     this.figureKeys.set(key, this.figureFrame);
     // It is the newest picture of him there is, unless he has since been in a pose whose picture was already kept.
     if ((this.exactAt.get(player) ?? -1) < asked) this.lastKey.set(player, key);
